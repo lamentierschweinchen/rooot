@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>ROOOT — an early look</title>
+  <meta name="description" content="Watch the match with the whole world's pulse on your phone — and keep what you lived, forever. An early look at ROOOT, being built live during the World Cup." />
+  <meta property="og:title" content="ROOOT — an early look" />
+  <meta property="og:description" content="Watch the match with the whole world's pulse — root your side, cheer, call it, keep what you lived. Early concept: tear it apart." />
+  <meta property="og:site_name" content="ROOOT" />
+  <meta property="og:type" content="website" />
+  <meta name="theme-color" content="#0B110C" />
+</head>
+<body>
+<style>
+  :root{
+    --ground:#0B110C; --panel:#111A12; --panel2:#0E150F;
+    --chalk:#EDE6D6; --dim:#9BA391; --faint:#5F6A5C;
+    --gold:#D9A441; --gold-hi:#E9C271; --gold-dim:rgba(217,164,65,.32);
+    --red:#C24A33; --line:rgba(237,230,214,.13);
+    --serif:Georgia,'Times New Roman',serif;
+    --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  }
+  html{background:var(--ground)}
+  body{background:var(--ground);color:var(--chalk);font-family:var(--sans);line-height:1.65;margin:0}
+  .wrap{max-width:640px;margin:0 auto;padding:0 22px 90px}
+  a{color:var(--gold);text-decoration:none;border-bottom:1px solid var(--gold-dim)}
+  strong{color:var(--chalk)} em{color:var(--dim)}
+  p{margin:0 0 14px}
+  .hero{padding:64px 0 8px;text-align:center}
+  .mark{display:flex;align-items:center;justify-content:center;gap:.05em}
+  .mark .ltr{font-family:var(--serif);font-size:clamp(52px,15vw,84px);line-height:.9;color:var(--chalk)}
+  .mark svg{height:clamp(40px,11.5vw,64px);width:auto}
+  @media (prefers-reduced-motion: no-preference){
+    .mark svg circle{transform-origin:center;animation:ring 5.5s ease-in-out infinite}
+    .mark svg circle:nth-child(2){animation-delay:.35s}
+    .mark svg circle:nth-child(3){animation-delay:.7s}
+    @keyframes ring{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+  }
+  .hero .tag{font-family:var(--serif);font-size:clamp(17px,4.6vw,22px);margin:20px auto 8px;max-width:24ch;line-height:1.35;text-wrap:balance}
+  .hero .note{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint);margin-top:14px}
+  #belief{display:block;width:100%;height:150px;margin:26px 0 2px}
+  .cap{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);text-align:center;margin-bottom:6px}
+  h2{font-family:var(--serif);font-weight:400;font-size:24px;margin:54px 0 12px;letter-spacing:-.005em;text-wrap:balance}
+  .verb{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin:10px 0}
+  .verb .k{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);display:block;margin-bottom:5px}
+  .verb h3{margin:0 0 5px;font-family:var(--serif);font-weight:400;font-size:20px}
+  .verb p{font-size:14px;color:var(--dim);margin:0}
+  .keeps{border-left:3px solid var(--gold);background:var(--panel2);padding:14px 18px;margin:16px 0;border-radius:0 8px 8px 0}
+  .keeps p{margin:0 0 8px}.keeps p:last-child{margin:0}
+  .not{font-size:14px;color:var(--dim);border:1px dashed var(--line);border-radius:8px;padding:12px 16px;margin:18px 0}
+  .qs{background:var(--panel);border:1px solid var(--gold-dim);border-radius:12px;padding:20px 22px;margin:22px 0}
+  .qs ol{margin:0;padding-left:20px}
+  .qs li{margin-bottom:12px;font-size:15px}
+  .qs li::marker{color:var(--gold);font-family:var(--mono)}
+  .qs .send{margin-top:14px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
+  .foot{margin-top:64px;padding-top:18px;border-top:2px dashed var(--line);font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);text-align:center;line-height:2}
+</style>
+<div class="wrap">
+  <div class="hero">
+    <div class="mark" role="img" aria-label="ROOOT">
+      <span class="ltr">R</span>
+      <svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="44" fill="none" stroke="#D9A441" stroke-width="3"/><circle cx="50" cy="50" r="30" fill="none" stroke="#D9A441" stroke-width="2" opacity=".55"/><circle cx="50" cy="50" r="16" fill="none" stroke="#D9A441" stroke-width="1.5" opacity=".3"/></svg>
+      <svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="44" fill="none" stroke="#D9A441" stroke-width="3"/><circle cx="50" cy="50" r="30" fill="none" stroke="#D9A441" stroke-width="2" opacity=".55"/><circle cx="50" cy="50" r="16" fill="none" stroke="#D9A441" stroke-width="1.5" opacity=".3"/></svg>
+      <svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="44" fill="none" stroke="#D9A441" stroke-width="3"/><circle cx="50" cy="50" r="30" fill="none" stroke="#D9A441" stroke-width="2" opacity=".55"/><circle cx="50" cy="50" r="16" fill="none" stroke="#D9A441" stroke-width="1.5" opacity=".3"/></svg>
+      <span class="ltr">T</span>
+    </div>
+    <p class="tag">Watch the match with the whole world's pulse on your phone — and keep what you lived, forever.</p>
+    <div class="note">early concept · being built live during the World Cup · you're getting the first look</div>
+  </div>
+
+  <div>
+    <div class="cap">a match's heartbeat — the world's live belief in one team, real data</div>
+    <canvas id="belief" aria-label="A line tracing a match's swings of belief — collapses, comebacks, a late winner"></canvas>
+  </div>
+
+  <h2>The idea</h2>
+  <p>Every match, real money around the planet holds a live opinion on who wins — it trembles at every chance and lurches at every goal. It's the most dramatic signal in football, and fans never get to <em>feel</em> it. ROOOT turns it into weather: a floodlit night pitch on your phone where <strong>your side's light pushes against theirs</strong>, and the fog between them is the doubt. When your team's down to a 12% chance, you <em>see</em> the darkness. When the comeback lands, fire.</p>
+  <p>You're not watching alone. Behind each goal are <strong>the ends</strong> — everyone on Earth rooting your side, burning as one crowd of light. The louder you all cheer, the brighter you burn. The other lot are right there, pulling the other way.</p>
+
+  <h2>Three things you do</h2>
+  <div class="verb"><span class="k">once</span><h3>Root</h3><p>Pick your side — your country, your blood, or tonight's adopted underdog. You join that end. A live counter shows the two crowds massing: 12,431 v 8,207.</p></div>
+  <div class="verb"><span class="k">whenever you feel it</span><h3>Cheer</h3><p>One tap. Your end flares a little brighter — you can see your own tap land in the roar. Cheering while you're <em>losing</em> counts double. Faith is worth more than glory-hunting.</p></div>
+  <div class="verb"><span class="k">when you dare</span><h3>Call it</h3><p>Down a goal in the 71st minute and you feel the comeback? Press and hold — R-O-O-O-O… — release, and it's on the record with a timestamp: <em>"Minute 71. The world said 12%. You called it."</em> If you're right, that receipt is yours forever, and nobody in the group chat can ever dispute it again.</p></div>
+
+  <h2>Us against them — even off the pitch</h2>
+  <p>Your team can lose the match and your crowd can still <strong>win the stands</strong>: which end was louder, which kept the faith while behind, which called it better. There's a verdict at the whistle — <em>"They won the match. We won the stands."</em> — and a running table of the world's best fans across the tournament.</p>
+  <p>And you can pull your own people in: one link makes <strong>your row</strong> — up to eleven of you, your names on the same living match, talking among yourselves while the whole world roars around you.</p>
+
+  <h2>Keep what you lived</h2>
+  <div class="keeps">
+    <p><strong>The scarf</strong> — after the whistle, the whole ninety minutes exists as a woven scarf: the swings of belief as the stripe pattern, goals as metallic threads, your calls stitched in gold at the minute you made them, your flags in the ends. Everyone who was there gets their edition — like a crowd photo you can prove you're in.</p>
+    <p><strong>The rosette</strong> — your personal one: your cheers, your faith through the dark spells, your receipts — pressed into an old-school club rosette.</p>
+    <p><strong>The trophy case</strong> — every match you attended, on a shelf. Your World Cup.</p>
+  </div>
+  <p style="font-size:14px;color:var(--dim)">All of it is free and permanently yours — saved in a way that can't be deleted, faked, or taken back, and that outlives any app. <em>(There's serious tech underneath; you never have to touch or understand it.)</em></p>
+
+  <div class="not">⚠️ What it's <strong>not</strong>: no betting, no money at stake, no coins to buy, nothing to trade. The only currency is being right, being loud, and being there.</div>
+
+  <h2>Your turn — tear it apart</h2>
+  <p>This is being built <em>this week</em>, live against the real matches. Before it hardens, I want fan truth:</p>
+  <div class="qs">
+    <ol>
+      <li><strong>Who's your team — and your heritage team?</strong> (Would you root your country, your family's country, or adopt a team for one crazy night?)</li>
+      <li><strong>Honestly: during a match, is your phone in your hand or in your pocket?</strong> Would you actually tap a cheer button — and when? (Every touch? Only big moments? Never?)</li>
+      <li><strong>What's one match moment from your life you'd want to hold in your hand forever?</strong> (The exact minute, where you were, who with.)</li>
+      <li><strong>Would you pull your group chat into a row?</strong> Who's in it? What would they need to actually join mid-match?</li>
+      <li><strong>What would make you open this every match day — and what here is dumb?</strong> Be brutal. Missing features welcome.</li>
+    </ol>
+    <div class="send">→ just text your answers back to the person who sent you this</div>
+  </div>
+
+  <div class="foot">ROOOT · rooot.club (soon) · built live during the tournament<br>the game is the game — this rides alongside</div>
+</div>
+
+<script>
+(function(){
+  var c=document.getElementById('belief'); if(!c) return;
+  var ctx=c.getContext('2d'), W,H,DPR=Math.min(window.devicePixelRatio||1,2);
+  var reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function size(){W=c.clientWidth;H=c.clientHeight;c.width=W*DPR;c.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0)}
+  size(); addEventListener('resize',function(){size();draw(1)});
+  var N=560, pts=[], seed=97;
+  function rnd(){seed=(seed*16807)%2147483647;return seed/2147483647}
+  (function gen(){var p=0.44,drift=0;for(var i=0;i<N;i++){
+    drift+=(rnd()-0.5)*0.012; drift*=0.94;
+    if(i===Math.floor(N*0.38)){p-=0.19}
+    if(i===Math.floor(N*0.63)){p+=0.13}
+    if(i===Math.floor(N*0.86)){p+=0.24}
+    p+=drift*0.35+(rnd()-0.5)*0.006; p=Math.max(0.04,Math.min(0.96,p));
+    pts.push(p);}})();
+  function xy(i){var x=i/(N-1)*(W-4)+2; var y=H-6-pts[i]*(H-14); return [x,y]}
+  function draw(prog){
+    ctx.clearRect(0,0,W,H);
+    ctx.strokeStyle='rgba(237,230,214,.14)';ctx.lineWidth=1;ctx.setLineDash([2,7]);
+    ctx.beginPath();ctx.moveTo(0,H-6-0.5*(H-14));ctx.lineTo(W,H-6-0.5*(H-14));ctx.stroke();ctx.setLineDash([]);
+    var upto=Math.max(2,Math.floor(N*prog));
+    ctx.strokeStyle='rgba(217,164,65,.14)';ctx.lineWidth=6;ctx.lineJoin='round';ctx.lineCap='round';
+    ctx.beginPath();for(var i=0;i<upto;i++){var p=xy(i);i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])}ctx.stroke();
+    ctx.strokeStyle='#E9C271';ctx.lineWidth=1.5;
+    ctx.beginPath();for(var j=0;j<upto;j++){var q=xy(j);j?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1])}ctx.stroke();
+    if(prog<1){var h=xy(upto-1);
+      ctx.fillStyle='rgba(233,194,113,.22)';ctx.beginPath();ctx.arc(h[0],h[1],6,0,7);ctx.fill();
+      ctx.fillStyle='#F4DCA8';ctx.beginPath();ctx.arc(h[0],h[1],2,0,7);ctx.fill();}
+  }
+  if(reduced){draw(1);return}
+  var t0=null,DUR=14000,HOLD=2400;
+  function tick(ts){if(!t0)t0=ts;var el=(ts-t0)%(DUR+HOLD);draw(Math.min(1,el/DUR));requestAnimationFrame(tick)}
+  requestAnimationFrame(tick);
+})();
+</script>
+
+</body>
+</html>
