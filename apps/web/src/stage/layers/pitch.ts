@@ -24,14 +24,10 @@ export function drawPitchBase(ctx: CanvasRenderingContext2D, stage: StageRect, p
   ctx.fillStyle = bg;
   ctx.fillRect(stage.x, stage.y, stage.w, stage.h);
 
-  // 2) the grass base — barely-there green-black, darkest at the ends, a touch warmer mid
-  const grass = ctx.createLinearGradient(0, pitch.y, 0, pitch.y + pitch.h);
-  grass.addColorStop(0, rgba(RGB.grassDark, 0.0));
-  grass.addColorStop(0.16, rgba(RGB.grassDark, 0.85));
-  grass.addColorStop(0.5, rgba(RGB.grassDark, 1));
-  grass.addColorStop(0.84, rgba(RGB.grassDark, 0.85));
-  grass.addColorStop(1, rgba(RGB.grassDark, 0.0));
-  ctx.fillStyle = grass;
+  // 2) the grass base — solid barely-there green-black across the WHOLE pitch. (An earlier
+  //    alpha fade at the ends exposed the darker void and printed a dark band under each
+  //    lamp bank — the r2 "banding" bug. The end bands overlap the goal lines anyway.)
+  ctx.fillStyle = rgba(RGB.grassDark, 1);
   ctx.fillRect(pitch.x, pitch.y, pitch.w, pitch.h);
   // (mow bands deliberately omitted — any cross-hatch reads as a decorative UI pattern;
   //  grass texture comes only from the light pool + the global film grain.)

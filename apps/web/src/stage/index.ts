@@ -87,6 +87,8 @@ export function createStage(opts: { canvas: HTMLCanvasElement; fixture: Fixture;
 
   // baked texture sources
   const fogTile = bakeFogTile(256, 1337, 4);
+  // floored noise: multiplies the fog band (destination-in) so its edges break into tendrils
+  const fogMaskTile = bakeFogTile(256, 4242, 3, 0.5);
   const grainTile = bakeGrainTile(128, 7);
 
   // offscreen additive light buffer (sized to canvas, reused)
@@ -292,8 +294,8 @@ export function createStage(opts: { canvas: HTMLCanvasElement; fixture: Fixture;
     if (phase === 'PRE') energy *= 0.92;
     energy *= 0.6 + 0.4 * entryE;
 
-    // base clear (letterbox void)
-    ctx.fillStyle = '#050708';
+    // base clear (letterbox void — genuinely dark, the picture is contrast)
+    ctx.fillStyle = '#030509';
     ctx.fillRect(0, 0, w, h);
 
     // pitch base + faint chalk (chalk fades in on entry)
@@ -331,6 +333,7 @@ export function createStage(opts: { canvas: HTMLCanvasElement; fixture: Fixture;
       pitch,
       front,
       tile: fogTile,
+      mask: fogMaskTile,
       t: clock,
       tension: fogTension(),
       reducedMotion,
@@ -339,26 +342,18 @@ export function createStage(opts: { canvas: HTMLCanvasElement; fixture: Fixture;
     // chalk over the lit grass (so lines read where the pitch is bright)
     drawChalk(ctx, pitch, GEO.goalWidth, entryE);
 
-    // the ends (crowd) — vertical, in the margins
+    // the ends (crowd atmosphere) — vertical, in the margins
     const homeBehind = homeScore < awayScore;
     const awayBehind = awayScore < homeScore;
-    ends.draw(
-      ctx,
-      stage,
-      pitch,
-      homeTheme,
-      awayTheme,
-      {
-        roarHome: crowd.roar.home,
-        roarAway: crowd.roar.away,
-        countHome: crowd.counts.home,
-        countAway: crowd.counts.away,
-        homeBehind,
-        awayBehind,
-      },
-      clock,
-      reducedMotion,
-    );
+    const endInputs = {
+      roarHome: crowd.roar.home,
+      roarAway: crowd.roar.away,
+      countHome: crowd.counts.home,
+      countAway: crowd.counts.away,
+      homeBehind,
+      awayBehind,
+    };
+    ends.draw(ctx, stage, pitch, homeTheme, awayTheme, endInputs, clock, reducedMotion);
 
     // the goal fire (over everything on the pitch)
     fire.draw(ctx, pitch);
@@ -373,7 +368,11 @@ export function createStage(opts: { canvas: HTMLCanvasElement; fixture: Fixture;
       ctx.restore();
     }
 
-    // scoreboard (chalk, programme voice)
+    // vignette crushes the corners to void, grain over all the ATMOSPHERE
+    drawVignette(ctx, stage);
+    drawGrain(ctx, stage, grainTile, frame, reducedMotion);
+
+    // ── chalk marks LAST — above every stage layer, always legible (r2 item 5) ──
     drawScoreboard(ctx, stage, pitch, {
       homeCode: fixture.home.code,
       awayCode: fixture.away.code,
@@ -386,13 +385,8 @@ export function createStage(opts: { canvas: HTMLCanvasElement; fixture: Fixture;
       homeTheme,
       awayTheme,
     });
-
-    // "your goal" marker — a small chalk chevron at the bottom if mySide known
+    ends.drawCounters(ctx, stage, pitch, endInputs);
     drawMySideHint(ctx, stage, pitch, mySide);
-
-    // vignette pulls corners to void, then grain over the whole stage
-    drawVignette(ctx, stage);
-    drawGrain(ctx, stage, grainTile, frame, reducedMotion);
 
     // feed-honesty line if not connected (dim, tiny, chalk) — never fakes liveness
     if (feedState !== 'connected') {
@@ -460,23 +454,26 @@ function drawMySideHint(
 ): void {
   if (!side) return;
   const isHome = side === 'home';
-  const y = isHome ? pitch.homeGoalY : pitch.awayGoalY;
   const dir = isHome ? 1 : -1;
   const cx = pitch.cx;
-  const s = stage.w * 0.02;
+  const s = stage.w * 0.018;
+  // deep at the band's outer edge — with the fans, clear of the rooted counter (which
+  // sits by the goal line)
+  const labelY = isHome ? stage.y + stage.h - stage.h * 0.022 : stage.y + stage.h * 0.024;
+  const chevY = labelY - dir * s * 2.2;
   ctx.save();
   ctx.strokeStyle = 'rgba(233,228,214,0.5)';
   ctx.lineWidth = Math.max(1, stage.w * 0.004);
   ctx.lineCap = 'round';
   ctx.beginPath();
-  ctx.moveTo(cx - s, y + dir * s * 1.6);
-  ctx.lineTo(cx, y + dir * s * 0.4);
-  ctx.lineTo(cx + s, y + dir * s * 1.6);
+  ctx.moveTo(cx - s, chevY + dir * s * 0.6);
+  ctx.lineTo(cx, chevY - dir * s * 0.6);
+  ctx.lineTo(cx + s, chevY + dir * s * 0.6);
   ctx.stroke();
-  ctx.font = `500 ${Math.max(9, stage.w * 0.024)}px ui-monospace, Menlo, monospace`;
+  ctx.font = `500 ${Math.max(9, stage.w * 0.022)}px ui-monospace, Menlo, monospace`;
   ctx.textAlign = 'center';
-  ctx.fillStyle = 'rgba(233,228,214,0.45)';
-  ctx.fillText('YOUR END', cx, y + dir * s * 3.2);
+  ctx.fillStyle = 'rgba(233,228,214,0.48)';
+  ctx.fillText('YOUR END', cx, labelY);
   ctx.restore();
 }
 

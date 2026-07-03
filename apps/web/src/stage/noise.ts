@@ -17,8 +17,13 @@ function makeCanvas(w: number, h: number): HTMLCanvasElement {
   return c;
 }
 
-/** Smoothed value noise baked into a greyscale tile (alpha carries the value). */
-export function bakeFogTile(size = 256, seed = 1337, octaves = 4): HTMLCanvasElement {
+/**
+ * Smoothed value noise baked into a greyscale tile (alpha carries the value).
+ * `floor` lifts the minimum alpha: 0 → pure texture (wisps on transparent, for churn);
+ * ~0.45 → a MASK tile (destination-in keeps most of the target but noise dips eat
+ * irregular bites — how the fog's edges break into tendrils instead of clean lines).
+ */
+export function bakeFogTile(size = 256, seed = 1337, octaves = 4, floor = 0): HTMLCanvasElement {
   const rnd = mulberry32(seed);
   // low-res lattice we bilinearly upsample for softness
   const lat = 32;
@@ -61,7 +66,7 @@ export function bakeFogTile(size = 256, seed = 1337, octaves = 4): HTMLCanvasEle
     for (let x = 0; x < size; x++) {
       const n = sample(x / size, y / size);
       // push contrast so wisps read; store value in RGB (white) + alpha
-      const v = clamp01((n - 0.35) * 1.9);
+      const v = clamp01(floor + (1 - floor) * clamp01((n - 0.35) * 1.9));
       const idx = (y * size + x) * 4;
       img.data[idx] = 255;
       img.data[idx + 1] = 255;

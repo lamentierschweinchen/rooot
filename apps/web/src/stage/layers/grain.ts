@@ -18,10 +18,13 @@ export function drawVignette(ctx: CanvasRenderingContext2D, stage: StageRect): v
   const cx = stage.x + stage.w / 2;
   const cy = stage.y + stage.h / 2;
   const r = Math.hypot(stage.w, stage.h) / 2;
-  const g = ctx.createRadialGradient(cx, cy, r * 0.55, cx, cy, r);
+  // HARD vignette (r2 tonality): the corners go to genuine near-black — the reference's
+  // void. Starts earlier and lands heavier than a decorative UI vignette.
+  const g = ctx.createRadialGradient(cx, cy, r * 0.42, cx, cy, r);
   g.addColorStop(0, 'rgba(0,0,0,0)');
-  g.addColorStop(0.7, 'rgba(4,6,8,0.35)');
-  g.addColorStop(1, 'rgba(3,5,7,0.92)');
+  g.addColorStop(0.5, 'rgba(3,5,8,0.28)');
+  g.addColorStop(0.78, 'rgba(3,4,7,0.62)');
+  g.addColorStop(1, 'rgba(2,3,6,0.97)');
   ctx.save();
   ctx.fillStyle = g;
   ctx.fillRect(stage.x, stage.y, stage.w, stage.h);

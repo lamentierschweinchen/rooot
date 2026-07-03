@@ -12,19 +12,27 @@
 import { hexToRgb } from '../lib/stage-math';
 
 export const PALETTE = {
-  /** The void behind everything — charcoal with a cold cast, top of floodlight-and-fog.jpg */
-  voidTop: '#070A0C',
-  voidBottom: '#0A0E10',
+  /**
+   * The void — deep, cool, near-black (floodlight-and-fog.jpg corners). Contrast is the
+   * whole picture: warm burning light against genuinely dark cold air.
+   */
+  voidTop: '#03050A',
+  voidBottom: '#05070C',
   /** grass barely-there under floodlight — green-black, only breathes green in the light pool */
-  grassDark: '#0C120E',
+  grassDark: '#090E0A',
   grassLit: '#1C3A22',
   grassGlow: '#3E7C48',
   /** chalk — the halfway line, scoreboard type, counters. Warm off-white, never pure #fff. */
   chalk: '#E9E4D6',
   chalkDim: '#9FA096',
   chalkFaint: '#5C625B',
-  /** the light itself — floodlight white, faintly warm at the source, cool in the shaft */
-  lightCore: '#F4F1E8',
+  /**
+   * The light — a WARM chalk body against the cool void (the reference's tonality).
+   * lampWhite = the blown-out burning lamp head; lampHalo = the warm halation around it.
+   */
+  lightCore: '#F5EDDA',
+  lampWhite: '#FFFDF4',
+  lampHalo: '#FFE2AC',
   lightShaft: '#C9D3D6',
   /** the fog bank = the draw. Cool grey haze (floodlight-and-fog.jpg fog body). */
   fog: '#8A939A',
@@ -46,6 +54,8 @@ export const RGB = {
   chalk: hexToRgb(PALETTE.chalk),
   chalkDim: hexToRgb(PALETTE.chalkDim),
   lightCore: hexToRgb(PALETTE.lightCore),
+  lampWhite: hexToRgb(PALETTE.lampWhite),
+  lampHalo: hexToRgb(PALETTE.lampHalo),
   lightShaft: hexToRgb(PALETTE.lightShaft),
   fog: hexToRgb(PALETTE.fog),
   fogDeep: hexToRgb(PALETTE.fogDeep),

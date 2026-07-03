@@ -30,7 +30,10 @@ export interface FogDrawArgs {
   buf: CanvasRenderingContext2D;
   pitch: PitchRect;
   front: MarketFront;
+  /** churn texture (floor 0 — wisps) */
   tile: HTMLCanvasElement;
+  /** edge-eating mask (floored noise — see bakeFogTile) */
+  mask: HTMLCanvasElement;
   t: number;
   /** 0..1 — late + level → thicker, stiller fog (penalties as weather) */
   tension: number;
@@ -38,7 +41,7 @@ export interface FogDrawArgs {
 }
 
 export function drawFog(a: FogDrawArgs): void {
-  const { ctx, buf, pitch, front, tile, t, tension, reducedMotion } = a;
+  const { ctx, buf, pitch, front, tile, mask, t, tension, reducedMotion } = a;
   const H = pitch.h;
 
   const rawTop = front.fogTopY;
@@ -75,13 +78,14 @@ export function drawFog(a: FogDrawArgs): void {
 
   buf.save();
 
-  // 1) vertical haze profile (0 → peak → 0)
+  // 1) vertical haze profile (0 → peak → 0). Peak is higher than the final look —
+  //    the tendril mask (2b) eats it back down irregularly.
   const featherFrac = clamp01(bleed / (bandH * 0.5 + 1e-3));
   const vgrad = buf.createLinearGradient(0, top, 0, bot);
   vgrad.addColorStop(0, rgba(RGB.fog, 0));
-  vgrad.addColorStop(clamp01(featherFrac * 0.85), rgba(RGB.fog, 0.06 * density));
-  vgrad.addColorStop(0.5, rgba(RGB.fog, 0.34 * density));
-  vgrad.addColorStop(clamp01(1 - featherFrac * 0.85), rgba(RGB.fog, 0.06 * density));
+  vgrad.addColorStop(clamp01(featherFrac * 0.85), rgba(RGB.fog, 0.08 * density));
+  vgrad.addColorStop(0.5, rgba(RGB.fog, 0.44 * density));
+  vgrad.addColorStop(clamp01(1 - featherFrac * 0.85), rgba(RGB.fog, 0.08 * density));
   vgrad.addColorStop(1, rgba(RGB.fog, 0));
   buf.fillStyle = vgrad;
   buf.fillRect(bx, top, bw, bandH);
@@ -95,6 +99,23 @@ export function drawFog(a: FogDrawArgs): void {
   hgrad.addColorStop(1, 'rgba(0,0,0,0)');
   buf.fillStyle = hgrad;
   buf.fillRect(bx, top, bw, bandH);
+
+  // 2b) TENDRILS — multiply the whole band by big, slowly-drifting floored noise
+  //     (destination-in). Where the vertical profile is already thin (the edges), noise
+  //     dips push it to zero in irregular lobes: the boundary breaks into soft fingers
+  //     instead of a clean architectural line. The floor keeps the core solid; the churn
+  //     pass (3) re-textures the interior. ONE pattern fill (destination-in is unbounded —
+  //     tiling with repeated drawImage would erase the band outside each tile).
+  const drift2 = reducedMotion ? 0 : t;
+  const ms = mask.width;
+  // lobes ~half the band tall → the edges break into readable fingers, not a broad tilt
+  const mScale = Math.max((bandH * 1.1) / ms, (w * 0.55) / ms);
+  const pat = buf.createPattern(mask, 'repeat');
+  if (pat) {
+    pat.setTransform(new DOMMatrix([mScale, 0, 0, mScale, drift2 * 2.5, -drift2 * 1.2]));
+    buf.fillStyle = pat;
+    buf.fillRect(bx, top, bw, bandH);
+  }
 
   // 3) drifting noise texture — only where haze exists (source-atop), churns the bank
   buf.globalCompositeOperation = 'source-atop';
@@ -125,32 +146,30 @@ export function drawFog(a: FogDrawArgs): void {
   ctx.drawImage(buf.canvas, bx - 4, top - 4, bw + 8, bandH + 8, bx - 4, top - 4, bw + 8, bandH + 8);
 
   // a faint additive scatter lip where fog meets each front (light dying into haze)
-  drawScatterLip(ctx, pitch, front.homeEdgeY, -1, density, extent);
-  drawScatterLip(ctx, pitch, front.awayEdgeY, +1, density, extent);
+  drawScatterLip(ctx, pitch, front.homeEdgeY, density, extent);
+  drawScatterLip(ctx, pitch, front.awayEdgeY, density, extent);
 }
 
 function drawScatterLip(
   ctx: CanvasRenderingContext2D,
   pitch: PitchRect,
   edgeY: number,
-  into: 1 | -1,
   density: number,
   extent: number,
 ): void {
   if (extent < 0.02) return;
-  const h = pitch.h * 0.06;
+  // symmetric glow centered ON the contact line (peak at the edge, fading both ways) —
+  // an asymmetric clipped gradient printed a hard horizontal seam at the clip boundary.
+  const h = pitch.h * 0.055;
   const cx = pitch.cx;
   const w = pitch.w;
-  const yTop = Math.min(edgeY, edgeY + into * h);
   ctx.save();
-  ctx.beginPath();
-  ctx.rect(cx - w / 2, yTop, w, h);
-  ctx.clip();
   ctx.globalCompositeOperation = 'lighter';
-  const g = ctx.createLinearGradient(0, edgeY, 0, edgeY + into * h);
-  g.addColorStop(0, rgba(RGB.fog, 0.1 * density));
+  const g = ctx.createLinearGradient(0, edgeY - h, 0, edgeY + h);
+  g.addColorStop(0, rgba(RGB.fog, 0));
+  g.addColorStop(0.5, rgba(RGB.fog, 0.11 * density));
   g.addColorStop(1, rgba(RGB.fog, 0));
   ctx.fillStyle = g;
-  ctx.fillRect(cx - w / 2, yTop, w, h);
+  ctx.fillRect(cx - w / 2, edgeY - h, w, h * 2);
   ctx.restore();
 }

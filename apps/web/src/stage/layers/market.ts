@@ -38,11 +38,16 @@ export interface MarketDrawArgs {
 }
 
 /**
- * One bank of shafts from a goal line toward an edge, into the additive light buffer.
- * `dir` +1 = bank at the bottom firing up (home); -1 = bank at top firing down (away).
- * Each lamp is a soft cone: a vertical gradient (bright at source → dies at edge) whose
- * horizontal extent is a smooth bell (no hard sides). Painted with 'lighter' so
- * neighbouring cones overlap into a continuous, breathing wall of light with soft gaps.
+ * One bank: 7 DISCRETE lamps (floodlight-and-fog.jpg), not a picket fence. Every lamp
+ * has its own seeded character (stable per fixture): intensity, width, a slight tilt.
+ * Per lamp, three elements:
+ *   1. the BURNING HEAD — a blown-white core + warm halation right at the goal line
+ *      (the reference's burning rectangles; the brightest pixels on the stage);
+ *   2. the SHAFT — a tilted soft column (concentric halo+core), bright at the head,
+ *      collapsing toward the probability edge; neighbours overlap into each other;
+ *   3. the TIP SCATTER — a soft bloom where the shaft dies into the fog (the fog
+ *      eating the light at the contact line).
+ * `dir` +1 = bank at the bottom firing up (home); -1 = at the top firing down (away).
  */
 function drawBank(
   lightCtx: CanvasRenderingContext2D,
@@ -59,26 +64,22 @@ function drawBank(
   const reach = Math.abs(edgeY - originY);
   if (reach < 1 || alive <= 0.001 || energy <= 0.001) return;
 
-  const core = side.lightTint; // floodlight white + a whisper of side color
-  const bankWidth = pitch.w * 1.06;
+  const core = side.lightTint; // warm floodlight white + a whisper of side color
+  const bankWidth = pitch.w * 1.02;
   const bx0 = pitch.cx - bankWidth / 2;
   const lampGap = bankWidth / LAMPS;
   const e = energy * alive;
   const yTop = Math.min(originY, edgeY);
+  const seedBase = dir === 1 ? 3 : 71; // stable per fixture side
 
-  // ── DISTINCT VERTICAL SHAFTS, drawn directly & additively on the light buffer. Each
-  //    shaft = a stack of concentric vertical rects (wide soft halo → narrow bright core),
-  //    each a vertical gradient bright at the floodlight source → dying before the fog
-  //    edge. The additive stack gives soft sides; the widest halo stays < the lamp spacing
-  //    so real dark GAPS survive between shafts — the floodlight-and-fog look. ──
   lightCtx.save();
   lightCtx.globalCompositeOperation = 'lighter';
 
-  // under-wash first (broad soft column filling the valleys just a little)
+  // faint under-wash — just enough that the pool reads continuous; the shafts carry it
   const wash = lightCtx.createLinearGradient(0, originY, 0, edgeY);
-  wash.addColorStop(0, rgba(core, 0.2 * e));
-  wash.addColorStop(0.5, rgba(core, 0.1 * e));
-  wash.addColorStop(0.85, rgba(core, 0.03 * e));
+  wash.addColorStop(0, rgba(core, 0.1 * e));
+  wash.addColorStop(0.45, rgba(core, 0.05 * e));
+  wash.addColorStop(0.8, rgba(core, 0.015 * e));
   wash.addColorStop(1, rgba(core, 0));
   lightCtx.save();
   lightCtx.beginPath();
@@ -88,49 +89,83 @@ function drawBank(
   lightCtx.fillRect(pitch.x, yTop, pitch.w, reach);
   lightCtx.restore();
 
-  // Each shaft = a stack of concentric-width vertical rects (soft sides from the additive
-  // overlap of 3 widths), EACH filled with a CONTINUOUS vertical gradient (bright at the
-  // floodlight source → collapsing toward the fog edge). Continuous gradient = no horizontal
-  // seams; the widest layer stays < lampGap/2 so dark GAPS survive between shafts. The core
-  // is offset a hair per lamp and brightness varies per lamp so the bank isn't a barcode.
   for (let i = 0; i < LAMPS; i++) {
-    const lampX = bx0 + lampGap * (i + 0.5);
-    const flick = reduced ? 1 : 0.9 + 0.1 * Math.sin(t * (1.2 + hash11(i) * 1.6) + i * 2.1);
-    const spread = 1 + 0.14 * Math.sin(t * 0.4 + i);
-    const lampVar = 0.72 + 0.28 * hash11(i * 4.7 + (dir === 1 ? 0 : 50));
+    // ── seeded per-lamp character (stable): intensity, width, tilt ──
+    const s1 = hash11(seedBase + i * 4.7);
+    const s2 = hash11(seedBase + i * 9.3 + 1.7);
+    const s3 = hash11(seedBase + i * 13.1 + 4.2);
+    const lampVar = 0.6 + 0.45 * s1; // some lamps burn hotter
+    const widthK = 0.85 + 0.45 * s2; // some are fatter
+    const tilt = (s3 - 0.5) * 0.14; // slight angular spread, ±4°
+    const lampX = bx0 + lampGap * (i + 0.5) + (s2 - 0.5) * lampGap * 0.18;
+    const flick = reduced ? 1 : 0.92 + 0.08 * Math.sin(t * (1.2 + s1 * 1.6) + i * 2.1);
     const peak = e * flick * lampVar;
+
+    // ── 2. the shaft — tilted via a shear transform around the head origin ──
+    lightCtx.save();
+    lightCtx.translate(lampX, originY);
+    lightCtx.transform(1, 0, tilt * -dir, 1, 0, 0); // shear: x drifts with distance from head
+    const relEdge = edgeY - originY; // negative for home (up), positive for away (down)
     const layers: Array<{ hw: number; k: number }> = [
-      { hw: lampGap * 0.5 * spread, k: 0.24 }, // wide soft halo
-      { hw: lampGap * 0.32 * spread, k: 0.4 }, // mid
-      { hw: lampGap * 0.16, k: 0.62 }, // bright core
+      { hw: lampGap * 0.62 * widthK, k: 0.26 }, // wide halo — overlaps the neighbours
+      { hw: lampGap * 0.3 * widthK, k: 0.5 }, // mid
+      { hw: lampGap * 0.13, k: 0.85 }, // bright core
     ];
     for (const L of layers) {
       const av = peak * L.k;
       if (av < 0.005) continue;
-      const vg = lightCtx.createLinearGradient(0, originY, 0, edgeY);
-      // continuous, hard-collapsing vertical falloff (pool at the source, die into fog)
+      const vg = lightCtx.createLinearGradient(0, 0, 0, relEdge);
+      // bright at the head, collapsing toward the fog edge
       vg.addColorStop(0, rgba(core, Math.min(1, av)));
-      vg.addColorStop(0.06, rgba(core, Math.min(1, av) * 0.92));
-      vg.addColorStop(0.22, rgba(core, av * 0.5));
-      vg.addColorStop(0.45, rgba(core, av * 0.22));
-      vg.addColorStop(0.7, rgba(core, av * 0.06));
+      vg.addColorStop(0.07, rgba(core, Math.min(1, av) * 0.9));
+      vg.addColorStop(0.25, rgba(core, av * 0.48));
+      vg.addColorStop(0.5, rgba(core, av * 0.2));
+      vg.addColorStop(0.78, rgba(core, av * 0.05));
       vg.addColorStop(1, rgba(core, 0));
       lightCtx.fillStyle = vg;
-      lightCtx.fillRect(lampX - L.hw, yTop, L.hw * 2, reach);
+      const y0 = Math.min(0, relEdge);
+      lightCtx.fillRect(-L.hw, y0, L.hw * 2, Math.abs(relEdge));
     }
+    lightCtx.restore();
+
+    // ── 3. tip scatter — the fog eats the light where the shaft dies ──
+    const tipX = lampX + tilt * -dir * relEdge; // where the sheared core lands at the edge
+    const tipR = lampGap * (0.7 + 0.3 * s2);
+    const tip = lightCtx.createRadialGradient(tipX, edgeY, 0, tipX, edgeY, tipR);
+    tip.addColorStop(0, rgba(RGB.fog, 0.16 * peak));
+    tip.addColorStop(0.6, rgba(RGB.fog, 0.06 * peak));
+    tip.addColorStop(1, rgba(RGB.fog, 0));
+    lightCtx.fillStyle = tip;
+    lightCtx.fillRect(tipX - tipR, edgeY - tipR, tipR * 2, tipR * 2);
+
+    // ── 1. the BURNING HEAD — blown-white core + warm halation (drawn last, on top) ──
+    const headY = originY + dir * pitch.h * 0.008; // a hair off-pitch, on the goal line
+    // broad soft bloom
+    const bloomR = lampGap * 1.15;
+    const bloom = lightCtx.createRadialGradient(lampX, headY, 0, lampX, headY, bloomR);
+    bloom.addColorStop(0, rgba(RGB.lampHalo, 0.4 * peak));
+    bloom.addColorStop(0.45, rgba(RGB.lampHalo, 0.12 * peak));
+    bloom.addColorStop(1, rgba(RGB.lampHalo, 0));
+    lightCtx.fillStyle = bloom;
+    lightCtx.fillRect(lampX - bloomR, headY - bloomR, bloomR * 2, bloomR * 2);
+    // warm halation ring
+    const haloR = lampGap * 0.5;
+    const halo = lightCtx.createRadialGradient(lampX, headY, 0, lampX, headY, haloR);
+    halo.addColorStop(0, rgba(RGB.lampWhite, 0.95 * peak));
+    halo.addColorStop(0.4, rgba(RGB.lampHalo, 0.45 * peak));
+    halo.addColorStop(1, rgba(RGB.lampHalo, 0));
+    lightCtx.fillStyle = halo;
+    lightCtx.fillRect(lampX - haloR, headY - haloR, haloR * 2, haloR * 2);
+    // the burning core — near-white, tiny, blown out
+    const coreR = lampGap * 0.17;
+    const head = lightCtx.createRadialGradient(lampX, headY, 0, lampX, headY, coreR);
+    head.addColorStop(0, rgba(RGB.lampWhite, Math.min(1, 1.4 * peak)));
+    head.addColorStop(0.65, rgba(RGB.lampWhite, 0.55 * peak));
+    head.addColorStop(1, rgba(RGB.lampWhite, 0));
+    lightCtx.fillStyle = head;
+    lightCtx.fillRect(lampX - coreR, headY - coreR, coreR * 2, coreR * 2);
   }
 
-  // 5) the floodlight bank flaring at the source — a bright, defined bloom at the goal
-  //    line (the lamps themselves), so the eye reads WHERE the light comes from.
-  const flareH = pitch.h * 0.07;
-  const fy = dir === 1 ? originY - flareH * 0.15 : originY - flareH * 0.85;
-  const srcGlow = lightCtx.createLinearGradient(0, fy, 0, fy + flareH);
-  const stopA = dir === 1 ? 1 : 0;
-  srcGlow.addColorStop(stopA, rgba(RGB.lightCore, 0.8 * e));
-  srcGlow.addColorStop(0.5, rgba(RGB.lightCore, 0.3 * e));
-  srcGlow.addColorStop(1 - stopA, rgba(RGB.lightCore, 0));
-  lightCtx.fillStyle = srcGlow;
-  lightCtx.fillRect(bx0, fy, bankWidth, flareH);
   lightCtx.restore();
 }
 
@@ -158,9 +193,9 @@ function drawGrassPool(
   main.globalCompositeOperation = 'lighter';
 
   const g = main.createLinearGradient(0, originY, 0, edgeY);
-  g.addColorStop(0, rgba(RGB.grassGlow, 0.34 * e * breath));
-  g.addColorStop(0.3, rgba(RGB.grassLit, 0.2 * e));
-  g.addColorStop(0.65, rgba(RGB.grassLit, 0.08 * e));
+  g.addColorStop(0, rgba(RGB.grassGlow, 0.26 * e * breath));
+  g.addColorStop(0.3, rgba(RGB.grassLit, 0.15 * e));
+  g.addColorStop(0.65, rgba(RGB.grassLit, 0.05 * e));
   g.addColorStop(1, rgba(RGB.grassGlow, 0));
   main.fillStyle = g;
   main.fillRect(pitch.x, Math.min(originY, edgeY), pitch.w, reach);

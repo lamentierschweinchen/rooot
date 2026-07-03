@@ -173,6 +173,7 @@ export function boot(canvas: HTMLCanvasElement, ui: HTMLElement): void {
 
   let playing = true;
   let speed = 1;
+  let roarBoost = false;
   let matchMin = -2; // start just before kickoff
   let firedScores = new Set<number>();
   let lastStatus: MatchPhase | null = null;
@@ -240,7 +241,14 @@ export function boot(canvas: HTMLCanvasElement, ui: HTMLElement): void {
         stage.callbacks.onOdds(oddsAt(matchMin));
       }
     }
-    stage.setCrowd(crowdAt(matchMin, curScore.h, curScore.a));
+    const c = crowdAt(matchMin, curScore.h, curScore.a);
+    if (roarBoost) {
+      // DEV override: both ends at full throat (verifies "the end BURNS" at high roar)
+      c.roar = { home: 26, away: 20 };
+      c.pulse.home.belief += 400;
+      c.pulse.away.belief += 300;
+    }
+    stage.setCrowd(c);
     updateReadout(matchMin);
     // When the tab is HIDDEN the stage's own RAF is paused, so pump it a frame here so
     // animation still advances under automation/headless capture. When visible, the
@@ -281,6 +289,7 @@ export function boot(canvas: HTMLCanvasElement, ui: HTMLElement): void {
         <button data-a="play">⏸ Pause</button>
         <button data-a="restart">⏮ Restart</button>
         <button data-a="shot" title="download this frame as a PNG">⤓ PNG</button>
+        <button data-a="roar" title="override: both ends at full roar">🔥 roar</button>
         <label>speed
           <select data-a="speed">
             <option value="0.5">0.5×</option>
@@ -339,6 +348,9 @@ export function boot(canvas: HTMLCanvasElement, ui: HTMLElement): void {
       link.download = `rooot-stage-${min}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
+    } else if (a === 'roar') {
+      roarBoost = !roarBoost;
+      t.textContent = roarBoost ? '🔥 ROARING' : '🔥 roar';
     } else if (a === 'play') {
       playing = !playing;
       syncButtons();

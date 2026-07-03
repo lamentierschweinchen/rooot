@@ -42,20 +42,26 @@ export function drawScoreboard(
   s: ScoreboardInputs,
 ): void {
   const cx = stage.x + stage.w / 2;
-  const topY = stage.y + stage.h * 0.04;
-  const nameFs = Math.max(12, stage.w * 0.036);
-  const scoreFs = Math.max(24, stage.w * 0.095);
-  const clockFs = Math.max(10, stage.w * 0.028);
+  // compact header pinned to the very top of the stage — it must finish well above the
+  // away goal line so it never fights the end band or the counter (r2 item 5).
+  const topY = stage.y + stage.h * 0.026;
+  const nameFs = Math.max(12, stage.w * 0.034);
+  const scoreFs = Math.max(22, stage.w * 0.085);
+  const clockFs = Math.max(10, stage.w * 0.027);
 
   ctx.save();
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
+  // soft dark backing stroke keeps chalk legible over lamp glow / crowd smoke
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = 'rgba(3,5,9,0.6)';
 
   // ── score line: HOME  n – n  AWAY ────────────────────────────────
   const gap = stage.w * 0.16;
   ctx.font = `600 ${scoreFs}px ui-monospace, Menlo, monospace`;
   const dash = '–';
   const dashW = ctx.measureText(dash).width;
+  const scoreY = topY + scoreFs;
 
   // leading side gets a whisper of color in its numeral
   const homeCol =
@@ -63,38 +69,48 @@ export function drawScoreboard(
   const awayCol =
     s.awayScore > s.homeScore ? mixRgb(RGB.chalk, s.awayTheme.primary, 0.35) : RGB.chalk;
 
+  ctx.lineWidth = Math.max(3, scoreFs * 0.1);
+  ctx.strokeText(dash, cx, scoreY);
   ctx.fillStyle = rgba(RGB.chalkDim, 0.85);
-  ctx.fillText(dash, cx, topY + scoreFs);
+  ctx.fillText(dash, cx, scoreY);
 
-  ctx.fillStyle = rgba(homeCol, 0.95);
   ctx.textAlign = 'right';
-  ctx.fillText(String(s.homeScore), cx - dashW * 0.9, topY + scoreFs);
+  ctx.strokeText(String(s.homeScore), cx - dashW * 0.9, scoreY);
+  ctx.fillStyle = rgba(homeCol, 0.95);
+  ctx.fillText(String(s.homeScore), cx - dashW * 0.9, scoreY);
 
-  ctx.fillStyle = rgba(awayCol, 0.95);
   ctx.textAlign = 'left';
-  ctx.fillText(String(s.awayScore), cx + dashW * 0.9, topY + scoreFs);
+  ctx.strokeText(String(s.awayScore), cx + dashW * 0.9, scoreY);
+  ctx.fillStyle = rgba(awayCol, 0.95);
+  ctx.fillText(String(s.awayScore), cx + dashW * 0.9, scoreY);
 
   // ── team codes + flags flanking, serif (programme voice) ─────────
   ctx.font = `500 ${nameFs}px Georgia, 'Times New Roman', serif`;
+  ctx.lineWidth = Math.max(2, nameFs * 0.14);
   ctx.textAlign = 'right';
-  ctx.fillStyle = rgba(RGB.chalk, 0.8);
+  ctx.strokeText(`${s.homeFlag} ${s.homeCode}`, cx - gap, topY + scoreFs * 0.62);
+  ctx.fillStyle = rgba(RGB.chalk, 0.82);
   ctx.fillText(`${s.homeFlag} ${s.homeCode}`, cx - gap, topY + scoreFs * 0.62);
   ctx.textAlign = 'left';
+  ctx.strokeText(`${s.awayCode} ${s.awayFlag}`, cx + gap, topY + scoreFs * 0.62);
   ctx.fillText(`${s.awayCode} ${s.awayFlag}`, cx + gap, topY + scoreFs * 0.62);
 
-  // ── clock / phase, mono, dim, centered under the score ───────────
+  // ── clock / phase, mono, brighter than r1 (it sat unreadable on the bright band) ──
   ctx.font = `500 ${clockFs}px ui-monospace, Menlo, monospace`;
   ctx.textAlign = 'center';
-  ctx.fillStyle = rgba(RGB.chalkDim, 0.75);
-  const ct = clockText(s.minute, s.phaseLabel);
-  ctx.fillText(ct.toUpperCase(), cx, topY + scoreFs + clockFs * 1.6);
+  ctx.lineWidth = Math.max(2, clockFs * 0.18);
+  const ct = clockText(s.minute, s.phaseLabel).toUpperCase();
+  const clockY = topY + scoreFs + clockFs * 1.45;
+  ctx.strokeText(ct, cx, clockY);
+  ctx.fillStyle = rgba(RGB.chalk, 0.85);
+  ctx.fillText(ct, cx, clockY);
 
   // a hairline chalk rule under it — programme divider, not a UI box
-  ctx.strokeStyle = rgba(RGB.chalkDim, 0.18);
+  ctx.strokeStyle = rgba(RGB.chalkDim, 0.16);
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(cx - stage.w * 0.12, topY + scoreFs + clockFs * 2.6);
-  ctx.lineTo(cx + stage.w * 0.12, topY + scoreFs + clockFs * 2.6);
+  ctx.moveTo(cx - stage.w * 0.11, clockY + clockFs * 0.9);
+  ctx.lineTo(cx + stage.w * 0.11, clockY + clockFs * 0.9);
   ctx.stroke();
 
   ctx.restore();
