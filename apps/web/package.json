@@ -1,0 +1,18 @@
+{
+  "name": "rooot-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ROOOT — the fan experience. Phone-first Vite app: the stage (tide-on-pitch), the crowd (ends/cheer/pulse/rows), the relics (scarf/pin/trophy case), the mint.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0"
+  }
+}

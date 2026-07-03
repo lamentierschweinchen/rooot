@@ -1,12 +1,13 @@
 {
-  "name": "rooot",
+  "name": "rooot-ops",
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "description": "ROOOT root package: ops scripts (TxLINE auth, recording) + repo-wide tooling. The web app lives in apps/web, the stands service in services/stands, the frozen seams in contracts/.",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
+    "dev": "npm --prefix apps/web run dev",
+    "build": "npm --prefix apps/web run build",
+    "typecheck": "tsc --noEmit && npm --prefix apps/web run typecheck && npm --prefix services/stands run typecheck",
     "spike": "tsx scripts/txline-spike.ts",
     "subscribe": "tsx scripts/txline-subscribe.ts",
     "record": "tsx scripts/record.ts"
@@ -20,7 +21,6 @@
   "devDependencies": {
     "@types/node": "^22.10.0",
     "tsx": "4.22.4",
-    "typescript": "^5.7.0",
-    "vite": "^6.0.0"
+    "typescript": "^5.7.0"
   }
 }

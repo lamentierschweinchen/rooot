@@ -1,28 +1,39 @@
 # ROOOT
 
-**The world's most beautiful and fun fan experience — on your phone, and on-chain forever.**
+**The world's most beautiful and fun fan experience — on your phone, and on-chain
+forever.** Live market belief as a golden tide on a floodlit night pitch. Root once,
+cheer constantly, call rarely. Lose the match, win the stands. Keep what you lived:
+the scarf, the pin, the trophy case. Free — no wager, no token. `rooot.club`
 
-Connect with the game, the stats, the people you're watching with, and the fans all
-across the world. A floodlit night pitch where the market's live belief moves as a
-golden tide; root your side, cheer into your end, call your moments (receipts, on-chain),
-and keep what you all just lived — the match woven into a scarf, your story pressed
-into a pin.
+Built for the TxODDS World Cup Hackathon on Solana (Consumer & Fan Experiences).
+Data spine: TxLINE (real-time odds + scores, Merkle-anchored on Solana). Sibling of
+[STRATA](https://exploresolana.art).
 
-Built for the TxODDS World Cup Hackathon on Solana (Consumer & Fan Experiences track).
-Data: TxLINE (real-time World Cup odds + scores, Merkle-anchored on Solana).
-Sibling of [STRATA](https://exploresolana.art). `rooot.club`.
+## Orientation (agents: read in this order)
 
-- The game is the game — ROOOT never competes with the match for attention.
-- The market has the number; the crowd has the roar. Never blended, nothing invented.
-- No wager, no token. Free. Every root anchored in a root.
+1. **[AGENTS.md](AGENTS.md)** — the laws, the lane map, how to work here
+2. **[docs/PRODUCT.md](docs/PRODUCT.md)** — what we're building
+3. **[docs/DATA.md](docs/DATA.md)** — the honest palette, TxLINE truth, fixtureIds
+4. **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — the tree, the flows, what's on-chain
 
-## Dev
+## Layout
+
+| Path | What |
+|---|---|
+| `contracts/` | frozen seams (match · crowd · relic) — coordinator-only |
+| `apps/web/` | the fan experience (Vite, phone-first) |
+| `services/stands/` | crowd aggregation + fanout + call relayer |
+| `scripts/` | ops: TxLINE auth, stream recording |
+| `docs/` · `design/` | ground truth · references (owner-curated) |
+| `fixtures/` | recorded matches (replay is first-class) |
+
+## Run
 
 ```
-npm install
-npm run dev        # the stage
-npm run spike      # TxLINE devnet auth walk (writes .secrets/, probes to docs/txline/probe/)
-npm run record -- --url <sse-url> --out fixtures/<match>.jsonl [--header "..."]
+npm install && (cd apps/web && npm install) && (cd services/stands && npm install)
+npm run typecheck        # whole repo
+npm run dev              # the web app
+npm run subscribe        # TxLINE auth (fast-path if .secrets/txline-token.json exists)
 ```
 
-`.secrets/` is gitignored: keypairs and tokens never enter history.
+The game is the game. The stands are yours forever.
