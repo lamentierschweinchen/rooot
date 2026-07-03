@@ -244,6 +244,73 @@ export function parseOddsMessage(
 }
 
 /* ── scores ────────────────────────────────────────────────────────── */
+/*
+ * CHANGELOG (coordinator, Fri night — live-wire correction): the REAL scores
+ * stream (validated against AUS–EGY live, fixtures/scores-night-20260703.jsonl)
+ * speaks an UpperCamelCase action envelope — NOT the lowercase OpenAPI Scores
+ * schema the first draft was built from (that shape appears to belong to the
+ * /snapshot endpoints). Observed live anatomy:
+ *   { FixtureId, GameState:"scheduled" (stale — IGNORE; the real phase is
+ *     StatusId), StartTime, Participant1IsHome, Participant{1,2}Id,
+ *     Action:"lineups|connected|venue|kickoff|status|goal|shot|corner|
+ *     possession|attack_possession|danger_possession|..." , Id (stable per
+ *     real-world event — a goal re-emits with the same Id as it upgrades
+ *     unconfirmed→confirmed→confirmed+GoalType+PlayerId), Ts, Seq, Confirmed,
+ *     Clock:{Running,Seconds}, Score:{Participant1:{Total:{Goals,Corners},..},
+ *     Participant2:{...}}, Participant (1|2, the acting side), Data:{...} }
+ * Duplicate-emission safety: consumers dedupe by score-delta (stage) — this
+ * parser stays stateless and simply reports the score line each message
+ * carries. Participant1IsHome:false swaps sides honestly.
+ * The legacy lowercase parse paths are kept as a fallback for snapshot-shaped
+ * payloads. StatusId→phase map is EMPIRICAL (observed: 1=pre, 2=first half;
+ * further codes added as tonight's captures reveal them — unknown codes
+ * return null rather than guess).
+ */
+
+interface RawLiveClock {
+  Running?: boolean;
+  Seconds?: number;
+}
+
+interface RawLiveScoreSide {
+  Total?: { Goals?: number; Corners?: number };
+}
+
+interface RawLiveEnvelope {
+  FixtureId?: number;
+  Participant1IsHome?: boolean;
+  Action?: string;
+  Id?: number;
+  StatusId?: number;
+  Confirmed?: boolean;
+  Clock?: RawLiveClock;
+  Score?: { Participant1?: RawLiveScoreSide; Participant2?: RawLiveScoreSide };
+  Participant?: number;
+  Data?: { StatusId?: number; GoalType?: string; PlayerId?: number; Goal?: boolean };
+}
+
+/** Empirical StatusId → MatchPhase (live wire). Unknown → null, never guessed. */
+function mapLiveStatusId(id: number | undefined): MatchPhase | null {
+  switch (id) {
+    case 1:
+      return 'PRE'; // observed pre-kickoff
+    case 2:
+      return 'FIRST_HALF'; // observed at kickoff
+    case 3:
+      return 'HALF_TIME'; // expected — confirm against tonight's captures
+    case 4:
+      return 'SECOND_HALF'; // expected — confirm
+    case 5:
+      return 'FULL_TIME'; // expected — confirm
+    default:
+      return null;
+  }
+}
+
+function liveMinute(clock: RawLiveClock | undefined): number | null {
+  if (!clock || typeof clock.Seconds !== 'number' || !Number.isFinite(clock.Seconds)) return null;
+  return Math.max(0, Math.floor(clock.Seconds / 60));
+}
 
 interface RawSoccerScoreLine {
   Total?: { Goals?: number };
@@ -381,12 +448,44 @@ export function parseScoreMessage(
   receivedAtMs: number,
   source: 'live' | 'replay',
 ): ScoreEvent | null {
-  let msg: RawScoresMessage;
+  let msg: (RawScoresMessage & RawLiveEnvelope) | null = null;
   try {
-    msg = JSON.parse(raw) as RawScoresMessage;
+    msg = JSON.parse(raw) as RawScoresMessage & RawLiveEnvelope;
   } catch {
     return null;
   }
+
+  /* ── live wire (UpperCamelCase envelope — validated vs AUS–EGY) ── */
+  // A score line rides on many actions ("goal", "corner", ...). We report it
+  // only from 'goal' actions: that is the moment the score CHANGED, which is
+  // what ScoreEvent means on the bus (the stage's delta-guard absorbs the
+  // repeated emissions of the same goal Id as it upgrades to Confirmed).
+  if (typeof msg.Action === 'string') {
+    if (msg.Action !== 'goal') return null;
+    const p1Goals = msg.Score?.Participant1?.Total?.Goals ?? 0;
+    const p2Goals = msg.Score?.Participant2?.Total?.Goals ?? 0;
+    if (typeof p1Goals !== 'number' || typeof p2Goals !== 'number') return null;
+    const p1IsHome = msg.Participant1IsHome !== false; // default true, observed true
+    const home = p1IsHome ? p1Goals : p2Goals;
+    const away = p1IsHome ? p2Goals : p1Goals;
+    const actor = msg.Participant; // 1|2 = which participant scored
+    const side =
+      actor === 1 ? (p1IsHome ? 'home' : 'away') : actor === 2 ? (p1IsHome ? 'away' : 'home') : undefined;
+    return {
+      tMs: receivedAtMs,
+      minute: liveMinute(msg.Clock),
+      home,
+      away,
+      side,
+      // the live wire carries only a numeric Data.PlayerId — a number is not a
+      // name; scorer stays undefined per the honesty law (garnish resolves it)
+      scorer: undefined,
+      source,
+      raw: msg,
+    };
+  }
+
+  /* ── legacy/snapshot shape (lowercase OpenAPI schema) ── */
   const scoreSoccer = msg.scoreSoccer;
   if (!scoreSoccer) return null;
   const home = scoreSoccer.Participant1?.Total?.Goals;
@@ -423,12 +522,31 @@ export function parseStatusMessage(
   receivedAtMs: number,
   source: 'live' | 'replay',
 ): StatusEvent | null {
-  let msg: RawScoresMessage;
+  let msg: (RawScoresMessage & RawLiveEnvelope) | null = null;
   try {
-    msg = JSON.parse(raw) as RawScoresMessage;
+    msg = JSON.parse(raw) as RawScoresMessage & RawLiveEnvelope;
   } catch {
     return null;
   }
+
+  /* ── live wire: phase changes ride 'status' and 'kickoff' actions ── */
+  // GameState on the envelope is stale ("scheduled" even in play) — the truth
+  // is StatusId (Data.StatusId on 'status' actions, top-level elsewhere).
+  if (typeof msg.Action === 'string') {
+    if (msg.Action !== 'status' && msg.Action !== 'kickoff') return null;
+    const id = msg.Action === 'status' ? (msg.Data?.StatusId ?? msg.StatusId) : msg.StatusId;
+    const phase = mapLiveStatusId(id);
+    if (!phase) return null;
+    return {
+      tMs: receivedAtMs,
+      phase,
+      minute: liveMinute(msg.Clock),
+      source,
+      raw: msg,
+    };
+  }
+
+  /* ── legacy/snapshot shape ── */
   const code = extractStatusCode(msg.statusSoccerId);
   if (!code) return null;
   const phase = mapStatusCode(code);
