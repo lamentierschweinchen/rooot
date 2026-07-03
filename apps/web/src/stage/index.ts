@@ -1,38 +1,43 @@
 /**
- * ROOOT — THE STAGE. Fog-of-war match renderer (2D canvas, no three.js).
+ * ROOOT — THE STAGE. The World Cup as a living mechanical PRINT (2D canvas). Pop-print
+ * reskin of the tide-on-pitch renderer: the mount contract + the honesty core are
+ * unchanged; the whole visual layer is the Topps/Panini flat-ink world (design/SYSTEM.md).
  *
- * Mount surface is coordinator-fixed (integration is one wire). See createStage().
+ * Mount surface is coordinator-fixed — createStage(opts) → Stage. main.ts wires it as one
+ * wire (callbacks / setCrowd / setMySide / resize / destroy). Nothing here reaches out.
  *
- * The picture (design/REFERENCES.md): a vertical floodlit night pitch — your goal at
- * the bottom, theirs at the top. THE MARKET = two floodlight banks pressing illuminated
- * territory; the de-vigged probability is where each light dies into THE FOG BANK
- * (the fog IS the draw, extent == p(draw), halfway line == 50/50). THE CROWD = bengalo
- * smoke + phone-light starfields at the ends, in team colors, driven by roar. GOALS =
- * fire at the real goal mouth; the beaten side's light collapses. Chalk scoreboard.
- * Grain over everything. Monochrome + one accent per moment. Respects reduced-motion.
+ * The picture (SYSTEM.md): a portrait pitch printed as an OWNABLE POSTER on the fixture's
+ * loud ground, Press-Black keyline + Newsprint border + a caption/serial strip. THE MARKET
+ * = each team's HALFTONE DOT FIELD advancing from its goal-end, extent == its win
+ * probability, FRAYING to specks at the working edge; THE DRAW == the near-empty collapse
+ * band where both densities bottom out, with the constant thin 50% seam riding inside it.
+ * THE CROWD = pictogram fan bands behind each goal (counts/roar, NEVER a %). GOALS = a
+ * stepped GOOOL starburst at the real mouth. Scoreboard band up top; % chips + ROAR meter
+ * on the rail. Press grain over all. Stepped/snapped motion; reduced-motion → settled calm.
  *
  * Honesty: pHome/pDraw/pAway are the market's numbers, normalized + NaN-guarded, eased
- * ~1.5s toward truth, never overshooting into fiction. Crowd is counts/roar, never a
- * probability, never blended with the market. Between ticks the stage BREATHES (fog
- * drift, light shimmer, smoke rise) — ambient motion, honest as texture, never as data.
+ * ~1.5s toward truth (cubic in-out, no overshoot). The crowd is counts/roar, never a
+ * probability, never blended. Idle = halftone breathing (dots blink) — texture, not data.
  */
 
 import type { MatchCallbacks, Fixture, OddsTick, ScoreEvent, StatusEvent, MatchPhase } from '@contracts/match';
 import type { ReactKind, Side } from '@contracts/crowd';
 
-import { GEO, resolveSide } from './theme';
-import type { SideTheme } from './theme';
 import { computeStageRect, computePitchRect, computeFront } from './layout';
 import type { StageRect, PitchRect } from './layout';
-import { bakeFogTile, bakeGrainTile } from './noise';
-import { drawPitchBase, drawChalk } from './layers/pitch';
-import { drawMarket } from './layers/market';
-import { drawFog } from './layers/fog';
+import { bakeGrainTile } from './noise';
+import { chooseGround, resolvePop, ensureFonts, INK } from './pop';
+import type { PopTheme } from './pop';
+import { drawGround, drawFrame, drawCaption } from './layers/paper';
+import { drawPitchPaper, drawChalkOver, drawGoalNets } from './layers/pitch';
+import { Territories } from './layers/territory';
 import { Ends } from './layers/ends';
-import { Fire } from './layers/fire';
+import { Goool } from './layers/goool';
 import { drawScoreboard } from './layers/scoreboard';
-import { drawVignette, drawGrain } from './layers/grain';
-import { approach, clamp01, normOdds, easeInOutCubic } from '../lib/stage-math';
+import { drawRail } from './layers/rail';
+import { drawLetterbox, drawGrain } from './layers/grain';
+import { approach, clamp01, normOdds, easeInOutCubic, hexToRgb } from '../lib/stage-math';
+import type { RGBTuple } from '../lib/stage-math';
 
 /* ── the coordinator-fixed contract (do not change shapes) ───────────── */
 
@@ -77,40 +82,40 @@ export function createStage(opts: { canvas: HTMLCanvasElement; fixture: Fixture;
   const fixture = opts.fixture;
   let mySide: Side | null = opts.mySide ?? null;
 
-  const homeTheme: SideTheme = resolveSide(fixture.home.colors);
-  const awayTheme: SideTheme = resolveSide(fixture.away.colors);
+  const homeTheme: PopTheme = resolvePop(fixture.home.colors);
+  const awayTheme: PopTheme = resolvePop(fixture.away.colors);
+  // the fixture's loud ground: a rotation loud NEITHER team owns (never fizzPink); the
+  // coordinator may re-point this later, but the frame law picks a legal default here.
+  const ground: RGBTuple = chooseGround(homeTheme.primary, awayTheme.primary);
+
+  // caption strip strings (date from kickoff; frame label tracks phase)
+  const dateLabel = formatDate(fixture.kickoffISO);
+  const fixtureLabel = `${fixture.home.code} · ${fixture.away.code}`;
 
   const reducedMotion =
     typeof window !== 'undefined' &&
     typeof window.matchMedia === 'function' &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // baked texture sources
-  const fogTile = bakeFogTile(256, 1337, 4);
-  // floored noise: multiplies the fog band (destination-in) so its edges break into tendrils
-  const fogMaskTile = bakeFogTile(256, 4242, 3, 0.5);
+  // kick font loading; type paints with a fallback until ready, then upgrades in place
+  void ensureFonts();
+
+  // baked texture
   const grainTile = bakeGrainTile(128, 7);
 
-  // offscreen additive light buffer (sized to canvas, reused)
-  const lightBuf = document.createElement('canvas');
-  const lightCtx = lightBuf.getContext('2d')!;
-  // offscreen transparent fog buffer — feathering (destination-in) only works off-screen
-  const fogBuf = document.createElement('canvas');
-  const fogCtx = fogBuf.getContext('2d')!;
-
+  // layer engines
+  const territories = new Territories();
   const ends = new Ends();
-  const fire = new Fire();
+  const goool = new Goool();
 
   // geometry
   let stage: StageRect = { x: 0, y: 0, w: 1, h: 1, dpr: 1 };
   let pitch: PitchRect = computePitchRect(stage);
 
-  // ── market state: target (from feed) + displayed (eased) ──
-  // start at a neutral even split so the very first frame is honest, not blank
+  // ── market state: target (feed) + displayed (eased) ──
   let targetOdds: Odds = { home: 1 / 3, draw: 1 / 3, away: 1 / 3 };
   let shownOdds: Odds = { home: 1 / 3, draw: 1 / 3, away: 1 / 3 };
   let haveOdds = false;
-  // eased-transition bookkeeping (short easing ~1.5s per tick)
   let easeFrom: Odds = { ...shownOdds };
   let easeTo: Odds = { ...targetOdds };
   let easeStart = 0;
@@ -122,6 +127,13 @@ export function createStage(opts: { canvas: HTMLCanvasElement; fixture: Fixture;
   let minute: number | null = null;
   let phase: MatchPhase = 'PRE';
   let feedState: 'connected' | 'reconnecting' | 'replay' | 'lost' = 'connected';
+  // score-flip animation clock (seconds since last score change)
+  let flipT = 999;
+
+  // scorer's-side territory SNAP: a brief boost added to the scoring field's edge so it
+  // lunges forward on a goal (stepped by the goool sequence), then settles to truth.
+  let homeSnap = 0;
+  let awaySnap = 0;
 
   // crowd
   let crowd: StageCrowdInput = {
@@ -133,19 +145,10 @@ export function createStage(opts: { canvas: HTMLCanvasElement; fixture: Fixture;
     },
   };
 
-  // per-side light "aliveness" (beaten side collapses on a goal against, then recovers)
-  let homeAlive = 1;
-  let awayAlive = 1;
-  let homeAliveTarget = 1;
-  let awayAliveTarget = 1;
-
-  // entry: walk out of the tunnel — chalk + energy rise in over the first seconds
-  let entry = 0; // 0..1
-
   // timing
   let raf = 0;
   let lastT = 0;
-  let clock = 0; // seconds since mount (ambient phase)
+  let clock = 0;
   let frame = 0;
   let running = true;
 
@@ -161,16 +164,9 @@ export function createStage(opts: { canvas: HTMLCanvasElement; fixture: Fixture;
       canvas.width = pxW;
       canvas.height = pxH;
     }
-    if (lightBuf.width !== pxW || lightBuf.height !== pxH) {
-      lightBuf.width = pxW;
-      lightBuf.height = pxH;
-    }
-    if (fogBuf.width !== pxW || fogBuf.height !== pxH) {
-      fogBuf.width = pxW;
-      fogBuf.height = pxH;
-    }
     stage = computeStageRect(pxW, pxH, dpr);
     pitch = computePitchRect(stage);
+    territories.invalidate();
     ends.layout(stage);
   }
 
@@ -179,7 +175,6 @@ export function createStage(opts: { canvas: HTMLCanvasElement; fixture: Fixture;
     const n = normOdds(tick.pHome, tick.pDraw, tick.pAway);
     if (!n.ok) return; // refuse to render fiction; hold last good
     targetOdds = { home: n.home, draw: n.draw, away: n.away };
-    // begin a fresh short ease from wherever we're currently shown
     easeFrom = { ...shownOdds };
     easeTo = { ...targetOdds };
     easeStart = clock * 1000;
@@ -193,20 +188,21 @@ export function createStage(opts: { canvas: HTMLCanvasElement; fixture: Fixture;
     homeScore = Math.max(0, Math.floor(ev.home));
     awayScore = Math.max(0, Math.floor(ev.away));
     if (typeof ev.minute === 'number') minute = ev.minute;
-    // who scored? erupt at that mouth; the OTHER side's light collapses briefly.
     let scored: Side | null = ev.side ?? null;
     if (!scored) {
       if (homeScore > prevH) scored = 'home';
       else if (awayScore > prevA) scored = 'away';
     }
-    if (scored && (homeScore + awayScore > prevH + prevA)) {
-      fire.erupt(scored);
+    if (scored && homeScore + awayScore > prevH + prevA) {
+      goool.erupt(scored);
+      flipT = 0;
+      // the scorer's field lunges forward (snap), the beaten side recoils a touch
       if (scored === 'home') {
-        awayAliveTarget = 0.28; // their light gutters
-        awayAlive = Math.min(awayAlive, 0.5);
+        homeSnap = 1;
+        awaySnap = -0.5;
       } else {
-        homeAliveTarget = 0.28;
-        homeAlive = Math.min(homeAlive, 0.5);
+        awaySnap = 1;
+        homeSnap = -0.5;
       }
     }
   }
@@ -228,9 +224,8 @@ export function createStage(opts: { canvas: HTMLCanvasElement; fixture: Fixture;
   /* ── per-frame update ───────────────────────────────────────────── */
   function update(dt: number): void {
     clock += dt;
-    entry = clamp01(entry + dt / 2.2); // ~2.2s walk-out
+    flipT += dt;
 
-    // ease shown odds toward target over EASE_MS (cubic in-out, no overshoot)
     if (haveOdds) {
       const p = clamp01((clock * 1000 - easeStart) / EASE_MS);
       const e = easeInOutCubic(p);
@@ -240,20 +235,14 @@ export function createStage(opts: { canvas: HTMLCanvasElement; fixture: Fixture;
         away: easeFrom.away + (easeTo.away - easeFrom.away) * e,
       };
     }
-
-    // re-normalize shown (numerical drift guard) so the front mapping is exact
+    // re-normalize shown (drift guard) so the front mapping is exact
     const sn = normOdds(shownOdds.home, shownOdds.draw, shownOdds.away);
     shownOdds = { home: sn.home, draw: sn.draw, away: sn.away };
 
-    // light aliveness recovers toward 1 after a collapse
-    homeAliveTarget = approach(homeAliveTarget, 1, 3.5, dt);
-    awayAliveTarget = approach(awayAliveTarget, 1, 3.5, dt);
-    homeAlive = approach(homeAlive, homeAliveTarget, 0.8, dt);
-    awayAlive = approach(awayAlive, awayAliveTarget, 0.8, dt);
+    // snaps decay back to zero (the field settles to truth after the goal lunge)
+    homeSnap = approach(homeSnap, 0, 0.5, dt);
+    awaySnap = approach(awaySnap, 0, 0.5, dt);
 
-    // crowd particles + glow
-    const homeBehind = homeScore < awayScore;
-    const awayBehind = awayScore < homeScore;
     ends.update(
       dt,
       {
@@ -261,118 +250,70 @@ export function createStage(opts: { canvas: HTMLCanvasElement; fixture: Fixture;
         roarAway: crowd.roar.away,
         countHome: crowd.counts.home,
         countAway: crowd.counts.away,
-        homeBehind,
-        awayBehind,
+        homeBehind: homeScore < awayScore,
+        awayBehind: awayScore < homeScore,
       },
       reducedMotion,
     );
-    fire.update(dt);
-  }
-
-  /* ── tension: late + level → fog thickens (penalties as weather) ── */
-  function fogTension(): number {
-    // level on the scoreboard AND market can't decide → thick fog
-    const level = homeScore === awayScore ? 1 : 0.15;
-    const drawWeight = clamp01(shownOdds.draw * 1.6); // high p(draw) itself is uncertainty
-    const late = minute === null ? 0 : clamp01((minute - 60) / 35); // ramps 60'→95'
-    return clamp01(0.15 + drawWeight * 0.5 + level * late * 0.7);
+    goool.update(dt);
   }
 
   /* ── render ─────────────────────────────────────────────────────── */
   function render(): void {
     const ctx = g2d;
-    const w = canvas.width;
-    const h = canvas.height;
 
-    // global energy: full when connected; dips honestly on a struggling feed.
-    // Floodlights are ON — even pre-match is bright; we only ramp a little on entry
-    // (walking out of the tunnel into the light) and dim for a struggling feed.
-    let energy = 1;
-    if (feedState === 'reconnecting') energy = 0.78;
-    else if (feedState === 'lost') energy = 0.5;
-    const entryE = easeInOutCubic(entry);
-    if (phase === 'PRE') energy *= 0.92;
-    energy *= 0.6 + 0.4 * entryE;
+    // 1) GROUND — the fixture's loud ground fills the page (the poster's paper stock)
+    drawGround(ctx, stage, ground);
 
-    // base clear (letterbox void — genuinely dark, the picture is contrast)
-    ctx.fillStyle = '#030509';
-    ctx.fillRect(0, 0, w, h);
+    // 2) PITCH paper + chalk geometry under the dots, then the territories, then chalk over
+    drawPitchPaper(ctx, stage, pitch);
 
-    // pitch base + faint chalk (chalk fades in on entry)
-    drawPitchBase(ctx, stage, pitch);
-
-    // compute the market front from EXACT eased odds
+    // market front from EXACT eased odds; apply the goal SNAP as a temporary edge boost
     const front = computeFront(pitch, shownOdds.home, shownOdds.draw, shownOdds.away);
+    if (homeSnap !== 0) front.homeEdgeY -= homeSnap * pitch.h * 0.05;
+    if (awaySnap !== 0) front.awayEdgeY += awaySnap * pitch.h * 0.05;
 
-    // clear the additive light buffer, draw market into it + grass pools onto main
-    lightCtx.clearRect(0, 0, w, h);
-    drawMarket(ctx, lightCtx, {
+    // 3) TERRITORIES — the two halftone dot fields + the dot-fray draw collapse
+    territories.draw(ctx, {
       pitch,
       front,
       home: homeTheme,
       away: awayTheme,
       t: clock,
-      energy,
-      homeAlive,
-      awayAlive,
       reducedMotion,
+      paper: INK.newsprint,
     });
-    // composite the volumetric light over the pitch, softened by a light blur so the
-    // shaft edges read as haze-scatter (organic beams) rather than hard-edged rects.
-    const blurPx = Math.max(1, Math.round(stage.w * 0.006));
-    ctx.save();
-    ctx.filter = `blur(${blurPx}px)`;
-    ctx.drawImage(lightBuf, 0, 0);
-    ctx.filter = 'none';
-    ctx.restore();
 
-    // the fog bank (the draw) sits between the fronts
-    drawFog({
+    // chalk seam + center circle re-struck ON the dots (crisp), + goal nets
+    drawChalkOver(ctx, pitch);
+    drawGoalNets(ctx, pitch);
+
+    // 4) ENDS — pictogram crowd bands behind each goal
+    ends.draw(
       ctx,
-      buf: fogCtx,
+      stage,
       pitch,
-      front,
-      tile: fogTile,
-      mask: fogMaskTile,
-      t: clock,
-      tension: fogTension(),
+      homeTheme,
+      awayTheme,
+      {
+        roarHome: crowd.roar.home,
+        roarAway: crowd.roar.away,
+        countHome: crowd.counts.home,
+        countAway: crowd.counts.away,
+        homeBehind: homeScore < awayScore,
+        awayBehind: awayScore < homeScore,
+      },
+      clock,
       reducedMotion,
-    });
+      fixture.home.flag,
+      fixture.away.flag,
+    );
 
-    // chalk over the lit grass (so lines read where the pitch is bright)
-    drawChalk(ctx, pitch, GEO.goalWidth, entryE);
+    // 5) THE GOOOL ERUPTION (over the pitch)
+    goool.draw(ctx, pitch, reducedMotion);
 
-    // the ends (crowd atmosphere) — vertical, in the margins
-    const homeBehind = homeScore < awayScore;
-    const awayBehind = awayScore < homeScore;
-    const endInputs = {
-      roarHome: crowd.roar.home,
-      roarAway: crowd.roar.away,
-      countHome: crowd.counts.home,
-      countAway: crowd.counts.away,
-      homeBehind,
-      awayBehind,
-    };
-    ends.draw(ctx, stage, pitch, homeTheme, awayTheme, endInputs, clock, reducedMotion);
-
-    // the goal fire (over everything on the pitch)
-    fire.draw(ctx, pitch);
-    // full-frame ignition flash whitens the whole stage for the first instant only, then
-    // fades fast (the eruption's punch). Kept subtle so it reads as a flash, not a fog-out.
-    const flash = fire.peakIntensity();
-    if (flash > 0.7) {
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.fillStyle = `rgba(255,244,214,${(flash - 0.7) * 0.5})`;
-      ctx.fillRect(stage.x, stage.y, stage.w, stage.h);
-      ctx.restore();
-    }
-
-    // vignette crushes the corners to void, grain over all the ATMOSPHERE
-    drawVignette(ctx, stage);
-    drawGrain(ctx, stage, grainTile, frame, reducedMotion);
-
-    // ── chalk marks LAST — above every stage layer, always legible (r2 item 5) ──
+    // 6) CHROME — scoreboard band, rail (% chips + ROAR meter + pop-ball), counters
+    const roar01 = clamp01(1 - Math.exp(-Math.max(crowd.roar.home, crowd.roar.away) / 8));
     drawScoreboard(ctx, stage, pitch, {
       homeCode: fixture.home.code,
       awayCode: fixture.away.code,
@@ -384,20 +325,54 @@ export function createStage(opts: { canvas: HTMLCanvasElement; fixture: Fixture;
       phaseLabel: PHASE_LABEL[phase],
       homeTheme,
       awayTheme,
+      flip: flipTProgress(flipT),
     });
-    ends.drawCounters(ctx, stage, pitch, endInputs);
-    drawMySideHint(ctx, stage, pitch, mySide);
+    drawRail(ctx, stage, pitch, {
+      pHome: shownOdds.home,
+      pDraw: shownOdds.draw,
+      pAway: shownOdds.away,
+      homeCode: fixture.home.code,
+      awayCode: fixture.away.code,
+      homeTheme,
+      awayTheme,
+      roar: roar01,
+      t: clock,
+      reducedMotion,
+    });
+    ends.drawCounters(ctx, stage, pitch, {
+      roarHome: crowd.roar.home,
+      roarAway: crowd.roar.away,
+      countHome: crowd.counts.home,
+      countAway: crowd.counts.away,
+      homeBehind: homeScore < awayScore,
+      awayBehind: awayScore < homeScore,
+    });
 
-    // feed-honesty line if not connected (dim, tiny, chalk) — never fakes liveness
-    if (feedState !== 'connected') {
-      drawFeedNote(ctx, stage, feedState);
-    }
+    // 7) FRAME + CAPTION (the print anatomy that makes it ownable) + press grain + letterbox
+    drawCaption(ctx, stage, {
+      ground,
+      fixtureLabel,
+      dateLabel,
+      frameLabel: gooolActive() ? 'GOOOL' : PHASE_LABEL[phase],
+      serial: SERIAL_PLACEHOLDER,
+      posed: phase === 'PRE' || phase === 'FULL_TIME',
+    });
+    drawFrame(ctx, stage);
+    drawGrain(ctx, stage, grainTile, frame, reducedMotion);
+    drawLetterbox(ctx, stage);
+
+    drawMySideHint(ctx, stage, pitch, mySide);
+    if (feedState !== 'connected') drawFeedNote(ctx, stage, feedState);
+  }
+
+  function gooolActive(): boolean {
+    return goool.active;
   }
 
   function step(dt: number): void {
     let d = dt;
     if (!Number.isFinite(d) || d < 0) d = 0;
-    if (d > 0.1) d = 0.1; // clamp big gaps (tab was hidden) so nothing lurches
+    if (d > 0.1) d = 0.1;
     frame++;
     update(d);
     render();
@@ -419,7 +394,6 @@ export function createStage(opts: { canvas: HTMLCanvasElement; fixture: Fixture;
   return {
     callbacks,
     setCrowd(c) {
-      // defensive copy of the shape we rely on; ignore malformed input
       if (!c || !c.counts || !c.roar) return;
       crowd = c;
     },
@@ -434,9 +408,9 @@ export function createStage(opts: { canvas: HTMLCanvasElement; fixture: Fixture;
       if (raf) cancelAnimationFrame(raf);
     },
     /**
-     * DEV/verification only: force one frame of the given dt (seconds). RAF is paused
-     * while a tab is hidden (e.g. headless/automation), so the harness can pump frames
-     * to observe animation. Not part of the Stage contract; main.ts never calls this.
+     * DEV/verification only: force one frame of the given dt (seconds). RAF is paused while
+     * a tab is hidden (headless/automation), so the harness can pump frames. Not part of the
+     * Stage contract; main.ts never calls this.
      */
     _devStep(dt: number) {
       step(dt);
@@ -444,8 +418,28 @@ export function createStage(opts: { canvas: HTMLCanvasElement; fixture: Fixture;
   } as Stage & { _devStep(dt: number): void };
 }
 
-/* ── small chalk marks (kept here; not worth their own module) ───────── */
+/* ── small helpers ─────────────────────────────────────────────────────── */
 
+const SERIAL_PLACEHOLDER = 'Nº 000000';
+
+/** score-flip progress 0..1 over MOTION_MS.scoreFlip, else 1 (settled). */
+function flipTProgress(flipT: number): number {
+  const dur = 0.26; // MOTION_MS.scoreFlip / 1000
+  if (flipT >= dur) return 1;
+  return clamp01(flipT / dur);
+}
+
+function formatDate(iso: string): string {
+  // UTC on purpose: a memento's caption is a fixed fact of the fixture — the
+  // same edition must print the same date in Mexico City and in Berlin
+  // (local accessors would flip an evening kickoff across the date line).
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const mon = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][d.getUTCMonth()] ?? '';
+  return `${String(d.getUTCDate()).padStart(2, '0')} ${mon} ${d.getUTCFullYear()}`;
+}
+
+/** the "YOUR END" chalk hint — a small drawn chevron in the mySide band (poster-safe: tiny). */
 function drawMySideHint(
   ctx: CanvasRenderingContext2D,
   stage: StageRect,
@@ -456,24 +450,24 @@ function drawMySideHint(
   const isHome = side === 'home';
   const dir = isHome ? 1 : -1;
   const cx = pitch.cx;
-  const s = stage.w * 0.018;
-  // deep at the band's outer edge — with the fans, clear of the rooted counter (which
-  // sits by the goal line)
-  const labelY = isHome ? stage.y + stage.h - stage.h * 0.022 : stage.y + stage.h * 0.024;
-  const chevY = labelY - dir * s * 2.2;
+  const s = stage.w * 0.016;
+  const labelY = isHome ? pitch.homeGoalY + stage.h * 0.02 : pitch.awayGoalY - stage.h * 0.016;
   ctx.save();
-  ctx.strokeStyle = 'rgba(233,228,214,0.5)';
+  ctx.fillStyle = `rgb(${INK.newsprint[0]},${INK.newsprint[1]},${INK.newsprint[2]})`;
+  ctx.font = `700 ${Math.max(8, stage.w * 0.02)}px "Doto", ui-monospace, monospace`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  // small chevron
+  ctx.strokeStyle = `rgb(${INK.newsprint[0]},${INK.newsprint[1]},${INK.newsprint[2]})`;
   ctx.lineWidth = Math.max(1, stage.w * 0.004);
   ctx.lineCap = 'round';
+  const chevY = labelY + dir * s * 1.4;
   ctx.beginPath();
-  ctx.moveTo(cx - s, chevY + dir * s * 0.6);
-  ctx.lineTo(cx, chevY - dir * s * 0.6);
-  ctx.lineTo(cx + s, chevY + dir * s * 0.6);
+  ctx.moveTo(cx - s, chevY + dir * s * 0.5);
+  ctx.lineTo(cx, chevY - dir * s * 0.5);
+  ctx.lineTo(cx + s, chevY + dir * s * 0.5);
   ctx.stroke();
-  ctx.font = `500 ${Math.max(9, stage.w * 0.022)}px ui-monospace, Menlo, monospace`;
-  ctx.textAlign = 'center';
-  ctx.fillStyle = 'rgba(233,228,214,0.48)';
-  ctx.fillText('YOUR END', cx, labelY);
+  void hexToRgb;
   ctx.restore();
 }
 
@@ -483,10 +477,25 @@ function drawFeedNote(
   state: 'reconnecting' | 'replay' | 'lost' | 'connected',
 ): void {
   const label = state === 'replay' ? 'REPLAY' : state === 'reconnecting' ? 'RECONNECTING' : 'FEED LOST';
+  // a tiny keyline chip tucked into the top-left of the pitch band — honest, never floating
+  // mid-pitch, never faking liveness. Doto on Newsprint.
+  const border = Math.max(2, Math.round(stage.w * 0.05));
+  const fs = Math.max(7, stage.w * 0.018);
   ctx.save();
-  ctx.font = `500 ${Math.max(9, stage.w * 0.022)}px ui-monospace, Menlo, monospace`;
-  ctx.textAlign = 'center';
-  ctx.fillStyle = state === 'replay' ? 'rgba(57,198,216,0.6)' : 'rgba(233,228,214,0.4)';
-  ctx.fillText(label, stage.x + stage.w / 2, stage.y + stage.h - stage.h * 0.5);
+  ctx.font = `600 ${fs}px "Doto", ui-monospace, monospace`;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  const tw = ctx.measureText(label).width;
+  const padX = fs * 0.5;
+  const chH = fs * 1.8;
+  const cxp = stage.x + border + stage.w * 0.02;
+  const cyp = stage.y + stage.h * 0.135;
+  ctx.fillStyle = `rgb(${INK.newsprint[0]},${INK.newsprint[1]},${INK.newsprint[2]})`;
+  ctx.fillRect(cxp, cyp, tw + padX * 2, chH);
+  ctx.strokeStyle = `rgb(${INK.pressBlack[0]},${INK.pressBlack[1]},${INK.pressBlack[2]})`;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(cxp, cyp, tw + padX * 2, chH);
+  ctx.fillStyle = `rgba(${INK.pressBlack[0]},${INK.pressBlack[1]},${INK.pressBlack[2]},0.75)`;
+  ctx.fillText(label, cxp + padX, cyp + chH / 2);
   ctx.restore();
 }

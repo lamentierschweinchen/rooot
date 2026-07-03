@@ -1,295 +1,248 @@
 /**
- * ROOOT stage — THE ENDS (the crowd), vertical at the top & bottom bands.
+ * ROOOT stage — THE ENDS: pictogram crowd bands behind each goal (§6.7). Replaces the
+ * night-smoke ends. This is the best crowd rendering in the canon (stage-dark-crowd-canon,
+ * stage-dark-faith-crowd): a dense field of GEOMETRIC FAN GLYPHS — heads, torsos, raised
+ * arms, held flag-blocks — NO faces, packed on a tight grid, capped by a BUNTING row of
+ * flag patches. Density/animation track the ROAR via setCrowd; a ROOTED counter prints in
+ * Doto on a keylined chip; "CHEERS COUNT DOUBLE" (Medal Gold) shows when that side trails.
  *
- * Behind each goal: bengalo smoke VOLUMES rising in team colors + a dense phone-light
- * starfield. Density/glow driven by the roar numbers. Faith is visible: your end burning
- * while your light retreats. At high roar the end BURNS — this is the emotional heart,
- * it must read as ten thousand people, never as a UI strip.
+ * Honesty (§3): the crowd is COUNTS/roar, NEVER a percentage, never blended with market.
  *
- * Honesty (rule 1): crowd == vertical smoke + starfield AT the ends; market ==
- * horizontal light-vs-fog ON the pitch. NEVER blended, and the crowd is COUNTS/roar,
- * never a probability.
- *
- * References:
- *  · halftime-rihanna.jpg — the stands are a dark mass DENSE with thousands of tiny
- *    lights, haze over everything; ONE saturated color owns the moment.
- *  · bengalo ends — tall colored smoke plumes cooling to grey as they rise.
- *
- * Craft: smoke puffs are pre-baked tinted radial sprites (4 cooling stages per side,
- * memoized by color) so we can afford many LARGE puffs per frame via drawImage instead
- * of per-puff gradient allocation.
+ * PERF: the crowd is a fixed lattice of glyphs baked per side into an offscreen buffer;
+ * a cheer just swaps a cheap "raised-arm" overlay pattern + brightens a few flag-blocks —
+ * a PATTERN change, not character acting, not a re-bake per frame.
  */
 
-import { RGB } from '../theme';
+import { GRID, COMPONENTS } from '../../lib/theme';
+import { INK, fontData, fontDisplay, setStretch } from '../pop';
+import type { PopTheme } from '../pop';
 import type { PitchRect, StageRect } from '../layout';
-import type { SideTheme } from '../theme';
-import { rgba, clamp01, mulberry32, hash11, mixRgb } from '../../lib/stage-math';
+import { rgba, clamp01, hash11, hash21 } from '../../lib/stage-math';
 import type { RGBTuple } from '../../lib/stage-math';
-
-interface Ember {
-  x: number; // normalized offset from end center (fraction of pitch width)
-  y: number; // 0 at goal line → 1 deep in the stand
-  vx: number;
-  vy: number;
-  life: number;
-  maxLife: number;
-  size: number;
-}
-
-interface Star {
-  x: number;
-  y: number;
-  phase: number;
-  base: number;
-}
-
-interface EndState {
-  embers: Ember[];
-  stars: Star[];
-  glow: number; // smoothed roar glow 0..1
-}
 
 export interface EndInputs {
   roarHome: number;
   roarAway: number;
   countHome: number;
   countAway: number;
-  /** faith flags: side is behind on the scoreboard (its counter + smoke get the ×2 warmth) */
   homeBehind: boolean;
   awayBehind: boolean;
 }
 
-const MAX_EMBERS = 150;
-const MAX_STARS = 460; // the stands are FULL of lights (halftime-rihanna.jpg)
-const SMOKE_STAGES = 4; // cooling steps: team color → fog grey
+interface BakedCrowd {
+  canvas: HTMLCanvasElement;
+  w: number;
+  h: number;
+  color: string;
+  rows: number;
+  cols: number;
+}
 
-/** Bake one soft radial smoke sprite in the given color. */
-function bakeSmoke(col: RGBTuple, size = 96): HTMLCanvasElement {
-  const c = document.createElement('canvas');
-  c.width = size;
-  c.height = size;
-  const x = c.getContext('2d')!;
-  const r = size / 2;
-  const g = x.createRadialGradient(r, r, 0, r, r, r);
-  g.addColorStop(0, rgba(col, 1));
-  g.addColorStop(0.45, rgba(col, 0.42));
-  g.addColorStop(1, rgba(col, 0));
-  x.fillStyle = g;
-  x.fillRect(0, 0, size, size);
-  return c;
+/** one fan glyph: a head disc + a shoulders/torso block; arms drawn live when cheering. */
+function drawFan(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  baseY: number,
+  cell: number,
+  ink: RGBTuple,
+  raised: boolean,
+): void {
+  const headR = cell * 0.17;
+  const headY = baseY - cell * 0.62;
+  ctx.fillStyle = rgba(ink, 1);
+  // head
+  ctx.beginPath();
+  ctx.arc(cx, headY, headR, 0, Math.PI * 2);
+  ctx.fill();
+  // torso — a rounded shoulders block
+  const tw = cell * 0.44;
+  const th = cell * 0.5;
+  const ty = headY + headR * 0.6;
+  roundRect(ctx, cx - tw / 2, ty, tw, th, cell * 0.08);
+  ctx.fill();
+  // arms
+  ctx.strokeStyle = rgba(ink, 1);
+  ctx.lineWidth = Math.max(1, cell * 0.09);
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  if (raised) {
+    // both arms up — the cheer pose
+    ctx.moveTo(cx - tw * 0.4, ty + th * 0.3);
+    ctx.lineTo(cx - tw * 0.7, headY - headR * 0.4);
+    ctx.moveTo(cx + tw * 0.4, ty + th * 0.3);
+    ctx.lineTo(cx + tw * 0.7, headY - headR * 0.4);
+  } else {
+    // arms down/rest
+    ctx.moveTo(cx - tw * 0.4, ty + th * 0.2);
+    ctx.lineTo(cx - tw * 0.62, ty + th * 0.8);
+    ctx.moveTo(cx + tw * 0.4, ty + th * 0.2);
+    ctx.lineTo(cx + tw * 0.62, ty + th * 0.8);
+  }
+  ctx.stroke();
+}
+
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
+  const rr = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rr);
+  ctx.arcTo(x + w, y + h, x, y + h, rr);
+  ctx.arcTo(x, y + h, x, y, rr);
+  ctx.arcTo(x, y, x + w, y, rr);
+  ctx.closePath();
 }
 
 export class Ends {
-  private home: EndState;
-  private away: EndState;
-  private rndHome = mulberry32(0xa11ce);
-  private rndAway = mulberry32(0xb0b);
-  /** memoized cooling-ramp sprites, keyed by "r,g,b" of the team primary */
-  private smokeCache = new Map<string, HTMLCanvasElement[]>();
+  private homeGlow = 0;
+  private awayGlow = 0;
+  private homeBaked: BakedCrowd | null = null;
+  private awayBaked: BakedCrowd | null = null;
 
-  constructor() {
-    this.home = { embers: [], stars: [], glow: 0 };
-    this.away = { embers: [], stars: [], glow: 0 };
+  layout(_stage: StageRect): void {
+    // buffers are lazily (re)baked in draw when the band size / color changes
+    this.homeBaked = null;
+    this.awayBaked = null;
   }
 
-  private smokeRamp(color: RGBTuple): HTMLCanvasElement[] {
+  update(dt: number, inp: EndInputs, _reduced: boolean): void {
+    // roar → glow (saturating). roar is decayed cheers/sec; map softly.
+    const gh = clamp01(1 - Math.exp(-inp.roarHome / 8));
+    const ga = clamp01(1 - Math.exp(-inp.roarAway / 8));
+    const k = 1 - Math.exp(-dt / 0.5);
+    this.homeGlow += (gh - this.homeGlow) * k;
+    this.awayGlow += (ga - this.awayGlow) * k;
+  }
+
+  /** bake the resting crowd lattice for one side (fans in team ink on Press-Black). */
+  private bake(bandW: number, bandH: number, color: RGBTuple): BakedCrowd {
+    const w = Math.max(1, Math.round(bandW));
+    const h = Math.max(1, Math.round(bandH));
+    const c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    const ctx = c.getContext('2d')!;
+
+    // Press-Black stand ground
+    ctx.fillStyle = rgba(INK.pressBlack, 1);
+    ctx.fillRect(0, 0, w, h);
+
+    // fan lattice — tight grid, rows recede upward (deeper rows smaller)
+    const cell = Math.max(10, h / 4.4);
+    const cols = Math.max(6, Math.round(w / (cell * 0.82)));
+    const rows = Math.max(3, Math.round((h - cell) / (cell * 0.72)));
+    const colStep = w / cols;
+    const rowStep = (h - cell * 0.4) / rows;
+
+    for (let r = 0; r < rows; r++) {
+      // rows deeper in the stand (higher r) are smaller + dimmer
+      const depth = r / Math.max(1, rows - 1);
+      const rc = cell * (0.72 + (1 - depth) * 0.42);
+      const baseY = h - rowStep * r - cell * 0.2;
+      const jitterX = (r % 2) * colStep * 0.5;
+      for (let cIdx = 0; cIdx < cols; cIdx++) {
+        const cx = colStep * (cIdx + 0.5) + jitterX + (hash21(r * 3.1, cIdx * 7.7) - 0.5) * colStep * 0.2;
+        if (cx < -rc || cx > w + rc) continue;
+        // team-ink fan; a fraction hold a flag-block instead (patchwork identity)
+        const isFlag = hash21(r * 13.7, cIdx * 4.3) > 0.82;
+        if (isFlag) {
+          drawStandFlag(ctx, cx, baseY - rc * 0.5, rc * 0.62, color);
+        } else {
+          drawFan(ctx, cx, baseY, rc, color, false);
+        }
+      }
+    }
+
+    return { canvas: c, w, h, color: color.join(','), rows, cols };
+  }
+
+  private ensure(slot: BakedCrowd | null, bandW: number, bandH: number, color: RGBTuple): BakedCrowd {
+    const w = Math.round(bandW);
+    const h = Math.round(bandH);
     const key = color.join(',');
-    let ramp = this.smokeCache.get(key);
-    if (!ramp) {
-      ramp = [];
-      for (let s = 0; s < SMOKE_STAGES; s++) {
-        const k = s / (SMOKE_STAGES - 1); // 0 = pure team color → 1 = fog grey
-        ramp.push(bakeSmoke(mixRgb(color, RGB.fog, 0.15 + k * 0.8)));
-      }
-      this.smokeCache.set(key, ramp);
-    }
-    return ramp;
-  }
-
-  /** Lay out (or re-lay) the phone-light starfields to fit the current stage bands. */
-  layout(stage: StageRect): void {
-    this.home.stars = this.makeStars(stage, 'home');
-    this.away.stars = this.makeStars(stage, 'away');
-  }
-
-  private makeStars(_stage: StageRect, side: 'home' | 'away'): Star[] {
-    const stars: Star[] = [];
-    for (let i = 0; i < MAX_STARS; i++) {
-      const seed = (side === 'home' ? 1000 : 5000) + i * 3;
-      // depth: denser deep in the stand, thinning toward the goal line
-      const depth = Math.pow(hash11(seed * 1.7), 0.65);
-      stars.push({
-        // normalized x in [-0.5, 0.5] and normalized depth y in [0,1] (0 = goal line);
-        // both scaled to the actual crowd band at draw time so resize is exact.
-        x: hash11(seed * 2.3) - 0.5,
-        y: 0.05 + depth * 0.92,
-        phase: hash11(seed * 3.9) * Math.PI * 2,
-        base: 0.15 + hash11(seed * 5.1) * 0.85,
-      });
-    }
-    return stars;
-  }
-
-  update(dt: number, inp: EndInputs, reduced: boolean): void {
-    // roar → target glow. roar is decayed cheers/sec; map softly, saturating.
-    const gh = clamp01(1 - Math.exp(-inp.roarHome / 6));
-    const ga = clamp01(1 - Math.exp(-inp.roarAway / 6));
-    const k = 1 - Math.exp(-dt / 0.4);
-    this.home.glow += (gh - this.home.glow) * k;
-    this.away.glow += (ga - this.away.glow) * k;
-    if (!reduced) {
-      this.spawn(this.home, inp.roarHome, this.rndHome, dt, inp.homeBehind);
-      this.spawn(this.away, inp.roarAway, this.rndAway, dt, inp.awayBehind);
-      this.step(this.home.embers, dt);
-      this.step(this.away.embers, dt);
-    }
-  }
-
-  private spawn(st: EndState, roar: number, rnd: () => number, dt: number, behind: boolean): void {
-    // even a quiet end smoulders (base 8/s); roar drives it toward a wall of smoke;
-    // faith (behind) burns hotter.
-    const rate = 8 + clamp01(1 - Math.exp(-roar / 8)) * (behind ? 40 : 30);
-    let toSpawn = rate * dt;
-    while (toSpawn > 0 && st.embers.length < MAX_EMBERS) {
-      if (toSpawn < 1 && rnd() > toSpawn) break;
-      toSpawn -= 1;
-      const spread = 0.62; // plumes across most of the end, not one chimney
-      st.embers.push({
-        x: (rnd() - 0.5) * spread,
-        y: 0.02 + rnd() * 0.08,
-        vx: (rnd() - 0.5) * 0.1,
-        vy: 0.22 + rnd() * 0.3, // slow rise → the smoke HANGS (volume, not sparks)
-        life: 0,
-        maxLife: 2.4 + rnd() * 2.2,
-        size: 0.6 + rnd() * 0.9,
-      });
-    }
-  }
-
-  private step(embers: Ember[], dt: number): void {
-    for (let i = embers.length - 1; i >= 0; i--) {
-      const e = embers[i]!;
-      e.life += dt;
-      if (e.life >= e.maxLife) {
-        embers.splice(i, 1);
-        continue;
-      }
-      e.x += e.vx * dt;
-      e.y += e.vy * dt; // rises away from goal line into the stand
-      e.vx *= 1 - 0.4 * dt;
-      e.size += dt * 0.32; // puff expands as it rises
-    }
+    if (slot && slot.w === w && slot.h === h && slot.color === key) return slot;
+    return this.bake(bandW, bandH, color);
   }
 
   /**
-   * Draw one end's ATMOSPHERE (glow, smoke, phone-lights). `dir` +1 = home end at the
-   * bottom, -1 = away end at the top. Rendered in a flipped local frame ("into the
-   * stand" is +y), clipped to the band. Chalk counters are drawn separately (late, on
-   * top of every stage layer) via drawCounters().
+   * Draw one end's crowd band. dir +1 = home (bottom band), -1 = away (top band). The band
+   * fills the margin between the goal line and the frame; the baked lattice is composited,
+   * then a live cheer overlay (raised-arm glyphs) rides the roar. Bunting row caps the top.
    */
   private drawEnd(
     ctx: CanvasRenderingContext2D,
     stage: StageRect,
     pitch: PitchRect,
-    st: EndState,
-    theme: SideTheme,
+    theme: PopTheme,
     dir: 1 | -1,
+    glow: number,
     t: number,
     reduced: boolean,
+    glyph: string,
   ): void {
-    const bandH = dir === 1 ? stage.y + stage.h - pitch.homeGoalY : pitch.awayGoalY - stage.y;
-    const goalY = dir === 1 ? pitch.homeGoalY : pitch.awayGoalY;
-    const cx = pitch.cx;
-    const w = pitch.w;
-    const color = theme.primary;
-    const glow = st.glow;
+    const border = Math.max(2, Math.round(stage.w * GRID.border));
+    const bandW = pitch.w;
+    // home band: from home goal line down to (frame - caption strip); away: frame top → away goal
+    const bandX = pitch.x;
+    let bandY: number;
+    let bandH: number;
+    if (dir === 1) {
+      const bottomLimit = stage.y + stage.h - border - stage.h * 0.055; // clear of caption strip
+      bandY = pitch.homeGoalY;
+      bandH = Math.max(20, bottomLimit - bandY);
+    } else {
+      // start just below the scoreboard band (border + band height) so the away crowd +
+      // its ROOTED counter never sit under the scoreboard status line.
+      const scoreboardBottom = stage.y + border + stage.h * COMPONENTS.scoreboard.height + stage.h * 0.006;
+      bandY = scoreboardBottom;
+      bandH = Math.max(20, pitch.awayGoalY - bandY);
+    }
+
+    const baked = dir === 1
+      ? (this.homeBaked = this.ensure(this.homeBaked, bandW, bandH, theme.primary))
+      : (this.awayBaked = this.ensure(this.awayBaked, bandW, bandH, theme.primary));
 
     ctx.save();
-    // confine ALL crowd drawing to this end's band so nothing (glow, smoke, phone-lights)
-    // can bleed past the goal line onto the pitch or out into the letterbox void.
-    const clipY = dir === 1 ? goalY : goalY - bandH;
     ctx.beginPath();
-    ctx.rect(stage.x, clipY, stage.w, bandH);
+    ctx.rect(bandX, bandY, bandW, bandH);
     ctx.clip();
-    // local frame: origin at goal-line center; +y goes INTO the stand (away from pitch)
-    ctx.translate(cx, goalY);
-    ctx.scale(1, dir === 1 ? 1 : -1);
-
-    // 1) base bengalo glow — a tall team-color bloom over the whole end, scaled by roar
-    ctx.globalCompositeOperation = 'lighter';
-    const baseGlowH = bandH * (0.55 + glow * 0.45);
-    const bg = ctx.createLinearGradient(0, 0, 0, baseGlowH);
-    const gA = 0.07 + glow * 0.5;
-    bg.addColorStop(0, rgba(color, gA));
-    bg.addColorStop(0.45, rgba(color, gA * 0.42));
-    bg.addColorStop(1, rgba(color, 0));
-    ctx.fillStyle = bg;
-    ctx.fillRect(-w * 0.55, 0, w * 1.1, baseGlowH);
-
-    // at HIGH roar the end BURNS — a hot line right at the goal line + a fierce inner bloom
-    if (glow > 0.55) {
-      const burn = (glow - 0.55) / 0.45;
-      const hotH = bandH * 0.2;
-      const hot = ctx.createLinearGradient(0, 0, 0, hotH);
-      hot.addColorStop(0, rgba(mixRgb(color, RGB.lampWhite, 0.45), 0.5 * burn));
-      hot.addColorStop(1, rgba(color, 0));
-      ctx.fillStyle = hot;
-      ctx.fillRect(-w * 0.52, 0, w * 1.04, hotH);
+    // away band's crowd faces DOWN toward its goal — flip vertically so heads point at the pitch
+    if (dir === -1) {
+      ctx.translate(bandX, bandY + bandH);
+      ctx.scale(1, -1);
+      ctx.drawImage(baked.canvas, 0, 0);
+    } else {
+      ctx.drawImage(baked.canvas, bandX, bandY);
     }
-
-    // 2) smoke VOLUMES — big tinted puffs (pre-baked sprites, cooling ramp), rising slow.
-    //    Scale is the point: plumes span the band, cooling to fog-grey as they climb.
-    const ramp = this.smokeRamp(color);
-    for (const e of st.embers) {
-      const px = e.x * w;
-      const py = e.y * bandH;
-      const k = 1 - e.life / e.maxLife; // 1 fresh → 0 gone
-      const fadeIn = clamp01(e.life / 0.5); // soft birth, no popping
-      const sz = bandH * 0.52 * e.size * (0.55 + (1 - k) * 0.8);
-      if (sz < 1) continue;
-      const stageIdx = Math.min(SMOKE_STAGES - 1, Math.floor(clamp01(e.y) * SMOKE_STAGES));
-      const sprite = ramp[stageIdx]!;
-      ctx.globalAlpha = 0.4 * k * fadeIn * (0.4 + glow * 0.6);
-      ctx.drawImage(sprite, px - sz / 2, py - sz / 2, sz, sz);
-    }
-    ctx.globalAlpha = 1;
-
-    // 3) phone-light starfield — a DENSE sprinkle of tiny twinkling points over the dark
-    //    mass (halftime-rihanna.jpg). The brightest get a faint team halo when the end roars.
-    const starW = w * 0.98;
-    for (const s of st.stars) {
-      const px = s.x * starW;
-      const py = s.y * bandH;
-      if (py > bandH) continue;
-      const tw = reduced ? s.base : s.base * (0.35 + 0.65 * Math.sin(t * 2.4 + s.phase));
-      // at high roar the lights must read THROUGH the smoke — alpha and size climb with glow
-      const a = tw * (0.32 + glow * 0.62);
-      const sz = (0.6 + s.base * 1.0) * (1 + glow * 0.5);
-      if (glow > 0.45 && s.base > 0.86) {
-        const hsz = sz * 3.4;
-        const hg = ctx.createRadialGradient(px, py, 0, px, py, hsz / 2);
-        hg.addColorStop(0, rgba(color, a * 0.45 * glow));
-        hg.addColorStop(1, rgba(color, 0));
-        ctx.fillStyle = hg;
-        ctx.fillRect(px - hsz / 2, py - hsz / 2, hsz, hsz);
-      }
-      ctx.fillStyle = rgba(RGB.chalk, a);
-      ctx.fillRect(px - sz / 2, py - sz / 2, sz, sz);
-    }
-
     ctx.restore();
+
+    // BUNTING row — a row of flag patches capping the crowd (top of the band, toward pitch)
+    drawBunting(ctx, bandX, dir === 1 ? bandY : bandY, bandW, Math.max(8, bandH * 0.14), theme, glyph, dir);
+
+    // live cheer overlay: at higher roar, a scatter of raised-arm fans light up in team ink
+    if (!reduced && glow > 0.15) {
+      const cell = Math.max(10, bandH / 4.4);
+      const n = Math.round(glow * 18);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(bandX, bandY, bandW, bandH);
+      ctx.clip();
+      for (let i = 0; i < n; i++) {
+        // pattern change, not acting: pick stable cells and toggle them on a slow beat
+        const ph = hash11(i * 5.9 + (dir === 1 ? 0 : 40)) * Math.PI * 2;
+        const beat = Math.sin(t * 3.2 + ph);
+        if (beat < 0.2) continue;
+        const fx = hash11(i * 2.3 + (dir === 1 ? 3 : 63));
+        const fy = hash11(i * 8.1 + (dir === 1 ? 7 : 71));
+        const cx = bandX + fx * bandW;
+        const baseY = dir === 1 ? bandY + bandH - fy * bandH * 0.8 : bandY + fy * bandH * 0.8 + cell * 0.6;
+        drawFan(ctx, cx, baseY, cell * 0.92, theme.primary, true);
+      }
+      ctx.restore();
+    }
   }
 
-  /**
-   * The chalk counters — drawn LATE by the stage (after vignette/grain) so they sit above
-   * every atmosphere layer, inside their end bands, legible, never mid-pitch.
-   */
-  drawCounters(
-    ctx: CanvasRenderingContext2D,
-    stage: StageRect,
-    pitch: PitchRect,
-    inp: EndInputs,
-  ): void {
+  /** the ROOTED counter chips (Doto on keyline chip) + CHEERS COUNT DOUBLE (Medal Gold). */
+  drawCounters(ctx: CanvasRenderingContext2D, stage: StageRect, pitch: PitchRect, inp: EndInputs): void {
     this.drawCounter(ctx, stage, pitch, 1, inp.countHome, inp.homeBehind);
     this.drawCounter(ctx, stage, pitch, -1, inp.countAway, inp.awayBehind);
   }
@@ -303,40 +256,39 @@ export class Ends {
     behind: boolean,
   ): void {
     const cx = pitch.cx;
-    // both counters live INSIDE their end band, tucked against the goal line —
-    // home just below the bottom goal line, away just above the top goal line.
-    const y = dir === 1 ? pitch.homeGoalY + stage.h * 0.028 : pitch.awayGoalY - stage.h * 0.022;
-    const fs = Math.max(10, stage.w * 0.025);
+    // chip sits inside the crowd band, tucked against the goal line (both ends), so the
+    // CHEERS line (drawn on the crowd-side of the chip) always stays within the band and
+    // never collides with the scoreboard (top) or the caption strip (bottom).
+    const chipH = Math.max(16, stage.h * 0.026);
+    const y = dir === 1
+      ? pitch.homeGoalY + chipH * 0.6 // just below the bottom goal line, into the home crowd
+      : pitch.awayGoalY - chipH * 1.6; // just above the top goal line, into the away crowd
+    const label = `${formatCount(count)} ROOTED`;
+    const fs = chipH * 0.56;
     ctx.save();
+    ctx.font = fontData(fs, 600);
     ctx.textBaseline = 'middle';
-    const label = count >= 1000 ? `${(count / 1000).toFixed(count >= 10000 ? 0 : 1)}K` : `${count}`;
-    ctx.font = `600 ${fs}px ui-monospace, Menlo, monospace`;
-    const gap = fs * 0.35;
-    const numW = ctx.measureText(label).width;
-    ctx.font = `500 ${fs * 0.66}px ui-monospace, Menlo, monospace`;
-    const tag = ' ROOTED';
-    const tagW = ctx.measureText(tag).width;
-    const total = numW + gap + tagW;
-    // a soft dark backing so chalk stays legible over bright smoke/lamp glow
-    ctx.textAlign = 'left';
-    ctx.lineWidth = Math.max(2, fs * 0.22);
-    ctx.strokeStyle = 'rgba(4,6,10,0.55)';
-    ctx.lineJoin = 'round';
-    ctx.font = `600 ${fs}px ui-monospace, Menlo, monospace`;
-    ctx.strokeText(label, cx - total / 2, y);
-    ctx.fillStyle = rgba(RGB.chalk, behind ? 0.88 : 0.62);
-    ctx.fillText(label, cx - total / 2, y);
-    ctx.font = `500 ${fs * 0.66}px ui-monospace, Menlo, monospace`;
-    ctx.strokeText(tag, cx - total / 2 + numW + gap, y);
-    ctx.fillStyle = rgba(RGB.chalkDim, 0.68);
-    ctx.fillText(tag, cx - total / 2 + numW + gap, y);
     ctx.textAlign = 'center';
+    const tw = ctx.measureText(label).width;
+    const padX = chipH * 0.55;
+    const chipW = tw + padX * 2;
+    const chipX = cx - chipW / 2;
+    // Newsprint chip + Press-Black keyline (a readout plate on the dark stand)
+    ctx.fillStyle = rgba(INK.newsprint, 1);
+    ctx.fillRect(chipX, y, chipW, chipH);
+    ctx.strokeStyle = rgba(INK.pressBlack, 1);
+    ctx.lineWidth = Math.max(1, chipH * 0.08);
+    ctx.strokeRect(chipX, y, chipW, chipH);
+    // the count in Doto — Medal Gold if this side is trailing (the faith highlight), else black
+    ctx.fillStyle = rgba(behind ? INK.medalGold : INK.pressBlack, 1);
+    ctx.fillText(label, cx, y + chipH / 2);
+    // CHEERS COUNT DOUBLE line when behind (Medal Gold, §6.7)
     if (behind) {
-      ctx.font = `italic 500 ${fs * 0.72}px Georgia, serif`;
-      const fy = y + fs * 1.1 * dir;
-      ctx.strokeText('cheers count double', cx, fy);
-      ctx.fillStyle = rgba(RGB.fireMid, 0.78);
-      ctx.fillText('cheers count double', cx, fy);
+      const cy2 = dir === 1 ? y + chipH * 1.15 : y - chipH * 0.65;
+      ctx.font = fontDisplay(fs * 0.8, 700);
+      setStretch(ctx, 108);
+      ctx.fillStyle = rgba(INK.medalGold, 1);
+      ctx.fillText('CHEERS COUNT DOUBLE', cx, cy2);
     }
     ctx.restore();
   }
@@ -345,13 +297,60 @@ export class Ends {
     ctx: CanvasRenderingContext2D,
     stage: StageRect,
     pitch: PitchRect,
-    homeTheme: SideTheme,
-    awayTheme: SideTheme,
-    inp: EndInputs,
+    homeTheme: PopTheme,
+    awayTheme: PopTheme,
+    _inp: EndInputs,
     t: number,
     reduced: boolean,
+    homeGlyph: string,
+    awayGlyph: string,
   ): void {
-    this.drawEnd(ctx, stage, pitch, this.home, homeTheme, 1, t, reduced);
-    this.drawEnd(ctx, stage, pitch, this.away, awayTheme, -1, t, reduced);
+    this.drawEnd(ctx, stage, pitch, homeTheme, 1, this.homeGlow, t, reduced, homeGlyph);
+    this.drawEnd(ctx, stage, pitch, awayTheme, -1, this.awayGlow, t, reduced, awayGlyph);
   }
 }
+
+/** a held flag-block in the stand (team ink block with a cream keyline). */
+function drawStandFlag(ctx: CanvasRenderingContext2D, cx: number, cy: number, s: number, ink: RGBTuple): void {
+  ctx.save();
+  ctx.fillStyle = rgba(ink, 1);
+  ctx.fillRect(cx - s / 2, cy - s * 0.36, s, s * 0.72);
+  ctx.strokeStyle = rgba(INK.newsprint, 0.85);
+  ctx.lineWidth = Math.max(1, s * 0.08);
+  ctx.strokeRect(cx - s / 2, cy - s * 0.36, s, s * 0.72);
+  ctx.restore();
+}
+
+/** bunting row: a rank of small flag patches (team ink + cream), evenly gridded. */
+function drawBunting(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  theme: PopTheme,
+  _glyph: string,
+  _dir: 1 | -1,
+): void {
+  const n = Math.max(6, Math.round(w / (h * 1.4)));
+  const step = w / n;
+  ctx.save();
+  for (let i = 0; i < n; i++) {
+    const bx = x + step * i + step * 0.1;
+    const bw = step * 0.8;
+    const ink = i % 2 ? theme.primary : theme.secondary;
+    ctx.fillStyle = rgba(ink, 1);
+    ctx.fillRect(bx, y, bw, h * 0.82);
+    ctx.strokeStyle = rgba(INK.pressBlack, 0.9);
+    ctx.lineWidth = Math.max(1, h * 0.08);
+    ctx.strokeRect(bx, y, bw, h * 0.82);
+  }
+  ctx.restore();
+}
+
+function formatCount(n: number): string {
+  const v = Math.max(0, Math.floor(n));
+  return v.toLocaleString('en-US');
+}
+
+void (undefined as unknown as RGBTuple);

@@ -1,18 +1,21 @@
 /**
- * ROOOT stage — the chalk scoreboard (score + clock), matchday-programme voice.
+ * ROOOT stage — THE SCOREBOARD BAND (§6.9). A Press-Black band across the top:
+ * flags as keyline-boxed color-BLOCKS (drawn geometric flags, real colors from fixture
+ * data — no emoji at final quality), TRICODES in Anybody (a name = shouted → display),
+ * SCORE + CLOCK in Doto (measured data → dot voice). Status strip below (KICK OFF SOON,
+ * CHEERS COUNT DOUBLE handled at the ends). Score/clock flip on change (§7 scoreFlip).
  *
- * Minimal chalk type: serif for the names, mono for the numbers/clock. Part of the
- * STAGE, not UI chrome — it sits in the top end-band like a programme header, chalked,
- * never a boxed HUD. One accent allowed: the leading team's score can carry a hair of
- * its color; otherwise chalk.
- *
- * No FIFA marks; team CODES + unicode flags only (honesty / rule 4).
+ * Legibility gate (§1): on the Press-Black band, type is Newsprint cream; a leading
+ * tricode may take a keyline-boxed team color-chip behind it (the scoreChip slot, §2).
  */
 
-import { RGB } from '../theme';
+import { GRID, COMPONENTS } from '../../lib/theme';
+import { INK, fontData, fontDisplay, setStretch, luma } from '../pop';
 import type { StageRect, PitchRect } from '../layout';
-import type { SideTheme } from '../theme';
-import { rgba, mixRgb } from '../../lib/stage-math';
+import type { PopTheme } from '../pop';
+import { rgba, clamp01 } from '../../lib/stage-math';
+import type { RGBTuple } from '../../lib/stage-math';
+import { drawFlagBlock } from './flags';
 
 export interface ScoreboardInputs {
   homeCode: string;
@@ -21,18 +24,17 @@ export interface ScoreboardInputs {
   awayFlag: string;
   homeScore: number;
   awayScore: number;
-  /** match minute (null before KO) */
   minute: number | null;
-  /** phase label, e.g. "HALF TIME", "FULL TIME", "1ST HALF" */
   phaseLabel: string;
-  homeTheme: SideTheme;
-  awayTheme: SideTheme;
+  homeTheme: PopTheme;
+  awayTheme: PopTheme;
+  /** 0..1 flip progress on the most recent score change (drives the dot-print snap) */
+  flip: number;
 }
 
 function clockText(minute: number | null, phaseLabel: string): string {
   if (minute === null) return phaseLabel;
-  const m = Math.max(0, Math.floor(minute));
-  return `${m}'`;
+  return `${Math.max(0, Math.floor(minute))}'`;
 }
 
 export function drawScoreboard(
@@ -41,77 +43,142 @@ export function drawScoreboard(
   _pitch: PitchRect,
   s: ScoreboardInputs,
 ): void {
-  const cx = stage.x + stage.w / 2;
-  // compact header pinned to the very top of the stage — it must finish well above the
-  // away goal line so it never fights the end band or the counter (r2 item 5).
-  const topY = stage.y + stage.h * 0.026;
-  const nameFs = Math.max(12, stage.w * 0.034);
-  const scoreFs = Math.max(22, stage.w * 0.085);
-  const clockFs = Math.max(10, stage.w * 0.027);
+  const w = stage.w;
+  const border = Math.max(2, Math.round(w * GRID.border));
+  const bandH = Math.max(30, stage.h * COMPONENTS.scoreboard.height);
+  const x = stage.x + border;
+  const y = stage.y + border;
+  const bw = stage.w - border * 2;
 
   ctx.save();
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'alphabetic';
-  // soft dark backing stroke keeps chalk legible over lamp glow / crowd smoke
-  ctx.lineJoin = 'round';
-  ctx.strokeStyle = 'rgba(3,5,9,0.6)';
+  // the Press-Black band + keyline
+  ctx.fillStyle = rgba(INK.pressBlack, 1);
+  ctx.fillRect(x, y, bw, bandH);
+  ctx.strokeStyle = rgba(INK.pressBlack, 1);
+  ctx.lineWidth = Math.max(1, Math.round(w * GRID.keyline));
+  ctx.strokeRect(x, y, bw, bandH);
 
-  // ── score line: HOME  n – n  AWAY ────────────────────────────────
-  const gap = stage.w * 0.16;
-  ctx.font = `600 ${scoreFs}px ui-monospace, Menlo, monospace`;
-  const dash = '–';
-  const dashW = ctx.measureText(dash).width;
-  const scoreY = topY + scoreFs;
+  const cx = x + bw / 2;
+  const midY = y + bandH * 0.44;
+  const flagAsp = COMPONENTS.scoreboard.flagAspect; // 3:2
+  const flagH = bandH * 0.44;
+  const flagW = flagH * flagAsp;
+  const pad = bandH * 0.22;
 
-  // leading side gets a whisper of color in its numeral
-  const homeCol =
-    s.homeScore > s.awayScore ? mixRgb(RGB.chalk, s.homeTheme.primary, 0.35) : RGB.chalk;
-  const awayCol =
-    s.awayScore > s.homeScore ? mixRgb(RGB.chalk, s.awayTheme.primary, 0.35) : RGB.chalk;
+  // flags as keyline-boxed color blocks at each end
+  drawFlagBlock(ctx, s.homeFlag, x + pad, midY - flagH / 2, flagW, flagH, s.homeTheme);
+  drawFlagBlock(ctx, s.awayFlag, x + bw - pad - flagW, midY - flagH / 2, flagW, flagH, s.awayTheme);
 
-  ctx.lineWidth = Math.max(3, scoreFs * 0.1);
-  ctx.strokeText(dash, cx, scoreY);
-  ctx.fillStyle = rgba(RGB.chalkDim, 0.85);
-  ctx.fillText(dash, cx, scoreY);
+  // SCORE — Doto dot-matrix, dead center, with a flip snap on change. Reserve its box
+  // first so the tricodes can be pushed clear of it (no overlap on a narrow band).
+  const scoreFs = Math.max(18, bandH * 0.52);
+  ctx.font = fontData(scoreFs, 600);
+  const scoreText = `${s.homeScore}-${s.awayScore}`;
+  const scoreHalf = ctx.measureText(scoreText).width / 2;
+  drawDotScore(ctx, scoreText, cx, midY, scoreFs, s.flip);
 
-  ctx.textAlign = 'right';
-  ctx.strokeText(String(s.homeScore), cx - dashW * 0.9, scoreY);
-  ctx.fillStyle = rgba(homeCol, 0.95);
-  ctx.fillText(String(s.homeScore), cx - dashW * 0.9, scoreY);
-
+  // tricodes (Anybody, cream, tight tracking) — hug the flags, clamped to stay clear of
+  // the score's box in the middle so glyphs never collide on a phone-narrow band.
+  const codeFs = Math.max(12, bandH * 0.34);
+  ctx.textBaseline = 'middle';
+  ctx.font = fontDisplay(codeFs, 800);
+  setStretch(ctx, 108);
+  const codeLeftX = x + pad + flagW + bandH * 0.2;
+  const codeRightX = x + bw - pad - flagW - bandH * 0.2;
+  const scoreGuardL = cx - scoreHalf - bandH * 0.26;
+  const scoreGuardR = cx + scoreHalf + bandH * 0.26;
   ctx.textAlign = 'left';
-  ctx.strokeText(String(s.awayScore), cx + dashW * 0.9, scoreY);
-  ctx.fillStyle = rgba(awayCol, 0.95);
-  ctx.fillText(String(s.awayScore), cx + dashW * 0.9, scoreY);
-
-  // ── team codes + flags flanking, serif (programme voice) ─────────
-  ctx.font = `500 ${nameFs}px Georgia, 'Times New Roman', serif`;
-  ctx.lineWidth = Math.max(2, nameFs * 0.14);
+  drawTricodeChip(ctx, s.homeCode, codeLeftX, midY, codeFs, s.homeTheme, s.homeScore > s.awayScore, 'left', scoreGuardL);
   ctx.textAlign = 'right';
-  ctx.strokeText(`${s.homeFlag} ${s.homeCode}`, cx - gap, topY + scoreFs * 0.62);
-  ctx.fillStyle = rgba(RGB.chalk, 0.82);
-  ctx.fillText(`${s.homeFlag} ${s.homeCode}`, cx - gap, topY + scoreFs * 0.62);
-  ctx.textAlign = 'left';
-  ctx.strokeText(`${s.awayCode} ${s.awayFlag}`, cx + gap, topY + scoreFs * 0.62);
-  ctx.fillText(`${s.awayCode} ${s.awayFlag}`, cx + gap, topY + scoreFs * 0.62);
+  drawTricodeChip(ctx, s.awayCode, codeRightX, midY, codeFs, s.awayTheme, s.awayScore > s.homeScore, 'right', scoreGuardR);
 
-  // ── clock / phase, mono, brighter than r1 (it sat unreadable on the bright band) ──
-  ctx.font = `500 ${clockFs}px ui-monospace, Menlo, monospace`;
+  // status / clock strip below the score line (Doto, dim cream)
+  const clockFs = Math.max(9, bandH * 0.18);
+  const clockY = y + bandH * 0.82;
+  ctx.font = fontData(clockFs, 400);
+  ctx.fillStyle = rgba(INK.newsprint, 0.62);
   ctx.textAlign = 'center';
-  ctx.lineWidth = Math.max(2, clockFs * 0.18);
-  const ct = clockText(s.minute, s.phaseLabel).toUpperCase();
-  const clockY = topY + scoreFs + clockFs * 1.45;
-  ctx.strokeText(ct, cx, clockY);
-  ctx.fillStyle = rgba(RGB.chalk, 0.85);
-  ctx.fillText(ct, cx, clockY);
-
-  // a hairline chalk rule under it — programme divider, not a UI box
-  ctx.strokeStyle = rgba(RGB.chalkDim, 0.16);
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(cx - stage.w * 0.11, clockY + clockFs * 0.9);
-  ctx.lineTo(cx + stage.w * 0.11, clockY + clockFs * 0.9);
-  ctx.stroke();
+  ctx.textBaseline = 'middle';
+  const status = `· ${clockText(s.minute, s.phaseLabel)} ·`.toUpperCase();
+  ctx.fillText(status, cx, clockY);
 
   ctx.restore();
 }
+
+/** a tricode with an optional team-color keyline chip behind it (leader gets the chip). */
+function drawTricodeChip(
+  ctx: CanvasRenderingContext2D,
+  code: string,
+  exRaw: number,
+  cy: number,
+  fs: number,
+  theme: PopTheme,
+  leading: boolean,
+  align: 'left' | 'right',
+  scoreGuard: number,
+): void {
+  const tw0 = ctx.measureText(code).width;
+  // clamp so the tricode's inner edge never crosses the score's guard rail
+  let ex = exRaw;
+  if (align === 'left') ex = Math.min(exRaw, scoreGuard - tw0);
+  else ex = Math.max(exRaw, scoreGuard + tw0);
+  if (leading) {
+    const tw = tw0;
+    const px = fs * 0.32;
+    const chipX = align === 'left' ? ex - px : ex - tw - px;
+    const chipY = cy - fs * 0.62;
+    ctx.save();
+    ctx.fillStyle = rgba(theme.primary, 1);
+    ctx.fillRect(chipX, chipY, tw + px * 2, fs * 1.24);
+    ctx.strokeStyle = rgba(INK.newsprint, 0.9);
+    ctx.lineWidth = Math.max(1, fs * 0.05);
+    ctx.strokeRect(chipX, chipY, tw + px * 2, fs * 1.24);
+    // type on the chip: black or cream by the chip's luminance (legibility gate)
+    ctx.fillStyle = rgba(luma(theme.primary) > 150 ? INK.pressBlack : INK.newsprint, 1);
+    ctx.fillText(code, ex, cy);
+    ctx.restore();
+    return;
+  }
+  ctx.fillStyle = rgba(INK.newsprint, 1);
+  ctx.fillText(code, ex, cy);
+}
+
+/**
+ * Doto score with a scoreboard FLIP: as `flip` runs 0→1 the changing column prints its
+ * dot pattern then snaps into register — we fake the mechanical print by a one-column
+ * vertical jitter + a brief cream underprint. Kept to a flicker, never a smear (§7).
+ */
+function drawDotScore(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  cx: number,
+  cy: number,
+  fs: number,
+  flip: number,
+): void {
+  ctx.save();
+  ctx.font = fontData(fs, 600);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const f = clamp01(flip);
+  if (f > 0 && f < 1) {
+    // print flicker: a faint offset ghost that resolves as it snaps into register
+    const off = Math.sin(f * Math.PI * 6) * fs * 0.06 * (1 - f);
+    ctx.fillStyle = rgba(INK.newsprint, 0.28 * (1 - f));
+    ctx.fillText(text, cx + off, cy);
+  }
+  ctx.fillStyle = rgba(INK.newsprint, 1);
+  ctx.fillText(text, cx, cy);
+  ctx.restore();
+}
+
+export const SCOREBOARD_H = COMPONENTS.scoreboard.height;
+
+/** expose band bottom y so ends/rail can tuck under it. */
+export function scoreboardBottomY(stage: StageRect): number {
+  const border = Math.max(2, Math.round(stage.w * GRID.border));
+  const bandH = Math.max(30, stage.h * COMPONENTS.scoreboard.height);
+  return stage.y + border + bandH;
+}
+
+void (undefined as unknown as RGBTuple);

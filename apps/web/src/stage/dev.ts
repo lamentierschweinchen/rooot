@@ -308,7 +308,7 @@ export function boot(canvas: HTMLCanvasElement, ui: HTMLElement): void {
         <button data-j="92">full time</button>
       </div>
       <div class="dev-readout" data-el="readout"></div>
-      <div class="dev-note">market = light-vs-fog on the pitch · crowd = smoke+phones at the ends · never blended</div>
+      <div class="dev-note">market = halftone dot-fields on the pitch · crowd = pictogram ends · never blended</div>
     </div>`;
 
   const btnPlay = ui.querySelector<HTMLButtonElement>('[data-a="play"]')!;

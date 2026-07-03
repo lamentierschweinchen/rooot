@@ -10,7 +10,7 @@
  *   remainder in the middle and its extent == p(draw). Halfway line == 50/50.
  */
 
-import { GEO } from './theme';
+import { GEO } from './geometry';
 
 export interface StageRect {
   /** device-pixel rect of the composed portrait stage inside the canvas */
@@ -54,8 +54,11 @@ export function computeStageRect(canvasW: number, canvasH: number, dpr: number):
 }
 
 export function computePitchRect(stage: StageRect): PitchRect {
+  // the pitch is inset by the left touchline margin and the (wider) right RAIL margin, so
+  // the honest dot fields never run under the % / ROAR rail. The crowd ends occupy the
+  // top/bottom margins. computeFront (below) maps probability onto this pitch rect exactly.
   const x = stage.x + stage.w * GEO.sideMargin;
-  const w = stage.w * (1 - GEO.sideMargin * 2);
+  const w = stage.w * (1 - GEO.sideMargin - GEO.railMargin);
   const y = stage.y + stage.h * GEO.endBandTop;
   const h = stage.h * (1 - GEO.endBandTop - GEO.endBandBottom);
   return {

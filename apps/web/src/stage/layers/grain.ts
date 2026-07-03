@@ -1,62 +1,53 @@
 /**
- * ROOOT stage — film grain + vignette (the rain/sweat register over everything).
+ * ROOOT stage — PRESS TEXTURE (§5 / §9). NOT wear, NEVER distress. The honest signature
+ * of a real offset press: a subtle uniform paper tooth over the grounds + a hair of CMYK
+ * misregistration on the frame. Clean saturated ink is the target (Topps / Mexico-70) —
+ * if it looks distressed or glowing, it's wrong. No vignette, no glow, no sepia.
  *
- * References: rain-&-floodlights.jpg (grain as ambient texture), droplets-and-ball.jpg
- * (monochrome material intimacy). Grain sits over the WHOLE stage, subtly. The vignette
- * pulls the corners into the void so the composed portrait reads as a lit place in dark,
- * not a rectangle of UI.
- *
- * Cheap: one small grain tile stamped at a jittered offset each frame with 'overlay'
- * (mid-grey neutral, so it adds sparkle without lifting black). Reduced-motion holds a
- * static offset (no crawling grain).
+ * The letterbox bars around the composed portrait are Press-Black (the mount's ink), not
+ * a void. Grain is STATIC (a printed tooth doesn't crawl) so nothing shimmers frame to
+ * frame; reduced-motion changes nothing here — texture is already still.
  */
 
-import { PALETTE } from '../theme';
+import { INK } from '../pop';
+import { HALFTONE } from '../../lib/theme';
 import type { StageRect } from '../layout';
 
-export function drawVignette(ctx: CanvasRenderingContext2D, stage: StageRect): void {
-  const cx = stage.x + stage.w / 2;
-  const cy = stage.y + stage.h / 2;
-  const r = Math.hypot(stage.w, stage.h) / 2;
-  // HARD vignette (r2 tonality): the corners go to genuine near-black — the reference's
-  // void. Starts earlier and lands heavier than a decorative UI vignette.
-  const g = ctx.createRadialGradient(cx, cy, r * 0.42, cx, cy, r);
-  g.addColorStop(0, 'rgba(0,0,0,0)');
-  g.addColorStop(0.5, 'rgba(3,5,8,0.28)');
-  g.addColorStop(0.78, 'rgba(3,4,7,0.62)');
-  g.addColorStop(1, 'rgba(2,3,6,0.97)');
+/** Press-Black letterbox bars — the mount around the portrait poster. */
+export function drawLetterbox(ctx: CanvasRenderingContext2D, stage: StageRect): void {
   ctx.save();
-  ctx.fillStyle = g;
-  ctx.fillRect(stage.x, stage.y, stage.w, stage.h);
-  // and let the letterbox bars be true void
-  ctx.fillStyle = PALETTE.voidTop;
+  ctx.fillStyle = `rgb(${INK.pressBlack[0]},${INK.pressBlack[1]},${INK.pressBlack[2]})`;
+  const cw = ctx.canvas.width;
+  const ch = ctx.canvas.height;
   if (stage.x > 0) {
-    ctx.fillRect(0, 0, stage.x, ctx.canvas.height);
-    ctx.fillRect(stage.x + stage.w, 0, ctx.canvas.width - (stage.x + stage.w), ctx.canvas.height);
+    ctx.fillRect(0, 0, stage.x, ch);
+    ctx.fillRect(stage.x + stage.w, 0, cw - (stage.x + stage.w), ch);
   }
   if (stage.y > 0) {
-    ctx.fillRect(0, 0, ctx.canvas.width, stage.y);
-    ctx.fillRect(0, stage.y + stage.h, ctx.canvas.width, ctx.canvas.height - (stage.y + stage.h));
+    ctx.fillRect(0, 0, cw, stage.y);
+    ctx.fillRect(0, stage.y + stage.h, cw, ch - (stage.y + stage.h));
   }
   ctx.restore();
 }
 
+/**
+ * Uniform offset grain over the composed stage — a faint paper tooth (§5, HALFTONE.grain).
+ * Multiply-blend a fine speckle tile at low alpha so it darkens the tooth without lifting
+ * black or greying the cream. Tiled at a fixed origin (static — a printed tooth is still).
+ */
 export function drawGrain(
   ctx: CanvasRenderingContext2D,
   stage: StageRect,
   tile: HTMLCanvasElement,
-  frame: number,
-  reduced: boolean,
+  _frame: number,
+  _reduced: boolean,
 ): void {
   ctx.save();
-  ctx.globalCompositeOperation = 'overlay';
-  ctx.globalAlpha = 0.5;
+  ctx.globalCompositeOperation = 'multiply';
+  ctx.globalAlpha = HALFTONE.grain * 1.6; // subtle — the "printed on paper" whisper
   const ts = tile.width;
-  // jitter the tile origin each frame so the grain shimmers (film), unless reduced
-  const jx = reduced ? 0 : (frame * 7) % ts;
-  const jy = reduced ? 0 : (frame * 13) % ts;
-  for (let y = stage.y - jy; y < stage.y + stage.h; y += ts) {
-    for (let x = stage.x - jx; x < stage.x + stage.w; x += ts) {
+  for (let y = stage.y; y < stage.y + stage.h; y += ts) {
+    for (let x = stage.x; x < stage.x + stage.w; x += ts) {
       ctx.drawImage(tile, x, y);
     }
   }
