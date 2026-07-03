@@ -7,3 +7,5 @@ fixtures/*.jsonl
 docs/txline/probe/
 .DS_Store
 .vercel/
+.vercel
+.dev-shots/
