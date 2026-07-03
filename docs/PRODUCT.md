@@ -26,8 +26,14 @@ token. On Solana, forever. `rooot.club`.
   and material). Rooted counts = the counter (12,431 v 8,207); the roar = smoke
   density/glow from decayed cheers/sec. Faith is *visible*: your end burning while
   your light retreats.
-- **The pulse:** structured reacts (🔥 belief / 😰 nerves / 😤 rage + preset chants,
-  EN/ES). Honest per-side counts beside the market's number. Free text ONLY in rows.
+- **The pulse (v2 — corrected per owner + early reader):** NOT always-on reacts and
+  NOT a guessing game (owner explicitly dislikes guess-the-crowd mechanics).
+  **Pulse Moments:** at drama triggers (post hit, goal, VAR, red card, FT) a set of
+  SIX curated ambiguous emojis pops (🔥 👀 🚀 💪 💀 🤡 — multi-context, never
+  literal; sets can rotate). Everyone picks what they FEEL — then **the reveal: a
+  split screen, each crowd's top emoji + the % behind it.** Two ends, two moods,
+  face to face (their 💀 vs your 🚀). Pure expression + honest counts; no
+  correctness scoring. Preset chants EN/ES stay; free text ONLY in rows.
 - **The scarf weaves live along the touchline** — the relic forming in plain sight
   all match; it lifts at the whistle.
 
