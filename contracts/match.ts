@@ -76,6 +76,11 @@ export interface MatchCallbacks {
   onStatus(ev: StatusEvent): void;
   /** transport health — the stage dims honestly instead of freezing on a dead feed */
   onFeedState?(state: 'connected' | 'reconnecting' | 'replay' | 'lost'): void;
+  /** the readable story (contracts/ledger.ts): sources forward EVERY typed
+   * ledger msg here — events, amends, discards; the client builder owns
+   * matching/replacement (goals re-emit with the same id — replace, newest
+   * wins). Optional so the bare stage keeps working; the watching shell wires it. */
+  onLedger?(msg: import('./ledger').LedgerMsg): void;
 }
 
 export interface MatchDataSource {

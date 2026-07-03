@@ -30,8 +30,9 @@
  *     here; the other two are out of the honest palette (docs/DATA.md) and
  *     are filtered out, not mapped.
  *   - For 1X2 rows, PriceNames is always exactly ["part1","draw","part2"] —
- *     part1 = home (participant1), part2 = away (participant2), matching the
- *     openapi Odds/OddsPayload schema's PriceNames/Prices/Pct arrays being
+ *     PARTICIPANT order, NOT home/draw/away (Participant1IsHome can be false;
+ *     the side-truth is threaded into parseOddsMessage — see its doc), with
+ *     the openapi Odds/OddsPayload schema's PriceNames/Prices/Pct arrays
  *     parallel by index.
  *   - Every 1X2 row in the capture carries Bookmaker "TXLineStablePriceDemargined"
  *     / BookmakerId 10021 — there is only ever one bookmaker row per tick in
@@ -618,4 +619,214 @@ function normalizeMinute(data: RawSoccerData | undefined): number | null {
   const seconds = data.New?.Clock?.seconds ?? data.Previous?.Clock?.seconds;
   if (typeof seconds === 'number') return Math.floor(seconds / 60);
   return null;
+}
+
+/* ── the ledger (contracts/ledger.ts) — the match as a readable story ──── */
+/*
+ * parseLedgerMessage: one live-wire envelope → one LedgerMsg, or null for
+ * actions the ledger deliberately ignores (possession ticks, throw-ins,
+ * goal kicks, bookkeeping like halftime_finalised — chatter, not story).
+ * Stateless like every parser here; the client-side builder owns spell
+ * collapsing (consecutive danger rows), amend/discard matching, and
+ * goal-row replacement by id.
+ *
+ * The whole mapping is EMPIRICAL — every kind below was observed live in
+ * fixtures/scores-night-20260703.jsonl (AUS–EGY, the ET+pens epic), except
+ * red_card which mirrors yellow_card's shape. Unknown actions return null.
+ */
+
+import type { LedgerEvent, LedgerKind, LedgerMsg } from './ledger';
+
+interface RawLedgerEnvelope {
+  FixtureId?: number;
+  Action?: string;
+  Id?: number;
+  Ts?: number;
+  Confirmed?: boolean;
+  Clock?: RawLiveClock;
+  Participant?: number;
+  Participant1IsHome?: boolean;
+  StatusId?: number;
+  Score?: RawSoccerFixtureScore;
+  Data?: {
+    StatusId?: number;
+    Goal?: boolean;
+    Corner?: boolean;
+    Penalty?: boolean;
+    Outcome?: string;
+    Participant?: number;
+    Action?: string;
+    New?: { Clock?: { Seconds?: number }; Outcome?: string };
+    Previous?: { Clock?: { Seconds?: number }; Outcome?: string };
+  };
+}
+
+/** wire action → ledger kind, for the actions that ARE story. */
+const LEDGER_ACTION_KIND: Record<string, LedgerKind> = {
+  players_warming_up: 'warmup',
+  players_on_the_pitch: 'warmup',
+  standby: 'warmup',
+  kickoff: 'kickoff',
+  goal: 'goal',
+  possible: 'possible',
+  shot: 'shot',
+  corner: 'corner',
+  free_kick: 'free-kick',
+  yellow_card: 'yellow-card',
+  red_card: 'red-card',
+  substitution: 'substitution',
+  injury: 'injury',
+  additional_time: 'additional-time',
+  danger_possession: 'danger',
+  high_danger_possession: 'danger',
+  penalty_outcome: 'penalty-kick',
+};
+
+const LEDGER_HEADLINE: Record<LedgerKind, string> = {
+  warmup: 'In the tunnel',
+  kickoff: 'Kick-off',
+  goal: 'Goal',
+  possible: 'Checking…',
+  shot: 'Shot',
+  corner: 'Corner',
+  'free-kick': 'Free kick',
+  'yellow-card': 'Yellow card',
+  'red-card': 'Red card',
+  substitution: 'Substitution',
+  injury: 'Injury pause',
+  'additional-time': 'Additional time',
+  danger: 'Dangerous spell',
+  break: 'The break',
+  penalties: 'Penalty shootout',
+  'penalty-kick': 'Penalty',
+  'full-time': 'Full-time',
+};
+
+/** kinds that are always visible; everything else folds behind disclosure. */
+const LEDGER_MAJOR = new Set<LedgerKind>([
+  'kickoff',
+  'goal',
+  'yellow-card',
+  'red-card',
+  'break',
+  'penalties',
+  'penalty-kick',
+  'full-time',
+]);
+
+/** StatusId → the break/final rows (playing-phase rows come from `kickoff`
+ * envelopes instead — they carry the running clock; see the ladder note). */
+const LEDGER_STATUS_ROW: Record<number, { kind: LedgerKind; headline: string }> = {
+  3: { kind: 'break', headline: 'Half-time' },
+  6: { kind: 'break', headline: 'End of 90 — extra time coming' },
+  8: { kind: 'break', headline: 'Extra-time break' },
+  11: { kind: 'break', headline: 'End of extra time' },
+  12: { kind: 'penalties', headline: 'Penalty shootout' },
+  13: { kind: 'full-time', headline: 'Full-time' },
+};
+
+function ledgerSide(participant: number | undefined, p1IsHome: boolean): 'home' | 'away' | null {
+  if (participant !== 1 && participant !== 2) return null;
+  const isP1 = participant === 1;
+  return isP1 === p1IsHome ? 'home' : 'away';
+}
+
+export function parseLedgerMessage(
+  raw: string,
+  receivedAtMs: number,
+  source: 'live' | 'replay',
+): LedgerMsg | null {
+  let msg: RawLedgerEnvelope;
+  try {
+    msg = JSON.parse(raw) as RawLedgerEnvelope;
+  } catch {
+    return null;
+  }
+  if (typeof msg.FixtureId !== 'number' || typeof msg.Action !== 'string') return null;
+  const p1IsHome = msg.Participant1IsHome !== false; // envelope-carried, default true
+  const fixtureKey = String(msg.FixtureId);
+  const tMs = receivedAtMs;
+  const minute = liveMinute(msg.Clock);
+  const side = ledgerSide(msg.Participant, p1IsHome);
+
+  /* retro-edits → patches (the builder matches by kind+clock+side) */
+  if (msg.Action === 'action_amend') {
+    const targetKind = LEDGER_ACTION_KIND[msg.Data?.Action ?? ''];
+    if (!targetKind) return null; // amend of an action the ledger never showed
+    const targetSeconds = msg.Data?.New?.Clock?.Seconds ?? msg.Data?.Previous?.Clock?.Seconds;
+    return {
+      type: 'amend',
+      fixtureKey,
+      targetKind,
+      targetClockSeconds: typeof targetSeconds === 'number' ? targetSeconds : null,
+      side,
+      detail: msg.Data?.New?.Outcome ?? null,
+      tMs,
+    };
+  }
+  if (msg.Action === 'action_discarded') {
+    return {
+      type: 'discard',
+      fixtureKey,
+      targetClockSeconds: typeof msg.Clock?.Seconds === 'number' ? msg.Clock.Seconds : null,
+      side,
+      tMs,
+    };
+  }
+
+  /* status envelopes → break/pens/final rows only (2/4/7/9 ride `kickoff`) */
+  if (msg.Action === 'status') {
+    const sid = msg.Data?.StatusId ?? msg.StatusId;
+    const row = typeof sid === 'number' ? LEDGER_STATUS_ROW[sid] : undefined;
+    if (!row) return null;
+    return {
+      type: 'event',
+      ev: {
+        id: `${fixtureKey}:${msg.Id ?? `s${sid ?? 'x'}`}`,
+        kind: row.kind,
+        major: true,
+        minute,
+        tMs,
+        side: null,
+        headline: row.headline,
+        raw: msg,
+      },
+    };
+  }
+
+  const kind = LEDGER_ACTION_KIND[msg.Action];
+  if (!kind) return null; // chatter (possession ticks, throw-ins, bookkeeping…)
+
+  /* `possible` is only story when it's a goal/penalty being checked */
+  if (kind === 'possible' && !(msg.Data?.Goal === true || msg.Data?.Penalty === true)) return null;
+
+  const ev: LedgerEvent = {
+    id: `${fixtureKey}:${msg.Id ?? `${msg.Action}-${tMs}`}`,
+    kind,
+    major: LEDGER_MAJOR.has(kind) || (kind === 'possible' && msg.Data?.Goal === true),
+    minute,
+    tMs,
+    side,
+    headline:
+      kind === 'possible'
+        ? msg.Data?.Penalty === true
+          ? 'Penalty? Checking…'
+          : 'Goal? Checking…'
+        : LEDGER_HEADLINE[kind],
+    raw: msg,
+  };
+  if (kind === 'goal') {
+    ev.confirmed = msg.Confirmed === true;
+    const p1 = msg.Score?.Participant1?.Total?.Goals;
+    const p2 = msg.Score?.Participant2?.Total?.Goals;
+    if (typeof p1 === 'number' && typeof p2 === 'number') {
+      ev.score = p1IsHome ? { home: p1, away: p2 } : { home: p2, away: p1 };
+    }
+  }
+  const outcome = msg.Data?.Outcome;
+  if (typeof outcome === 'string' && outcome) {
+    ev.detail = outcome;
+    if (kind === 'penalty-kick') ev.headline = `Penalty — ${outcome}`;
+  }
+  return { type: 'event', ev };
 }
