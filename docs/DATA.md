@@ -93,19 +93,32 @@ tonight's captures). **Possession-danger grades are honest live pressure — a
 future stage layer (post-pop-reskin) may render them; the `possible goal`
 moment is a gift for drama.**
 
-**StatusId → phase (empirical):** 1=PRE, 2=FIRST_HALF observed; 3/HT, 4/H2,
-5/FT expected — confirm against tonight's HT/FT and extend mapLiveStatusId.
+**StatusId ladder (CONFIRMED live — AUS–EGY went 1–1 / ET / penalties, the
+full knockout epic, all captured):** playing phases pair a `status` with a
+`kickoff` (top-level StatusId + running Clock): **2**=H1(0s) · **4**=H2(2700s)
+· **7**=ET1(5400s) · **9**=ET2(6300s). Breaks are `status`-only, no Clock:
+**3**=HT · **6**=end-of-90-before-ET · **8**=ET break · **11**=end-of-ET.
+**12**=penalty shootout · **13**=final whistle (observed after pens; expected
+also straight-90 — confirm vs ARG–CPV FT). Never observed: 5, 10 → unmapped
+(null, never guess). Breaks 6/8/11 also null: the stage holds the prior
+playing phase through them. `mapLiveStatusId` carries this exact table.
 
-**⚠️ OPEN BUG (flagged, fix queued):** `parseOddsMessage` maps part1→pHome
-unconditionally, but the scores envelope proves `Participant1IsHome` can be
-false — participant order ≠ home/away. Fix: sources thread the fixture's
-side-truth (verify fixtureMeta against each fixture's envelope; then an
-optional `participant1IsHome` arg on parseOddsMessage or a post-parse swap in
-sources/ingest). Cross-check with COL–GHA + ARG–CPV captures.
+**✅ SIDE-TRUTH BUG FIXED (coordinator, Jul 3):** the odds envelope carries NO
+home/away field — `PriceNames` is `["part1","draw","part2"]`, PARTICIPANT
+order. `parseOddsMessage` now takes `participant1IsHome` (default true) and
+swaps legs when false; every scores envelope carries the truth, so sources
+latch it (`sniffParticipant1IsHome`) and thread it: ReplaySource pre-scans its
+bundle, services/stands replay latches per run, txline live ingest keeps a
+per-FixtureId map shared across its odds/scores streams. Every fixture
+observed so far is `true` (ARG–CPV: part1=ARG at 82% in-running ✓) — the
+latch exists for the day the feed says otherwise.
 
 **Validation tool:** `npx tsx scripts/validate-live.ts <scores.jsonl> [--odds <odds.jsonl>]`
-— prints parse tallies + the honest timeline. AUS–EGY: kickoff ✓, Egypt goal
-12' ✓, 1344 ticks / 665 in-running / 0 sum violations.
+— prints parse tallies + the honest timeline. AUS–EGY full arc parses true:
+KO ✓ · Egypt 12' ✓ · HT ✓ · Australia 54' equalizer ✓ · ET 90'/105' ✓ ·
+PENALTIES ✓ · FULL_TIME ✓ — 0 sum violations across 4k+ 1X2 ticks. A
+penalty-shootout capture in the bank means "penalties as weather" can be cut
+from REAL data in the demo video.
 
 ## API feedback bank (judged submission field — keep adding)
 

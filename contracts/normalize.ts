@@ -191,11 +191,20 @@ function toFinitePct(v: string | number | undefined): number | null {
  *   (see ReplaySource, which paces off receivedAtMs deltas).
  * @param source 'live' | 'replay' — threaded straight onto the tick per the
  *   honesty rule in contracts/match.ts (never blended/relabeled downstream).
+ * @param participant1IsHome side-truth for this fixture. The odds envelope
+ *   itself carries NO home/away field — PriceNames is ["part1","draw","part2"],
+ *   PARTICIPANT order, and the scores wire proves Participant1IsHome can be
+ *   false. Callers must thread the value learned from the fixture's scores
+ *   envelopes (every scores message carries it — see
+ *   sniffParticipant1IsHome). Defaults to true (every fixture observed so
+ *   far); when false, the part1/part2 legs are swapped so pHome is always
+ *   genuinely the home side.
  */
 export function parseOddsMessage(
   raw: string,
   receivedAtMs: number,
   source: 'live' | 'replay',
+  participant1IsHome = true,
 ): OddsTick | null {
   let msg: RawOddsMessage;
   try {
@@ -210,9 +219,10 @@ export function parseOddsMessage(
   const names = msg.PriceNames ?? [];
   const pct = msg.Pct ?? [];
   if (names.length !== 3 || pct.length !== 3) return null;
-  // PriceNames is always ["part1","draw","part2"] in the capture (part1=home,
-  // part2=away); index-map rather than trust exact label text, but sanity
-  // check the shape looks like a home/draw/away triple.
+  // PriceNames is always ["part1","draw","part2"] in the capture — PARTICIPANT
+  // order, NOT home/draw/away (the home mapping is applied below via the
+  // threaded participant1IsHome); index-map rather than trust exact label
+  // text, but sanity check the shape looks like a part1/draw/part2 triple.
   const drawIdx = names.findIndex((n) => n.toLowerCase() === 'draw');
   if (drawIdx !== 1) {
     // Every observed row has draw at index 1 ([part1, draw, part2]). If a
@@ -221,14 +231,15 @@ export function parseOddsMessage(
     return null;
   }
 
-  const pHome = toFinitePct(pct[0]);
+  const pPart1 = toFinitePct(pct[0]);
   const pDraw = toFinitePct(pct[1]);
-  const pAway = toFinitePct(pct[2]);
-  if (pHome === null || pDraw === null || pAway === null) return null;
+  const pPart2 = toFinitePct(pct[2]);
+  if (pPart1 === null || pDraw === null || pPart2 === null) return null;
 
-  const home = pHome / 100;
+  // part1/part2 → home/away via the threaded side-truth (see doc comment).
+  const home = (participant1IsHome ? pPart1 : pPart2) / 100;
   const draw = pDraw / 100;
-  const away = pAway / 100;
+  const away = (participant1IsHome ? pPart2 : pPart1) / 100;
   const sum = home + draw + away;
   if (Math.abs(sum - 1) > 0.05) return null; // sanity gate, see doc comment above
 
@@ -241,6 +252,26 @@ export function parseOddsMessage(
     source,
     raw: msg,
   };
+}
+
+/**
+ * Cheap side-truth sniff for the latch pattern: every SCORES envelope carries
+ * Participant1IsHome (the odds envelopes never do). Sources call this on
+ * scores-shaped lines, latch the latest non-null answer per fixture, and
+ * thread it into parseOddsMessage. Returns null when the field is absent or
+ * the line isn't JSON — callers keep their previous latch (or the `true`
+ * default) rather than guess.
+ *
+ * Callers may fast-path with raw.includes('"Participant1IsHome"') to skip
+ * the JSON.parse on the (majority) odds lines.
+ */
+export function sniffParticipant1IsHome(raw: string): boolean | null {
+  try {
+    const msg = JSON.parse(raw) as { Participant1IsHome?: unknown };
+    return typeof msg.Participant1IsHome === 'boolean' ? msg.Participant1IsHome : null;
+  } catch {
+    return null;
+  }
 }
 
 /* ── scores ────────────────────────────────────────────────────────── */
@@ -290,6 +321,19 @@ interface RawLiveEnvelope {
 }
 
 /** Empirical StatusId → MatchPhase (live wire). Unknown → null, never guessed. */
+/*
+ * EMPIRICAL StatusId ladder — decoded from the full AUS–EGY knockout epic
+ * (fixtures/scores-night-20260703.jsonl: 1–1 after 90, extra time, penalties):
+ *   playing phases arrive as a `status` + paired `kickoff` (top-level StatusId,
+ *   running Clock): 2=H1(0s) · 4=H2(2700s) · 7=ET1(5400s) · 9=ET2(6300s)
+ *   breaks arrive as `status` only (no Clock): 3=HT · 6=end-of-90-before-ET ·
+ *   8=ET break · 11=end-of-ET-before-pens
+ *   12=penalty shootout · 13=final (observed after pens; expected to also be
+ *   the straight-90 final — confirm vs ARG–CPV/COL–GHA tonight)
+ *   never observed: 5, 10 — unmapped, return null rather than guess. Break
+ *   codes 6/8/11 also return null: the stage honestly holds the prior playing
+ *   phase through a break (HALF_TIME is the one break the product surfaces).
+ */
 function mapLiveStatusId(id: number | undefined): MatchPhase | null {
   switch (id) {
     case 1:
@@ -297,11 +341,17 @@ function mapLiveStatusId(id: number | undefined): MatchPhase | null {
     case 2:
       return 'FIRST_HALF'; // observed at kickoff
     case 3:
-      return 'HALF_TIME'; // expected — confirm against tonight's captures
+      return 'HALF_TIME'; // CONFIRMED live (AUS–EGY 18:10Z)
     case 4:
-      return 'SECOND_HALF'; // expected — confirm
-    case 5:
-      return 'FULL_TIME'; // expected — confirm
+      return 'SECOND_HALF'; // CONFIRMED live (AUS–EGY 18:27Z, Clock 2700s)
+    case 7:
+      return 'EXTRA_TIME'; // CONFIRMED live — ET1 kickoff (Clock 5400s)
+    case 9:
+      return 'EXTRA_TIME'; // CONFIRMED live — ET2 kickoff (Clock 6300s)
+    case 12:
+      return 'PENALTIES'; // CONFIRMED live — shootout under way
+    case 13:
+      return 'FULL_TIME'; // CONFIRMED live — final (after pens; see ladder note)
     default:
       return null;
   }

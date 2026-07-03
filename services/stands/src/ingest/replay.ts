@@ -12,7 +12,12 @@
 import { createInterface } from 'node:readline';
 import { createReadStream } from 'node:fs';
 import type { FeedMsg } from '@contracts/feed';
-import { parseOddsMessage, parseScoreMessage, parseStatusMessage } from '@contracts/normalize';
+import {
+  parseOddsMessage,
+  parseScoreMessage,
+  parseStatusMessage,
+  sniffParticipant1IsHome,
+} from '@contracts/normalize';
 
 interface FixtureLine {
   receivedAtMs: number;
@@ -82,9 +87,19 @@ export function startReplayIngest(opts: {
     timer = setTimeout(() => playFrom(i + 1), Math.min(delayMs, 5_000)); // cap gaps (e.g. across __meta reconnects) so replay doesn't stall
   }
 
+  // side-truth latch (contracts/normalize.ts parseOddsMessage doc): learned
+  // from the bundle's scores envelopes, threaded into every odds parse. Lines
+  // stream via readline, so this learns lazily — bundles carry pre-kickoff
+  // scores envelopes, so the latch lands before the in-running odds.
+  let p1IsHome = true;
+
   function emit(line: FixtureLine): void {
     try {
-      const tick = parseOddsMessage(line.data, line.receivedAtMs, 'replay');
+      if (line.data.includes('"Participant1IsHome"')) {
+        const p1h = sniffParticipant1IsHome(line.data);
+        if (p1h !== null) p1IsHome = p1h;
+      }
+      const tick = parseOddsMessage(line.data, line.receivedAtMs, 'replay', p1IsHome);
       if (tick) {
         if (fixtureIdOf(tick.raw) !== opts.fixtureId) return;
         opts.onFeedMsg({ type: 'odds', tick });

@@ -30,7 +30,12 @@
  *     recorder itself.
  */
 import type { Fixture, MatchCallbacks, MatchDataSource } from '@contracts/match';
-import { parseOddsMessage, parseScoreMessage, parseStatusMessage } from '@contracts/normalize';
+import {
+  parseOddsMessage,
+  parseScoreMessage,
+  parseStatusMessage,
+  sniffParticipant1IsHome,
+} from '@contracts/normalize';
 
 interface RawLine {
   receivedAtMs: number;
@@ -63,6 +68,8 @@ export class ReplaySource implements MatchDataSource {
   private timer: ReturnType<typeof setTimeout> | null = null;
   private stopped = false;
   private cursor = 0;
+  /** side-truth latch — learned from the bundle's scores envelopes (see emitLine) */
+  private p1IsHome = true;
 
   constructor(options: ReplaySourceOptions) {
     this.opts = { speed: 1, ...options };
@@ -76,6 +83,18 @@ export class ReplaySource implements MatchDataSource {
     }
     const text = await res.text();
     this.lines = parseJsonl(text);
+    // Pre-latch the side-truth from the first scores envelope in the bundle so
+    // odds lines that precede it don't play under the `true` default (the
+    // whole capture is in memory — no reason to learn lazily).
+    for (const l of this.lines) {
+      if (l.event === 'message' && l.data.includes('"Participant1IsHome"')) {
+        const p1h = sniffParticipant1IsHome(l.data);
+        if (p1h !== null) {
+          this.p1IsHome = p1h;
+          break;
+        }
+      }
+    }
     if (this.lines.length === 0) {
       throw new Error(`[ReplaySource] ${this.opts.url} parsed to zero lines — empty or malformed fixture`);
     }
@@ -136,7 +155,15 @@ export class ReplaySource implements MatchDataSource {
         return;
     }
 
-    const odds = parseOddsMessage(line.data, line.receivedAtMs, 'replay');
+    // Side-truth latch (contracts/normalize.ts doc): scores envelopes carry
+    // Participant1IsHome; odds envelopes never do. Latch the latest answer and
+    // thread it into every odds parse — a false means part1 is the AWAY side.
+    if (line.data.includes('"Participant1IsHome"')) {
+      const p1h = sniffParticipant1IsHome(line.data);
+      if (p1h !== null) this.p1IsHome = p1h;
+    }
+
+    const odds = parseOddsMessage(line.data, line.receivedAtMs, 'replay', this.p1IsHome);
     if (odds) {
       this.cb.onOdds(odds);
       return;

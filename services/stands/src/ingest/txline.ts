@@ -54,15 +54,46 @@ function fixtureIdOf(raw: unknown): string | null {
   return typeof id === 'number' ? String(id) : null;
 }
 
+/** FixtureId straight off an unparsed wire line (pre-normalize) — for the side-truth latch lookup below. */
+function rawFixtureId(data: string): string | null {
+  try {
+    const obj = JSON.parse(data) as { FixtureId?: unknown };
+    return typeof obj.FixtureId === 'number' ? String(obj.FixtureId) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Side-truth latch, per fixture (contracts/normalize.ts parseOddsMessage doc):
+ * the scores stream carries Participant1IsHome on every envelope; the odds
+ * stream never does. The scores dispatch writes this map, the odds dispatch
+ * reads it — one shared SSE covers many fixtures, hence per-FixtureId.
+ * Module scope is deliberate: one service process, one day's fixtures.
+ */
+const p1IsHomeByFixture = new Map<string, boolean>();
+
 function dispatch(opts: StreamOptions, event: string, data: string, receivedAtMs: number): void {
   if (event === 'heartbeat' || event === '__meta' || event === '__disconnect') return;
   try {
     if (opts.name === 'odds') {
-      const tick = parseOddsMessage(data, receivedAtMs, 'live');
+      const fid = rawFixtureId(data);
+      const tick = parseOddsMessage(data, receivedAtMs, 'live', fid ? (p1IsHomeByFixture.get(fid) ?? true) : true);
       if (!tick) return;
       if (!opts.fixtureIds.has(fixtureIdOf(tick.raw) ?? '')) return;
       opts.onFeedMsg({ type: 'odds', tick });
     } else {
+      // learn the side-truth before parsing — every scores envelope carries it
+      if (data.includes('"Participant1IsHome"')) {
+        try {
+          const env = JSON.parse(data) as { FixtureId?: unknown; Participant1IsHome?: unknown };
+          if (typeof env.FixtureId === 'number' && typeof env.Participant1IsHome === 'boolean') {
+            p1IsHomeByFixture.set(String(env.FixtureId), env.Participant1IsHome);
+          }
+        } catch {
+          // not JSON — the parse calls below will drop it
+        }
+      }
       // a scores line is either a score change or a status change, not both
       // (see contracts/normalize.ts parseStatusMessage doc comment) — try
       // score first, fall back to status.
