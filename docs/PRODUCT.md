@@ -10,16 +10,22 @@ token. On Solana, forever. `rooot.club`.
 
 ## The stage (live experience)
 
-- **Tide-on-pitch:** vertical floodlit night pitch (phone-first; your goal at your
-  thumb). The market's belief = a golden tide; its luminous front edge sits at the
-  exact de-vigged probability. **The halfway line is 50/50.** The draw = a chalk fog
-  band at midfield whose width = p(draw). Goals detonate at the real goal mouths.
-  No fake players/ball — the only things on the pitch are belief (labeled the
-  market's) and events we actually know.
-- **The two ends:** crowds behind each goal in team colors. Rooted counts = the
-  counter (e.g. 12,431 v 8,207). Cheers ripple as light through your end; the roar
-  = decayed cheers/sec. Faith is *visible*: your end blazing while the tide runs
-  against you.
+- **Fog of war (the stage — see design/REFERENCES.md, owner-curated):** vertical
+  floodlit night pitch (phone-first; your goal at your thumb). The market's belief =
+  **light vs fog**: your end's floodlight bank presses illuminated territory across
+  the grass; the exact de-vigged probability is where your light dies into the fog.
+  **The halfway line is 50/50.** The draw = the fog bank itself — width = p(draw),
+  uncertainty as the region you cannot see through (it thickens late in a level
+  game: penalties as weather). Goals = FIRE plumes at the real goal mouth. Entry =
+  the tunnel (walk out of the dark into the light). Grain everywhere, subtly.
+  Monochrome + one accent per moment. No fake players/ball, no stadium architecture —
+  light, fog, smoke, grass, chalk.
+- **The two ends:** crowds behind each goal = **bengalo smoke + phone-light
+  starfield in team colors**, rising vertically at the stands (market = horizontal
+  on the pitch; crowd = vertical at the ends — the honesty separation is spatial
+  and material). Rooted counts = the counter (12,431 v 8,207); the roar = smoke
+  density/glow from decayed cheers/sec. Faith is *visible*: your end burning while
+  your light retreats.
 - **The pulse:** structured reacts (🔥 belief / 😰 nerves / 😤 rage + preset chants,
   EN/ES). Honest per-side counts beside the market's number. Free text ONLY in rows.
 - **The scarf weaves live along the touchline** — the relic forming in plain sight
@@ -43,12 +49,14 @@ token. On Solana, forever. `rooot.club`.
   free talk. We are the shared object the group chat gathers around — never a chat app.
 - **Receipts:** call + minute + market-p, relayer-signed (walletless) or
   wallet-signed, devnet memo. Vindication is notarized, never manufactured.
-- **Relics (both render live, crystallize at FT, mintable):** the **scarf**
-  (communal: probability bands woven over 90 min, goals as metallic wefts, calls
-  embroidered at their minute, roar in the edge bands, verdict in tassels, an
-  edition per attendee, attendee Merkle root = "I'm in the crowd photo") and the
-  **pin** (personal: your faith curve coiled into the roar-ring emblem).
-  Print-ready from day one (real scarf aspect + DPI).
+- **Relics (both render live, crystallize at FT, mintable):** the **scarf** —
+  pixel-jacquard knit (the ManU-reference craft): probability record as knit stripe
+  structure over 90 min, flag fragments patchworked RL-style at the ends, goals as
+  metallic weft rows, calls as gold embroidery at their minute, roar in the edge
+  bands, verdict in the fringe; cream + black colorways; an edition per attendee,
+  attendee Merkle root = "I'm in the crowd photo." And the **rosette** (personal —
+  the 70s club rosette): ribbons in your colors, your faith curve coiled in the
+  center button on the roar-ring O. Print/make-ready from day one.
 - **Trophy case:** every match you attended; scarves on a rail, pins beneath.
 
 ## The judged criteria (fan track, verbatim keywords)
