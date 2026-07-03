@@ -10,7 +10,7 @@
  * Each line: { receivedAtMs, event, data } — data kept as raw string so the
  * fixture is a faithful transcript, parsed only at replay time.
  */
-import { createWriteStream, mkdirSync } from 'node:fs';
+import { createWriteStream, mkdirSync, readFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 
 interface Args { url: string; out: string; headers: Record<string, string> }
@@ -27,6 +27,12 @@ function parseArgs(): Args {
       const h = a[++i] ?? '';
       const idx = h.indexOf(':');
       if (idx > 0) headers[h.slice(0, idx).trim()] = h.slice(idx + 1).trim();
+    } else if (v === '--token-file') {
+      // secrets stay out of argv/ps: read { jwt, apiToken } from the file in-process
+      const p = a[++i] ?? '';
+      const t = JSON.parse(readFileSync(p, 'utf8')) as { jwt: string; apiToken: string };
+      headers['Authorization'] = `Bearer ${t.jwt}`;
+      headers['X-Api-Token'] = t.apiToken;
     }
   }
   if (!url || !out) {
