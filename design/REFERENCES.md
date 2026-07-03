@@ -93,6 +93,32 @@ the kept world is print, cloth, and stitch.
   shirt center. TAKE: your proudest relic hangs CENTER, lit differently; everything
   else flanks it. REFUSE: nothing.
 
+## tickets/ → the stub (4) — NEW
+
+- **mexico ticket** ⭐ THE BAUHAUS-POP MASTERPIECE — Mexico 70 Azteca final stub:
+  magenta/black/sun-yellow, geometric ball mark, pictogram row (gate/section/seat
+  icons), punched holes, price corner. TAKE: the whole palette + pictogram language +
+  punch-holes-as-state. REFUSE: nothing.
+- **us 94 tix** — zigzag perforation teeth, SECTION/ROW/SEAT header grid, dotted
+  rule, tricolor panels, hologram square — and crucially the **impact-printed
+  variable data** (dot-matrix overprint) on a designed base. TAKE: teeth, the
+  micro-grid, worn-and-lived texture, the designed-base-vs-printed-data split.
+- **wc spain ticket** — España 82: multilingual grid (Sector/Block/Secteur/
+  Abteilung), guilloche security pattern, big seat numerals, serials. TAKE: the
+  bureaucratic-beautiful grid, EN/ES multilingualism, serials as ornament.
+- **england germany final ticket** — 1966 print: rotated ADMIT ONE rail, repeated
+  serial, halftone photo panel, fixture banner. TAKE: the rotated rail, serial
+  repetition, halftone as image treatment.
+
+**THE STUB RULE (new relic form, confirmed by these):** the call receipt's physical
+form = the ticket stub. Mapping: serial = tx signature (short) · ADMIT ONE →
+"CALLED IT" · SECTION/ROW/SEAT → END/ROW/SEAT (our own concepts, literally) ·
+price corner = the market's number at the call ("12%") · punched hole = proved ·
+perforation teeth = torn from the match · multilingual micro-grid EN/ES. The relic
+system is now: CARD (match summary, Topps grammar) · STUB (per-call receipt, ticket
+grammar) · SCARF (communal) · BADGES/rosette (achievements) · PENNANT (row, later)
+— collected in the ALBUM, displayed in the VITRINE.
+
 ## The rules extracted (all lanes build to these)
 
 1. **Material honesty (stage):** market = horizontal light-vs-fog on the pitch (light's
@@ -114,3 +140,8 @@ the kept world is print, cloth, and stitch.
    The sash-grid of badges is the alternate view; the album page is the collection
    metaphor for cards.
 7. **Flags yes; crests, rings, club marks, player likenesses never.**
+8. **The variable-data voice (from the tickets):** real tickets are a designed base
+   with YOUR data impact-printed onto it. Same split everywhere in ROOOT: the design
+   speaks in the display faces; the fan's data (serials, seats, percentages, minutes)
+   prints in the dot voice (Doto on screen and print, Silkscreen when knitted).
+   Semantically honest: the machine prints what happened; the design holds it.
