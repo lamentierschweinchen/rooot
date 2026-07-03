@@ -72,6 +72,41 @@ integrity) · unofficial ESPN (no ToS/guarantees) · StatsBomb/OpenFootball (sta
 Hand-curated static JSON for the 16 remaining teams → `apps/web/src/lib/teams.ts`
 (colors: [primary, secondary] hex; unicode flag). No federation crests, ever.
 
+## THE LIVE WIRE (validated vs AUS–EGY in play — supersedes the snapshot schema for streams)
+
+The real `/api/scores/stream` speaks **UpperCamelCase action envelopes**, not the
+lowercase OpenAPI `Scores` schema (that shape belongs to snapshots):
+`{ FixtureId, GameState (STALE — ignore; truth = StatusId), Participant1IsHome,
+Participant{1,2}Id, Action, Id (stable per real event across re-emissions),
+Ts, Seq, Confirmed, Clock:{Running,Seconds}, Score:{Participant1:{Total:{Goals,
+Corners}},...}, Participant (acting side 1|2), Data:{...} }`.
+
+**Observed actions (the palette is BIGGER than documented):** lineups (player
+ids/positions) · kickoff_team · kickoff · status · goal (re-emits same Id:
+unconfirmed → Confirmed → +GoalType +PlayerId) · shot (+action_amend with
+Outcome, e.g. "Woodwork") · corner · free_kick · throw_in · goal_kick ·
+possession / safe_possession / attack_possession / danger_possession /
+high_danger_possession (per side, with clock — LIVE PRESSURE DATA) ·
+possible ({Goal:true} = the held-breath moment before confirmation) ·
+clock_adjustment · venue/pitch/weather/jersey. Cards not yet observed (watch
+tonight's captures). **Possession-danger grades are honest live pressure — a
+future stage layer (post-pop-reskin) may render them; the `possible goal`
+moment is a gift for drama.**
+
+**StatusId → phase (empirical):** 1=PRE, 2=FIRST_HALF observed; 3/HT, 4/H2,
+5/FT expected — confirm against tonight's HT/FT and extend mapLiveStatusId.
+
+**⚠️ OPEN BUG (flagged, fix queued):** `parseOddsMessage` maps part1→pHome
+unconditionally, but the scores envelope proves `Participant1IsHome` can be
+false — participant order ≠ home/away. Fix: sources thread the fixture's
+side-truth (verify fixtureMeta against each fixture's envelope; then an
+optional `participant1IsHome` arg on parseOddsMessage or a post-parse swap in
+sources/ingest). Cross-check with COL–GHA + ARG–CPV captures.
+
+**Validation tool:** `npx tsx scripts/validate-live.ts <scores.jsonl> [--odds <odds.jsonl>]`
+— prints parse tallies + the honest timeline. AUS–EGY: kickoff ✓, Egypt goal
+12' ✓, 1344 ticks / 665 in-running / 0 sum violations.
+
 ## API feedback bank (judged submission field — keep adding)
 
 1. `POST /api/token/activate` returns **500** (not 4xx) on malformed/invalid input —
