@@ -1,0 +1,22 @@
+{
+  "name": "rooot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "spike": "tsx scripts/txline-spike.ts",
+    "record": "tsx scripts/record.ts"
+  },
+  "dependencies": {
+    "@solana/web3.js": "1.98.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "4.22.4",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0"
+  }
+}

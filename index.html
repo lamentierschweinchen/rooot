@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>ROOOT</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #0B110C; color: #EDE6D6;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    #stage { position: fixed; inset: 0; display: grid; place-items: center; }
+    .mark { text-align: center; }
+    .mark svg { display: block; margin: 0 auto 14px; }
+    .mark .t { font-family: Georgia, serif; font-size: 28px; letter-spacing: .04em; }
+    .mark .s { font-family: ui-monospace, Menlo, monospace; font-size: 11px;
+      letter-spacing: .22em; color: #9BA391; margin-top: 8px; text-transform: uppercase; }
+  </style>
+</head>
+<body>
+  <div id="stage">
+    <div class="mark">
+      <svg width="72" height="72" viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="50" cy="50" r="44" fill="none" stroke="#D9A441" stroke-width="3"/>
+        <circle cx="50" cy="50" r="30" fill="none" stroke="#D9A441" stroke-width="2" opacity=".55"/>
+        <circle cx="50" cy="50" r="16" fill="none" stroke="#D9A441" stroke-width="1.5" opacity=".3"/>
+      </svg>
+      <div class="t">ROOOT</div>
+      <div class="s">the stage is being chalked</div>
+    </div>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
