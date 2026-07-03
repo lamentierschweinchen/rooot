@@ -14,7 +14,7 @@
  *     numbers fall back to mono. We kick the loads on construct and expose a ready flag.
  */
 
-import { NEUTRALS, LOUD, LOUD_ROTATION, ACCENTS, FONT_URLS } from '../lib/theme';
+import { NEUTRALS, LOUD, ACCENTS, FONT_URLS } from '../lib/theme';
 import { hexToRgb } from '../lib/stage-math';
 import type { RGBTuple } from '../lib/stage-math';
 
@@ -38,31 +38,11 @@ export const INK = {
 /** hex strings kept alongside for the rare CSS-string need (DOM harness, not canvas). */
 export const HEX = { ...NEUTRALS, ...LOUD, fizzPink: ACCENTS.eruption } as const;
 
-const LOUD_RGB: RGBTuple[] = LOUD_ROTATION.map(hexToRgb);
-
 /* ── ground selection (§1) ───────────────────────────────────────────────── */
 
-/** squared distance in rgb — cheap "do these two inks clash / read as the same". */
-function dist2(a: RGBTuple, b: RGBTuple): number {
-  const dr = a[0] - b[0];
-  const dg = a[1] - b[1];
-  const db = a[2] - b[2];
-  return dr * dr + dg * dg + db * db;
-}
-
-/**
- * Pick the loud ground for a fixture: the first rotation loud (leads-first: Poppy,
- * Sky, …) that neither team's territory color sits close to. If everything clashes,
- * fall back to terraceGrey (§1.2). fizzPink is never in the rotation, so it can never
- * be returned — the accent-only law holds by construction.
- */
-export function chooseGround(homeTeam: RGBTuple, awayTeam: RGBTuple): RGBTuple {
-  const CLASH = 70 * 70 * 3; // within ~70/channel of a team ink → too close, skip it
-  for (const g of LOUD_RGB) {
-    if (dist2(g, homeTeam) > CLASH && dist2(g, awayTeam) > CLASH) return g;
-  }
-  return INK.terraceGrey;
-}
+// The §1 Topps rule is shared law — one implementation for the stage AND the
+// relic printers, so the two can never drift. Lives in lib/pop-ground.ts.
+export { chooseGround } from '../lib/pop-ground';
 
 /** Type on a loud ground is black / white / contrasting-loud — pick by luminance (§1 legibility gate). */
 export function inkOn(ground: RGBTuple): RGBTuple {

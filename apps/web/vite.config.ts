@@ -17,6 +17,7 @@ export default defineConfig({
       input: {
         main: fileURLToPath(new URL('./index.html', import.meta.url)),
         stagedev: fileURLToPath(new URL('./stage-dev.html', import.meta.url)),
+        relicdev: fileURLToPath(new URL('./relic-dev.html', import.meta.url)),
       },
     },
   },
