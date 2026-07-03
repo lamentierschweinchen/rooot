@@ -32,4 +32,6 @@ EXPOSE 8080
 
 # tsx resolves @contracts/* via services/stands/tsconfig.json paths.
 WORKDIR /app/services/stands
-CMD ["tsx", "src/index.ts"]
+RUN chmod +x entrypoint.sh
+# entrypoint materializes TXLINE_TOKEN_FILE from runtime secrets (see its header)
+ENTRYPOINT ["./entrypoint.sh"]
