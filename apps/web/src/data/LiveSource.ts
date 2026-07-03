@@ -161,6 +161,9 @@ export class LiveSource implements MatchDataSource {
       case 'status':
         this.cb.onStatus(msg.ev);
         return;
+      case 'ledger':
+        this.cb.onLedger?.(msg.msg);
+        return;
       case 'feedState':
         this.cb.onFeedState?.(msg.state);
         return;

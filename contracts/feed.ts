@@ -11,6 +11,7 @@
  */
 
 import type { Fixture, OddsTick, ScoreEvent, StatusEvent } from './match';
+import type { LedgerMsg } from './ledger';
 
 export type FeedState = 'connected' | 'reconnecting' | 'replay' | 'lost';
 
@@ -19,4 +20,6 @@ export type FeedMsg =
   | { type: 'odds'; tick: OddsTick }
   | { type: 'score'; ev: ScoreEvent }
   | { type: 'status'; ev: StatusEvent }
+  /** the readable story (contracts/ledger.ts) — LiveSource forwards to onLedger */
+  | { type: 'ledger'; msg: LedgerMsg }
   | { type: 'feedState'; state: FeedState };
