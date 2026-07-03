@@ -1,0 +1,839 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ROOOT — the system</title>
+<meta name="robots" content="noindex" />
+<meta name="theme-color" content="#F3ECDA" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anybody:wdth,wght@50..150,100..900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Young+Serif&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Doto:wght,ROND@100..900,0..100&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ============ THE SYSTEM, RENDERED IN ITSELF ============ */
+:root{
+  --newsprint:#F3ECDA; --sunbleach:#EDE3C8; --press:#1A1A18;
+  --terrace:#B0AEA8; --gold:#E0A93B;
+  --pink:#E8256C; --sun:#F2C230; --poppy:#E0574E; --sky:#3FA0D6;
+  --grass:#1E7A44; --ultra:#1E4FC0; --magenta:#C43A72;
+  --scream:'Anybody',system-ui,sans-serif;
+  --serif:'Young Serif',Georgia,serif;
+  --data:'Doto',ui-monospace,monospace;
+  --knit:'Silkscreen',ui-monospace,monospace;
+  --k:2px;               /* keyline unit */
+}
+*{box-sizing:border-box}
+html{background:var(--newsprint)}
+body{
+  margin:0; background:var(--newsprint); color:var(--press);
+  font-family:var(--serif); line-height:1.5;
+  /* the paper tooth — a whisper of offset grain, never aging */
+  background-image:
+    radial-gradient(rgba(26,26,24,.022) 1px, transparent 1px);
+  background-size:3px 3px;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px 120px}
+
+/* ---- shared frame primitive: keyline + cream border ---- */
+.framed{border:var(--k) solid var(--press);background:var(--newsprint);
+  box-shadow:0 0 0 8px var(--newsprint), 0 0 0 calc(8px + var(--k)) var(--press);}
+.plate{border:var(--k) solid var(--press);background:var(--sunbleach);position:relative}
+
+/* ---- Doto number helper ---- */
+.doto{font-family:var(--data);font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.scream{font-family:var(--scream);font-weight:800;line-height:.92;letter-spacing:-.01em}
+.knit{font-family:var(--knit)}
+.label{font-family:var(--scream);font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+
+/* ================= MASTHEAD ================= */
+.mast{margin:0 -20px 0;padding:0}
+.mast-inner{background:var(--pink);border-bottom:var(--k) solid var(--press);
+  padding:34px 24px 30px;position:relative;overflow:hidden}
+.mast .kick{font-family:var(--data);font-weight:700;font-size:12px;letter-spacing:.34em;
+  color:var(--press);text-transform:uppercase;background:var(--sun);display:inline-block;
+  padding:5px 12px;border:var(--k) solid var(--press)}
+.mast h1{font-family:var(--scream);font-weight:900;color:var(--newsprint);
+  font-size:clamp(46px,12vw,132px);line-height:.82;margin:16px 0 8px;
+  letter-spacing:-.02em;text-shadow:calc(var(--k)*1.5) calc(var(--k)*1.5) 0 var(--press)}
+.mast h1 .o{display:inline-block}
+.mast .oneline{font-family:var(--serif);color:var(--press);font-size:clamp(15px,2.3vw,21px);
+  max-width:60ch;margin:6px 0 0;background:var(--newsprint);display:inline;
+  box-decoration-break:clone;-webkit-box-decoration-break:clone;padding:3px 8px;line-height:2}
+.mast .runline{position:absolute;top:14px;right:20px;font-family:var(--data);font-weight:700;
+  font-size:11px;letter-spacing:.2em;color:var(--newsprint);text-transform:uppercase}
+
+/* section shell */
+section{margin-top:70px}
+.sec-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;
+  border-bottom:var(--k) solid var(--press);padding-bottom:10px;margin-bottom:8px}
+.sec-no{font-family:var(--data);font-weight:700;font-size:14px;letter-spacing:.14em;
+  color:var(--press);background:var(--sun);padding:4px 10px;border:var(--k) solid var(--press)}
+.sec-head h2{font-family:var(--scream);font-weight:900;font-size:clamp(26px,4.6vw,44px);
+  margin:0;letter-spacing:-.01em;text-transform:uppercase}
+.sec-dek{font-family:var(--serif);color:var(--press);max-width:74ch;margin:14px 0 26px;font-size:15.5px}
+.sec-dek b{background:var(--sun);padding:1px 5px}
+
+/* specimen card */
+.spec{margin:20px 0}
+.cap{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.cap .tag{font-family:var(--data);font-weight:700;font-size:10.5px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--newsprint);background:var(--press);padding:4px 9px}
+.cap .desc{font-family:var(--serif);font-size:13px;color:#4a4944}
+.grid{display:grid;gap:22px}
+@media(min-width:720px){.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}}
+
+/* ---------- PALETTE ---------- */
+.swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.sw{border:var(--k) solid var(--press);background:var(--newsprint);overflow:hidden}
+.sw .chip{height:78px;border-bottom:var(--k) solid var(--press)}
+.sw .meta{padding:8px 10px}
+.sw .nm{font-family:var(--scream);font-weight:800;font-size:14px;text-transform:uppercase;letter-spacing:.01em}
+.sw .hx{font-family:var(--data);font-weight:700;font-size:12px;color:#4a4944;margin-top:2px}
+.sw .rl{font-family:var(--serif);font-size:11.5px;color:#5a5852;line-height:1.35;margin-top:5px}
+
+.demo-ground{display:grid;gap:14px}
+@media(min-width:720px){.demo-ground{grid-template-columns:1fr 1fr}}
+.dg{border:var(--k) solid var(--press);padding:20px;min-height:120px;display:flex;
+  flex-direction:column;justify-content:center;gap:6px;position:relative}
+.dg .ttl{font-family:var(--scream);font-weight:900;font-size:30px;text-transform:uppercase;line-height:.9}
+.dg .sub{font-family:var(--data);font-weight:700;font-size:12px;letter-spacing:.14em;text-transform:uppercase}
+.dg.legal::after,.dg.illegal::after{content:attr(data-verdict);position:absolute;top:8px;right:8px;
+  font-family:var(--data);font-weight:700;font-size:10px;letter-spacing:.12em;padding:3px 7px;text-transform:uppercase}
+.dg.legal::after{background:var(--press);color:var(--newsprint)}
+.dg.illegal::after{background:var(--newsprint);color:var(--press);border:var(--k) solid var(--press)}
+.seam-demo{display:flex;height:120px;border:var(--k) solid var(--press)}
+
+/* ---------- TYPE ---------- */
+.type-spec{border:var(--k) solid var(--press);padding:22px 22px 26px;background:var(--newsprint)}
+.type-spec .role{font-family:var(--data);font-weight:700;font-size:11px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--newsprint);background:var(--press);display:inline-block;padding:4px 10px;margin-bottom:14px}
+.stretch-line{font-family:var(--scream);font-weight:800;font-size:clamp(52px,13vw,120px);line-height:.9;white-space:nowrap}
+.slider{display:flex;align-items:center;gap:14px;margin-top:16px}
+.slider input{flex:1;accent-color:var(--pink);height:6px}
+.slider .rd{font-family:var(--data);font-weight:700;font-size:12px;min-width:92px;color:#4a4944}
+.prog-line{font-family:var(--serif);font-size:clamp(20px,3.4vw,30px);line-height:1.3}
+.data-line{font-family:var(--data);font-weight:700;font-size:clamp(22px,4vw,34px);letter-spacing:.03em}
+.type-note{font-family:var(--serif);font-size:12.5px;color:#5a5852;margin-top:12px;border-top:1px dashed var(--press);padding-top:10px}
+.type-note b{font-family:var(--scream);font-weight:800}
+.serif-guard{background:var(--pink);padding:16px;border:var(--k) solid var(--press);margin-top:14px}
+.serif-guard .x{font-family:var(--serif);font-size:26px;color:var(--newsprint);text-decoration:line-through;text-decoration-thickness:2px}
+.serif-guard .why{font-family:var(--data);font-weight:700;font-size:11px;letter-spacing:.1em;color:var(--press);background:var(--sun);display:inline-block;padding:3px 8px;margin-top:10px;text-transform:uppercase}
+
+/* ---------- COMPONENT SPECIMENS ---------- */
+.stagebox{background:var(--sun);border:var(--k) solid var(--press);padding:14px}
+.pitch{position:relative;background:var(--newsprint);border:var(--k) solid var(--press);aspect-ratio:5/7;overflow:hidden}
+
+.chip-rail{display:flex;gap:12px}
+.pchip{flex:1;border:var(--k) solid var(--press);background:var(--newsprint);
+  display:flex;flex-direction:column}
+.pchip .hd{font-family:var(--scream);font-weight:900;font-size:18px;color:var(--newsprint);
+  padding:5px 10px;text-transform:uppercase;letter-spacing:.02em;border-bottom:var(--k) solid var(--press)}
+.pchip .pct{font-family:var(--data);font-weight:700;font-size:40px;line-height:1;
+  padding:8px 10px 6px;text-align:left}
+.pchip .bd{padding:0 10px 12px}
+.meter{display:block;width:100%;height:96px;
+  border:var(--k) solid var(--press);background:var(--sunbleach)}
+
+.mods{display:grid;gap:16px}
+@media(min-width:560px){.mods{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:900px){.mods{grid-template-columns:repeat(4,1fr)}}
+.mod{border:var(--k) solid var(--press);background:var(--newsprint);padding:14px;text-align:center}
+.mod svg{width:100%;height:auto;display:block;max-width:150px;margin:0 auto}
+.mod .mlbl{font-family:var(--data);font-weight:700;font-size:10.5px;letter-spacing:.12em;
+  text-transform:uppercase;margin-top:10px;color:#4a4944}
+
+.statchips{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.statchip{border:var(--k) solid var(--press);background:var(--newsprint);text-align:center;overflow:hidden}
+.statchip .l{font-family:var(--scream);font-weight:900;font-size:14px;background:var(--press);
+  color:var(--newsprint);padding:4px 0;letter-spacing:.08em}
+.statchip .n{font-family:var(--data);font-weight:700;font-size:34px;padding:8px 0 10px;line-height:1}
+
+/* scoreboard band */
+.scoreband{background:var(--press);border:var(--k) solid var(--press);display:flex;align-items:stretch;overflow:hidden}
+.scoreband .flag{width:52px;flex:none;border-right:var(--k) solid var(--press);background:var(--newsprint);
+  display:flex;align-items:center;justify-content:center}
+.scoreband .flag:last-child{border-right:none;border-left:var(--k) solid var(--press)}
+.scoreband .tri{font-family:var(--scream);font-weight:900;font-size:26px;color:var(--newsprint);
+  padding:0 14px;display:flex;align-items:center}
+.scoreband .scr{font-family:var(--data);font-weight:700;font-size:30px;color:var(--sun);
+  padding:0 12px;display:flex;align-items:center;flex:1;justify-content:center;letter-spacing:.06em}
+.scoreband .clk{color:var(--newsprint)}
+.flagblk{width:34px;height:23px;border:var(--k) solid var(--press);display:flex}
+
+/* the card mini-mock */
+.cardwrap{max-width:340px;margin:0 auto}
+.card{aspect-ratio:5/7;border:var(--k) solid var(--press);background:var(--pink);
+  padding:12px;position:relative;box-shadow:0 0 0 7px var(--newsprint),0 0 0 calc(7px + var(--k)) var(--press)}
+.card .cscore{position:absolute;top:12px;left:50px;right:50px;height:26px;background:var(--press);
+  display:flex;align-items:center;justify-content:center;gap:8px;z-index:3;border:var(--k) solid var(--press)}
+.card .cscore .t{font-family:var(--scream);font-weight:900;font-size:13px}
+.card .cscore .mex{color:var(--grass);background:var(--newsprint);padding:0 4px}
+.card .cscore .eng{color:var(--poppy);background:var(--newsprint);padding:0 4px}
+.card .cscore .s{font-family:var(--data);font-weight:700;font-size:14px;color:var(--sun)}
+.cwin{position:absolute;inset:38px 46px auto 46px;height:130px;background:var(--newsprint);
+  border:var(--k) solid var(--press);overflow:hidden;z-index:1}
+.cchip{position:absolute;width:44px;height:44px;border:var(--k) solid var(--press);background:var(--press);
+  z-index:4;text-align:center}
+.cchip .cl{font-family:var(--scream);font-weight:900;font-size:10px;color:var(--newsprint);display:block;margin-top:3px}
+.cchip .cn{font-family:var(--data);font-weight:700;font-size:17px;color:var(--sun);display:block;line-height:1}
+.cchip.tl{top:8px;left:8px} .cchip.tr{top:8px;right:8px}
+.cchip.bl{bottom:56px;left:8px} .cchip.br{bottom:56px;right:8px}
+.cstands{position:absolute;left:-4px;right:-4px;bottom:34px;background:var(--press);
+  transform:rotate(-6deg);padding:8px 0;z-index:5;border-top:var(--k) solid var(--press);border-bottom:var(--k) solid var(--press)}
+.cstands .b{font-family:var(--scream);font-weight:900;font-size:30px;color:var(--newsprint);
+  text-align:center;letter-spacing:-.01em;line-height:.9}
+.cstands .b small{font-family:var(--data);font-weight:700;font-size:12px;color:var(--sun);letter-spacing:.1em}
+.cfoot{position:absolute;left:12px;right:12px;bottom:12px;height:22px;background:var(--newsprint);
+  border:var(--k) solid var(--press);display:flex;align-items:center;justify-content:center;z-index:4}
+.cfoot .f{font-family:var(--data);font-weight:700;font-size:10px;letter-spacing:.08em}
+
+/* stub mini-mock */
+.stubwrap{max-width:640px;margin:0 auto}
+.stub{aspect-ratio:2/1;background:var(--sunbleach);border:var(--k) solid var(--press);
+  display:flex;position:relative;overflow:hidden;box-shadow:0 0 0 6px var(--newsprint),0 0 0 calc(6px + var(--k)) var(--press)}
+.stub .rail{width:15%;background:var(--magenta);border-right:var(--k) solid var(--press);
+  display:flex;align-items:center;justify-content:center}
+.stub .rail span{font-family:var(--scream);font-weight:900;font-size:clamp(20px,4vw,34px);
+  color:var(--press);transform:rotate(-90deg);white-space:nowrap;letter-spacing:.02em}
+.stub .body{flex:1;display:flex;flex-direction:column}
+.stub .top{font-family:var(--data);font-weight:700;font-size:clamp(11px,2.3vw,16px);
+  padding:8px 14px;border-bottom:var(--k) solid var(--press);letter-spacing:.04em}
+.stub .mid{flex:1;display:flex;align-items:center;gap:6%;padding:0 14px}
+.stub .mid .pr{flex:1;display:flex;align-items:center;justify-content:space-around;gap:8px}
+.stub .mid svg{height:clamp(30px,8vw,52px);width:auto}
+.stub .btm{font-family:var(--data);font-weight:700;font-size:clamp(10px,2vw,14px);
+  padding:7px 14px;border-top:var(--k) solid var(--press);letter-spacing:.06em}
+.stub .punch{width:16%;background:var(--gold);border-left:var(--k) solid var(--press);
+  display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:10px 0;position:relative}
+.stub .punch .ser{font-family:var(--data);font-weight:700;font-size:clamp(8px,1.6vw,12px);letter-spacing:.06em}
+.stub .punch .hole{width:clamp(26px,7vw,44px);height:clamp(26px,7vw,44px);border-radius:50%;
+  background:var(--newsprint);border:var(--k) solid var(--press);position:relative;display:flex;align-items:center;justify-content:center}
+.stub .punch .hole b{font-family:var(--scream);font-weight:900;font-size:clamp(7px,1.4vw,10px);
+  position:absolute;transform:rotate(-30deg);top:-14px;color:var(--press)}
+.tear{position:absolute;top:0;bottom:0;right:15.5%;width:2px}
+
+/* ---------- MOTION ---------- */
+.motion-grid{display:grid;gap:18px}
+@media(min-width:560px){.motion-grid{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:900px){.motion-grid{grid-template-columns:repeat(3,1fr)}}
+.mcard{border:var(--k) solid var(--press);background:var(--newsprint);padding:16px;text-align:center}
+.mstage{height:110px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;overflow:hidden;position:relative}
+.mcard .mt{font-family:var(--scream);font-weight:800;font-size:15px;text-transform:uppercase;letter-spacing:.02em}
+.mcard .md{font-family:var(--data);font-weight:700;font-size:10.5px;letter-spacing:.06em;color:#5a5852;margin-top:3px;text-transform:uppercase}
+
+/* breathing dots */
+.breathe-field{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;width:90px}
+.breathe-field i{width:7px;height:7px;border-radius:50%;background:var(--poppy);animation:brdot 2600ms ease-in-out infinite}
+@keyframes brdot{0%,100%{opacity:.15;transform:scale(.6)}50%{opacity:1;transform:scale(1)}}
+
+/* territory snap bar */
+.terr{width:120px;height:70px;border:var(--k) solid var(--press);position:relative;overflow:hidden;background:var(--newsprint)}
+.terr .fill{position:absolute;left:0;right:0;bottom:0;background:var(--grass);
+  height:38%;animation:terradv 3200ms cubic-bezier(.22,1.4,.36,1) infinite}
+@keyframes terradv{0%,20%{height:38%}45%,70%{height:68%}90%,100%{height:38%}}
+
+/* roar pulse */
+.roarwrap{width:96px;height:96px;position:relative;display:flex;align-items:center;justify-content:center}
+.roarwrap .src{width:14px;height:14px;border-radius:50%;background:var(--press);position:relative;z-index:2}
+.roarwrap .rg{position:absolute;border:2px solid var(--press);border-radius:50%;
+  left:50%;top:50%;opacity:0;animation:roar 900ms steps(4,end) infinite}
+.roarwrap .rg:nth-child(2){animation-delay:0ms}
+.roarwrap .rg:nth-child(3){animation-delay:300ms}
+@keyframes roar{0%{width:14px;height:14px;margin:-7px 0 0 -7px;opacity:1}
+  100%{width:88px;height:88px;margin:-44px 0 0 -44px;opacity:0}}
+
+/* scoreboard flip */
+.flip{font-family:var(--data);font-weight:700;font-size:44px;color:var(--sun);background:var(--press);
+  padding:6px 16px;border:var(--k) solid var(--press);animation:flip 2400ms steps(1,end) infinite}
+@keyframes flip{0%,40%{content:"0"}0%,100%{opacity:1}42%{opacity:.25}45%{opacity:1}}
+.flip::after{content:"0 – 0";animation:flipn 2400ms steps(1,end) infinite}
+@keyframes flipn{0%,49%{content:"0 – 0"}50%,100%{content:"1 – 0"}}
+
+/* pop-ball spin */
+.spinball{width:78px;height:78px;animation:spin 1200ms steps(10,end) infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* starburst pop */
+.burst{width:96px;height:96px;animation:burst 1900ms cubic-bezier(.22,1.4,.36,1) infinite}
+@keyframes burst{0%,55%{transform:scale(.2);opacity:0}62%{transform:scale(1.12);opacity:1}
+  75%{transform:scale(1)}100%{transform:scale(1);opacity:1}}
+
+/* punch stamp */
+.stamp{width:74px;height:74px;border-radius:50%;background:var(--gold);border:var(--k) solid var(--press);
+  display:flex;align-items:center;justify-content:center;position:relative;animation:stamp 2200ms cubic-bezier(.22,1.4,.36,1) infinite}
+.stamp b{font-family:var(--scream);font-weight:900;font-size:13px;color:var(--press)}
+.stamp .h{position:absolute;width:26px;height:26px;border-radius:50%;background:var(--newsprint);border:var(--k) solid var(--press)}
+@keyframes stamp{0%,45%{transform:scale(1.7) rotate(8deg);opacity:0}
+  55%{transform:scale(.94) rotate(-3deg);opacity:1}62%{transform:scale(1.02) rotate(1deg)}70%,100%{transform:scale(1) rotate(0);opacity:1}}
+
+/* counter tick */
+.ticker{font-family:var(--data);font-weight:700;font-size:32px;color:var(--press)}
+
+.reduced{font-family:var(--serif);font-size:13px;color:#5a5852;margin-top:20px;
+  border-left:var(--k) solid var(--press);padding:10px 0 10px 14px;background:var(--sunbleach)}
+.reduced b{font-family:var(--scream);font-weight:800}
+
+/* ---------- LAWS / BANNED ---------- */
+.laws{display:grid;gap:16px}
+@media(min-width:720px){.laws{grid-template-columns:1fr 1fr}}
+.lawbox{border:var(--k) solid var(--press);padding:0;overflow:hidden}
+.lawbox .h{font-family:var(--scream);font-weight:900;font-size:18px;text-transform:uppercase;
+  padding:8px 14px;border-bottom:var(--k) solid var(--press);letter-spacing:.02em}
+.lawbox.keep .h{background:var(--grass);color:var(--newsprint)}
+.lawbox.ban .h{background:var(--press);color:var(--newsprint)}
+.lawbox ul{margin:0;padding:14px 16px 14px 30px;font-family:var(--serif);font-size:13.5px;line-height:1.55}
+.lawbox li{margin-bottom:7px}
+.lawbox.ban li{list-style:none;position:relative;padding-left:20px}
+.lawbox.ban li::before{content:"✕";position:absolute;left:0;font-family:var(--scream);font-weight:900;color:var(--pink)}
+
+footer{margin-top:80px;border-top:var(--k) solid var(--press);padding-top:16px;
+  font-family:var(--data);font-weight:700;font-size:11px;letter-spacing:.1em;
+  text-transform:uppercase;color:#5a5852;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation:none !important}
+  .terr .fill{height:60%}
+  .roarwrap .rg{opacity:.4;width:66px;height:66px;margin:-33px 0 0 -33px}
+  .breathe-field i{opacity:.8}
+  .burst,.stamp{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ============ MASTHEAD ============ -->
+<header class="mast">
+  <div class="mast-inner">
+    <span class="runline">NO. 61 · MEX–ENG · UNLISTED</span>
+    <span class="kick">ROOOT · THE SYSTEM · INTERNAL REVIEW</span>
+    <h1>R<span class="o">O</span><span class="o">O</span><span class="o">O</span>T</h1>
+    <p class="oneline">The World Cup as a living mechanical print — flat saturated grounds owned one at a time, hard black keylines, one diagonal max, honest geometry as color fields with hard working edges. Loud, retro, cartoon-alive. Never moody, never glowing.</p>
+  </div>
+</header>
+
+<!-- ============ 01 · PALETTE ============ -->
+<section>
+  <div class="sec-head"><span class="sec-no">01</span><h2>Palette</h2></div>
+  <p class="sec-dek">Every hex is a printed <b>flat spot ink</b>, never a gradient stop. Neutrals are the calm frame — always present. Louds rotate: <b>exactly one owns a surface</b>, and two louds never touch. Team colors are never the ground.</p>
+
+  <div class="spec">
+    <div class="cap"><span class="tag">Neutrals</span><span class="desc">the constant that lets any two team palettes coexist</span></div>
+    <div class="swatches">
+      <div class="sw"><div class="chip" style="background:var(--newsprint)"></div><div class="meta"><div class="nm">Newsprint</div><div class="hx">#F3ECDA</div><div class="rl">default paper · card border · this page</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--sunbleach)"></div><div class="meta"><div class="nm">Sunbleach</div><div class="hx">#EDE3C8</div><div class="rl">warmer paper · stubs · card interiors</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--press)"></div><div class="meta"><div class="nm">Press Black</div><div class="hx">#1A1A18</div><div class="rl">every keyline · rule · scoreboard · the ink</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--terrace)"></div><div class="meta"><div class="nm">Terrace Grey</div><div class="hx">#B0AEA8</div><div class="rl">the neutral DRAW · inactive data</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--gold)"></div><div class="meta"><div class="nm">Medal Gold</div><div class="hx">#E0A93B</div><div class="rl">the RARE mark only · PROVED · reward</div></div></div>
+    </div>
+  </div>
+
+  <div class="spec">
+    <div class="cap"><span class="tag">Loud rotation</span><span class="desc">one owns a surface at a time (the Topps rule)</span></div>
+    <div class="swatches">
+      <div class="sw"><div class="chip" style="background:var(--pink)"></div><div class="meta"><div class="nm">Fizz Pink</div><div class="hx">#E8256C</div><div class="rl">the hottest · eruption · card · GOOOL</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--sun)"></div><div class="meta"><div class="nm">Azteca Sun</div><div class="hx">#F2C230</div><div class="rl">pre-match stage frame</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--poppy)"></div><div class="meta"><div class="nm">Poppy</div><div class="hx">#E0574E</div><div class="rl">England territory + accents</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--sky)"></div><div class="meta"><div class="nm">Kickoff Sky</div><div class="hx">#3FA0D6</div><div class="rl">lighter match states</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--grass)"></div><div class="meta"><div class="nm">Grass</div><div class="hx">#1E7A44</div><div class="rl">Mexico territory + fan-ends</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--ultra)"></div><div class="meta"><div class="nm">Ultra</div><div class="hx">#1E4FC0</div><div class="rl">"the Dark" late tension</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--magenta)"></div><div class="meta"><div class="nm">Magenta</div><div class="hx">#C43A72</div><div class="rl">ticket-stub blocks · proof language</div></div></div>
+    </div>
+  </div>
+
+  <div class="spec">
+    <div class="cap"><span class="tag">The rule, demonstrated</span><span class="desc">one loud ground per surface — never two touching</span></div>
+    <div class="demo-ground">
+      <div class="dg legal" data-verdict="legal" style="background:var(--pink);color:var(--newsprint)">
+        <div class="ttl">ONE LOUD</div>
+        <div class="sub" style="color:var(--sun)">Fizz Pink owns it · team colors sit inside</div>
+      </div>
+      <div class="dg illegal" data-verdict="illegal" style="background:linear-gradient(90deg,var(--pink) 0 50%,var(--sun) 50% 100%);color:var(--press)">
+        <div class="ttl" style="color:var(--press)">TWO LOUD</div>
+        <div class="sub" style="color:var(--press)">pink meets sun with no seam — chaos</div>
+      </div>
+    </div>
+    <div class="cap" style="margin-top:16px"><span class="tag">The fix</span><span class="desc">separate two louds with a Press-Black seam or a cream border</span></div>
+    <div class="seam-demo">
+      <div style="flex:1;background:var(--poppy)"></div>
+      <div style="width:6px;background:var(--press)"></div>
+      <div style="flex:1;background:var(--grass)"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 02 · TYPE ============ -->
+<section>
+  <div class="sec-head"><span class="sec-no">02</span><h2>Type in action</h2></div>
+  <p class="sec-dek">Four voices, one job each. The designed base <b>shouts</b> in Anybody; the fan's data <b>prints</b> in Doto. Young Serif is the programme register — <b>never on a loud ground</b>. Real fonts below, not mockups.</p>
+
+  <div class="grid g2">
+    <div class="type-spec">
+      <span class="role">the scream · Anybody · wdth 50–150</span>
+      <div class="stretch-line" id="stretch">R<span id="so1">O</span><span id="so2">O</span><span id="so3">O</span>T</div>
+      <div class="slider">
+        <span class="rd" id="wread">wdth 100</span>
+        <input id="wslider" type="range" min="50" max="150" value="100" step="1" aria-label="width axis">
+        <span class="rd">hold = stretch</span>
+      </div>
+      <p class="type-note">The width axis <b>is</b> the hold-to-call gesture. Used for the wordmark, verdicts, GOOOL, band words, tricodes.</p>
+    </div>
+    <div class="type-spec">
+      <span class="role">the printer · Doto · every number</span>
+      <div class="data-line">39% · 27% · 34%</div>
+      <div class="data-line" style="margin-top:8px">8,207 ROOTED</div>
+      <div class="data-line" style="margin-top:8px">MEX 1&#8211;1 ENG · 74'</div>
+      <div class="data-line" style="margin-top:8px">Nº 000120</div>
+      <p class="type-note">Every <b>measured</b> value prints in the dot voice — %, counts, score, clock, serials. Never a probability in a display face.</p>
+    </div>
+  </div>
+
+  <div class="grid g2" style="margin-top:22px">
+    <div class="type-spec">
+      <span class="role">the programme · Young Serif · verdict register</span>
+      <div class="prog-line">Minute 71. The world said twelve percent. You held the line, and the ground remembered.</div>
+      <p class="type-note">Warmth for verdicts and editorial moments — on <b>paper</b>, in the programme voice.</p>
+    </div>
+    <div class="type-spec">
+      <span class="role">the knit · Silkscreen · relics only</span>
+      <div class="data-line knit" style="font-size:clamp(18px,3.5vw,28px)">ROOOT · END MX</div>
+      <div class="data-line knit" style="font-size:clamp(24px,5vw,40px);margin-top:10px">74'</div>
+      <p class="type-note">Doto rendered as pixel-jacquard <b>stitches</b> — the scarf twin, 1:1.</p>
+      <div class="serif-guard">
+        <div class="x">39% belief on a loud ground</div>
+        <div class="why">illegal — serif never on loud, numbers never in serif</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 03 · COMPONENTS ============ -->
+<section>
+  <div class="sec-head"><span class="sec-no">03</span><h2>The components</h2></div>
+  <p class="sec-dek">The canonized parts, rendered as HTML/CSS/SVG specimens — the same primitives the stage, crowd, and relic lanes build from. Each maps to a precedent in the canon.</p>
+
+  <!-- % chips -->
+  <div class="spec">
+    <div class="cap"><span class="tag">% chip</span><span class="desc">label + Doto number + block-meter · the honest belief readout</span></div>
+    <div class="chip-rail" style="max-width:440px">
+      <div class="pchip"><div class="hd" style="background:var(--poppy)">ENG</div>
+        <div class="pct" style="color:var(--poppy)">39%</div>
+        <div class="bd"><svg class="meter" viewBox="0 0 50 96" preserveAspectRatio="none" id="mENG" aria-label="ENG block meter 39%"></svg></div></div>
+      <div class="pchip"><div class="hd" style="background:var(--terrace);color:var(--press)">DRAW</div>
+        <div class="pct" style="color:#4a4944">27%</div>
+        <div class="bd"><svg class="meter" viewBox="0 0 50 96" preserveAspectRatio="none" id="mDRAW" aria-label="DRAW block meter 27%"></svg></div></div>
+      <div class="pchip"><div class="hd" style="background:var(--grass)">MEX</div>
+        <div class="pct" style="color:var(--grass)">34%</div>
+        <div class="bd"><svg class="meter" viewBox="0 0 50 96" preserveAspectRatio="none" id="mMEX" aria-label="MEX block meter 34%"></svg></div></div>
+    </div>
+  </div>
+
+  <!-- glyph modules: pop-ball, roar-ring, draw-teeth, starburst -->
+  <div class="spec">
+    <div class="cap"><span class="tag">Glyph modules</span><span class="desc">SVG constructions — the house geometry, drawn not stock</span></div>
+    <div class="mods">
+      <!-- POP-BALL: 5-segment Wyman pinwheel -->
+      <div class="mod">
+        <svg viewBox="0 0 100 100" aria-label="pop-ball five-segment pinwheel">
+          <circle cx="50" cy="50" r="46" fill="var(--newsprint)" stroke="var(--press)" stroke-width="6"/>
+          <g id="pinwheel"></g>
+          <circle cx="50" cy="50" r="5" fill="var(--press)"/>
+        </svg>
+        <div class="mlbl">pop-ball · 5 segments</div>
+      </div>
+      <!-- ROAR ring-meter: off-center concentric -->
+      <div class="mod">
+        <svg viewBox="0 0 100 100" aria-label="roar ring meter off-center">
+          <g fill="none" stroke="var(--press)" stroke-width="3">
+            <circle cx="42" cy="54" r="10"/><circle cx="42" cy="54" r="18"/>
+            <circle cx="42" cy="54" r="26"/><circle cx="42" cy="54" r="34"/>
+            <circle cx="42" cy="54" r="42"/>
+          </g>
+          <circle cx="42" cy="54" r="6" fill="var(--press)"/>
+        </svg>
+        <div class="mlbl">roar ring-meter · off-center</div>
+      </div>
+      <!-- DRAW BAND teeth -->
+      <div class="mod">
+        <svg viewBox="0 0 100 100" aria-label="draw band with perforation teeth">
+          <rect x="4" y="4" width="92" height="92" fill="var(--terrace)" stroke="var(--press)" stroke-width="3"/>
+          <path d="M4,34 L14,26 L24,34 L34,26 L44,34 L54,26 L64,34 L74,26 L84,34 L94,26 L96,26 L96,34 Z" fill="var(--newsprint)" stroke="var(--press)" stroke-width="2"/>
+          <path d="M4,66 L14,74 L24,66 L34,74 L44,66 L54,74 L64,66 L74,74 L84,66 L94,74 L96,74 L96,66 Z" fill="var(--newsprint)" stroke="var(--press)" stroke-width="2"/>
+          <line x1="4" y1="50" x2="96" y2="50" stroke="var(--press)" stroke-width="3"/>
+          <rect x="34" y="46" width="8" height="8" fill="var(--terrace)"/>
+        </svg>
+        <div class="mlbl">draw-band · teeth + 50% seam</div>
+      </div>
+      <!-- STARBURST: drawn rays + shockwave -->
+      <div class="mod">
+        <svg viewBox="0 0 100 100" aria-label="starburst drawn rays and shockwave">
+          <g id="burstrays" fill="var(--press)"></g>
+          <g fill="none" stroke="var(--press)" stroke-width="2" opacity=".55">
+            <circle cx="50" cy="50" r="30"/><circle cx="50" cy="50" r="38"/>
+          </g>
+          <circle cx="50" cy="50" r="14" fill="var(--pink)" stroke="var(--press)" stroke-width="3"/>
+        </svg>
+        <div class="mlbl">starburst · rays + shockwave</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- scoreboard band -->
+  <div class="spec">
+    <div class="cap"><span class="tag">Scoreboard band</span><span class="desc">flags as keyline blocks · dot-matrix score + clock (Doto)</span></div>
+    <div class="scoreband">
+      <div class="flag"><div class="flagblk"><span style="flex:1;background:var(--grass)"></span><span style="flex:1;background:var(--newsprint)"></span><span style="flex:1;background:var(--poppy)"></span></div></div>
+      <div class="tri" style="background:var(--grass)">MEX</div>
+      <div class="scr">1&#8201;&#8211;&#8201;1&nbsp;&nbsp;<span class="clk">74'</span></div>
+      <div class="tri" style="background:var(--poppy)">ENG</div>
+      <div class="flag"><div class="flagblk" style="flex-direction:column"><span style="flex:1;background:var(--poppy)"></span><span style="flex:1;background:var(--newsprint)"></span></div></div>
+    </div>
+  </div>
+
+  <!-- stat chips -->
+  <div class="spec">
+    <div class="cap"><span class="tag">Stat chips</span><span class="desc">LOU · FTH · FOR · PRE — the card's corner readouts</span></div>
+    <div class="statchips" style="max-width:460px">
+      <div class="statchip"><div class="l">LOU</div><div class="n">87</div></div>
+      <div class="statchip"><div class="l">FTH</div><div class="n">92</div></div>
+      <div class="statchip"><div class="l">FOR</div><div class="n">64</div></div>
+      <div class="statchip"><div class="l">PRE</div><div class="n">78</div></div>
+    </div>
+  </div>
+
+  <!-- territory + skyline portrait side by side -->
+  <div class="spec">
+    <div class="cap"><span class="tag">Territory + portrait</span><span class="desc">halftone belief field · equalizer-skyline data-portrait</span></div>
+    <div class="grid g2">
+      <div class="stagebox">
+        <div style="font-family:var(--data);font-weight:700;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--press);margin-bottom:8px">territory field · dot-dissolve edge</div>
+        <svg viewBox="0 0 220 300" style="width:100%;display:block;border:2px solid var(--press);background:var(--newsprint)" aria-label="territory halftone field">
+          <defs>
+            <pattern id="dotsRed" width="9" height="9" patternUnits="userSpaceOnUse"><circle cx="4.5" cy="4.5" r="3.6" fill="var(--poppy)"/></pattern>
+            <pattern id="dotsGrn" width="9" height="9" patternUnits="userSpaceOnUse"><circle cx="4.5" cy="4.5" r="3.6" fill="var(--grass)"/></pattern>
+            <linearGradient id="fadeTop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="white" stop-opacity="1"/><stop offset="1" stop-color="white" stop-opacity="0"/></linearGradient>
+            <linearGradient id="fadeBot" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="white" stop-opacity="1"/><stop offset="1" stop-color="white" stop-opacity="0"/></linearGradient>
+            <mask id="mTop"><rect x="0" y="0" width="220" height="140" fill="url(#fadeTop)"/></mask>
+            <mask id="mBot"><rect x="0" y="160" width="220" height="140" fill="url(#fadeBot)"/></mask>
+          </defs>
+          <rect x="0" y="0" width="220" height="140" fill="url(#dotsRed)" mask="url(#mTop)"/>
+          <rect x="0" y="160" width="220" height="140" fill="url(#dotsGrn)" mask="url(#mBot)"/>
+          <!-- draw band with teeth straddling 50% -->
+          <path d="M0,132 L14,140 L28,132 L42,140 L56,132 L70,140 L84,132 L98,140 L112,132 L126,140 L140,132 L154,140 L168,132 L182,140 L196,132 L210,140 L220,132 L220,132" fill="none" stroke="var(--press)" stroke-width="2"/>
+          <path d="M0,168 L14,160 L28,168 L42,160 L56,168 L70,160 L84,168 L98,160 L112,168 L126,160 L140,168 L154,160 L168,168 L182,160 L196,168 L210,160 L220,168" fill="none" stroke="var(--press)" stroke-width="2"/>
+          <line x1="0" y1="150" x2="220" y2="150" stroke="var(--press)" stroke-width="3"/>
+          <circle cx="110" cy="150" r="26" fill="none" stroke="var(--press)" stroke-width="2.5"/>
+          <circle cx="110" cy="150" r="3" fill="var(--press)"/>
+          <!-- goal boxes -->
+          <rect x="70" y="0" width="80" height="34" fill="none" stroke="var(--press)" stroke-width="2.5"/>
+          <rect x="70" y="266" width="80" height="34" fill="none" stroke="var(--press)" stroke-width="2.5"/>
+        </svg>
+      </div>
+      <div class="stagebox">
+        <div style="font-family:var(--data);font-weight:700;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--press);margin-bottom:8px">equalizer-skyline · the fan as data, no face</div>
+        <svg viewBox="0 0 220 300" style="width:100%;display:block;border:2px solid var(--press);background:var(--newsprint)" aria-label="equalizer skyline portrait">
+          <defs><pattern id="dotsGrn2" width="7" height="7" patternUnits="userSpaceOnUse"><circle cx="3.5" cy="3.5" r="2.6" fill="var(--grass)"/></pattern></defs>
+          <rect x="66" y="10" width="88" height="40" fill="none" stroke="var(--press)" stroke-width="2.5"/>
+          <line x1="86" y1="10" x2="86" y2="26" stroke="var(--press)" stroke-width="2"/>
+          <g id="skylineBars"></g>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- crowd block + silhouette edge -->
+  <div class="spec">
+    <div class="cap"><span class="tag">Pictogram crowd</span><span class="desc">geometric fans, no faces · the best crowd rendering · counts never a %</span></div>
+    <div class="grid g2">
+      <div class="stagebox">
+        <div style="font-family:var(--data);font-weight:700;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--press);margin-bottom:8px">crowd block + bunting row</div>
+        <svg viewBox="0 0 220 120" style="width:100%;display:block;border:2px solid var(--press);background:var(--grass)" aria-label="pictogram crowd block">
+          <g id="bunting"></g>
+          <g id="crowdBlock" fill="var(--newsprint)"></g>
+          <rect x="86" y="96" width="48" height="18" fill="var(--press)" stroke="var(--newsprint)" stroke-width="1.5"/>
+          <text x="110" y="109" text-anchor="middle" font-family="'Doto',monospace" font-weight="700" font-size="11" fill="var(--sun)">71'</text>
+        </svg>
+      </div>
+      <div class="stagebox">
+        <div style="font-family:var(--data);font-weight:700;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--press);margin-bottom:8px">crowd-silhouette edge · territory variant</div>
+        <svg viewBox="0 0 220 120" style="width:100%;display:block;border:2px solid var(--press);background:var(--newsprint)" aria-label="crowd silhouette edge">
+          <g id="silhouette" fill="var(--grass)"></g>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- CARD mini-mock -->
+  <div class="spec">
+    <div class="cap"><span class="tag">Card · 5:7</span><span class="desc">keyline + border · corner chips · THE STANDS diagonal (the one diagonal) · footer</span></div>
+    <div class="cardwrap">
+      <div class="card">
+        <div class="cscore"><span class="t mex">MEX</span><span class="s">1&#8201;–&#8201;1</span><span class="t eng">ENG</span></div>
+        <div class="cwin">
+          <svg viewBox="0 0 300 130" style="width:100%;height:100%;display:block" aria-label="card portrait skyline">
+            <g id="cardBars"></g>
+          </svg>
+        </div>
+        <div class="cchip tl"><span class="cl">LOU</span><span class="cn">87</span></div>
+        <div class="cchip tr"><span class="cl">FTH</span><span class="cn">92</span></div>
+        <div class="cchip bl"><span class="cl">FOR</span><span class="cn">64</span></div>
+        <div class="cchip br"><span class="cl">PRE</span><span class="cn">78</span></div>
+        <div class="cstands"><div class="b">THE STANDS <small>END MX</small></div></div>
+        <div class="cfoot"><span class="f">ROOOT · MATCH Nº 61 · MEX–ENG</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STUB mini-mock -->
+  <div class="spec">
+    <div class="cap"><span class="tag">Stub · 2:1</span><span class="desc">rotated CALLED IT rail · pictogram row · serial · gold PROVED punch · zigzag tear</span></div>
+    <div class="stubwrap">
+      <div class="stub">
+        <div class="rail"><span>CALLED IT</span></div>
+        <div class="body">
+          <div class="top">MINUTE 71 · THE WORLD SAID 12%</div>
+          <div class="mid">
+            <div class="pr">
+              <svg viewBox="0 0 60 60" aria-label="pop-ball"><circle cx="30" cy="30" r="27" fill="var(--newsprint)" stroke="var(--press)" stroke-width="4"/><g id="stubPin"></g><circle cx="30" cy="30" r="3" fill="var(--press)"/></svg>
+              <svg viewBox="0 0 60 60" aria-label="roar rings"><g fill="none" stroke="var(--press)" stroke-width="2.5"><circle cx="30" cy="30" r="8"/><circle cx="30" cy="30" r="15"/><circle cx="30" cy="30" r="22"/></g><circle cx="30" cy="30" r="4" fill="var(--press)"/></svg>
+              <svg viewBox="0 0 60 60" aria-label="roar rings"><g fill="none" stroke="var(--press)" stroke-width="2.5"><circle cx="30" cy="30" r="8"/><circle cx="30" cy="30" r="15"/><circle cx="30" cy="30" r="22"/></g><circle cx="30" cy="30" r="4" fill="var(--press)"/></svg>
+            </div>
+          </div>
+          <div class="btm">END MX · ROW LUKAS · SEAT 7</div>
+        </div>
+        <div class="punch">
+          <div class="ser">Nº 000120</div>
+          <div class="hole"><b>PROVED</b></div>
+          <div class="ser">Nº 000120</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 04 · MOTION ============ -->
+<section>
+  <div class="sec-head"><span class="sec-no">04</span><h2>Motion</h2></div>
+  <p class="sec-dek">A live <b>mechanical print</b>, not a broadcast. Stepped movement, register snaps, dot-field changes — never a smear, glow, or blur. Live CSS below; every loop is reduced-motion-safe.</p>
+
+  <div class="motion-grid">
+    <div class="mcard"><div class="mstage"><div class="breathe-field" id="breathe"></div></div><div class="mt">Halftone breathing</div><div class="md">idle · 2600ms · dots blink</div></div>
+    <div class="mcard"><div class="mstage"><div class="terr"><div class="fill"></div></div></div><div class="mt">Territory advance</div><div class="md">snap → settle · 90/420ms</div></div>
+    <div class="mcard"><div class="mstage"><div class="roarwrap"><span class="rg"></span><span class="rg"></span><span class="src"></span></div></div><div class="mt">Roar-ring pulse</div><div class="md">off-center · 4 steps · rate</div></div>
+    <div class="mcard"><div class="mstage"><span class="flip"></span></div><div class="mt">Scoreboard flip</div><div class="md">columns print · snap register</div></div>
+    <div class="mcard"><div class="mstage"><svg class="spinball" viewBox="0 0 100 100" aria-label="pop-ball spin"><circle cx="50" cy="50" r="46" fill="var(--newsprint)" stroke="var(--press)" stroke-width="6"/><g id="spinPin"></g><circle cx="50" cy="50" r="5" fill="var(--press)"/></svg></div><div class="mt">Pop-ball step-spin</div><div class="md">10 hard increments</div></div>
+    <div class="mcard"><div class="mstage"><svg class="burst" viewBox="0 0 100 100" aria-label="starburst"><g id="burstRays2" fill="var(--press)"></g><circle cx="50" cy="50" r="15" fill="var(--pink)" stroke="var(--press)" stroke-width="3"/></svg></div><div class="mt">Starburst eruption</div><div class="md">frame-stepped · 6 frames</div></div>
+    <div class="mcard"><div class="mstage"><div class="stamp"><b>PROVED</b><span class="h"></span></div></div><div class="mt">Stub PROVED punch</div><div class="md">stamp · scale + rotate</div></div>
+    <div class="mcard"><div class="mstage"><span class="ticker" id="ticker">8,207</span></div><div class="mt">Counter tick</div><div class="md">±1–5 then settle · no roll</div></div>
+  </div>
+  <div class="reduced"><b>prefers-reduced-motion:</b> every loop here collapses to its settled end-state — no transitions, no loops. The system reads correctly frozen; motion is the reward, never the message.</div>
+</section>
+
+<!-- ============ 05 · LAWS ============ -->
+<section>
+  <div class="sec-head"><span class="sec-no">05</span><h2>The laws</h2></div>
+  <div class="laws">
+    <div class="lawbox keep">
+      <div class="h">Non-negotiable</div>
+      <ul>
+        <li>Vertical = probability. Halfway = a thin constant Press-Black seam at exactly 50%.</li>
+        <li>THE DRAW is a paper-band <em>width</em> (= pDraw) with zigzag teeth; the seam rides inside it.</li>
+        <li>Territory extent = <em>exactly</em> win probability; solid core → dot-dissolve at the working edge.</li>
+        <li>Market number ≠ crowd counts. Never blended.</li>
+        <li>One loud ground per surface; team colors only in the four slots.</li>
+        <li>Boxes-first grid; keyline ≈2%, cream border ≈5%; one diagonal max.</li>
+        <li>Type on bands/boxes, never floating. Doto for numbers, Anybody for screams.</li>
+        <li>Press texture only — halftone, grain, a hair of misregistration.</li>
+        <li>Every rail cell carries a job. Goals erupt only at the real goal mouth.</li>
+      </ul>
+    </div>
+    <div class="lawbox ban">
+      <div class="h">Banned — the diseases</div>
+      <ul>
+        <li>True-hexagon soccer balls — only the 5-segment pinwheel pop-ball.</li>
+        <li>Speed-streaks, motion-blur — motion is stepped/snap/squash.</li>
+        <li>Glow, gradient mesh, drop-shadow blur, glassmorphism.</li>
+        <li>Sepia, scratches, torn/burnt paper, faux-vintage filters.</li>
+        <li>Sticker-bomb ornament — no decoration without a job.</li>
+        <li>Trophy / silverware in match frames.</li>
+        <li>Player faces or likenesses — the portrait is data.</li>
+        <li>Club crests, FIFA marks.</li>
+        <li>Two loud grounds touching; a probability in a display face.</li>
+        <li>A crowd count dressed as a percentage.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span>ROOOT · the system · rendered in itself</span>
+  <span>design/SYSTEM.md · lib/theme.ts · public/system.html</span>
+</footer>
+
+</div>
+<script>
+(function(){
+  var NS="http://www.w3.org/2000/svg";
+  function el(t,a){var e=document.createElementNS(NS,t);for(var k in a)e.setAttribute(k,a[k]);return e;}
+
+  // ---- Anybody width slider ----
+  var slider=document.getElementById('wslider'), read=document.getElementById('wread');
+  var os=[document.getElementById('so1'),document.getElementById('so2'),document.getElementById('so3')];
+  function setW(v){
+    read.textContent='wdth '+v;
+    // the middle Os stretch most (the hold gesture); outer letters stay
+    os.forEach(function(o,i){ o.style.fontVariationSettings="'wdth' "+v; });
+  }
+  if(slider){ slider.addEventListener('input',function(){setW(this.value);}); setW(100); }
+
+  // ---- block-meters (SVG, deterministic): filled ROWS ≈ percentage ----
+  // 5 cols × 12 rows in a 50×96 viewBox; rows light from the BOTTOM up.
+  function fillMeter(id,pct,lit){
+    var m=document.getElementById(id); if(!m)return;
+    var cols=5, rows=12, cw=50/cols, ch=96/rows, pad=1.1;
+    var litRows=Math.round(rows*pct/100);
+    for(var r=0;r<rows;r++){
+      var fromBottom=rows-1-r;              // 0 = bottom row
+      var on=fromBottom<litRows;
+      for(var c=0;c<cols;c++){
+        m.appendChild(el('rect',{
+          x:(c*cw+pad).toFixed(2), y:(r*ch+pad).toFixed(2),
+          width:(cw-pad*2).toFixed(2), height:(ch-pad*2).toFixed(2),
+          fill: on?lit:'#B0AEA8', opacity: on?1:0.3
+        }));
+      }
+    }
+  }
+  fillMeter('mENG',39,'#E0574E');
+  fillMeter('mDRAW',27,'#B0AEA8');
+  fillMeter('mMEX',34,'#1E7A44');
+
+  // ---- pop-ball: FIVE curved pinwheel segments (two colors + black gaps) ----
+  function pinwheel(gid,c1,c2){
+    var g=document.getElementById(gid); if(!g)return;
+    var cx=50,cy=50,R=44,segs=5;
+    for(var i=0;i<segs;i++){
+      var a0=(i/segs)*Math.PI*2 - Math.PI/2;
+      var a1=((i+1)/segs)*Math.PI*2 - Math.PI/2;
+      var am=(a0+a1)/2;
+      // curved swept blade: center → outer arc with a swirl control point
+      var x0=cx+Math.cos(a0)*4, y0=cy+Math.sin(a0)*4;
+      var xo0=cx+Math.cos(a0)*R, yo0=cy+Math.sin(a0)*R;
+      var xo1=cx+Math.cos(a1)*R, yo1=cy+Math.sin(a1)*R;
+      var swirl=0.55;
+      var cxp=cx+Math.cos(am-0.5)*R*swirl, cyp=cy+Math.sin(am-0.5)*R*swirl;
+      var d="M"+x0+","+y0+" L"+xo0+","+yo0+" A"+R+","+R+" 0 0 1 "+xo1+","+yo1+" Q"+cxp+","+cyp+" "+x0+","+y0+" Z";
+      g.appendChild(el('path',{d:d,fill:(i%2? c2:c1),stroke:'#1A1A18','stroke-width':2,'stroke-linejoin':'round'}));
+    }
+  }
+  pinwheel('pinwheel','#E8256C','#F2C230');
+  pinwheel('spinPin','#E8256C','#F2C230');
+  pinwheel('stubPin','#E8256C','#F2C230');
+
+  // ---- starburst rays (drawn hard points) ----
+  function rays(gid,n,rIn,rOut){
+    var g=document.getElementById(gid); if(!g)return;
+    var cx=50,cy=50,pts=[];var spikes=n;
+    var d="";
+    for(var i=0;i<spikes*2;i++){
+      var r=(i%2===0)?rOut:rIn;
+      var a=(i/(spikes*2))*Math.PI*2 - Math.PI/2;
+      var x=cx+Math.cos(a)*r, y=cy+Math.sin(a)*r;
+      d+=(i===0?"M":"L")+x.toFixed(1)+","+y.toFixed(1)+" ";
+    }
+    d+="Z";
+    g.appendChild(el('path',{d:d}));
+  }
+  rays('burstrays',14,20,46);
+  rays('burstRays2',14,20,46);
+
+  // ---- skyline bars (equalizer portrait, rising from goal-end) ----
+  function skyline(gid,W,H,n,color){
+    var g=document.getElementById(gid); if(!g)return;
+    var bw=W/n*0.78, gap=(W-bw*n)/(n+1);
+    for(var i=0;i<n;i++){
+      // pseudo-random but stable height profile (a skyline silhouette)
+      var s=Math.sin(i*0.9)*0.5+Math.sin(i*2.3)*0.28+Math.sin(i*0.4)*0.22;
+      var h=(0.30+0.55*(s*0.5+0.5))*H;
+      var x=gap+i*(bw+gap), y=H-h;
+      g.appendChild(el('rect',{x:x.toFixed(1),y:y.toFixed(1),width:bw.toFixed(1),height:h.toFixed(1),fill:color}));
+    }
+  }
+  skyline('skylineBars',220,290,28,'var(--grass)');
+  skyline('cardBars',300,130,30,'var(--grass)');
+
+  // ---- pictogram crowd block ----
+  function crowd(gid,cols,rows,W,H){
+    var g=document.getElementById(gid); if(!g)return;
+    var cw=W/cols, ch=(H-24)/rows;
+    for(var r=0;r<rows;r++)for(var c=0;c<cols;c++){
+      var cx=c*cw+cw/2, cy=24+r*ch+ch*0.5;
+      var hd=ch*0.20;
+      // head
+      g.appendChild(el('circle',{cx:cx.toFixed(1),cy:(cy-hd*1.2).toFixed(1),r:hd.toFixed(1)}));
+      // body + raised arms (alternate)
+      var up=((r+c)%3===0);
+      var bw=cw*0.34;
+      var bd="M"+(cx-bw/2)+","+(cy+ch*0.36)+" L"+(cx-bw/2)+","+cy+" L"+(cx+bw/2)+","+cy+" L"+(cx+bw/2)+","+(cy+ch*0.36)+" Z";
+      g.appendChild(el('path',{d:bd}));
+      if(up){
+        g.appendChild(el('path',{d:"M"+(cx-bw/2)+","+cy+" L"+(cx-bw*0.9)+","+(cy-ch*0.34)+" L"+(cx-bw*0.6)+","+(cy-ch*0.30)+" Z"}));
+        g.appendChild(el('path',{d:"M"+(cx+bw/2)+","+cy+" L"+(cx+bw*0.9)+","+(cy-ch*0.34)+" L"+(cx+bw*0.6)+","+(cy-ch*0.30)+" Z"}));
+      }
+    }
+  }
+  crowd('crowdBlock',12,4,220,120);
+
+  // ---- bunting row (flags as blocks) ----
+  (function(){
+    var g=document.getElementById('bunting'); if(!g)return;
+    var cols=[ '#E0574E','#F3ECDA','#1E7A44','#F3ECDA','#E8256C','#F3ECDA','#F2C230','#1E7A44','#E0574E','#F3ECDA','#1E4FC0'];
+    var n=cols.length, w=220/n;
+    for(var i=0;i<n;i++){
+      g.appendChild(el('rect',{x:(i*w).toFixed(1),y:0,width:w.toFixed(1),height:16,fill:cols[i],stroke:'#1A1A18','stroke-width':1}));
+    }
+  })();
+
+  // ---- crowd-silhouette edge (people-shaped peaks as the territory edge) ----
+  (function(){
+    var g=document.getElementById('silhouette'); if(!g)return;
+    var W=220,H=120,n=26,cw=W/n;
+    // build a filled shape whose TOP edge is a row of standing figures
+    var d="M0,"+H+" L0,70 ";
+    for(var i=0;i<n;i++){
+      var x=i*cw, cx=x+cw/2;
+      var peak=64+((i%2)?-14:-2)+Math.sin(i*1.3)*6;
+      // shoulders up to a head then down
+      d+="L"+(x+cw*0.15).toFixed(1)+","+(peak+10).toFixed(1)+" ";
+      d+="L"+(cx-cw*0.16).toFixed(1)+","+(peak).toFixed(1)+" ";
+      d+="L"+(cx-cw*0.16).toFixed(1)+","+(peak-9).toFixed(1)+" ";      // neck
+      d+="L"+(cx+cw*0.16).toFixed(1)+","+(peak-9).toFixed(1)+" ";
+      d+="L"+(cx+cw*0.16).toFixed(1)+","+(peak).toFixed(1)+" ";
+      d+="L"+(x+cw*0.85).toFixed(1)+","+(peak+10).toFixed(1)+" ";
+    }
+    d+="L"+W+",70 L"+W+","+H+" Z";
+    g.appendChild(el('path',{d:d}));
+    // dot-dissolve above the silhouette to show it IS a territory edge
+    var defs=el('pattern',{id:'silDots',width:8,height:8,patternUnits:'userSpaceOnUse'});
+    defs.appendChild(el('circle',{cx:4,cy:4,r:2.4,fill:'#1E7A44'}));
+    g.parentNode.insertBefore(defs,g);
+  })();
+
+  // ---- counter tick (±1–5, settles, never rolls wildly) ----
+  (function(){
+    var t=document.getElementById('ticker'); if(!t)return;
+    if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+    var v=8207;
+    setInterval(function(){
+      v+=Math.floor(Math.random()*5)+1;
+      t.textContent=v.toLocaleString();
+    },1400);
+  })();
+})();
+</script>
+</body>
+</html>
