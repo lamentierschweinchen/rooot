@@ -8,10 +8,11 @@ specimen page). **Where any two disagree, this file governs.** Every rule traces
 precedent in `design/references/_chosen/` or the brand-book tables — never to generic
 taste. If your render drifts toward betting-app / dashboard / AI-gradient, it dies in review.*
 
-**The world in one line:** flat saturated grounds owned one-at-a-time, hard Press-Black
-keylines + cream borders, one diagonal max, honest geometry as flat color fields with hard
-working edges, pop-geometry glyphs, pictogram crowds, offset-print texture — **loud, retro,
-cartoon-alive; never moody, never glowing.**
+**The world in one line:** benday-ink grounds owned one-at-a-time (loud but Lichtenstein-subdued,
+not Barbie), hard Press-Black keylines + cream borders, one diagonal max, honest geometry as flat
+color fields that **fray into scattered dots** at their working edges, pop-geometry glyphs,
+pictogram crowds, offset-print texture — and **every surface built to be collected** (framed,
+captioned, edition-marked). **Loud, retro, cartoon-alive; never moody, never glowing.**
 
 ---
 
@@ -32,6 +33,11 @@ cartoon-alive; never moody, never glowing.**
 **One loud ground owns a surface at a time. Two loud grounds NEVER touch** — separate them
 with a Press-Black seam or a cream border. **Team colors are never the ground.**
 
+**The louds are BENDAY-PRINT INKS on cream, not neon.** Roy Lichtenstein *slightly
+subdued* — each loud pulled ~10–18% toward Press-Black ink (brick-reds, print-yellows,
+process blues), still LOUD and fun but **not full Barbie, not pastel, not muddy**. See the
+changelog block at the foot of this file for the old→new hex pairs.
+
 ### Neutrals (the calm frame — always present)
 | Token | Hex | Role |
 |---|---|---|
@@ -39,24 +45,41 @@ with a Press-Black seam or a cream border. **Team colors are never the ground.**
 | `sunbleach` | `#EDE3C8` | warmer paper — stubs, pennants, card interiors |
 | `pressBlack` | `#1A1A18` | every keyline, rule, scoreboard, heavy display type — the ink |
 | `terraceGrey` | `#B0AEA8` | the neutral DRAW / void ground · subdued/inactive data |
-| `medalGold` | `#E0A93B` | **the RARE mark only** — reward language, proof line, PROVED punch, special ticks. A printed spot, never a glow |
+| `medalGold` | `#D6A33B` | **the RARE mark only** — reward language, proof line, PROVED punch, special ticks. A printed spot, never a glow |
 
 ### Loud grounds (the rotation — one per surface)
-| Token | Hex | Where |
+| Token | Hex | Role — post-revision |
 |---|---|---|
-| `fizzPink` | `#E8256C` | the hottest — eruption / card / GOOOL |
-| `aztecaSun` | `#F2C230` | pre-match stage frame · warm proof objects |
-| `poppy` | `#E0574E` | England territory + selected accents |
-| `kickoffSky` | `#3FA0D6` | optional ground for lighter match states |
-| `grass` | `#1E7A44` | Mexico territory + fan-end flag blocks |
-| `ultra` | `#1E4FC0` | "the Dark" late-tension frame |
-| `magenta` | `#C43A72` | ticket-stub blocks + bureaucratic proof language |
+| `poppy` | `#C8504D` | **LEAD working loud — Lichtenstein brick-red.** Card ground · GOOOL ground · England territory. Hosts both cream + black type. |
+| `kickoffSky` | `#3E8CBC` | **LEAD working loud — process blue.** Lighter match states · "the Dark" alt · accents. |
+| `aztecaSun` | `#E5B431` | print-yellow — pre-match stage frame · warm proof objects. **Black type only** (cream vanishes on yellow). |
+| `grass` | `#1F6F40` | Mexico territory + fan-end flag blocks. |
+| `ultra` | `#2049AA` | deep process blue — "the Dark" late-tension frame. |
+| `magenta` | `#AC3A6B` | bureaucratic strip pink (inked toward brick) — ticket-stub blocks + proof language. |
+
+### The accent (punctuation — NEVER a ground)
+| Token | Hex | Role |
+|---|---|---|
+| `fizzPink` | `#C52C67` | **ACCENT ONLY** — the eruption punch. The starburst core, the fire-fringe, the shockwave rings — a hit of pink *ON* the Poppy goal ground, never *AS* a ground. Demoted from its old primary/card/GOOOL ownership: *"accent not primary; less popping."* |
+
+### Ground-role reassignments (the owner's gate)
+- **Card ground = `poppy`** (was `fizzPink`). The brick-red carries the warm Panini/Topps
+  energy the pink used to, pairs cleanly with the cream border + Press-Black keyline, and
+  reads with *both* cream type (tricodes, THE STANDS) and black type (chips, keylines).
+- **GOOOL / eruption ground = `poppy`** (was `fizzPink`), so a scored card and the goal
+  frame share the hot brick-red family. **`fizzPink` returns as the eruption accent** —
+  the starburst core / fire-fringe / shockwave — separated from the Poppy ground by the
+  drawn Press-Black starburst so two louds never blend.
+- **`kickoffSky` and `poppy` are the two leading working louds**; `fizzPink` is absent from
+  the rotation (it can never be handed out as a ground).
 
 ### Choosing a ground per fixture
-1. Pick a loud ground from the rotation that **neither team owns**.
+1. Pick a loud ground from the rotation that **neither team owns** (leads first: Poppy, Sky).
 2. If both teams are loud and clash with every candidate, use `terraceGrey`.
 3. **Rotate the ground, never the team.** Team identity is fixed; the ground yields.
-4. `pressBlack` + `newsprint` + one `medalGold` accent are the constant that lets any two
+4. **Never reach for `fizzPink` as a ground** — it is accent-only. If a surface wants heat,
+   use Poppy as the ground and Fizz Pink as the punch.
+5. `pressBlack` + `newsprint` + one `medalGold` accent are the constant that lets any two
    team palettes coexist on the same surface.
 
 ### Team-color jurisdiction (the four legal slots — `TEAM_COLOR_SLOTS`)
@@ -67,7 +90,8 @@ A team color may appear **only** as:
 4. **relicEnd** — the scarf / pin / relic end.
 
 Anywhere else — as a ground, as UI chrome, as a button — is a **violation**. Demo fixture:
-Mexico = Grass, England = Poppy, ground = Fizz Pink (owned by neither → legal).
+Mexico = Grass, England = Poppy (brick-red), ground = **Kickoff Sky** (owned by neither → legal;
+Fizz Pink can no longer be a ground).
 
 ### Legibility gate (hard)
 On a loud ground, type is **black, white, or the *contrasting* loud** — never a near-value
@@ -114,20 +138,44 @@ The single most important law. **Vertical position = probability.** Every pixel 
 feed, the taps, or the chain. (`GEOMETRY` in theme.ts.)
 
 - **Halfway = a thin, constant Press-Black seam at EXACTLY 50%.** It never moves. It is the
-  50/50 the whole app is built on. Weight ≈ 0.6% of pitch height.
-- **THE DRAW is a paper-band WIDTH, not a line.** The band is centered on the seam; its
-  total width = `pDraw`. Its top and bottom edges are **zigzag perforation teeth** ("torn
-  from the match" — the stub-teeth lineage). The 50% seam rides *inside* the band. So:
-  *seam = the constant honest midpoint; band width = the live draw probability.* These are
-  two different truths and must read as two different things (see canon
-  `stage-prematch-pct-chips-donor`, where the toothed neutral band brackets the seam).
+  50/50 the whole app is built on. Weight ≈ 0.6% of pitch height. **It SURVIVES the teeth
+  removal** — the seam is the one constant midline, untouched.
+- **THE DRAW is a paper-band WIDTH, not a line — and it is a DOT-FRAY, not teeth.**
+  ***Teeth are dead.*** The draw is no longer bracketed by zigzag perforation. Instead the
+  two territory halftone fields **FRAY** at their working edges — dots scattering, thinning,
+  interleaving sparsely — and **THE DRAW is the width where the combined dot density
+  collapses to near zero.** Width still exactly = `pDraw`. The 50% seam rides *inside* that
+  collapse zone. So: *seam = the constant honest midpoint; the fray-collapse width = the live
+  draw probability.* Two different truths, two different readings. See the fray spec below.
 - **Team territories are halftone fields** from each goal-end. Each field is **solid at the
-  goal-end, dissolving to dots at its working edge.** The extent of a field = **EXACTLY**
-  that team's win probability. When probability shifts, the working edge advances/retreats.
-- **The working edge default is a dot-dissolve** (solid→halftone fade, `dissolveStart` →
-  `dissolveSpan`). Two named variants exist (§6): the **crowd-silhouette edge** (the edge
-  drawn as a row of standing fans — canon `stage-goool-crowd-silhouette-edge`,
+  goal-end, fraying to scattered dots at its working edge.** The extent of a field =
+  **EXACTLY** that team's win probability. When probability shifts, the working edge (the
+  fray frontier) advances/retreats.
+- **The working edge default is the DOT-FRAY** (solid core → scattered-dot collapse,
+  `FRAY.frayStart` → `dissolveSpan`). Two named variants exist (§6): the **crowd-silhouette
+  edge** (the edge drawn as a row of standing fans — canon `stage-goool-crowd-silhouette-edge`,
   `card-instrument-sidebar`) and, on the card, the **equalizer-skyline** portrait.
+
+#### The dot-fray, precisely (`FRAY` in theme.ts)
+The frontier is a **zone**, not a torn line. Measured outward per field from its solid core
+toward the seam (`t` in `[0..1]` across the fray zone = `dissolveSpan` of the field):
+- **Density curve.** Dots hold full coverage until `frayStart` (0.15), then their **placement
+  probability** decays on an ease-out curve (`frayCurve` = 2.2) to `frayFloor` (0.04) at the
+  working edge — a few last outriders, never a hard stop. It is a probability of a dot
+  *existing* at each grid cell: a dropped dot is simply **absent**; a kept dot is **full-ink.
+  Never an opacity fade, never a blur.**
+- **Dot-size behavior.** As coverage thins, surviving dots also shrink from the field's normal
+  radius (`HALFTONE.dotMax`) toward `strayDotMin` (0.12 of the cell), so the frontier reads as
+  a **scatter of small specks**, not big holes punched in a slab. Size decay **lags** coverage
+  decay by `sizeLag` — dots THIN before they SHRINK — so the leading edge is a few full-size
+  outriders, then specks.
+- **Two colours interleaving.** Where the two fields' fraying tails overlap, their stray dots
+  sit on the **same cell grid** at offset sub-cell positions (`interleaveJitter` = 0.34) so a
+  red speck and a green speck sit **side by side as two discrete dots**. They must **NEVER
+  blend into a mixed ink or a muddy overlap** — on collision, the **leading (higher-probability)
+  field's dot wins** and the trailing dot is dropped (`collisionRule`). The band where **both**
+  fields have decayed below `collapseCoverage` (0.06) is **THE DRAW**: near-empty cream with
+  the Press-Black seam crossing it.
 - **Market number ≠ crowd counts. NEVER blended.** The market has the *number* (the tide, the
   %). The crowd has the *roar* (real counts). A crowd count is never dressed as a percentage;
   a probability is never dressed as a headcount. They live in different modules with different
@@ -209,14 +257,19 @@ Each component's numbers live in `COMPONENTS` in theme.ts; import them. Anatomy 
 - **Where:** the trading-card portrait (canon `card-front-canonical`,
   `card-front-roarbars-refined`).
 
-### 6.4 · Draw-band with teeth
-- **Anatomy:** a `terraceGrey`/`newsprint` neutral band centered on the 50% seam; **zigzag
-  perforation teeth** on top and bottom edges; the thin Press-Black seam rides inside it.
-- **Proportions:** total width = `pDraw` × pitch height; tooth ≈ `GRID.tooth` (3.5%) of the
-  edge; teeth uniform, geometric, clean (brand-book: "must remain geometric and clean").
-- **States:** width breathes with the live draw probability; teeth never animate their shape.
-- **Where:** the stage, straddling halfway. Canon: `stage-prematch-canonical` (teeth top &
-  bottom of the cream mid-band), `stage-prematch-pct-chips-donor`.
+### 6.4 · Draw-band with dot-fray *(teeth are dead)*
+- **Anatomy:** NOT a toothed band. The two territory fields **fray into scattered dots** as
+  they approach the midline; the near-empty cream zone where both densities have collapsed IS
+  the draw band. The thin Press-Black 50% seam rides inside that collapse. No zigzag anywhere.
+- **Proportions:** total collapse width = `pDraw` × pitch height. Fray follows `FRAY` (density
+  curve `frayStart`→`frayFloor` on `frayCurve`; specks shrink to `strayDotMin` lagging by
+  `sizeLag`; two colours interleave at `interleaveJitter`, leading field wins collisions). The
+  draw begins where combined coverage drops below `collapseCoverage`.
+- **States:** the collapse width breathes with the live draw probability (the fray frontiers
+  advance/retreat); individual dots blink in/out on the idle breathe, never smear.
+- **Where:** the stage, straddling halfway. The dot-fray language already lives in canon
+  `stage-dark-crowd-canon` and `stage-prematch-pct-chips-donor` (fields thinning to specks
+  toward the midline) — this formalizes it as the draw grammar and retires the old teeth.
 
 ### 6.5 · % chip (label + Doto number + block-meter)
 - **Anatomy:** a keyline box: **label cap** (team tricode / "DRAW", Anybody) on a color header
@@ -301,8 +354,11 @@ Each component's numbers live in `COMPONENTS` in theme.ts; import them. Anatomy 
 - **Anatomy:** a **2:1** landscape receipt: a **rotated CALLED IT rail** (Anybody, 90°) down a
   loud left edge (`stub.railWidth`); a **top data line** (Doto — "MINUTE 71 · THE WORLD SAID
   12%"); a **pictogram row** (3 cells — gate / section / seat, or the pop-ball + roar-rings
-  row); a **serial** (Doto, "Nº 000120", repeated); a **gold PROVED die-cut punch**
-  (`punchDia`, medalGold); and a **zigzag tear edge** down one side (`tearTeeth`).
+  row); a **serial / edition line** (Doto, "Nº 000120", repeated top + bottom — the reserved
+  memento serial slot, §10); a **gold PROVED die-cut punch** (`punchDia`, medalGold); and a
+  **perforated tear edge** down the detach side (`tearTeeth`). **This perforation is THE SOLE
+  LEGAL TOOTH in the system** — real ticket anatomy, the one sanctioned exception to "teeth are
+  dead" (§9.2). *(Pending owner veto; if vetoed, the detach edge becomes a plain die-cut rule.)*
 - **Proportions / variants:** the labeled micro-row (GATE E7 / SECTION L / SEAT 7 — canon
   `stub-labeled-microrow-donor`); the warm-seats palette alt (canon `stub-warm-seats`).
 - **States:** *unproved* (no punch) → *PROVED* (the punch lands as an ink stamp — §7).
@@ -312,8 +368,11 @@ Each component's numbers live in `COMPONENTS` in theme.ts; import them. Anatomy 
 - **Anatomy:** **5:7** portrait; Press-Black keyline + cream border; a **portrait window**
   (§6.3 equalizer-skyline or §6.2 crowd-silhouette) with a mini scoreboard atop; **four corner
   stat chips** (§6.11); the **THE STANDS diagonal band** (§6.12); a **footer strip** ("ROOOT ·
-  MATCH Nº 61 · MEX-ENG", Doto) with flag blocks.
-- **Proportions:** `card.aspect`, `card.cornerChips` = 4, `card.footerHeight`.
+  MATCH Nº 61 · MEX-ENG", Doto) with flag blocks; and — per the memento law (§10) — an
+  **edition line** (`Nº 000120 / 5000`, Doto) in the reserved `footer-left` serial slot,
+  mirrored by the fixture caption on the right. Ground = **Poppy** brick-red (was Fizz Pink).
+- **Proportions:** `card.aspect`, `card.cornerChips` = 4, `card.footerHeight`; serial per
+  `memento.serialSlot.card` + `memento.serialFormat`.
 - **Where:** the collectible. Canon `card-front-canonical`, `-roarbars-refined`,
   `card-instrument-sidebar`.
 
@@ -364,25 +423,38 @@ Encoded in `BANNED` in theme.ts so review can cite the exact token.
 - **Two loud grounds touching** — always separate with a Press-Black seam or a cream border.
 - **A probability in a display face** — numbers print in Doto (§4).
 - **A crowd count dressed as a percentage** — market number ≠ crowd counts, never blended (§3).
+- **Zigzag teeth as a belief edge or draw band** — *teeth are dead.* The draw is a DOT-FRAY
+  collapse (§3, §6.4); the only legal tooth is the stub's physical perforation (§6.13).
+- **Blended fray inks** — two colours' stray dots interleave as DISCRETE dots; never mix them
+  into a muddy overlap. On collision the leading field wins (§3 fray spec).
+- **Fizz Pink as a surface ground** — it is accent-only (eruption punctuation). If a surface
+  wants heat, Poppy is the ground and Fizz Pink is the punch (§1).
+- **Dangling UI on a paused stage frame** — a stopped moment must compose as an ownable print:
+  grounded, framed, captioned, edition-marked (§10). No half-laid-out chrome floating.
 
 ---
 
-## 9 · THE THREE JUDGMENT CALLS (where sources disagreed — how this file resolved them)
+## 9 · THE JUDGMENT CALLS (where sources disagreed — how this file resolved them)
 
 1. **50% seam vs THE DRAW band.** POP-LANGUAGE §F offered these as *alternatives* (a thin
    seam OR a neutral width band). The coordinator laws and the canon
    (`stage-prematch-pct-chips-donor`) resolve it as **both, layered**: a **constant thin
    Press-Black seam at exactly 50%** is the honest halfway (never moves), and **THE DRAW is a
-   toothed neutral band whose WIDTH = pDraw**, with the seam riding *inside* it. Two truths,
-   two distinct readings. Encoded: `GEOMETRY.halfwaySeam` + `GEOMETRY.drawBandCentered`.
+   WIDTH = pDraw**, with the seam riding *inside* it. In the revision the draw's edges are no
+   longer teeth — the width is defined by the **dot-fray collapse** (the band where both
+   fields' dot densities bottom out). Two truths, two distinct readings. Encoded:
+   `GEOMETRY.halfwaySeam` + `GEOMETRY.drawBandCentered` + `FRAY`.
 
-2. **The territory working-edge treatment.** The canon shows three edge languages —
-   dot-dissolve (`stage-dark-crowd-canon`), zigzag teeth (`stage-prematch-canonical`), and a
-   crowd-silhouette (`stage-goool-crowd-silhouette-edge`). To keep meanings distinct: the
-   **dot-dissolve is the DEFAULT territory edge** (§6.1); the **crowd-silhouette is a named
-   variant** (§6.2); and **zigzag teeth are reserved for the DRAW band and stub tears only**
-   (§6.4, §6.13) so a tooth always means "torn/neutral," never "belief edge." One shape, one
-   meaning.
+2. **The territory working-edge treatment — TEETH ARE DEAD.** The canon showed three edge
+   languages — dot-dissolve/fray (`stage-dark-crowd-canon`), zigzag teeth
+   (`stage-prematch-canonical`), and a crowd-silhouette (`stage-goool-crowd-silhouette-edge`).
+   The owner dislikes the zigzag teeth, so they are **retired from every belief context**. The
+   resolution now: the **DOT-FRAY is the DEFAULT territory edge AND the draw grammar** (§6.1,
+   §6.4) — the belief frontier is a scatter-collapse of dots, and THE DRAW is the width where
+   that collapse bottoms out; the **crowd-silhouette is a named variant** (§6.2). **The ONLY
+   surviving tooth in the entire system is the stub's perforated tear edge** (§6.13) — real
+   ticket anatomy, pending owner veto. So a tooth now means exactly one thing, "a physical
+   ticket perforation," and *never* a belief edge or a draw band. One shape, one meaning.
 
 3. **Doto vs the drawn face for numbers.** The brand book says "Doto = ALL data/numbers," but
    `card-front-canonical` renders the tricodes MEX/ENG in a drawn face and only the corner
@@ -390,6 +462,79 @@ Encoded in `BANNED` in theme.ts so review can cite the exact token.
    value** (score, clock, %, counts, serials, minute) and **Anybody for every *shouted* label**
    (tricodes, THE STANDS, GOOOL, chip captions). A tricode is a name, not a datum → Anybody;
    the score is a datum → Doto. This keeps the brand-book law intact while matching the canon.
+
+---
+
+## 10 · EVERY SURFACE IS A MEMENTO (a first-class law)
+
+*"Lean more into the Panini world — not in obvious ways… you should want to collect
+everything you see as a poster, a card, or some other type of memento."* This is not a
+component; it is a **frame law** that sits beside the honesty law. If a surface can be paused,
+it must read as an **ownable print** — something you'd pin up, slip in an album, or trade.
+
+**(a) FRAME ANATOMY — every composed surface carries print anatomy.**
+Every stage state, verdict, card, stub, and shareable wears the same three print marks:
+- a **keyline + cream border** (§2 — already mandatory; here it is also the "this is a printed
+  object" signal, not just a container);
+- a **caption / footer strip** — *fixture · date · frame name* in the printer voice (Doto),
+  hung on a band along the bottom (never floating);
+- a **small serial / edition line** — `Nº 000120 / 5000` — in the printer voice (Doto), in the
+  surface's reserved serial slot. It is the "this one is *yours*, and there are only so many"
+  mark. (`COMPONENTS.memento` — `footerHeight`, `serialTextScale`, `serialFormat`.)
+
+**(b) POSTER-READY RULE — a paused stage frame composes as an ownable print.**
+Any stage moment that can hold still (pre-match, a verdict beat, a paused goal) must compose
+**grounded, framed, and captioned, with no dangling UI** — no half-laid-out chrome, no
+controls stranded on the ground, nothing that only makes sense mid-interaction. Live controls
+either sit inside their own keylined cells or drop away when the frame is "posed." The test:
+screenshot it, and it should look like a poster you'd hang — not an app mid-gesture. (Encoded
+as the banned item `dangling-ui-on-a-poster-frame`.)
+
+**(c) MECHANISM HOOKS — reserve placements so collection mechanics slot in later.**
+So album / got-need / edition mechanics can arrive **without a redesign**, every surface has a
+**fixed, reserved home** for its edition/serial/collection marks (`memento.serialSlot`):
+- **card** → `footer-left` (serial), fixture caption mirrored right;
+- **stub** → `punch-tab-repeat` (serial top + bottom on the gold PROVED tab — real ticket
+  lineage);
+- **poster / shareable** → `caption-left` (edition), fixture caption right.
+
+These slots are load-bearing: build lanes place the serial there **now** (even if it reads a
+placeholder edition), so when "Nº 47 of your 100" or a got/need album view ships, the mark is
+already in its home. The edition line always prints in **Doto** (the printer's voice, §4) —
+never a display face, never a serif.
+
+---
+
+## 11 · CHANGELOG — the subdue-toward-Lichtenstein revision
+
+**Palette (louds pulled ~10–18% toward ink — benday, not neon; Fizz Pink demoted to accent):**
+
+| Token | Old hex | New hex | Note |
+|---|---|---|---|
+| `poppy` | `#E0574E` | `#C8504D` | **promoted** — Lichtenstein brick-red; now card + GOOOL ground + lead loud |
+| `kickoffSky` | `#3FA0D6` | `#3E8CBC` | **promoted** — process blue; lead loud |
+| `fizzPink` | `#E8256C` | `#C52C67` | **demoted to ACCENT** — eruption punch only, never a ground |
+| `aztecaSun` | `#F2C230` | `#E5B431` | print-yellow, barely inked (yellow muddies fast) |
+| `grass` | `#1E7A44` | `#1F6F40` | benday green, inked |
+| `ultra` | `#1E4FC0` | `#2049AA` | deep process blue, inked |
+| `magenta` | `#C43A72` | `#AC3A6B` | strip pink, inked toward brick |
+| `medalGold` | `#E0A93B` | `#D6A33B` | RARE mark — barely touched, still a printed spot |
+| `newsprint`/`sunbleach`/`pressBlack`/`terraceGrey` | — | *unchanged* | the paper + ink were already right |
+
+**Ground-role reassignments:** card ground `fizzPink`→`poppy`; GOOOL/erupt ground
+`fizzPink`→`poppy` (Fizz Pink now the eruption *accent*); demo-fixture ground
+`fizzPink`→`kickoffSky` (Poppy is now England's territory, so the demo ground moved to the
+other lead). `LOUD_ROTATION` reordered leads-first and `fizzPink` removed from it.
+
+**Draw grammar:** zigzag teeth **retired** from the draw band, %-chips, rails, and motion
+demos. Replaced by the **dot-fray** (new `FRAY` token block; §3, §6.4). The Press-Black 50%
+seam survives unchanged. The **stub perforation is the sole surviving legal tooth** (§6.13,
+pending owner veto).
+
+**New law:** §10 *Every surface is a memento* — frame anatomy (keyline · caption strip ·
+serial/edition line), the poster-ready rule, and reserved mechanism hooks
+(`COMPONENTS.memento`). New banned items: `zigzag-teeth-as-belief-edge`, `blended-fray-inks`,
+`fizz-pink-as-ground`, `dangling-ui-on-a-poster-frame`.
 
 ---
 

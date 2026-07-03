@@ -16,9 +16,10 @@
 /* ============ THE SYSTEM, RENDERED IN ITSELF ============ */
 :root{
   --newsprint:#F3ECDA; --sunbleach:#EDE3C8; --press:#1A1A18;
-  --terrace:#B0AEA8; --gold:#E0A93B;
-  --pink:#E8256C; --sun:#F2C230; --poppy:#E0574E; --sky:#3FA0D6;
-  --grass:#1E7A44; --ultra:#1E4FC0; --magenta:#C43A72;
+  --terrace:#B0AEA8; --gold:#D6A33B;
+  /* louds subdued toward Lichtenstein (benday ink, not neon). --pink DEMOTED to accent-only. */
+  --pink:#C52C67; --sun:#E5B431; --poppy:#C8504D; --sky:#3E8CBC;
+  --grass:#1F6F40; --ultra:#2049AA; --magenta:#AC3A6B;
   --scream:'Anybody',system-ui,sans-serif;
   --serif:'Young Serif',Georgia,serif;
   --data:'Doto',ui-monospace,monospace;
@@ -51,7 +52,7 @@ body{
 
 /* ================= MASTHEAD ================= */
 .mast{margin:0 -20px 0;padding:0}
-.mast-inner{background:var(--pink);border-bottom:var(--k) solid var(--press);
+.mast-inner{background:var(--poppy);border-bottom:var(--k) solid var(--press);
   padding:34px 24px 30px;position:relative;overflow:hidden}
 .mast .kick{font-family:var(--data);font-weight:700;font-size:12px;letter-spacing:.34em;
   color:var(--press);text-transform:uppercase;background:var(--sun);display:inline-block;
@@ -113,13 +114,13 @@ section{margin-top:70px}
   text-transform:uppercase;color:var(--newsprint);background:var(--press);display:inline-block;padding:4px 10px;margin-bottom:14px}
 .stretch-line{font-family:var(--scream);font-weight:800;font-size:clamp(52px,13vw,120px);line-height:.9;white-space:nowrap}
 .slider{display:flex;align-items:center;gap:14px;margin-top:16px}
-.slider input{flex:1;accent-color:var(--pink);height:6px}
+.slider input{flex:1;accent-color:var(--poppy);height:6px}
 .slider .rd{font-family:var(--data);font-weight:700;font-size:12px;min-width:92px;color:#4a4944}
 .prog-line{font-family:var(--serif);font-size:clamp(20px,3.4vw,30px);line-height:1.3}
 .data-line{font-family:var(--data);font-weight:700;font-size:clamp(22px,4vw,34px);letter-spacing:.03em}
 .type-note{font-family:var(--serif);font-size:12.5px;color:#5a5852;margin-top:12px;border-top:1px dashed var(--press);padding-top:10px}
 .type-note b{font-family:var(--scream);font-weight:800}
-.serif-guard{background:var(--pink);padding:16px;border:var(--k) solid var(--press);margin-top:14px}
+.serif-guard{background:var(--poppy);padding:16px;border:var(--k) solid var(--press);margin-top:14px}
 .serif-guard .x{font-family:var(--serif);font-size:26px;color:var(--newsprint);text-decoration:line-through;text-decoration-thickness:2px}
 .serif-guard .why{font-family:var(--data);font-weight:700;font-size:11px;letter-spacing:.1em;color:var(--press);background:var(--sun);display:inline-block;padding:3px 8px;margin-top:10px;text-transform:uppercase}
 
@@ -166,7 +167,7 @@ section{margin-top:70px}
 
 /* the card mini-mock */
 .cardwrap{max-width:340px;margin:0 auto}
-.card{aspect-ratio:5/7;border:var(--k) solid var(--press);background:var(--pink);
+.card{aspect-ratio:5/7;border:var(--k) solid var(--press);background:var(--poppy);
   padding:12px;position:relative;box-shadow:0 0 0 7px var(--newsprint),0 0 0 calc(7px + var(--k)) var(--press)}
 .card .cscore{position:absolute;top:12px;left:50px;right:50px;height:26px;background:var(--press);
   display:flex;align-items:center;justify-content:center;gap:8px;z-index:3;border:var(--k) solid var(--press)}
@@ -188,8 +189,14 @@ section{margin-top:70px}
   text-align:center;letter-spacing:-.01em;line-height:.9}
 .cstands .b small{font-family:var(--data);font-weight:700;font-size:12px;color:var(--sun);letter-spacing:.1em}
 .cfoot{position:absolute;left:12px;right:12px;bottom:12px;height:22px;background:var(--newsprint);
-  border:var(--k) solid var(--press);display:flex;align-items:center;justify-content:center;z-index:4}
-.cfoot .f{font-family:var(--data);font-weight:700;font-size:10px;letter-spacing:.08em}
+  border:var(--k) solid var(--press);display:flex;align-items:center;justify-content:space-between;
+  gap:8px;padding:0 8px;z-index:4;overflow:hidden}
+.cfoot .fed{font-family:var(--data);font-weight:700;font-size:10px;letter-spacing:.06em;color:var(--press);white-space:nowrap}
+.cfoot .ffx{font-family:var(--data);font-weight:700;font-size:9px;letter-spacing:.06em;color:#5a5852;white-space:nowrap}
+.editnote{font-family:var(--serif);font-size:12px;color:#5a5852;border-left:var(--k) solid var(--press);
+  padding:4px 0 4px 10px;background:var(--sunbleach)}
+.editnote b{font-family:var(--scream);font-weight:800}
+.editnote code{font-family:var(--data);font-weight:700;font-size:11px;background:var(--newsprint);padding:0 3px;border:1px solid var(--press)}
 
 /* stub mini-mock */
 .stubwrap{max-width:640px;margin:0 auto}
@@ -207,14 +214,43 @@ section{margin-top:70px}
 .stub .mid svg{height:clamp(30px,8vw,52px);width:auto}
 .stub .btm{font-family:var(--data);font-weight:700;font-size:clamp(10px,2vw,14px);
   padding:7px 14px;border-top:var(--k) solid var(--press);letter-spacing:.06em}
-.stub .punch{width:16%;background:var(--gold);border-left:var(--k) solid var(--press);
+.stub .punch{width:16%;background:var(--gold);
   display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:10px 0;position:relative}
+/* the SOLE LEGAL TOOTH — the perforated die-cut tear down the tab's detach edge */
+.stub .punch::before{content:"";position:absolute;left:-1px;top:0;bottom:0;width:0;
+  border-left:var(--k) dashed var(--press)}
 .stub .punch .ser{font-family:var(--data);font-weight:700;font-size:clamp(8px,1.6vw,12px);letter-spacing:.06em}
 .stub .punch .hole{width:clamp(26px,7vw,44px);height:clamp(26px,7vw,44px);border-radius:50%;
   background:var(--newsprint);border:var(--k) solid var(--press);position:relative;display:flex;align-items:center;justify-content:center}
 .stub .punch .hole b{font-family:var(--scream);font-weight:900;font-size:clamp(7px,1.4vw,10px);
   position:absolute;transform:rotate(-30deg);top:-14px;color:var(--press)}
 .tear{position:absolute;top:0;bottom:0;right:15.5%;width:2px}
+
+/* ---------- MEMENTO ---------- */
+.poster{max-width:420px;margin:0 auto}
+.poster-plate{background:var(--newsprint);border:var(--k) solid var(--press);padding:12px;
+  box-shadow:0 0 0 8px var(--newsprint),0 0 0 calc(8px + var(--k)) var(--press)}
+.poster-key{border:var(--k) solid var(--press);overflow:hidden;background:var(--press)}
+.poster-score{background:var(--press);display:flex;align-items:stretch;height:40px;border-bottom:var(--k) solid var(--press)}
+.poster-score .pflag{width:34px;flex:none;display:flex;border-right:var(--k) solid var(--press);background:var(--newsprint)}
+.poster-score .pflag:last-child{border-right:none;border-left:var(--k) solid var(--press)}
+.poster-score .ptri{font-family:var(--scream);font-weight:900;font-size:19px;color:var(--newsprint);display:flex;align-items:center;padding:0 10px}
+.poster-score .pscr{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;
+  font-family:var(--data);font-weight:700;font-size:19px;color:var(--sun);letter-spacing:.05em}
+.poster-score .pscr em{font-style:normal;font-size:12px;color:var(--newsprint);letter-spacing:.1em}
+.poster-pitch{aspect-ratio:26/30;position:relative;background:var(--sky)}
+.poster-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;
+  padding:6px 10px;background:var(--sunbleach);border:var(--k) solid var(--press);overflow:hidden}
+.poster-foot .pfe{font-family:var(--data);font-weight:700;font-size:11px;letter-spacing:.06em;color:var(--press);white-space:nowrap}
+.poster-foot .pfc{font-family:var(--data);font-weight:700;font-size:10px;letter-spacing:.05em;color:#5a5852;white-space:nowrap}
+.memo3{display:grid;gap:14px}
+@media(min-width:720px){.memo3{grid-template-columns:repeat(3,1fr)}}
+.memobox{border:var(--k) solid var(--press);background:var(--newsprint);overflow:hidden}
+.memobox .mh{font-family:var(--scream);font-weight:900;font-size:16px;text-transform:uppercase;letter-spacing:.02em;
+  background:var(--press);color:var(--newsprint);padding:7px 12px}
+.memobox .mb{font-family:var(--serif);font-size:13px;line-height:1.5;color:#3a3934;padding:12px}
+.memobox .mono{font-family:var(--data);font-weight:700;font-size:12px;background:var(--sunbleach);padding:1px 5px;border:1px solid var(--press);white-space:nowrap}
+.memobox b{font-family:var(--scream);font-weight:800}
 
 /* ---------- MOTION ---------- */
 .motion-grid{display:grid;gap:18px}
@@ -312,14 +348,14 @@ footer{margin-top:80px;border-top:var(--k) solid var(--press);padding-top:16px;
     <span class="runline">NO. 61 · MEX–ENG · UNLISTED</span>
     <span class="kick">ROOOT · THE SYSTEM · INTERNAL REVIEW</span>
     <h1>R<span class="o">O</span><span class="o">O</span><span class="o">O</span>T</h1>
-    <p class="oneline">The World Cup as a living mechanical print — flat saturated grounds owned one at a time, hard black keylines, one diagonal max, honest geometry as color fields with hard working edges. Loud, retro, cartoon-alive. Never moody, never glowing.</p>
+    <p class="oneline">The World Cup as a living mechanical print — benday-ink grounds owned one at a time (loud, but Lichtenstein-subdued, not Barbie), hard black keylines, one diagonal max, honest geometry as color fields that fray into scattered dots at their edges, and every surface built to be collected. Loud, retro, cartoon-alive. Never moody, never glowing.</p>
   </div>
 </header>
 
 <!-- ============ 01 · PALETTE ============ -->
 <section>
   <div class="sec-head"><span class="sec-no">01</span><h2>Palette</h2></div>
-  <p class="sec-dek">Every hex is a printed <b>flat spot ink</b>, never a gradient stop. Neutrals are the calm frame — always present. Louds rotate: <b>exactly one owns a surface</b>, and two louds never touch. Team colors are never the ground.</p>
+  <p class="sec-dek">Every hex is a printed <b>flat spot ink</b>, never a gradient stop — and the louds are now <b>benday inks pulled toward Lichtenstein</b> (~10–18% toward ink; loud + fun, not full Barbie, not pastel). Neutrals are the calm frame — always present. Louds rotate: <b>exactly one owns a surface</b>, two louds never touch, team colors are never the ground. <b>Fizz Pink is demoted to an accent</b> — eruption punctuation only, never a ground.</p>
 
   <div class="spec">
     <div class="cap"><span class="tag">Neutrals</span><span class="desc">the constant that lets any two team palettes coexist</span></div>
@@ -328,33 +364,46 @@ footer{margin-top:80px;border-top:var(--k) solid var(--press);padding-top:16px;
       <div class="sw"><div class="chip" style="background:var(--sunbleach)"></div><div class="meta"><div class="nm">Sunbleach</div><div class="hx">#EDE3C8</div><div class="rl">warmer paper · stubs · card interiors</div></div></div>
       <div class="sw"><div class="chip" style="background:var(--press)"></div><div class="meta"><div class="nm">Press Black</div><div class="hx">#1A1A18</div><div class="rl">every keyline · rule · scoreboard · the ink</div></div></div>
       <div class="sw"><div class="chip" style="background:var(--terrace)"></div><div class="meta"><div class="nm">Terrace Grey</div><div class="hx">#B0AEA8</div><div class="rl">the neutral DRAW · inactive data</div></div></div>
-      <div class="sw"><div class="chip" style="background:var(--gold)"></div><div class="meta"><div class="nm">Medal Gold</div><div class="hx">#E0A93B</div><div class="rl">the RARE mark only · PROVED · reward</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--gold)"></div><div class="meta"><div class="nm">Medal Gold</div><div class="hx">#D6A33B <s style="color:#8a8880">E0A93B</s></div><div class="rl">the RARE mark only · PROVED · reward</div></div></div>
     </div>
   </div>
 
   <div class="spec">
-    <div class="cap"><span class="tag">Loud rotation</span><span class="desc">one owns a surface at a time (the Topps rule)</span></div>
+    <div class="cap"><span class="tag">Loud rotation</span><span class="desc">benday inks · leads first (Poppy · Sky) · one owns a surface</span></div>
     <div class="swatches">
-      <div class="sw"><div class="chip" style="background:var(--pink)"></div><div class="meta"><div class="nm">Fizz Pink</div><div class="hx">#E8256C</div><div class="rl">the hottest · eruption · card · GOOOL</div></div></div>
-      <div class="sw"><div class="chip" style="background:var(--sun)"></div><div class="meta"><div class="nm">Azteca Sun</div><div class="hx">#F2C230</div><div class="rl">pre-match stage frame</div></div></div>
-      <div class="sw"><div class="chip" style="background:var(--poppy)"></div><div class="meta"><div class="nm">Poppy</div><div class="hx">#E0574E</div><div class="rl">England territory + accents</div></div></div>
-      <div class="sw"><div class="chip" style="background:var(--sky)"></div><div class="meta"><div class="nm">Kickoff Sky</div><div class="hx">#3FA0D6</div><div class="rl">lighter match states</div></div></div>
-      <div class="sw"><div class="chip" style="background:var(--grass)"></div><div class="meta"><div class="nm">Grass</div><div class="hx">#1E7A44</div><div class="rl">Mexico territory + fan-ends</div></div></div>
-      <div class="sw"><div class="chip" style="background:var(--ultra)"></div><div class="meta"><div class="nm">Ultra</div><div class="hx">#1E4FC0</div><div class="rl">"the Dark" late tension</div></div></div>
-      <div class="sw"><div class="chip" style="background:var(--magenta)"></div><div class="meta"><div class="nm">Magenta</div><div class="hx">#C43A72</div><div class="rl">ticket-stub blocks · proof language</div></div></div>
+      <div class="sw" style="outline:var(--k) solid var(--press);outline-offset:2px"><div class="chip" style="background:var(--poppy)"></div><div class="meta"><div class="nm">Poppy ★</div><div class="hx">#C8504D <s style="color:#8a8880">E0574E</s></div><div class="rl">LEAD · Lichtenstein brick-red · card + GOOOL ground · ENG territory</div></div></div>
+      <div class="sw" style="outline:var(--k) solid var(--press);outline-offset:2px"><div class="chip" style="background:var(--sky)"></div><div class="meta"><div class="nm">Kickoff Sky ★</div><div class="hx">#3E8CBC <s style="color:#8a8880">3FA0D6</s></div><div class="rl">LEAD · process blue · lighter match states</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--sun)"></div><div class="meta"><div class="nm">Azteca Sun</div><div class="hx">#E5B431 <s style="color:#8a8880">F2C230</s></div><div class="rl">print-yellow · pre-match frame · black type only</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--grass)"></div><div class="meta"><div class="nm">Grass</div><div class="hx">#1F6F40 <s style="color:#8a8880">1E7A44</s></div><div class="rl">Mexico territory + fan-ends</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--ultra)"></div><div class="meta"><div class="nm">Ultra</div><div class="hx">#2049AA <s style="color:#8a8880">1E4FC0</s></div><div class="rl">"the Dark" late tension</div></div></div>
+      <div class="sw"><div class="chip" style="background:var(--magenta)"></div><div class="meta"><div class="nm">Magenta</div><div class="hx">#AC3A6B <s style="color:#8a8880">C43A72</s></div><div class="rl">ticket-stub blocks · proof language</div></div></div>
+    </div>
+  </div>
+
+  <div class="spec">
+    <div class="cap"><span class="tag">The accent — not a ground</span><span class="desc">Fizz Pink demoted: eruption punctuation only</span></div>
+    <div class="swatches" style="grid-template-columns:minmax(150px,220px) 1fr">
+      <div class="sw"><div class="chip" style="background:var(--pink)"></div><div class="meta"><div class="nm">Fizz Pink</div><div class="hx">#C52C67 <s style="color:#8a8880">E8256C</s></div><div class="rl">ACCENT ONLY · the eruption punch</div></div></div>
+      <div class="sw" style="display:flex;flex-direction:column;justify-content:center;padding:14px 16px;background:var(--poppy)">
+        <div style="font-family:var(--data);font-weight:700;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--newsprint)">pink lives HERE — on the Poppy ground</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
+          <svg viewBox="0 0 60 60" style="width:52px;height:52px" aria-label="eruption punch"><g id="accentBurst" fill="var(--press)"></g><circle cx="30" cy="30" r="9" fill="var(--pink)" stroke="var(--press)" stroke-width="2.5"/></svg>
+          <span style="font-family:var(--scream);font-weight:900;font-size:22px;color:var(--newsprint)">GOOOL — the punch, never the ground</span>
+        </div>
+      </div>
     </div>
   </div>
 
   <div class="spec">
     <div class="cap"><span class="tag">The rule, demonstrated</span><span class="desc">one loud ground per surface — never two touching</span></div>
     <div class="demo-ground">
-      <div class="dg legal" data-verdict="legal" style="background:var(--pink);color:var(--newsprint)">
+      <div class="dg legal" data-verdict="legal" style="background:var(--poppy);color:var(--newsprint)">
         <div class="ttl">ONE LOUD</div>
-        <div class="sub" style="color:var(--sun)">Fizz Pink owns it · team colors sit inside</div>
+        <div class="sub" style="color:var(--sun)">Poppy owns it · team colors sit inside</div>
       </div>
-      <div class="dg illegal" data-verdict="illegal" style="background:linear-gradient(90deg,var(--pink) 0 50%,var(--sun) 50% 100%);color:var(--press)">
+      <div class="dg illegal" data-verdict="illegal" style="background:linear-gradient(90deg,var(--poppy) 0 50%,var(--sun) 50% 100%);color:var(--press)">
         <div class="ttl" style="color:var(--press)">TWO LOUD</div>
-        <div class="sub" style="color:var(--press)">pink meets sun with no seam — chaos</div>
+        <div class="sub" style="color:var(--press)">poppy meets sun with no seam — chaos</div>
       </div>
     </div>
     <div class="cap" style="margin-top:16px"><span class="tag">The fix</span><span class="desc">separate two louds with a Press-Black seam or a cream border</span></div>
@@ -432,7 +481,7 @@ footer{margin-top:80px;border-top:var(--k) solid var(--press);padding-top:16px;
     </div>
   </div>
 
-  <!-- glyph modules: pop-ball, roar-ring, draw-teeth, starburst -->
+  <!-- glyph modules: pop-ball, roar-ring, draw dot-fray, starburst -->
   <div class="spec">
     <div class="cap"><span class="tag">Glyph modules</span><span class="desc">SVG constructions — the house geometry, drawn not stock</span></div>
     <div class="mods">
@@ -457,16 +506,16 @@ footer{margin-top:80px;border-top:var(--k) solid var(--press);padding-top:16px;
         </svg>
         <div class="mlbl">roar ring-meter · off-center</div>
       </div>
-      <!-- DRAW BAND teeth -->
+      <!-- DRAW = DOT-FRAY (teeth are dead) -->
       <div class="mod">
-        <svg viewBox="0 0 100 100" aria-label="draw band with perforation teeth">
-          <rect x="4" y="4" width="92" height="92" fill="var(--terrace)" stroke="var(--press)" stroke-width="3"/>
-          <path d="M4,34 L14,26 L24,34 L34,26 L44,34 L54,26 L64,34 L74,26 L84,34 L94,26 L96,26 L96,34 Z" fill="var(--newsprint)" stroke="var(--press)" stroke-width="2"/>
-          <path d="M4,66 L14,74 L24,66 L34,74 L44,66 L54,74 L64,66 L74,74 L84,66 L94,74 L96,74 L96,66 Z" fill="var(--newsprint)" stroke="var(--press)" stroke-width="2"/>
+        <svg viewBox="0 0 100 100" aria-label="the draw as a dot-fray collapse with a 50% seam">
+          <rect x="4" y="4" width="92" height="92" fill="var(--newsprint)" stroke="var(--press)" stroke-width="3"/>
+          <!-- two fields fraying toward the midline; both densities collapse = THE DRAW -->
+          <g id="frayGlyph"></g>
+          <!-- the constant Press-Black 50% seam SURVIVES, riding inside the collapse -->
           <line x1="4" y1="50" x2="96" y2="50" stroke="var(--press)" stroke-width="3"/>
-          <rect x="34" y="46" width="8" height="8" fill="var(--terrace)"/>
         </svg>
-        <div class="mlbl">draw-band · teeth + 50% seam</div>
+        <div class="mlbl">the draw · dot-fray + 50% seam</div>
       </div>
       <!-- STARBURST: drawn rays + shockwave -->
       <div class="mod">
@@ -510,21 +559,11 @@ footer{margin-top:80px;border-top:var(--k) solid var(--press);padding-top:16px;
     <div class="cap"><span class="tag">Territory + portrait</span><span class="desc">halftone belief field · equalizer-skyline data-portrait</span></div>
     <div class="grid g2">
       <div class="stagebox">
-        <div style="font-family:var(--data);font-weight:700;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--press);margin-bottom:8px">territory field · dot-dissolve edge</div>
-        <svg viewBox="0 0 220 300" style="width:100%;display:block;border:2px solid var(--press);background:var(--newsprint)" aria-label="territory halftone field">
-          <defs>
-            <pattern id="dotsRed" width="9" height="9" patternUnits="userSpaceOnUse"><circle cx="4.5" cy="4.5" r="3.6" fill="var(--poppy)"/></pattern>
-            <pattern id="dotsGrn" width="9" height="9" patternUnits="userSpaceOnUse"><circle cx="4.5" cy="4.5" r="3.6" fill="var(--grass)"/></pattern>
-            <linearGradient id="fadeTop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="white" stop-opacity="1"/><stop offset="1" stop-color="white" stop-opacity="0"/></linearGradient>
-            <linearGradient id="fadeBot" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="white" stop-opacity="1"/><stop offset="1" stop-color="white" stop-opacity="0"/></linearGradient>
-            <mask id="mTop"><rect x="0" y="0" width="220" height="140" fill="url(#fadeTop)"/></mask>
-            <mask id="mBot"><rect x="0" y="160" width="220" height="140" fill="url(#fadeBot)"/></mask>
-          </defs>
-          <rect x="0" y="0" width="220" height="140" fill="url(#dotsRed)" mask="url(#mTop)"/>
-          <rect x="0" y="160" width="220" height="140" fill="url(#dotsGrn)" mask="url(#mBot)"/>
-          <!-- draw band with teeth straddling 50% -->
-          <path d="M0,132 L14,140 L28,132 L42,140 L56,132 L70,140 L84,132 L98,140 L112,132 L126,140 L140,132 L154,140 L168,132 L182,140 L196,132 L210,140 L220,132 L220,132" fill="none" stroke="var(--press)" stroke-width="2"/>
-          <path d="M0,168 L14,160 L28,168 L42,160 L56,168 L70,160 L84,168 L98,160 L112,168 L126,160 L140,168 L154,160 L168,168 L182,160 L196,168 L210,160 L220,168" fill="none" stroke="var(--press)" stroke-width="2"/>
+        <div style="font-family:var(--data);font-weight:700;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--press);margin-bottom:8px">territory field · dot-fray edge · the draw = where density collapses</div>
+        <svg viewBox="0 0 220 300" style="width:100%;display:block;border:2px solid var(--press);background:var(--newsprint)" aria-label="territory halftone field fraying to a dot collapse at the draw">
+          <!-- discrete-dot fields: solid cores, fraying to scattered specks toward the midline -->
+          <g id="terrField"></g>
+          <!-- the constant Press-Black 50% seam SURVIVES — the honest midline, riding inside the collapse -->
           <line x1="0" y1="150" x2="220" y2="150" stroke="var(--press)" stroke-width="3"/>
           <circle cx="110" cy="150" r="26" fill="none" stroke="var(--press)" stroke-width="2.5"/>
           <circle cx="110" cy="150" r="3" fill="var(--press)"/>
@@ -569,7 +608,7 @@ footer{margin-top:80px;border-top:var(--k) solid var(--press);padding-top:16px;
 
   <!-- CARD mini-mock -->
   <div class="spec">
-    <div class="cap"><span class="tag">Card · 5:7</span><span class="desc">keyline + border · corner chips · THE STANDS diagonal (the one diagonal) · footer</span></div>
+    <div class="cap"><span class="tag">Card · 5:7</span><span class="desc">Poppy ground · corner chips · THE STANDS diagonal · footer strip with EDITION line (memento §04)</span></div>
     <div class="cardwrap">
       <div class="card">
         <div class="cscore"><span class="t mex">MEX</span><span class="s">1&#8201;–&#8201;1</span><span class="t eng">ENG</span></div>
@@ -583,14 +622,16 @@ footer{margin-top:80px;border-top:var(--k) solid var(--press);padding-top:16px;
         <div class="cchip bl"><span class="cl">FOR</span><span class="cn">64</span></div>
         <div class="cchip br"><span class="cl">PRE</span><span class="cn">78</span></div>
         <div class="cstands"><div class="b">THE STANDS <small>END MX</small></div></div>
-        <div class="cfoot"><span class="f">ROOOT · MATCH Nº 61 · MEX–ENG</span></div>
+        <!-- footer strip: EDITION line reserved at footer-left, fixture caption mirrored right -->
+        <div class="cfoot"><span class="fed">Nº 000120 / 5000</span><span class="ffx">ROOOT · MATCH Nº 61 · MEX–ENG</span></div>
       </div>
     </div>
+    <div class="editnote" style="max-width:340px;margin:8px auto 0"><b>← edition line</b> lives at <code>footer-left</code> (Doto). Reserved so got/need album mechanics slot in later — no redesign.</div>
   </div>
 
   <!-- STUB mini-mock -->
   <div class="spec">
-    <div class="cap"><span class="tag">Stub · 2:1</span><span class="desc">rotated CALLED IT rail · pictogram row · serial · gold PROVED punch · zigzag tear</span></div>
+    <div class="cap"><span class="tag">Stub · 2:1</span><span class="desc">rotated CALLED IT rail · pictogram row · serial · gold PROVED punch · perforated tear (the ONE legal tooth)</span></div>
     <div class="stubwrap">
       <div class="stub">
         <div class="rail"><span>CALLED IT</span></div>
@@ -612,12 +653,66 @@ footer{margin-top:80px;border-top:var(--k) solid var(--press);padding-top:16px;
         </div>
       </div>
     </div>
+    <div class="editnote" style="max-width:640px;margin:8px auto 0"><b>edition line →</b> lives at <code>punch-tab-repeat</code> — serial repeated top + bottom on the gold PROVED tab (real ticket lineage). The <b>perforated right edge is the sole legal tooth</b> in the system.</div>
   </div>
 </section>
 
-<!-- ============ 04 · MOTION ============ -->
+<!-- ============ 04 · MEMENTO ============ -->
 <section>
-  <div class="sec-head"><span class="sec-no">04</span><h2>Motion</h2></div>
+  <div class="sec-head"><span class="sec-no">04</span><h2>Every surface is a memento</h2></div>
+  <p class="sec-dek">Lean into the Panini world — not in obvious ways. <b>You should want to collect everything you see</b> as a poster, a card, or some other memento. So every composed surface wears print anatomy: a <b>keyline + border</b>, a <b>caption / footer strip</b> (fixture · date · frame name, in Doto), and a small <b>serial / edition line</b> (Nº / edition) in the printer voice. A paused stage composes as an <b>ownable print</b> — grounded, framed, captioned, no dangling UI. Placements for edition marks are <b>reserved</b> so album / got-need mechanics slot in later without a redesign.</p>
+
+  <!-- POSTER-READY stage moment -->
+  <div class="spec">
+    <div class="cap"><span class="tag">Poster-ready</span><span class="desc">a paused pre-match stage, dressed as an ownable print</span></div>
+    <div class="poster">
+      <div class="poster-plate">
+        <div class="poster-key">
+          <!-- scoreboard band -->
+          <div class="poster-score">
+            <div class="pflag"><span style="flex:1;background:var(--grass)"></span><span style="flex:1;background:var(--newsprint)"></span><span style="flex:1;background:var(--poppy)"></span></div>
+            <span class="ptri" style="background:var(--grass)">MEX</span>
+            <span class="pscr">0&#8201;–&#8201;0 <em>KO</em></span>
+            <span class="ptri" style="background:var(--poppy)">ENG</span>
+            <div class="pflag" style="flex-direction:column"><span style="flex:1;background:var(--poppy)"></span><span style="flex:1;background:var(--newsprint)"></span></div>
+          </div>
+          <!-- the pitch: dot-fray fields on a Sky ground, seam surviving -->
+          <div class="poster-pitch">
+            <svg viewBox="0 0 260 300" preserveAspectRatio="xMidYMid slice" style="width:100%;height:100%;display:block" aria-label="poster pitch with dot-fray fields">
+              <rect x="0" y="0" width="260" height="300" fill="var(--sky)"/>
+              <g id="posterFray"></g>
+              <line x1="0" y1="150" x2="260" y2="150" stroke="var(--press)" stroke-width="3"/>
+              <circle cx="130" cy="150" r="30" fill="none" stroke="var(--press)" stroke-width="2.5"/>
+              <circle cx="130" cy="150" r="3.5" fill="var(--press)"/>
+              <rect x="86" y="0" width="88" height="38" fill="none" stroke="var(--press)" stroke-width="2.5"/>
+              <rect x="86" y="262" width="88" height="38" fill="none" stroke="var(--press)" stroke-width="2.5"/>
+            </svg>
+          </div>
+        </div>
+        <!-- caption / footer strip: frame name + fixture + date, EDITION reserved left -->
+        <div class="poster-foot">
+          <span class="pfe">Nº 000061 / 5000</span>
+          <span class="pfc">THE KICK-OFF · MEX–ENG · 03 JUL 2026</span>
+        </div>
+      </div>
+      <div class="editnote" style="margin-top:10px"><b>The test:</b> screenshot it and it reads as a poster you'd pin up — grounded, framed, captioned, edition-marked. No stranded controls, nothing that only makes sense mid-gesture. The <code>caption-left</code> edition slot is reserved for got/need mechanics.</div>
+    </div>
+  </div>
+
+  <!-- the three marks, called out -->
+  <div class="spec">
+    <div class="cap"><span class="tag">The frame anatomy</span><span class="desc">the three print marks every surface carries</span></div>
+    <div class="memo3">
+      <div class="memobox"><div class="mh">Keyline + border</div><div class="mb">The Press-Black keyline and cream border aren't just a container — they're the <b>"this is a printed object"</b> signal. Mandatory on every composed surface.</div></div>
+      <div class="memobox"><div class="mh">Caption strip</div><div class="mb"><span class="mono">fixture · date · frame name</span> on a band along the bottom (Doto), never floating. Names the moment so the print is legible out of context.</div></div>
+      <div class="memobox"><div class="mh">Serial / edition</div><div class="mb"><span class="mono">Nº 000120 / 5000</span> in the printer voice — the <b>"this one is yours, and there are only so many"</b> mark. Reserved slot per surface: card→footer-left, stub→punch-tab, poster→caption-left.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 05 · MOTION ============ -->
+<section>
+  <div class="sec-head"><span class="sec-no">05</span><h2>Motion</h2></div>
   <p class="sec-dek">A live <b>mechanical print</b>, not a broadcast. Stepped movement, register snaps, dot-field changes — never a smear, glow, or blur. Live CSS below; every loop is reduced-motion-safe.</p>
 
   <div class="motion-grid">
@@ -633,22 +728,23 @@ footer{margin-top:80px;border-top:var(--k) solid var(--press);padding-top:16px;
   <div class="reduced"><b>prefers-reduced-motion:</b> every loop here collapses to its settled end-state — no transitions, no loops. The system reads correctly frozen; motion is the reward, never the message.</div>
 </section>
 
-<!-- ============ 05 · LAWS ============ -->
+<!-- ============ 06 · LAWS ============ -->
 <section>
-  <div class="sec-head"><span class="sec-no">05</span><h2>The laws</h2></div>
+  <div class="sec-head"><span class="sec-no">06</span><h2>The laws</h2></div>
   <div class="laws">
     <div class="lawbox keep">
       <div class="h">Non-negotiable</div>
       <ul>
         <li>Vertical = probability. Halfway = a thin constant Press-Black seam at exactly 50%.</li>
-        <li>THE DRAW is a paper-band <em>width</em> (= pDraw) with zigzag teeth; the seam rides inside it.</li>
-        <li>Territory extent = <em>exactly</em> win probability; solid core → dot-dissolve at the working edge.</li>
+        <li>THE DRAW is a <em>width</em> (= pDraw) where the two fields' dots <em>fray</em> to near-zero; the constant seam rides inside it. <b>Teeth are dead</b> — the only legal tooth is the stub perforation.</li>
+        <li>Territory extent = <em>exactly</em> win probability; solid core → dot-fray (scattered specks) at the working edge.</li>
         <li>Market number ≠ crowd counts. Never blended.</li>
-        <li>One loud ground per surface; team colors only in the four slots.</li>
+        <li>One loud ground per surface; team colors only in the four slots. <b>Fizz Pink is accent-only.</b></li>
         <li>Boxes-first grid; keyline ≈2%, cream border ≈5%; one diagonal max.</li>
         <li>Type on bands/boxes, never floating. Doto for numbers, Anybody for screams.</li>
         <li>Press texture only — halftone, grain, a hair of misregistration.</li>
         <li>Every rail cell carries a job. Goals erupt only at the real goal mouth.</li>
+        <li><b>Every surface is a memento</b> — framed, captioned, edition-marked; a paused stage composes as an ownable print.</li>
       </ul>
     </div>
     <div class="lawbox ban">
@@ -659,11 +755,11 @@ footer{margin-top:80px;border-top:var(--k) solid var(--press);padding-top:16px;
         <li>Glow, gradient mesh, drop-shadow blur, glassmorphism.</li>
         <li>Sepia, scratches, torn/burnt paper, faux-vintage filters.</li>
         <li>Sticker-bomb ornament — no decoration without a job.</li>
-        <li>Trophy / silverware in match frames.</li>
-        <li>Player faces or likenesses — the portrait is data.</li>
-        <li>Club crests, FIFA marks.</li>
-        <li>Two loud grounds touching; a probability in a display face.</li>
-        <li>A crowd count dressed as a percentage.</li>
+        <li>Zigzag teeth as a belief edge or draw band — the draw is dot-fray; the stub perforation is the sole legal tooth.</li>
+        <li>Blended fray inks — two colours' stray dots stay discrete, never a muddy overlap.</li>
+        <li>Fizz Pink as a ground; dangling UI on a poster-ready frame.</li>
+        <li>Player faces, club crests, FIFA marks, trophy/silverware in match frames.</li>
+        <li>Two loud grounds touching; a probability in a display face; a crowd count dressed as a %.</li>
       </ul>
     </div>
   </div>
@@ -679,6 +775,11 @@ footer{margin-top:80px;border-top:var(--k) solid var(--press);padding-top:16px;
 (function(){
   var NS="http://www.w3.org/2000/svg";
   function el(t,a){var e=document.createElementNS(NS,t);for(var k in a)e.setAttribute(k,a[k]);return e;}
+  // subdued-Lichtenstein palette (mirrors :root + theme.ts). Kept in sync by hand.
+  var C={press:'#1A1A18',newsprint:'#F3ECDA',sun:'#E5B431',poppy:'#C8504D',
+    sky:'#3E8CBC',grass:'#1F6F40',ultra:'#2049AA',pink:'#C52C67',magenta:'#AC3A6B',gold:'#D6A33B'};
+  // deterministic PRNG so fray specimens are stable across reloads (not random noise)
+  function rng(seed){var s=seed>>>0;return function(){s=(s*1664525+1013904223)>>>0;return s/4294967296;};}
 
   // ---- Anybody width slider ----
   var slider=document.getElementById('wslider'), read=document.getElementById('wread');
@@ -708,9 +809,9 @@ footer{margin-top:80px;border-top:var(--k) solid var(--press);padding-top:16px;
       }
     }
   }
-  fillMeter('mENG',39,'#E0574E');
+  fillMeter('mENG',39,C.poppy);
   fillMeter('mDRAW',27,'#B0AEA8');
-  fillMeter('mMEX',34,'#1E7A44');
+  fillMeter('mMEX',34,C.grass);
 
   // ---- pop-ball: FIVE curved pinwheel segments (two colors + black gaps) ----
   function pinwheel(gid,c1,c2){
@@ -730,9 +831,9 @@ footer{margin-top:80px;border-top:var(--k) solid var(--press);padding-top:16px;
       g.appendChild(el('path',{d:d,fill:(i%2? c2:c1),stroke:'#1A1A18','stroke-width':2,'stroke-linejoin':'round'}));
     }
   }
-  pinwheel('pinwheel','#E8256C','#F2C230');
-  pinwheel('spinPin','#E8256C','#F2C230');
-  pinwheel('stubPin','#E8256C','#F2C230');
+  pinwheel('pinwheel',C.poppy,C.sun);
+  pinwheel('spinPin',C.poppy,C.sun);
+  pinwheel('stubPin',C.poppy,C.sun);
 
   // ---- starburst rays (drawn hard points) ----
   function rays(gid,n,rIn,rOut){
@@ -750,6 +851,12 @@ footer{margin-top:80px;border-top:var(--k) solid var(--press);padding-top:16px;
   }
   rays('burstrays',14,20,46);
   rays('burstRays2',14,20,46);
+  // eruption accent punch (the palette section specimen): drawn Press-Black rays behind a pink core
+  (function(){var g=document.getElementById('accentBurst');if(!g)return;
+    var d="",cx=30,cy=30,sp=12,rIn=13,rOut=27;
+    for(var i=0;i<sp*2;i++){var r=(i%2===0)?rOut:rIn,a=(i/(sp*2))*Math.PI*2-Math.PI/2;
+      d+=(i===0?"M":"L")+(cx+Math.cos(a)*r).toFixed(1)+","+(cy+Math.sin(a)*r).toFixed(1)+" ";}
+    g.appendChild(el('path',{d:d+"Z"}));})();
 
   // ---- skyline bars (equalizer portrait, rising from goal-end) ----
   function skyline(gid,W,H,n,color){
@@ -791,7 +898,7 @@ footer{margin-top:80px;border-top:var(--k) solid var(--press);padding-top:16px;
   // ---- bunting row (flags as blocks) ----
   (function(){
     var g=document.getElementById('bunting'); if(!g)return;
-    var cols=[ '#E0574E','#F3ECDA','#1E7A44','#F3ECDA','#E8256C','#F3ECDA','#F2C230','#1E7A44','#E0574E','#F3ECDA','#1E4FC0'];
+    var cols=[C.poppy,C.newsprint,C.grass,C.newsprint,C.pink,C.newsprint,C.sun,C.grass,C.poppy,C.newsprint,C.ultra];
     var n=cols.length, w=220/n;
     for(var i=0;i<n;i++){
       g.appendChild(el('rect',{x:(i*w).toFixed(1),y:0,width:w.toFixed(1),height:16,fill:cols[i],stroke:'#1A1A18','stroke-width':1}));
@@ -819,9 +926,85 @@ footer{margin-top:80px;border-top:var(--k) solid var(--press);padding-top:16px;
     g.appendChild(el('path',{d:d}));
     // dot-dissolve above the silhouette to show it IS a territory edge
     var defs=el('pattern',{id:'silDots',width:8,height:8,patternUnits:'userSpaceOnUse'});
-    defs.appendChild(el('circle',{cx:4,cy:4,r:2.4,fill:'#1E7A44'}));
+    defs.appendChild(el('circle',{cx:4,cy:4,r:2.4,fill:C.grass}));
     g.parentNode.insertBefore(defs,g);
   })();
+
+  // ---- DOT-FRAY (the draw grammar — replaces the zigzag teeth) ----------------
+  // Two halftone fields fray to discrete stray dots toward the midline; THE DRAW is
+  // the width where BOTH densities collapse. Implements the FRAY token spec:
+  //   • density curve: coverage holds to frayStart then decays (ease-out, frayCurve)
+  //     to frayFloor — a PROBABILITY of a dot existing per cell (kept dots full-ink,
+  //     dropped dots simply absent; never an opacity fade, never a blur).
+  //   • dot-size: surviving specks shrink toward strayDotMin, size decay LAGS coverage
+  //     (dots thin before they shrink).
+  //   • interleave: two colours' stray dots sit on the same grid at offset sub-cell
+  //     positions; on collision the LEADING (higher local coverage) field's dot wins,
+  //     the other is dropped — never blended into a mixed ink.
+  // topEdgeFrac / botEdgeFrac = each field's WORKING EDGE (fraction of H). The gap
+  // between the two collapse tails is THE DRAW (extent = pDraw).
+  var FRAY={frayStart:0.10,frayFloor:0.04,frayCurve:2.2,strayDotMin:0.12,sizeLag:0.12,interleaveJitter:0.34};
+  function coverageAt(dist,zone){ // dist,zone in same units; 0=solid core side of zone
+    if(zone<=0) return 1;
+    var t=Math.min(1,Math.max(0,dist/zone));
+    if(t<=FRAY.frayStart) return 1;
+    var u=(t-FRAY.frayStart)/(1-FRAY.frayStart);      // 0..1 across the decaying part
+    return 1-(1-FRAY.frayFloor)*Math.pow(u,1/FRAY.frayCurve); // ease-out down to floor
+  }
+  function fray(gid,W,H,cell,topCol,botCol,topEdgeFrac,botEdgeFrac){
+    var g=document.getElementById(gid); if(!g)return;
+    var rnd=rng(0x51E ^ (W*131+H*17+cell*7));
+    var cols=Math.ceil(W/cell), rows=Math.ceil(H/cell);
+    var rMax=cell*0.40, rMin=cell*FRAY.strayDotMin;
+    var seam=H*0.5;
+    var topEdge=H*topEdgeFrac, botEdge=H*botEdgeFrac; // y where each field STARTS to fray
+    // the fray ZONE for each field = the gap from its working edge to the seam, so the
+    // thinning spreads gradually across that whole gap (not a cliff at the midline).
+    var topZone=Math.max(1, seam-topEdge), botZone=Math.max(1, botEdge-seam);
+    for(var r=0;r<rows;r++){
+      var cy=r*cell+cell/2;
+      for(var c=0;c<cols;c++){
+        var cx=c*cell+cell/2;
+        // TOP field: solid above its working edge, fraying from there down across the zone
+        var covT=0,covB=0;
+        if(cy < topEdge){ covT=1; }
+        else { covT=coverageAt(cy-topEdge, topZone); }
+        if(cy > botEdge){ covB=1; }
+        else { covB=coverageAt(botEdge-cy, botZone); }
+        // decide TOP dot
+        var jx=(rnd()-0.5)*cell*FRAY.interleaveJitter, jy=(rnd()-0.5)*cell*FRAY.interleaveJitter;
+        var placedTop=false, tx=0,ty=0,tr=0;
+        if(covT>0.001 && rnd()<covT){
+          // size lags coverage: use a slightly higher effective coverage for radius
+          var covTr=Math.min(1,covT+FRAY.sizeLag);
+          tr=rMin+(rMax-rMin)*covTr; tx=cx+jx*(covT<1?1:0.15); ty=cy+jy*(covT<1?1:0.15);
+          placedTop=true;
+        }
+        // decide BOT dot (offset sub-cell so it can sit beside a top speck)
+        var jx2=(rnd()-0.5)*cell*FRAY.interleaveJitter, jy2=(rnd()-0.5)*cell*FRAY.interleaveJitter;
+        var placedBot=false, bx=0,by=0,br=0;
+        if(covB>0.001 && rnd()<covB){
+          var covBr=Math.min(1,covB+FRAY.sizeLag);
+          br=rMin+(rMax-rMin)*covBr; bx=cx+jx2*(covB<1?1:0.15)+cell*0.22; by=cy+jy2*(covB<1?1:0.15);
+          placedBot=true;
+        }
+        // COLLISION: if both placed and would overlap, the LEADING field (higher coverage) wins
+        if(placedTop && placedBot){
+          var dx=tx-bx, dy=ty-by, dd=Math.sqrt(dx*dx+dy*dy);
+          if(dd < (tr+br)){ if(covT>=covB) placedBot=false; else placedTop=false; }
+        }
+        if(placedTop) g.appendChild(el('circle',{cx:tx.toFixed(1),cy:ty.toFixed(1),r:tr.toFixed(2),fill:topCol}));
+        if(placedBot) g.appendChild(el('circle',{cx:bx.toFixed(1),cy:by.toFixed(1),r:br.toFixed(2),fill:botCol}));
+      }
+    }
+  }
+  // territory-field specimen: red top vs green bottom; working edges set back from the seam
+  // so the fray thins GRADUALLY across a wide zone and the draw (collapse) reads clearly
+  fray('terrField',220,300,9,C.poppy,C.grass,0.335,0.665);
+  // poster pitch (on Sky ground): ENG(top,poppy) leads slightly over MEX(bottom,grass)
+  fray('posterFray',260,300,9.5,C.poppy,C.grass,0.36,0.655);
+  // glyph module (100×100): the draw as a fray + surviving seam
+  fray('frayGlyph',100,100,7.5,C.poppy,C.grass,0.30,0.70);
 
   // ---- counter tick (±1–5, settles, never rolls wildly) ----
   (function(){

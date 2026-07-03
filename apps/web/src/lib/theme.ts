@@ -23,7 +23,8 @@
 
 /**
  * NEUTRALS — the calm frame, always present. These are the constants that let
- * any two team palettes coexist on one surface (POP-LANGUAGE §A.2).
+ * any two team palettes coexist on one surface (POP-LANGUAGE §A.2). Unchanged in
+ * the subdue-toward-Lichtenstein revision — the paper + ink are already correct.
  */
 export const NEUTRALS = {
   /** default paper ground · card border · album page */
@@ -35,41 +36,51 @@ export const NEUTRALS = {
   /** the neutral DRAW / void ground; subdued/inactive data, the Zidane grey */
   terraceGrey: '#B0AEA8',
   /** the RARE mark ONLY — reward language, proof line, special ticks. A printed spot, never a glow */
-  medalGold: '#E0A93B',
+  medalGold: '#D6A33B',
 } as const;
 
 /**
- * LOUD GROUNDS — the rotation. THE TOPPS RULE: exactly ONE owns a surface at a
- * time; two loud grounds never touch (a Press-Black seam or a cream border must
- * separate them). A team color is NEVER the ground.
+ * LOUD GROUNDS — the rotation, reworked as BENDAY-PRINT INKS ON CREAM, not neon.
+ * Each loud is pulled ~10–18% toward Press-Black ink (Lichtenstein slightly
+ * subdued, NOT Barbie, NOT pastel, NOT muddy): brick-reds, print-yellows, process
+ * blues. THE TOPPS RULE still holds: exactly ONE owns a surface at a time; two
+ * loud grounds never touch (a Press-Black seam or a cream border separates them).
+ * A team color is NEVER the ground.
+ *
+ * Leading working louds (post-revision): POPPY (Lichtenstein brick-red) and
+ * KICKOFF SKY (process blue). FIZZ PINK is DEMOTED to an ACCENT ONLY — eruption
+ * punctuation (starburst core, fire-fringe, shockwave), NEVER a surface ground.
+ * See SYSTEM.md §1 role tables + the changelog for the old→new hex pairs.
  */
 export const LOUD = {
-  /** the hottest ground — eruption / card energy / GOOOL */
-  fizzPink: '#E8256C',
-  /** the pre-match page frame · warm proof objects (the default "stage" frame) */
-  aztecaSun: '#F2C230',
-  /** England territory + selected accents only */
-  poppy: '#E0574E',
-  /** optional loud ground for lighter match states */
-  kickoffSky: '#3FA0D6',
-  /** Mexico territory + fan-end flag blocks */
-  grass: '#1E7A44',
-  /** Frame-2 "the Dark" pressure ground */
-  ultra: '#1E4FC0',
-  /** ticket-stub blocks + bureaucratic proof language */
-  magenta: '#C43A72',
+  /** ACCENT ONLY — eruption punctuation (starburst core / fringe / shockwave). Never a ground. (was #E8256C) */
+  fizzPink: '#C52C67',
+  /** print-yellow — pre-match stage frame · warm proof objects. Black type only. (was #F2C230) */
+  aztecaSun: '#E5B431',
+  /** LEAD working loud — Lichtenstein brick-red. Card ground · GOOOL ground · England territory. (was #E0574E) */
+  poppy: '#C8504D',
+  /** LEAD working loud — process blue. Lighter match states · "the Dark" alt · accents. (was #3FA0D6) */
+  kickoffSky: '#3E8CBC',
+  /** benday green — Mexico territory + fan-end flag blocks. (was #1E7A44) */
+  grass: '#1F6F40',
+  /** deep process blue — "the Dark" late-tension frame. (was #1E4FC0) */
+  ultra: '#2049AA',
+  /** bureaucratic strip pink (inked toward brick) — ticket-stub blocks + proof language. (was #C43A72) */
+  magenta: '#AC3A6B',
 } as const;
 
 /**
- * The loud-ground ROTATION order (POP-LANGUAGE §A.2). Pick a ground for a surface
- * that NEITHER team owns; if both teams are loud, fall back to `terraceGrey`.
- * Order is the canonical cycle used when a surface index must map to a ground.
+ * The loud-ground ROTATION order — the working louds a surface index may map to
+ * when it needs a ground neither team owns. Ordered by lead: POPPY and KICKOFF
+ * SKY first (the promoted brick-red + process-blue), then the supporting grounds.
+ * FIZZ PINK is DELIBERATELY ABSENT — it is accent-only and can never be a ground,
+ * so it must never be handed out by a rotation index. If both teams are loud and
+ * every candidate clashes, fall back to `terraceGrey`.
  */
 export const LOUD_ROTATION = [
-  LOUD.fizzPink,
-  LOUD.aztecaSun,
   LOUD.poppy,
   LOUD.kickoffSky,
+  LOUD.aztecaSun,
   LOUD.grass,
   LOUD.ultra,
   LOUD.magenta,
@@ -83,21 +94,36 @@ export type LoudName = keyof typeof LOUD;
 export type ColorName = keyof typeof COLORS;
 
 /**
- * SURFACE → GROUND starting map (brand-book Frame Suite p.9 + POP-LANGUAGE).
- * The coordinator may re-point any of these per fixture, but these are the
- * defaults the frame mandates lock in.
+ * SURFACE → GROUND starting map (brand-book Frame Suite p.9 + POP-LANGUAGE),
+ * reassigned in the subdue-toward-Lichtenstein revision. FIZZ PINK is no longer
+ * a ground anywhere — the card and the goal frame move to POPPY (the promoted
+ * Lichtenstein brick-red), and pink returns only as eruption punctuation (see
+ * `ACCENTS.eruption`). The coordinator may re-point any of these per fixture,
+ * but these are the defaults the frame mandates lock in.
  */
 export const SURFACE_GROUND = {
-  /** pre-match stage — Azteca Sun frame */
+  /** pre-match stage — Azteca Sun frame (unchanged; print-yellow) */
   stagePrematch: LOUD.aztecaSun,
-  /** "the Dark" late-tension frame — Ultra ground */
+  /** "the Dark" late-tension frame — Ultra ground (unchanged; deep process blue) */
   stageDark: LOUD.ultra,
-  /** goal eruption frame — Fizz Pink ground */
-  stageGoool: LOUD.fizzPink,
-  /** trading card — rotates per fixture; Fizz Pink is the canon default */
-  card: LOUD.fizzPink,
+  /** goal eruption frame — POPPY brick-red ground (was Fizz Pink). Pink survives only as the eruption ACCENT. */
+  stageGoool: LOUD.poppy,
+  /** trading card — POPPY brick-red default (was Fizz Pink); still rotates per fixture. Hosts both cream + black type. */
+  card: LOUD.poppy,
   /** call stub — Sunbleach paper body with a loud header block */
   stub: NEUTRALS.sunbleach,
+} as const;
+
+/**
+ * ACCENTS — spot inks that punctuate but NEVER own a surface ground. FIZZ PINK
+ * lives here after its demotion: it is the hottest hit in the box, reserved for
+ * the single moment of maximum heat (the goal eruption) as the starburst core,
+ * the fire-fringe, and the shockwave rings — a punch of pink ON the Poppy ground,
+ * separated from it by the drawn Press-Black starburst so two louds never blend.
+ */
+export const ACCENTS = {
+  /** the eruption punch — Fizz Pink as starburst core / fire-fringe / shockwave, ON (not AS) the Poppy goal ground */
+  eruption: LOUD.fizzPink,
 } as const;
 
 /* =========================================================================
@@ -131,11 +157,17 @@ export interface FixturePalette {
   ground: string;
 }
 
-/** The reference-blessed demo fixture (MEX Grass vs ENG Poppy — brand-book p.4). */
+/**
+ * The reference-blessed demo fixture (MEX Grass vs ENG Poppy — brand-book p.4).
+ * Ground reassigned to KICKOFF SKY in the revision: with Poppy promoted to a lead
+ * ground AND owned by England's territory, the old Fizz-Pink demo ground is gone
+ * (pink is accent-only) and Sky is the natural pick — a lead loud owned by neither
+ * Mexico-green nor England-brick-red, so it stays legal and shows a promoted ground.
+ */
 export const DEMO_FIXTURE: FixturePalette = {
   homeTeam: LOUD.grass, // Mexico
-  awayTeam: LOUD.poppy, // England
-  ground: LOUD.fizzPink, // owned by neither → legal
+  awayTeam: LOUD.poppy, // England (brick-red territory)
+  ground: LOUD.kickoffSky, // owned by neither → legal; a promoted lead ground
 } as const;
 
 /* =========================================================================
@@ -240,25 +272,77 @@ export function keylinePx(objectWidthPx: number): { outer: number; inner: number
 
 /* =========================================================================
  * 5 · HONEST GEOMETRY (the probability axis)
- * Vertical = probability. Halfway = a THIN constant seam at EXACTLY 50%. THE DRAW
- * is a paper-band WIDTH (= pDraw) with zigzag teeth, the seam riding inside it.
- * Territory extent = EXACTLY win probability. Market number ≠ crowd counts, ever.
+ * Vertical = probability. Halfway = a THIN constant Press-Black seam at EXACTLY
+ * 50% — it survives untouched. THE DRAW is a paper-band WIDTH (= pDraw), but it is
+ * no longer bracketed by ZIGZAG TEETH (teeth are dead). Instead the two territory
+ * halftone fields FRAY at their working edges: dots scatter, thin, and interleave
+ * sparsely, and THE DRAW is the width where combined dot density collapses to near
+ * zero. Territory extent = EXACTLY win probability. Market number ≠ crowd counts.
  * ===================================================================== */
 
 export const GEOMETRY = {
   /** the halfway seam sits at exactly 0.5 of the pitch height — a constant, never moves */
   halfwaySeam: 0.5,
-  /** the halfway seam is a thin Press-Black rule; weight as a fraction of pitch height */
+  /** the halfway seam is a thin Press-Black rule; weight as a fraction of pitch height. SURVIVES the teeth removal. */
   seamWeight: 0.006,
-  /** the DRAW band is centered on the seam; its half-width each side = pDraw/2 */
+  /** the DRAW band is centered on the seam; its half-width each side = pDraw/2. Now defined by FRAY collapse, not teeth. */
   drawBandCentered: true,
-  /** territory solid core → dot-dissolve begins at this fraction of the way to the working edge */
+  /** territory solid core → dot-fray begins at this fraction of the way to the working edge */
   dissolveStart: 0.55,
-  /** the working edge of a territory = solid→dot fade over this fraction of the field */
+  /** the working edge of a territory = solid→scattered-dot FRAY over this fraction of the field */
   dissolveSpan: 0.22,
   /** clamp any single probability into a legible band so a 2% tail still renders a sliver */
   minRenderP: 0.02,
   maxRenderP: 0.98,
+} as const;
+
+/* =========================================================================
+ * 5b · DOT-FRAY (the draw grammar — replaces the zigzag teeth EVERYWHERE)
+ * TEETH ARE DEAD. A territory's working edge is not a torn line; it is a ZONE in
+ * which the halftone field comes apart into discrete stray dots. Two truths still
+ * read as two things: the thin Press-Black 50% SEAM is the constant honest
+ * midline; THE DRAW is the WIDTH of the collapse zone where both fields' dot
+ * densities have thinned to near-zero. The seam rides inside that collapse.
+ *
+ * The density curve (per field, measured outward from the field's solid core
+ * toward the seam, `t` in [0..1] across the fray zone = `dissolveSpan` of the
+ * field): dots stay at full coverage until `frayStart`, then their PLACEMENT
+ * PROBABILITY decays on an ease-out curve to `frayFloor` at the working edge. It
+ * is a probability of a dot EXISTING at each grid cell — never an opacity fade
+ * and never a blur. A dropped dot is simply absent; a kept dot is full-ink.
+ *
+ * Dot-SIZE behavior: as coverage thins, surviving dots also shrink from the
+ * field's normal radius toward `strayDotMin` (a fraction of `HALFTONE.cell`), so
+ * the frontier reads as a scatter of small specks, not big holes punched in a
+ * slab. Size decay lags coverage decay slightly (dots thin BEFORE they shrink) so
+ * the leading edge is a few full-size outriders, then specks.
+ *
+ * Two colors interleaving: where the fraying tails of the two fields overlap
+ * inside the collapse zone, their stray dots sit on the SAME cell grid but at
+ * offset sub-cell positions (`interleaveJitter`) so a red speck and a green speck
+ * can sit side by side as TWO discrete dots. They must NEVER blend into a mixed
+ * ink or a muddy overlap — if two dots would collide, the leading field's dot
+ * wins and the other is dropped. The band where BOTH fields have decayed below
+ * `collapseCoverage` is THE DRAW: near-empty cream, the seam crossing it.
+ * ===================================================================== */
+
+export const FRAY = {
+  /** fraction of the fray zone (0=solid core side, 1=working edge/seam side) at which coverage begins to decay */
+  frayStart: 0.15,
+  /** dot placement-probability floor at the working edge (a few last outriders, not zero, so the frontier stays alive) */
+  frayFloor: 0.04,
+  /** ease-out exponent on the coverage-decay curve (>1 = holds dense then falls away fast near the edge) */
+  frayCurve: 2.2,
+  /** surviving stray-dot MIN radius as a fraction of HALFTONE.cell (specks at the frontier; normal dot = HALFTONE.dotMax) */
+  strayDotMin: 0.12,
+  /** size-decay lags coverage-decay by this fraction of the zone (dots THIN before they SHRINK) */
+  sizeLag: 0.12,
+  /** combined per-field coverage at/below which a cell counts as DRAW (near-zero density = the draw width) */
+  collapseCoverage: 0.06,
+  /** sub-cell offset (fraction of HALFTONE.cell) that lets two colours' stray dots interleave as DISCRETE dots, never blended */
+  interleaveJitter: 0.34,
+  /** on collision inside the overlap, the LEADING (higher-probability) field's dot wins; the trailing dot is dropped, never mixed */
+  collisionRule: 'leading-field-wins',
 } as const;
 
 /* =========================================================================
@@ -341,8 +425,12 @@ export const STEPS = {
 export const FRAME_MOOD = {
   /** Frame 1 — armed but not explosive: calibration, counter ticks, halftone breathing */
   armed: { colors: [LOUD.aztecaSun], note: 'tension via calibration + ticks + breathing' },
-  /** Frame 3 — the one diagonal event erupts: starburst + roar-rings + field snap, printed misregistration smear, NEVER a blur */
-  erupt: { colors: [LOUD.fizzPink], note: 'one diagonal event block; snap outward, misregister not blur' },
+  /**
+   * Frame 3 — the one diagonal event erupts: starburst + roar-rings + field snap,
+   * printed misregistration smear, NEVER a blur. Ground = POPPY (brick-red); the
+   * FIZZ PINK accent is the eruption punch ON that ground (core / fringe / shockwave).
+   */
+  erupt: { colors: [LOUD.poppy, ACCENTS.eruption], note: 'Poppy ground + Fizz-Pink eruption punch; snap outward, misregister not blur' },
 } as const;
 
 /* =========================================================================
@@ -424,14 +512,42 @@ export const COMPONENTS = {
     railWidth: 0.16,
     /** PROVED punch-hole diameter as fraction of stub height */
     punchDia: 0.22,
-    /** the tear edge tooth count down the perforation side */
+    /**
+     * the perforated tear edge down the detach side — THE SOLE LEGAL TOOTH in the
+     * whole system (real ticket anatomy; everything else's teeth are dead, replaced
+     * by dot-fray). Count of perforation teeth down the side. Pending owner veto.
+     */
     tearTeeth: 14,
   },
-  /** card: 5:7, keyline+border, four corner chips, footer strip */
+  /** card: 5:7, keyline+border, four corner chips, footer strip, edition line */
   card: {
     aspect: GRID.cardAspect,
     cornerChips: 4,
     footerHeight: 0.06,
+  },
+  /**
+   * MEMENTO frame anatomy — the print-object dressing every composed surface
+   * carries so it reads as ownable (see SYSTEM.md §10 "Every surface is a
+   * memento"). These are the reserved placements + proportions for the keyline,
+   * the caption/footer strip, and the serial/edition line, so album / got-need
+   * mechanics can slot in later without a redesign.
+   */
+  memento: {
+    /** footer/caption strip height as a fraction of the surface's SHORTER side (fixture · date · frame name) */
+    footerHeight: 0.06,
+    /** the edition/serial line prints in the printer voice (Doto), sized as a fraction of the footer height */
+    serialTextScale: 0.42,
+    /** RESERVED placement for the serial/edition mark, per surface, so it never has to move when mechanics arrive */
+    serialSlot: {
+      /** trading card: top-left of the footer strip, mirrored by the fixture caption on the right */
+      card: 'footer-left',
+      /** stub: the gold PROVED tab, serial repeated top + bottom (real ticket lineage) */
+      stub: 'punch-tab-repeat',
+      /** shareable / poster: bottom-left of the caption strip, edition on the right */
+      poster: 'caption-left',
+    },
+    /** edition-mark format tokens (the printer voice): Nº serial + slash-edition */
+    serialFormat: { prefix: 'Nº', pad: 6, editionSep: ' / ' },
   },
   /** equalizer-skyline data-portrait (card): bars rising from the goal-end */
   skyline: {
@@ -464,6 +580,10 @@ export const BANNED = [
   'two-loud-grounds-touching', // separate with a seam or a cream border
   'probability-in-display-face', // numbers print in Doto
   'crowd-count-as-percentage', // market number ≠ crowd counts, never blended
+  'zigzag-teeth-as-belief-edge', // TEETH ARE DEAD — the draw is dot-fray; the ONLY legal tooth is the stub perforation
+  'blended-fray-inks', // two colours' stray dots interleave as DISCRETE dots — never mixed into a muddy overlap
+  'fizz-pink-as-ground', // FIZZ PINK is accent-only (eruption punctuation) — never a surface ground
+  'dangling-ui-on-a-poster-frame', // a paused stage frame composes as an ownable print — grounded, framed, captioned
 ] as const;
 export type BannedItem = (typeof BANNED)[number];
 
@@ -477,6 +597,7 @@ export const THEME = {
   loud: LOUD,
   loudRotation: LOUD_ROTATION,
   surfaceGround: SURFACE_GROUND,
+  accents: ACCENTS,
   teamSlots: TEAM_COLOR_SLOTS,
   demoFixture: DEMO_FIXTURE,
   fontUrls: FONT_URLS,
@@ -486,6 +607,7 @@ export const THEME = {
   widthAxis: WIDTH_AXIS,
   grid: GRID,
   geometry: GEOMETRY,
+  fray: FRAY,
   halftone: HALFTONE,
   motionMs: MOTION_MS,
   easing: EASING,
