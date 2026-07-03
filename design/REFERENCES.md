@@ -1,100 +1,116 @@
-# ROOOT — References, Distilled
+# ROOOT — References, Distilled (v2 — 25 images, sorted)
 
-*The owner curated 13 images into `design/`. Every stage/relic render is judged against
-these — never against generic taste. Coordinator-distilled after viewing all of them.
-Per image: TAKE (steal this exactly) and REFUSE (don't drag this in).*
+*Owner-curated images in `design/references/<bucket>/`. Every render is judged against
+these — never against generic taste. Per image: TAKE / REFUSE. Coordinator-distilled
+after viewing all 25.*
 
 ## The verdict in one line
 
-**Light made visible by particulate — fog, smoke, rain-grain, fire — in near-monochrome
-worlds where exactly one thing gets to be color. Knit as the data medium. Rosettes.**
-The tide (liquid) is dead; the material is ATMOSPHERE.
+**Light made visible by particulate, in near-monochrome worlds with one accent — and a
+collection culture rendered in retro grammar: Topps grounds, Panini packs, pennants,
+badges, and a dark spotlit vitrine to keep it all in.** The live world is atmosphere;
+the kept world is print, cloth, and stitch.
 
-## The atmosphere set → the stage
+## atmosphere/ → the stage (7)
 
-### `floodlight and fog.jpg` ⭐ THE LIGHTING MODEL
-Eight floodlights, volumetric shafts through haze, ground a faint glitter, everything
-else void. TAKE: light-as-material; beams with visible body; enormous negative space;
-the ground catching only a whisper. REFUSE: any flat "dark mode UI" background — the
-dark must be *atmospheric*, not #000 paint.
+- **floodlight and fog** ⭐ THE LIGHTING MODEL — eight beams with body through haze,
+  ground a whisper of glitter. TAKE: light-as-material, enormous negative space.
+  REFUSE: flat dark-mode-UI black.
+- **floodlight aesthetic** — one mast smearing into mist. TAKE: the smear (our
+  probability edge). REFUSE: architecture detail.
+- **rain & floodlights** — teal grain inside beam cones. TAKE: grain as ambient
+  texture; teal as backstage tint. REFUSE: literal weather sim.
+- **halftime show** — fire plumes over show-lit turf. TAKE: goals = FIRE, brief and
+  enormous. REFUSE: performers/staging.
+- **halftime rihanna** — floating red geometry, phone-light starfield, haze. TAKE:
+  crowd-as-starfield; ONE saturated color owning a moment. REFUSE: hovering platforms.
+- **stadium tunnel** — cyan tunnel, wet floor, lit pitch waiting. TAKE: the ENTRY
+  transition; reflections; cyan = tunnel only. REFUSE: sci-fi neon on the pitch.
+- **droplets and ball** — sweat macro on leather. TAKE: material intimacy, monochrome
+  confidence. REFUSE: literal ball imagery (honesty — we show no ball).
 
-### `floodlight aesthetic.jpg`
-A single mast smearing light into night mist above a pavilion. TAKE: the smear — light
-bleeding into fog at its edges (our probability front is exactly this edge); sculptural
-loneliness. REFUSE: architecture detail; we render no stadium structure.
+## fabric/ → the scarf & knit (6)
 
-### `rain & floodlights.jpg`
-Teal-grain rain inside beam cones along a roofline. TAKE: grain as ambient texture over
-the whole stage (the rain/sweat of it); the cool teal as a legitimate tint for neutral/
-"backstage" moments. REFUSE: literal rain simulation; it's texture, not weather report.
+- **manu scarf** ⭐ CRAFT PROOF — pixel-jacquard crest + zigzag letterforms + fringe.
+  TAKE: pixel-knit as data medium; black colorway; fringe carries meaning. REFUSE: the
+  crest/club marks.
+- **ralph lauren flag fashion** ⭐ THE PATCHWORK MOVE — flags quilted into chunky knit.
+  TAKE: flag fragments as blocks/stripes at scarf ends; visible stitch; cream + black
+  grounds. REFUSE: logo-as-centerpiece.
+- **beautiful patterns olympics** — 80s chevron flag-knit, gold rings embroidery.
+  TAKE: chevron transitions; gold embroidery = the rare mark. REFUSE: the rings.
+- **scarf vintage** + **vintage soccer scarves** ⭐ THE HUMAN REGISTER — 70s knitting
+  patterns, ROSETTES pinned to chests. TAKE: the rosette form; knittable-by-your-
+  grandmother warmth; period print voice. REFUSE: costume nostalgia.
+- **scarves .** — the vendor's rack of national scarves. TAKE: everything — the
+  diaspora thesis in one photo; national color-pairs per team.
 
-### `halftime show.jpg`
-Fire plumes + light rigs over show-lit turf. TAKE: the eruption vocabulary — goals are
-FIRE at the goal mouth, brief and enormous; turf reads green only where show-light hits.
-REFUSE: dancers/performance staging; our stage stays empty of figures.
+## cards/ → the stats card (4) — NEW
 
-### `halftime rihanna.jpg`
-Floating red platforms over the field; crowd as a starfield of phone lights; haze.
-TAKE: the crowd-as-starfield (the ends' texture); ONE saturated color owning a moment;
-haze unifying everything. REFUSE: floating geometry/platforms — nothing hovers over
-our pitch.
+- **stickers samples** ⭐ THE CARD GRAMMAR — 1972-73 Topps: hot-pink/yellow/green flat
+  grounds, fat diagonal team name, black keyline, white border. TAKE: the whole
+  grammar — saturated flat ground, diagonal display band, keyline + white border,
+  tabular back. REFUSE: player photos (rights + honesty — our portrait is the fan's
+  data, not an athlete's face).
+- **belgian panini stickers** — Football 78 pack wrapper: sky-blue ground, tricolor
+  block, illustrated action. TAKE: the PACK as a form (relics could arrive in one);
+  flag-block composition; cheap-print charm. REFUSE: mascot kitsch.
+- **vintage poster** — Futbol 86 album cover: diagonal stripes, huge italic display.
+  TAKE: the ALBUM as the trophy case's page metaphor; diagonal energy. REFUSE:
+  photo-collage clutter.
+- **cool patterns** ⭐ THE FUSION PROOF — modern collage builds a player from flat
+  geometric blocks + grain. TAKE: retro grammar executed with modern precision —
+  geometry can carry a figure/story; grain unifies. REFUSE: literal player likeness.
 
-### `stadium tunnel.jpg`
-Cyan-lit tunnel, wet reflective floor, the lit pitch waiting at the end. TAKE: the
-ENTRY — opening a match = walking out of the tunnel into light (page-load transition);
-the wet-floor reflection; cyan as the tunnel/backstage accent. REFUSE: sci-fi neon
-styling anywhere on the pitch itself.
+## pennants/ → a third relic form, noted (2) — NEW
 
-### `droplets and ball.jpg`
-"Passion, Sweat & Tears" — macro droplets on black-and-white leather. TAKE: material
-intimacy — data should live IN material (stitches, grain, smoke), never as overlay
-chrome; monochrome confidence. REFUSE: literal ball imagery (we show no ball — honesty).
+- **mexico 70 very cool** — cream field, flag border, medallion, ornament rows,
+  fringe. TAKE: the pennant as a match-relic form (captains exchange pennants
+  pre-match — a row/rivalry object); flag borders; ornament rows as data bands.
+- **flag cute** — 1970 triangle: flag mosaic border, gold outline numerals. TAKE:
+  gold outline numerals for dates/scores; the triangle format.
+- *Scope note: pennant = candidate for the ROW's shared relic later — not in this
+  weekend's build.*
 
-## The fabric set → the relics
+## badges/ → the badge language (3) — NEW
 
-### `manu scarf.jpg` ⭐ THE CRAFT PROOF
-Black jacquard scarf: pixel-knit crest, zigzag letterforms, white fringe. TAKE:
-pixel-jacquard as the data medium — stripes, letterforms, marks all knit-native; black
-colorway works; fringe as a structural element (verdict lives there). REFUSE: the crest
-itself and any club mark.
+- **patches** — US travel patches: shield shapes, saturated grounds, name + one icon +
+  keyline border. TAKE: one-place-one-icon-one-name discipline; shield silhouette.
+- **simple patches** ⭐ THE SASH — merit badges gridded on cloth. TAKE: collection-as-
+  garment; circular badge grid = an alternate trophy-case view; embroidered texture.
+- **nature patches** — council shoulder patches. TAKE: shaped borders, era type.
+- *These merge with the rosette: the personal badge language for achievements
+  (first call proved, faith match, streaks).*
 
-### `ralph lauren flag fashion.jpg` ⭐ THE PATCHWORK MOVE
-Flags of nations quilted into one chunky knit; primaries on black/cream; cable texture.
-TAKE: flag fragments abstracted into blocks/stripes at the scarf ends (diaspora-true);
-chunky stitch visibility; cream AND black grounds. REFUSE: the RL branding move (a
-knitted logo as centerpiece); logo restraint — ROOOT appears as a small woven label.
+## trophy-room/ → the trophy case (3) — NEW
 
-### `beautiful patterns olympics.jpg`
-80s Olympic chevron knit, flag-geometry patchwork, gold rings embroidered on black.
-TAKE: the chevron/diagonal energy for stripe transitions; gold embroidery reserved for
-the rare mark (receipts). REFUSE: the rings (mark), costume styling.
+- **trophy cabinet** ⭐ THE CASE — PSG: dark wood, per-shelf spotlights, engraved
+  plaques. TAKE: dark spotlit vitrine as the trophy case's world (matches the night
+  stage); small plaques under each relic.
+- **trophies bayern** — the long museum vitrine + lit jersey wall. TAKE: the long-run
+  view (a tournament's worth in one glass line); frosted glass depth.
+- **jersey + trophies** ⭐ THE CENTERPIECE LAW — Ballon d'Or row with the Messi 10
+  shirt center. TAKE: your proudest relic hangs CENTER, lit differently; everything
+  else flanks it. REFUSE: nothing.
 
-### `scarf vintage.jpg` + `vintage soccer scarves.jpg` ⭐ THE HUMAN REGISTER
-1970s knitting-pattern covers: striped scarves + bobble hats, and CLUB ROSETTES pinned
-to chests. TAKE: **the rosette = the personal scorecard's physical form** (layered
-ribbon, center button = the faith-curve coil on the roar-ring O); domestic warmth —
-the relic should feel knittable-by-your-grandmother, not rendered-by-a-GPU; period
-type as reference for the print voice. REFUSE: pastiche/costume nostalgia; we take
-warmth, not kitsch.
+## The rules extracted (all lanes build to these)
 
-### `scarves .jpg`
-The vendor's rack of national scarves. TAKE: the trophy case IS this rack — scarves
-hung, rosettes beneath; national color-pairs as the palette source per team. REFUSE:
-nothing — this image is the diaspora thesis in one photo.
-
-## The rules extracted (stage lane: build to these)
-
-1. **Material honesty:** market = horizontal light-vs-fog ON the pitch (your light's
-   death-edge = the exact p; the fog bank = the draw, width = p(draw)); crowd =
-   vertical bengalo smoke + starfield AT the ends, in team colors. Never mixed.
-2. **Monochrome + one accent per moment.** Charcoal/chalk/fog world; team color only in
-   the ends' smoke + each side's light tint; fire owns goals; cyan owns the tunnel;
-   gold owns receipts/relics.
-3. **Grain everywhere, subtly** — the rain/sweat register.
-4. **Eruptions are fire**, brief and enormous, at the real goal mouth only.
-5. **No figures, no ball, no stadium architecture** on the stage — light, fog, smoke,
-   grass, chalk.
-6. **Knit is the relic medium:** pixel-jacquard stripes = the probability record; flag
-   patchwork at the ends; goals = metallic weft; calls = gold embroidery at their
-   minute; verdict in the fringe; cream + black colorways; print-ready always.
-7. **Flags yes; crests/rings/club marks never.**
+1. **Material honesty (stage):** market = horizontal light-vs-fog on the pitch (light's
+   death-edge = exact p; fog bank = the draw); crowd = vertical bengalo smoke +
+   starfield at the ends. Never mixed. No players, no ball, no architecture.
+2. **Monochrome + one accent per moment.** Team colors only in ends' smoke + light
+   tint; fire owns goals; cyan owns the tunnel; gold owns receipts/relics.
+3. **Grain everywhere, subtly.** The rain/sweat register — live stage AND print relics.
+4. **The card grammar (new):** flat saturated ground · fat diagonal display band ·
+   black keyline + white border · tabular data back · the "portrait" is the fan's own
+   data made geometric (faith curve, roar, receipts) — never a photo, never a face.
+   Retro GRAMMAR, modern EXECUTION: real curves, perfect kerning, honest print
+   texture — no fake aging, no sepia.
+5. **The knit rule:** pixel-jacquard = data medium; flag patchwork at scarf ends;
+   goals = metallic weft; calls = gold embroidery; verdict in the fringe; cream +
+   black colorways; print-ready always.
+6. **The trophy case = a dark spotlit vitrine** (PSG register), plaques under relics,
+   and the **centerpiece law**: the fan's proudest relic hangs center, lit apart.
+   The sash-grid of badges is the alternate view; the album page is the collection
+   metaphor for cards.
+7. **Flags yes; crests, rings, club marks, player likenesses never.**
