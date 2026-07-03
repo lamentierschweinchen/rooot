@@ -10,4 +10,6 @@ export type { ReplaySourceOptions, ReplaySpeed } from './ReplaySource';
 export { LiveSource } from './LiveSource';
 export type { LiveSourceOptions } from './LiveSource';
 export { MockSource } from './MockSource';
+export { StandsCrowdClient } from './crowd-client';
+export type { CrowdClientOptions } from './crowd-client';
 export { FIXTURES, lookupFixture } from './fixtureMeta';

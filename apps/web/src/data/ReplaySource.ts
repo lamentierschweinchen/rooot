@@ -31,6 +31,7 @@
  */
 import type { Fixture, MatchCallbacks, MatchDataSource } from '@contracts/match';
 import {
+  parseLedgerMessage,
   parseOddsMessage,
   parseScoreMessage,
   parseStatusMessage,
@@ -161,6 +162,19 @@ export class ReplaySource implements MatchDataSource {
     if (line.data.includes('"Participant1IsHome"')) {
       const p1h = sniffParticipant1IsHome(line.data);
       if (p1h !== null) this.p1IsHome = p1h;
+    }
+
+    // The ledger is a PARALLEL channel, not a fourth branch of the odds/score/
+    // status dispatch: a single 'goal' scores line yields BOTH a ScoreEvent
+    // (onScore, the tide) AND a LedgerMsg (onLedger, the readable row). So the
+    // ledger parse runs independently of — and before — the early-returning
+    // odds/score/status chain below; it never short-circuits them. onLedger is
+    // optional (contracts/match.ts): the bare stage skips it, the watching
+    // shell wires it. parseLedgerMessage returns null for chatter (possession
+    // ticks, throw-ins, bookkeeping) so most lines cost one JSON.parse and stop.
+    if (this.cb.onLedger) {
+      const ledger = parseLedgerMessage(line.data, line.receivedAtMs, 'replay');
+      if (ledger) this.cb.onLedger(ledger);
     }
 
     const odds = parseOddsMessage(line.data, line.receivedAtMs, 'replay', this.p1IsHome);

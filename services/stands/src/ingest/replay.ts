@@ -12,7 +12,9 @@
 import { createInterface } from 'node:readline';
 import { createReadStream } from 'node:fs';
 import type { FeedMsg } from '@contracts/feed';
+import type { LedgerMsg } from '@contracts/ledger';
 import {
+  parseLedgerMessage,
   parseOddsMessage,
   parseScoreMessage,
   parseStatusMessage,
@@ -74,6 +76,18 @@ export function startReplayIngest(opts: {
     return typeof id === 'number' ? String(id) : null;
   }
 
+  /** The fixtureKey a LedgerMsg belongs to — carried on every variant
+   * (event: the `${fixtureKey}:` id prefix; amend/discard: fixtureKey). Used
+   * to keep one fixture's rows out of another's room, same honesty rule as
+   * the odds/score/status routing above. */
+  function ledgerFixtureId(msg: LedgerMsg): string | null {
+    if (msg.type === 'event') {
+      const sep = msg.ev.id.indexOf(':');
+      return sep > 0 ? msg.ev.id.slice(0, sep) : null;
+    }
+    return msg.fixtureKey || null;
+  }
+
   function playFrom(i: number): void {
     if (stopped) return;
     if (i >= lines.length) {
@@ -99,6 +113,18 @@ export function startReplayIngest(opts: {
         const p1h = sniffParticipant1IsHome(line.data);
         if (p1h !== null) p1IsHome = p1h;
       }
+
+      // Ledger is a PARALLEL channel (see ReplaySource / contracts/ledger.ts):
+      // a 'goal' line produces BOTH a score FeedMsg and a ledger FeedMsg. Parse
+      // + broadcast it independently of the odds/score/status early-returns
+      // below. Filter by fixtureKey so a shared multi-fixture file never leaks
+      // one match's rows into another's room (the same honesty rule the
+      // score/status routing enforces via fixtureIdOf).
+      const ledger = parseLedgerMessage(line.data, line.receivedAtMs, 'replay');
+      if (ledger && ledgerFixtureId(ledger) === opts.fixtureId) {
+        opts.onFeedMsg({ type: 'ledger', msg: ledger });
+      }
+
       const tick = parseOddsMessage(line.data, line.receivedAtMs, 'replay', p1IsHome);
       if (tick) {
         if (fixtureIdOf(tick.raw) !== opts.fixtureId) return;

@@ -1,0 +1,51 @@
+# ROOOT stands service — Fly.io app config.
+#
+# Deploy (from the REPO ROOT so the Docker build context includes ../../contracts):
+#     flyctl deploy --config services/stands/fly.toml
+#
+# First-time setup:
+#     flyctl apps create rooot-stands            # once; or edit `app` below
+#     # TxLINE token as a runtime secret — NEVER in argv/logs/image. Read the
+#     # file and pipe its fields in; the values never appear on the command line:
+#     JWT=$(jq -r .jwt .secrets/txline-token.json)
+#     APITOKEN=$(jq -r .apiToken .secrets/txline-token.json)
+#     printf 'TXLINE_JWT=%s\nTXLINE_APITOKEN=%s\n' "$JWT" "$APITOKEN" | flyctl secrets import --config services/stands/fly.toml
+#     # (the service reads TXLINE_TOKEN_FILE by default; on Fly, point it at a
+#     #  file materialized from these secrets, or set TXLINE_TOKEN_FILE=/dev/null
+#     #  and run replay mode. See docs/DATA.md + the service header. For live,
+#     #  a tiny entrypoint that writes {jwt,apiToken} from the two secrets to a
+#     #  tmpfile and exports TXLINE_TOKEN_FILE is the clean path — left to the
+#     #  coordinator's deploy pass, since it depends on the live-vs-replay call.)
+#
+# Health check hits GET /health (server.ts). WebSocket upgrades share the port.
+
+app = "rooot-stands"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8080"
+  # Ingest mode is set per-deploy via `flyctl deploy -e` or fly secrets, e.g.
+  #   REPLAY-driven demo:   TXLINE_ENABLE unset,  REPLAY_FILE + REPLAY_FIXTURE set
+  #   LIVE ingest:          TXLINE_ENABLE=1,       TXLINE_FIXTURES=<id[,id]>
+  # Left unset here so the same image can do either without a rebuild.
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "suspend"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    interval = "15s"
+    timeout = "2s"
+    grace_period = "5s"
+    method = "GET"
+    path = "/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

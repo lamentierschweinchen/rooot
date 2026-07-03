@@ -15,7 +15,8 @@
  */
 import { readFileSync } from 'node:fs';
 import type { FeedMsg } from '@contracts/feed';
-import { parseOddsMessage, parseScoreMessage, parseStatusMessage } from '@contracts/normalize';
+import type { LedgerMsg } from '@contracts/ledger';
+import { parseLedgerMessage, parseOddsMessage, parseScoreMessage, parseStatusMessage } from '@contracts/normalize';
 
 const TXLINE_API = process.env.TXLINE_API ?? 'https://txline-dev.txodds.com';
 const TOKEN_FILE = process.env.TXLINE_TOKEN_FILE ?? '../../.secrets/txline-token.json';
@@ -64,6 +65,16 @@ function rawFixtureId(data: string): string | null {
   }
 }
 
+/** The fixtureKey a LedgerMsg belongs to (event: id prefix; amend/discard:
+ * fixtureKey) — for the same per-fixture routing the score/status paths use. */
+function ledgerFixtureId(msg: LedgerMsg): string | null {
+  if (msg.type === 'event') {
+    const sep = msg.ev.id.indexOf(':');
+    return sep > 0 ? msg.ev.id.slice(0, sep) : null;
+  }
+  return msg.fixtureKey || null;
+}
+
 /**
  * Side-truth latch, per fixture (contracts/normalize.ts parseOddsMessage doc):
  * the scores stream carries Participant1IsHome on every envelope; the odds
@@ -93,6 +104,17 @@ function dispatch(opts: StreamOptions, event: string, data: string, receivedAtMs
         } catch {
           // not JSON — the parse calls below will drop it
         }
+      }
+      // Ledger is a PARALLEL channel (contracts/ledger.ts): a 'goal' envelope
+      // yields BOTH a score FeedMsg and a ledger FeedMsg, and ledger actions
+      // (shots, cards, danger spells, amends/discards) ride the scores stream
+      // only. Forward it independently of — and before — the score/status
+      // early-returns below, filtered to configured fixtures. LiveSource turns
+      // this ledger FeedMsg back into onLedger client-side.
+      const ledger = parseLedgerMessage(data, receivedAtMs, 'live');
+      if (ledger) {
+        const lfid = ledgerFixtureId(ledger);
+        if (lfid && opts.fixtureIds.has(lfid)) opts.onFeedMsg({ type: 'ledger', msg: ledger });
       }
       // a scores line is either a score change or a status change, not both
       // (see contracts/normalize.ts parseStatusMessage doc comment) — try
