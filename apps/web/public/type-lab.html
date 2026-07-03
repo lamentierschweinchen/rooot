@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ROOOT — type & mark lab</title>
+  <meta name="robots" content="noindex" />
+  <meta name="theme-color" content="#0B110C" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anybody:wdth,wght@50..150,100..900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Young+Serif&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Doto:wght,ROND@100..900,0..100&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Handjet:wght@100..900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --ground:#0B110C; --panel:#111A12; --panel2:#0E150F;
+      --chalk:#EDE6D6; --dim:#9BA391; --faint:#5F6A5C;
+      --gold:#D9A441; --gold-hi:#E9C271; --gold-dim:rgba(217,164,65,.32);
+      --line:rgba(237,230,214,.13);
+      --mono:ui-monospace,'SF Mono',Menlo,monospace;
+      --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    }
+    html{background:var(--ground)}
+    body{background:var(--ground);color:var(--chalk);font-family:var(--sans);line-height:1.6;margin:0}
+    .wrap{max-width:860px;margin:0 auto;padding:56px 24px 100px}
+    .crumb{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--faint)}
+    h1{font-family:'Young Serif',Georgia,serif;font-weight:400;font-size:clamp(30px,5.5vw,46px);margin:12px 0 8px;line-height:1.05}
+    .dek{color:var(--dim);max-width:62ch;margin:0 0 8px}
+    h2{font-family:'Young Serif',Georgia,serif;font-weight:400;font-size:24px;margin:64px 0 6px}
+    h2 .no{font-family:var(--mono);font-size:11px;color:var(--gold);letter-spacing:.18em;vertical-align:.5em;margin-right:8px}
+    .why{color:var(--dim);font-size:14.5px;max-width:66ch;margin:0 0 18px}
+    .spec{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:22px 24px;margin:14px 0;overflow:hidden}
+    .spec .lbl{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:12px}
+    .scream{font-family:'Anybody',sans-serif;font-weight:800;font-size:clamp(40px,10vw,92px);line-height:1;letter-spacing:-.01em;white-space:nowrap}
+    .scream .o{font-variation-settings:'wdth' 100}
+    .row{display:flex;flex-wrap:wrap;gap:10px 26px;align-items:baseline}
+    .slider{display:flex;align-items:center;gap:12px;margin-top:16px}
+    .slider input{flex:1;accent-color:var(--gold)}
+    .slider span{font-family:var(--mono);font-size:11px;color:var(--dim);min-width:70px}
+    .ys{font-family:'Young Serif',Georgia,serif;font-weight:400}
+    .fr{font-family:'Fraunces',Georgia,serif}
+    .doto{font-family:'Doto',monospace;font-weight:700}
+    .hand{font-family:'Handjet',monospace}
+    .silk{font-family:'Silkscreen',monospace}
+    .big{font-size:clamp(26px,5vw,44px);line-height:1.15;margin:4px 0}
+    .mid{font-size:20px;line-height:1.4}
+    .num{font-variant-numeric:tabular-nums}
+    .note{font-size:12.5px;color:var(--faint);margin-top:10px}
+    .pair{border:1px solid var(--gold-dim);border-radius:12px;padding:22px 24px;margin:14px 0;background:linear-gradient(180deg,rgba(217,164,65,.04),transparent 60%),var(--panel)}
+    .verdict{font-size:15px;color:var(--dim)}
+    .logogrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin:18px 0}
+    .logo{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:18px;text-align:center}
+    .logo svg{width:104px;height:104px;margin:6px auto 10px;display:block}
+    .logo b{display:block;font-size:14px;margin-bottom:4px}
+    .logo span{font-size:12.5px;color:var(--dim);display:block;line-height:1.5}
+    .rec{border-left:3px solid var(--gold);background:var(--panel2);padding:16px 20px;margin:22px 0;border-radius:0 8px 8px 0}
+    .rec p{margin:0 0 10px}.rec p:last-child{margin:0}
+    .foot{margin-top:70px;padding-top:18px;border-top:2px dashed var(--line);font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+    a{color:var(--gold);text-decoration:none;border-bottom:1px solid var(--gold-dim)}
+    strong{color:var(--chalk)} em{color:var(--dim)}
+    p{margin:0 0 12px}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="crumb">ROOOT · internal design lab · unlisted</div>
+  <h1>What does ROOOT sound like in type?</h1>
+  <p class="dek">Live specimens — real fonts, not mockups. Three voices to react to, then five marks. Nothing here is the Anthropic-default look; everything traces back to the references: the scream, the programme, the scoreboard, the knit.</p>
+
+  <h2><span class="no">01</span>The Scream — Anybody</h2>
+  <p class="why">A variable-width grotesque: the Os literally stretch. This is the hold-to-call gesture as typography — R-O-O-O-O-T widening under your thumb — and it's a display voice with real shoulders for verdicts and eruptions.</p>
+  <div class="spec">
+    <div class="lbl">variable width · drag it</div>
+    <div class="scream">R<span class="o" id="o1">O</span><span class="o" id="o2">O</span><span class="o" id="o3">O</span>T</div>
+    <div class="slider"><span id="wv">wdth 100</span><input id="w" type="range" min="50" max="150" value="100" step="1"><span>hold = stretch</span></div>
+    <div class="row" style="margin-top:18px">
+      <span class="scream" style="font-size:26px;font-weight:400">weight 400</span>
+      <span class="scream" style="font-size:26px;font-weight:600">600</span>
+      <span class="scream" style="font-size:26px;font-weight:900">900</span>
+      <span class="scream" style="font-size:26px;font-weight:900;font-variation-settings:'wdth' 62">condensed 900</span>
+    </div>
+  </div>
+
+  <h2><span class="no">02</span>The Programme — Young Serif vs Fraunces</h2>
+  <p class="why">The warm editorial voice: 1970s matchday programme, knitting-pattern covers, the rosette era. For headers, captions, the words that should feel human and slightly old-fashioned.</p>
+  <div class="spec">
+    <div class="lbl">Young Serif — chunky, warm, unapologetically 70s</div>
+    <div class="ys big">They won the match.<br>We won the stands.</div>
+    <div class="ys mid" style="color:var(--dim);margin-top:8px">Down a goal. Cheers count double now.</div>
+  </div>
+  <div class="spec">
+    <div class="lbl">Fraunces — the refined cousin (variable optical size)</div>
+    <div class="fr big" style="font-weight:600;font-variation-settings:'opsz' 100">They won the match.<br>We won the stands.</div>
+    <div class="fr mid" style="font-weight:400;color:var(--dim);margin-top:8px;font-variation-settings:'opsz' 14">Down a goal. Cheers count double now.</div>
+  </div>
+
+  <h2><span class="no">03</span>The Scoreboard &amp; the Knit — Doto vs Handjet vs Silkscreen</h2>
+  <p class="why">Numbers and data in stadium hardware. The dot/pixel families do double duty: on screen they're the scoreboard; on the scarf the same letterforms read as jacquard stitches — one alphabet, two materials.</p>
+  <div class="spec">
+    <div class="lbl">Doto — variable dot-matrix (round axis)</div>
+    <div class="doto big num">88' · 2–1 · 12,431 <span style="color:var(--faint)">v</span> 8,207</div>
+    <div class="row" style="margin-top:10px">
+      <span class="doto mid" style="font-variation-settings:'ROND' 0">SHARP DOTS</span>
+      <span class="doto mid" style="font-variation-settings:'ROND' 100;color:var(--gold-hi)">ROUND DOTS</span>
+      <span class="doto mid" style="font-weight:900">FAITH ×2</span>
+    </div>
+  </div>
+  <div class="spec">
+    <div class="lbl">Handjet — variable pixel, warmer, almost woven</div>
+    <div class="hand big num" style="font-weight:600">88' · 2–1 · 12,431 v 8,207</div>
+    <div class="hand mid" style="font-weight:400;color:var(--gold-hi)">VAMOS · WE BELIEVE · MINUTE 71</div>
+  </div>
+  <div class="spec">
+    <div class="lbl">Silkscreen — hard pixel, the jacquard stitch itself</div>
+    <div class="silk" style="font-size:clamp(16px,3.4vw,26px)">ROOOT · MINUTE 71 · 12%</div>
+    <div class="note">this one on the scarf renders 1:1 as knit stitches — the ManU-scarf move</div>
+  </div>
+
+  <h2><span class="no">04</span>Three pairings, in action</h2>
+  <div class="pair">
+    <div class="lbl" style="font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:12px">A · Scream + Programme + Doto — my recommendation</div>
+    <div class="scream" style="font-size:34px;font-weight:900">R<span style="font-variation-settings:'wdth' 130">OOO</span>T</div>
+    <div class="ys big" style="font-size:24px;margin-top:10px">Minute 71. The world said 12%.</div>
+    <div class="doto mid num" style="margin-top:6px;color:var(--gold-hi)">RECEIPT №0071 · ARG–CPV · 22:47:12Z</div>
+    <div class="verdict" style="margin-top:12px">The scream carries identity, the serif carries the heart, the dots carry the truth. Three voices, no overlap, all three trace to references.</div>
+  </div>
+  <div class="pair" style="border-color:var(--line);background:var(--panel)">
+    <div class="lbl" style="font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);margin-bottom:12px">B · Fraunces + Handjet — softer, more fashion</div>
+    <div class="fr big" style="font-weight:650;font-size:24px">Minute 71. The world said 12%.</div>
+    <div class="hand mid num" style="margin-top:6px;color:var(--gold-hi);font-weight:500">RECEIPT №0071 · ARG–CPV · 22:47:12Z</div>
+    <div class="verdict" style="margin-top:12px">Closer to the Ralph Lauren register. Risk: less stadium, more boutique.</div>
+  </div>
+  <div class="pair" style="border-color:var(--line);background:var(--panel)">
+    <div class="lbl" style="font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);margin-bottom:12px">C · All-scoreboard — Doto everywhere</div>
+    <div class="doto big" style="font-size:30px">MINUTE 71. THE WORLD SAID 12%.</div>
+    <div class="verdict" style="margin-top:12px">Maximum hardware. Risk: cold — loses the knitting-pattern warmth that makes the relics human.</div>
+  </div>
+
+  <h2><span class="no">05</span>The mark — five directions</h2>
+  <p class="why">All five stay honest to the name: the roar, the root, the ring.</p>
+  <div class="logogrid">
+    <div class="logo">
+      <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="42" fill="none" stroke="#D9A441" stroke-width="3.5"/><circle cx="52" cy="48" r="27" fill="none" stroke="#D9A441" stroke-width="2.2" opacity=".6"/><circle cx="55" cy="46" r="13" fill="none" stroke="#D9A441" stroke-width="1.6" opacity=".35"/></svg>
+      <b>Roar rings</b><span>the current mark, refined: rings off-center like heartwood — a roar radiating, tree rings, the ball. Already the favicon, the cheer ripple, the relic seal.</span>
+    </div>
+    <div class="logo">
+      <svg viewBox="0 0 100 100"><line x1="4" y1="50" x2="96" y2="50" stroke="#EDE6D6" stroke-width="2.4" opacity=".8" stroke-dasharray="7 3"/><circle cx="50" cy="50" r="30" fill="none" stroke="#EDE6D6" stroke-width="2.6" opacity=".9" stroke-dasharray="10 2.5"/><circle cx="50" cy="50" r="2.6" fill="#D9A441"/></svg>
+      <b>The kickoff mark</b><span>the pitch's center circle + halfway line, chalk-drawn: literally 50/50 — where every match, and every belief, starts.</span>
+    </div>
+    <div class="logo">
+      <svg viewBox="0 0 100 100"><circle cx="20" cy="62" r="9" fill="none" stroke="#D9A441" stroke-width="2.4"/><circle cx="46" cy="56" r="15" fill="none" stroke="#D9A441" stroke-width="2.8"/><circle cx="78" cy="47" r="21" fill="none" stroke="#D9A441" stroke-width="3.2"/></svg>
+      <b>The scream</b><span>three Os growing — R-o-O-O-T rising like a goal call. The wordmark as the logo itself.</span>
+    </div>
+    <div class="logo">
+      <svg viewBox="0 0 100 100"><circle cx="50" cy="44" r="30" fill="none" stroke="#D9A441" stroke-width="7" stroke-dasharray="3.5 5.2" stroke-linecap="round"/><circle cx="50" cy="44" r="18" fill="none" stroke="#EDE6D6" stroke-width="2" opacity=".7"/><circle cx="50" cy="44" r="7" fill="#D9A441"/><path d="M42 72 L38 92 L46 86 L50 94 L54 86 L62 92 L58 72" fill="none" stroke="#D9A441" stroke-width="2.4" stroke-linejoin="round"/></svg>
+      <b>The rosette</b><span>the 70s club rosette as the O — ribbon pleats, button center, tails. The personal relic's own shape.</span>
+    </div>
+    <div class="logo">
+      <svg viewBox="0 0 100 100"><g fill="#D9A441"><rect x="63" y="45" width="10" height="10"/><rect x="59.4" y="31" width="10" height="10"/><rect x="49" y="21" width="10" height="10"/><rect x="35" y="17.4" width="10" height="10"/><rect x="21" y="21" width="10" height="10"/><rect x="10.6" y="31" width="10" height="10"/><rect x="7" y="45" width="10" height="10"/><rect x="10.6" y="59" width="10" height="10"/><rect x="21" y="69" width="10" height="10"/><rect x="35" y="72.6" width="10" height="10"/><rect x="49" y="69" width="10" height="10"/><rect x="59.4" y="59" width="10" height="10"/></g><rect x="76" y="17" width="10" height="10" fill="#EDE6D6" opacity=".85"/><rect x="83" y="31" width="10" height="10" fill="#EDE6D6" opacity=".5"/></svg>
+      <b>The stitch</b><span>the O as twelve knit stitches, one dropped stitch escaping — the jacquard alphabet's own mark. Reads perfectly at 16px.</span>
+    </div>
+  </div>
+  <div class="rec">
+    <p><strong>My recommendation: one mark, three materials.</strong> Keep the <strong>roar rings</strong> as the primary mark — but render it in the material of wherever it lives: <em>light</em> on the stage (volumetric rings in fog), <em>stitches</em> on the scarf (the stitch variant above is the rings knitted), <em>ink</em> on print and the rosette button. The <strong>kickoff mark</strong> is too good to waste on a logo — it becomes the stage itself: the center circle IS drawn on our pitch, and at kickoff the camera sits on it at exactly 50/50. The ceremony, not the letterhead.</p>
+    <p><strong>Type: pairing A.</strong> Anybody for the scream (wordmark contexts, eruptions, the call gesture animating real width), Young Serif for the programme voice (verdicts, captions, warmth), Doto for every number (scoreboard truth; Silkscreen as its knit twin on relics). Body text stays a quiet system sans — the voices above do the talking.</p>
+  </div>
+
+  <h2><span class="no">06</span>React</h2>
+  <p class="dek">Terse is perfect: "A but Fraunces" · "kickoff mark as logo, fight me" · "the stitch, everywhere" · "Doto too cold." Whatever survives your eye becomes <span style="font-family:var(--mono);font-size:13px">design/IDENTITY.md</span> and every lane builds with it.</p>
+
+  <div class="foot">rooot · type &amp; mark lab · fonts: Anybody · Young Serif · Fraunces · Doto · Handjet · Silkscreen (all open, all Google Fonts)</div>
+</div>
+<script>
+(function(){
+  var os=[document.getElementById('o1'),document.getElementById('o2'),document.getElementById('o3')];
+  var w=document.getElementById('w'), wv=document.getElementById('wv');
+  var manual=false, manualTimer=null;
+  function setW(v){os.forEach(function(o,i){o.style.fontVariationSettings="'wdth' "+Math.min(150,v+i*8)});wv.textContent='wdth '+Math.round(v)}
+  w.addEventListener('input',function(){manual=true;clearTimeout(manualTimer);manualTimer=setTimeout(function(){manual=false},4000);setW(Number(w.value))});
+  if(!matchMedia('(prefers-reduced-motion: reduce)').matches){
+    var t0=null;
+    (function tick(ts){if(!t0)t0=ts;if(!manual){var ph=((ts-t0)/2600)%2;var v=ph<1?50+ph*100:150-(ph-1)*100;setW(v);w.value=String(Math.round(v))}requestAnimationFrame(tick)})(0);
+  } else { setW(100); }
+})();
+</script>
+</body>
+</html>
