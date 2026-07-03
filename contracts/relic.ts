@@ -83,3 +83,60 @@ export interface ProvenanceRefs {
   toMs: number;
   network: 'devnet' | 'mainnet-beta';
 }
+
+/* ── v2 additions (memento law + pop system, coordinator 2026-07-04) ── */
+
+/**
+ * Every collectible surface carries print anatomy (SYSTEM.md §10): a serial
+ * within its edition, the edition size (null = open edition), and the frame
+ * caption. Serials are per-surface sequences (card Nº, stub Nº, poster Nº).
+ */
+export interface EditionInfo {
+  serial: number;
+  editionSize: number | null;
+  /** caption strip text parts: fixture code · date · frame/relic name */
+  caption: { fixture: string; dateISO: string; frameName: string };
+}
+
+/**
+ * The card's four ratings, 0–99, derived from the fan's honest aggregates
+ * for one match (derivations documented in SYSTEM.md; never invented):
+ * LOU loudness · FTH faith (behind-weighted) · FOR foresight · PRE presence.
+ */
+export interface RatingsBlock {
+  LOU: number;
+  FTH: number;
+  FOR: number;
+  PRE: number;
+}
+
+/** Personal card = ScorecardData + ratings + edition. */
+export interface CardData extends ScorecardData {
+  ratings: RatingsBlock;
+  edition: EditionInfo;
+}
+
+/** The END's card — the fanbase's match (his "collective stat cards"). */
+export interface CollectiveCardData {
+  fixture: Fixture;
+  side: Side;
+  finalScore: { home: number; away: number };
+  rooted: number;
+  standsScores: StandsVerdict['scores'];
+  wonTheStands: boolean;
+  /** the end's roar timeline (bucketed counts) */
+  roar: number[];
+  edition: EditionInfo;
+  provenance: ProvenanceRefs;
+}
+
+/** Per-call stub = Receipt + edition + seat anatomy (END/ROW/SEAT). */
+export interface StubData {
+  receipt: Receipt;
+  fixture: Fixture;
+  end: string; // e.g. "MX"
+  row: string; // display name of the fan's row
+  seat: number; // position within the row (1-11)
+  proved: boolean | null; // null = pending FT resolution
+  edition: EditionInfo;
+}
