@@ -1,0 +1,9 @@
+.secrets
+fixtures
+node_modules
+services
+scripts
+docs
+design
+.git
+*.md
