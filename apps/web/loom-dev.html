@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1A1A18" />
+  <title>ROOOT · THE LOOM (dev)</title>
+  <!-- Doto (numbers) + Anybody (labels) — the product voices. This is a dev page;
+       webfonts load here (the shipped app defers them). System fallbacks degrade cleanly. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Anybody:wght@400;700;900&family=Doto:wght@400;500;700;900&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    :root { --ink: #1A1A18; --np: #F3ECDA; --gold: #D6A33B; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      background: var(--np);
+      color: var(--ink);
+      font-family: 'Anybody', system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+    #loom-root {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .loom-wrap { position: absolute; inset: 0; }
+    .loom-canvas { width: 100%; height: 100%; display: block; }
+
+    /* the DEV control panel — floating, bottom-left, out of the cloth's way */
+    .loom-ui {
+      position: fixed;
+      left: 10px;
+      bottom: 10px;
+      z-index: 20;
+      max-width: min(96vw, 560px);
+      pointer-events: none;
+    }
+    .loom-panel {
+      pointer-events: auto;
+      background: rgba(26, 24, 24, 0.94);
+      color: var(--np);
+      border: 1.5px solid #000;
+      padding: 8px 10px 9px;
+      font-family: 'Doto', Menlo, monospace;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.35);
+    }
+    .loom-panel[data-cw="press-black"] {
+      background: rgba(243, 236, 218, 0.96);
+      color: var(--ink);
+      border-color: var(--ink);
+    }
+    .loom-badge {
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      color: var(--gold);
+      margin-bottom: 7px;
+    }
+    .loom-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 6px;
+    }
+    .loom-row:last-of-type { margin-bottom: 4px; }
+    .loom-jumps span, .loom-speed {
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      opacity: 0.75;
+    }
+    .loom-panel button, .loom-panel select {
+      font-family: 'Doto', Menlo, monospace;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      background: transparent;
+      color: inherit;
+      border: 1px solid currentColor;
+      padding: 3px 8px;
+      cursor: pointer;
+      border-radius: 0;
+      line-height: 1.3;
+    }
+    .loom-panel button:hover { background: var(--gold); color: var(--ink); border-color: var(--gold); }
+    .loom-panel select { padding: 2px 4px; }
+    .loom-jumps button { font-size: 10px; padding: 3px 6px; }
+    .loom-note {
+      font-size: 9px;
+      letter-spacing: 0.06em;
+      opacity: 0.6;
+      margin-top: 3px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div id="loom-root"></div>
+  <script type="module" src="/src/loom/loom-dev.ts"></script>
+</body>
+</html>

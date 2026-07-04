@@ -57,6 +57,9 @@ export default defineConfig({
         stagedev: fileURLToPath(new URL('./stage-dev.html', import.meta.url)),
         relicdev: fileURLToPath(new URL('./relic-dev.html', import.meta.url)),
         appdev: fileURLToPath(new URL('./app-dev.html', import.meta.url)),
+        // /loom-dev.html — the living loom (fabrication lane): the cloth that
+        // weaves itself from the real ARG–CPV replay. Additive entry only.
+        loomdev: fileURLToPath(new URL('./loom-dev.html', import.meta.url)),
       },
     },
   },
