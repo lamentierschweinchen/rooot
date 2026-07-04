@@ -280,6 +280,54 @@ export function parseOddsMessage(
  * Callers may fast-path with raw.includes('"Participant1IsHome"') to skip
  * the JSON.parse on the (majority) odds lines.
  */
+/* ── rosters (the wire's own lineups — names for free) ─────────────── */
+
+/**
+ * The fixture's roster, from the scores stream's `lineups` action: a 33KB
+ * envelope with BOTH teams' full squads at the TOP level (`Lineups[]`, not
+ * `Data`) — per player: normativeId (the PlayerId goals reference),
+ * preferredName ("Behich, Aziz Eraltay"), rosterNumber, starter. This makes
+ * scorer names a same-wire fact — no external enrichment, no extra license.
+ */
+export interface FixtureRoster {
+  fixtureId: number;
+  byPlayerId: Map<number, { name: string; number: string | null }>;
+}
+
+interface RawLineupsEnvelope {
+  FixtureId?: number;
+  Action?: string;
+  Lineups?: Array<{
+    lineups?: Array<{
+      rosterNumber?: string;
+      player?: { normativeId?: number; preferredName?: string };
+    }>;
+  }>;
+}
+
+/** Parse a `lineups` envelope into a roster, or null for any other line. */
+export function parseLineups(raw: string): FixtureRoster | null {
+  let msg: RawLineupsEnvelope;
+  try {
+    msg = JSON.parse(raw) as RawLineupsEnvelope;
+  } catch {
+    return null;
+  }
+  if (msg.Action !== 'lineups' || typeof msg.FixtureId !== 'number') return null;
+  const byPlayerId = new Map<number, { name: string; number: string | null }>();
+  for (const team of msg.Lineups ?? []) {
+    for (const entry of team.lineups ?? []) {
+      const id = entry.player?.normativeId;
+      const name = entry.player?.preferredName;
+      if (typeof id === 'number' && typeof name === 'string' && name) {
+        byPlayerId.set(id, { name, number: entry.rosterNumber ?? null });
+      }
+    }
+  }
+  if (byPlayerId.size === 0) return null;
+  return { fixtureId: msg.FixtureId, byPlayerId };
+}
+
 export function sniffParticipant1IsHome(raw: string): boolean | null {
   try {
     const msg = JSON.parse(raw) as { Participant1IsHome?: unknown };
@@ -523,6 +571,13 @@ export function parseScoreMessage(
   raw: string,
   receivedAtMs: number,
   source: 'live' | 'replay',
+  /**
+   * Fixture roster (parseLineups) — resolves the goal's Data.PlayerId to a
+   * REAL name from the SAME wire (the lineups envelope ships full rosters:
+   * normativeId + preferredName). No external enrichment needed. Absent →
+   * scorer stays undefined; a number is not a name (honesty law).
+   */
+  roster?: FixtureRoster,
 ): ScoreEvent | null {
   let msg: (RawScoresMessage & RawLiveEnvelope) | null = null;
   try {
@@ -547,15 +602,19 @@ export function parseScoreMessage(
     const actor = msg.Participant; // 1|2 = which participant scored
     const side =
       actor === 1 ? (p1IsHome ? 'home' : 'away') : actor === 2 ? (p1IsHome ? 'away' : 'home') : undefined;
+    // the goal's final re-emission carries Data.PlayerId (a number) — the
+    // roster from the SAME wire's lineups envelope turns it into a name.
+    // No roster / unknown id → undefined, never a number-as-name.
+    const pid = (msg as { Data?: { PlayerId?: unknown } }).Data?.PlayerId;
+    const scorer =
+      roster && typeof pid === 'number' ? roster.byPlayerId.get(pid)?.name : undefined;
     return {
       tMs: receivedAtMs,
       minute: liveMinute(msg.Clock),
       home,
       away,
       side,
-      // the live wire carries only a numeric Data.PlayerId — a number is not a
-      // name; scorer stays undefined per the honesty law (garnish resolves it)
-      scorer: undefined,
+      scorer,
       source,
       raw: msg,
     };
@@ -760,6 +819,8 @@ export function parseLedgerMessage(
   raw: string,
   receivedAtMs: number,
   source: 'live' | 'replay',
+  /** fixture roster (parseLineups) — names goal rows from the same wire */
+  roster?: FixtureRoster,
 ): LedgerMsg | null {
   let msg: RawLedgerEnvelope;
   try {
@@ -846,6 +907,14 @@ export function parseLedgerMessage(
     const p2 = msg.Score?.Participant2?.Total?.Goals;
     if (typeof p1 === 'number' && typeof p2 === 'number') {
       ev.score = p1IsHome ? { home: p1, away: p2 } : { home: p2, away: p1 };
+    }
+    // scorer from the same wire's roster (the goal's final re-emission carries
+    // Data.PlayerId; the row upgrades in place — replace-by-id, newest wins).
+    const pid = (msg.Data as { PlayerId?: unknown } | undefined)?.PlayerId;
+    const who = roster && typeof pid === 'number' ? roster.byPlayerId.get(pid)?.name : undefined;
+    if (who) {
+      const og = (msg.Data as { GoalType?: unknown } | undefined)?.GoalType === 'Own';
+      ev.detail = og ? `${who} (OG)` : who;
     }
   }
   const outcome = msg.Data?.Outcome;

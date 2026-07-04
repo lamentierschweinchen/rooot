@@ -32,11 +32,13 @@
 import type { Fixture, MatchCallbacks, MatchDataSource } from '@contracts/match';
 import {
   parseLedgerMessage,
+  parseLineups,
   parseOddsMessage,
   parseScoreMessage,
   parseStatusMessage,
   sniffParticipant1IsHome,
 } from '@contracts/normalize';
+import type { FixtureRoster } from '@contracts/normalize';
 
 interface RawLine {
   receivedAtMs: number;
@@ -76,6 +78,8 @@ export class ReplaySource implements MatchDataSource {
    * belief — switch what we accept when the phase enters extra time. Ticks
    * carry `period` so the surface can label the market honestly. */
   private oddsPeriod: 'full' | 'et' = 'full';
+  /** roster latch — the wire's own lineups envelope names the scorers */
+  private roster: FixtureRoster | undefined;
   /** wall-clock due time of the next scheduled line (for backgrounded catch-up) */
   private nextDueMs: number | null = null;
   private onVisible = (): void => {
@@ -217,6 +221,13 @@ export class ReplaySource implements MatchDataSource {
       if (p1h !== null) this.p1IsHome = p1h;
     }
 
+    // roster latch: the lineups envelope ships both squads — scorer names
+    // become a same-wire fact (fast-path guard keeps odds lines cheap)
+    if (!this.roster && line.data.includes('"lineups"')) {
+      const r = parseLineups(line.data);
+      if (r) this.roster = r;
+    }
+
     // The ledger is a PARALLEL channel, not a fourth branch of the odds/score/
     // status dispatch: a single 'goal' scores line yields BOTH a ScoreEvent
     // (onScore, the tide) AND a LedgerMsg (onLedger, the readable row). So the
@@ -226,7 +237,7 @@ export class ReplaySource implements MatchDataSource {
     // shell wires it. parseLedgerMessage returns null for chatter (possession
     // ticks, throw-ins, bookkeeping) so most lines cost one JSON.parse and stop.
     if (this.cb.onLedger) {
-      const ledger = parseLedgerMessage(line.data, line.receivedAtMs, 'replay');
+      const ledger = parseLedgerMessage(line.data, line.receivedAtMs, 'replay', this.roster);
       if (ledger) this.cb.onLedger(ledger);
     }
 
@@ -235,7 +246,7 @@ export class ReplaySource implements MatchDataSource {
       this.cb.onOdds(odds);
       return;
     }
-    const score = parseScoreMessage(line.data, line.receivedAtMs, 'replay');
+    const score = parseScoreMessage(line.data, line.receivedAtMs, 'replay', this.roster);
     if (score) {
       this.cb.onScore(score);
       return;

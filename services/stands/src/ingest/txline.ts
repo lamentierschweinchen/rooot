@@ -16,7 +16,8 @@
 import { readFileSync } from 'node:fs';
 import type { FeedMsg } from '@contracts/feed';
 import type { LedgerMsg } from '@contracts/ledger';
-import { parseLedgerMessage, parseOddsMessage, parseScoreMessage, parseStatusMessage } from '@contracts/normalize';
+import { parseLedgerMessage, parseLineups, parseOddsMessage, parseScoreMessage, parseStatusMessage } from '@contracts/normalize';
+import type { FixtureRoster } from '@contracts/normalize';
 
 const TXLINE_API = process.env.TXLINE_API ?? 'https://txline-dev.txodds.com';
 const TOKEN_FILE = process.env.TXLINE_TOKEN_FILE ?? '../../.secrets/txline-token.json';
@@ -91,6 +92,9 @@ const p1IsHomeByFixture = new Map<string, boolean>();
  * cross-stream latch pattern as the side-truth map above. */
 const oddsPeriodByFixture = new Map<string, 'full' | 'et'>();
 
+/** roster latch, per fixture — the wire's lineups envelope names the scorers */
+const rosterByFixture = new Map<string, FixtureRoster>();
+
 function dispatch(opts: StreamOptions, event: string, data: string, receivedAtMs: number): void {
   if (event === 'heartbeat' || event === '__meta' || event === '__disconnect') return;
   try {
@@ -107,6 +111,11 @@ function dispatch(opts: StreamOptions, event: string, data: string, receivedAtMs
       if (!opts.fixtureIds.has(fixtureIdOf(tick.raw) ?? '')) return;
       opts.onFeedMsg({ type: 'odds', tick });
     } else {
+      // roster latch: lineups → both squads (scorer names, same wire)
+      if (data.includes('"lineups"')) {
+        const r = parseLineups(data);
+        if (r) rosterByFixture.set(String(r.fixtureId), r);
+      }
       // learn the side-truth before parsing — every scores envelope carries it
       if (data.includes('"Participant1IsHome"')) {
         try {
@@ -124,7 +133,8 @@ function dispatch(opts: StreamOptions, event: string, data: string, receivedAtMs
       // only. Forward it independently of — and before — the score/status
       // early-returns below, filtered to configured fixtures. LiveSource turns
       // this ledger FeedMsg back into onLedger client-side.
-      const ledger = parseLedgerMessage(data, receivedAtMs, 'live');
+      const lfidPeek = rawFixtureId(data);
+      const ledger = parseLedgerMessage(data, receivedAtMs, 'live', lfidPeek ? rosterByFixture.get(lfidPeek) : undefined);
       if (ledger) {
         const lfid = ledgerFixtureId(ledger);
         if (lfid && opts.fixtureIds.has(lfid)) opts.onFeedMsg({ type: 'ledger', msg: ledger });
@@ -132,7 +142,7 @@ function dispatch(opts: StreamOptions, event: string, data: string, receivedAtMs
       // a scores line is either a score change or a status change, not both
       // (see contracts/normalize.ts parseStatusMessage doc comment) — try
       // score first, fall back to status.
-      const score = parseScoreMessage(data, receivedAtMs, 'live');
+      const score = parseScoreMessage(data, receivedAtMs, 'live', lfidPeek ? rosterByFixture.get(lfidPeek) : undefined);
       if (score) {
         if (!opts.fixtureIds.has(fixtureIdOf(score.raw) ?? '')) return;
         opts.onFeedMsg({ type: 'score', ev: score });

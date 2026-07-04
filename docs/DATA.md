@@ -58,11 +58,18 @@ Jul 3 night are running (odds + scores, caffeinated).
 
 ## Enrichment (garnish tier)
 
-**API-Football (api-sports.io, direct — NOT RapidAPI):** free tier includes WC2026
-(league=1, season=2026), `fixtures/lineups`, `fixtures/events` (goals/cards/subs w/
-minutes), `fixtures/statistics`. Caps: 100 req/day, 10/min → budget: 1 lineups call
-pre-match + events poll every 2–3 min during our 1–2 focus matches/day. Key pending
-from owner (by Sat evening). Base `https://v3.football.api-sports.io/`.
+**RESOLVED (Jul 4): scorer names come from TxLINE ITSELF — no external API.**
+The scores stream's `lineups` action ships BOTH full squads top-level
+(`Lineups[]`: normativeId + preferredName + rosterNumber); goals' final
+re-emission carries `Data.PlayerId` (+GoalType incl. "Own"). `parseLineups`
++ the roster latch in every source resolve names same-wire, same-license.
+Proven: Messi 28', Ashour 12', Hany Eldemerdash (OG) 54', Duarte, Lopes
+Cabral, L. Martínez — all from tape.
+
+**API-Football: NOT USABLE and NOT NEEDED.** Live probe (Jul 4): free plan
+returns `"Free plans do not have access to this season, try from 2022 to
+2024"` for league=1 season=2026 — the earlier research claim was wrong.
+Paid tier unnecessary given the above. Key stays parked in `.secrets/`.
 **Rejected:** football-data.org free (no lineups/events/live) · Sportmonks free (wrong
 leagues) · TheSportsDB (no live/events) · SofaScore/FotMob scraping (ToS-prohibited —
 integrity) · unofficial ESPN (no ToS/guarantees) · StatsBomb/OpenFootball (static).

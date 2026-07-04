@@ -13,8 +13,10 @@ import { createInterface } from 'node:readline';
 import { createReadStream } from 'node:fs';
 import type { FeedMsg } from '@contracts/feed';
 import type { LedgerMsg } from '@contracts/ledger';
+import type { FixtureRoster } from '@contracts/normalize';
 import {
   parseLedgerMessage,
+  parseLineups,
   parseOddsMessage,
   parseScoreMessage,
   parseStatusMessage,
@@ -108,9 +110,15 @@ export function startReplayIngest(opts: {
   let p1IsHome = true;
   // phase-aware market hand-off (see txline.ts twin): ET/pens → 'et' 1X2
   let oddsPeriod: 'full' | 'et' = 'full';
+  // roster latch — the wire's lineups envelope names the scorers
+  let roster: FixtureRoster | undefined;
 
   function emit(line: FixtureLine): void {
     try {
+      if (!roster && line.data.includes('"lineups"')) {
+        const r = parseLineups(line.data);
+        if (r && String(r.fixtureId) === opts.fixtureId) roster = r;
+      }
       if (line.data.includes('"Participant1IsHome"')) {
         const p1h = sniffParticipant1IsHome(line.data);
         if (p1h !== null) p1IsHome = p1h;
@@ -122,7 +130,7 @@ export function startReplayIngest(opts: {
       // below. Filter by fixtureKey so a shared multi-fixture file never leaks
       // one match's rows into another's room (the same honesty rule the
       // score/status routing enforces via fixtureIdOf).
-      const ledger = parseLedgerMessage(line.data, line.receivedAtMs, 'replay');
+      const ledger = parseLedgerMessage(line.data, line.receivedAtMs, 'replay', roster);
       if (ledger && ledgerFixtureId(ledger) === opts.fixtureId) {
         opts.onFeedMsg({ type: 'ledger', msg: ledger });
       }
@@ -133,7 +141,7 @@ export function startReplayIngest(opts: {
         opts.onFeedMsg({ type: 'odds', tick });
         return;
       }
-      const score = parseScoreMessage(line.data, line.receivedAtMs, 'replay');
+      const score = parseScoreMessage(line.data, line.receivedAtMs, 'replay', roster);
       if (score) {
         if (fixtureIdOf(score.raw) !== opts.fixtureId) return;
         opts.onFeedMsg({ type: 'score', ev: score });
