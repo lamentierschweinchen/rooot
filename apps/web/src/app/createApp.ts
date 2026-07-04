@@ -36,6 +36,8 @@ import { createSocialStrip, createCheerBar } from './crowd-ui';
 import { createInterstitial } from './interstitial';
 import { createDisconnectedCrowd } from './crowd-seam';
 import { bakePaperSheet } from './paper-field';
+import { popBall } from './glyphs';
+import { ledgerEmptyLine, fixtureDateLine, PROVENANCE } from './voice';
 
 export interface CreateAppOptions {
   /** where the shell mounts (usually document.body) */
@@ -150,13 +152,24 @@ export function createApp(opts: CreateAppOptions): RooootApp {
   if (desktop) stageCol.appendChild(cheerBar.el);
   else page.appendChild(cheerBar.el);
 
-  // right column: THE LEDGER (empty state greets with the kickoff time)
+  // right column: THE LEDGER (empty state prints the kickoff fact, never an epoch)
   const builder = createLedgerBuilder();
-  const ledger = createLedgerList({ builder, reducedMotion, kickoffLabel: kickoffHHMM(fixture.kickoffISO) });
+  const ledger = createLedgerList({ builder, reducedMotion, kickoffLabel: ledgerEmptyLine(fixture.kickoffISO) });
   // hand the tricodes to the list so goal rows can stamp "ARG 1–0 CPV"
   ledger.el.dataset.homeCode = fixture.home.code;
   ledger.el.dataset.awayCode = fixture.away.code;
   cols.appendChild(ledger.el);
+
+  // the COLOPHON — a printed page ends with its imprint, not a scroll cliff:
+  // wordmark · fixture record line · the provenance facts (stated, never sold).
+  const colophon = document.createElement('footer');
+  colophon.className = 'rt-colophon';
+  const dateLine = fixtureDateLine(fixture.kickoffISO);
+  colophon.innerHTML = `
+    <div class="row mast"><span class="rt-sb-word small">R<span class="o">O</span><span class="ball">${popBall(0.92, 'rt-popball')}</span><span class="o">O</span>T</span></div>
+    <div class="row fact">${escapeHtml(fixture.home.code)}–${escapeHtml(fixture.away.code)}${dateLine ? ` · ${escapeHtml(dateLine)}` : ''}</div>
+    <div class="row prov"><span>${PROVENANCE.market}</span><span class="sep">·</span><span>${PROVENANCE.crowd}</span></div>`;
+  shell.appendChild(colophon);
 
   // the root interstitial (first visit)
   const interstitial = createInterstitial(fixture);
@@ -169,6 +182,29 @@ export function createApp(opts: CreateAppOptions): RooootApp {
   page.style.setProperty('--scoreband-h', `${Math.round(sbH)}px`);
   const cbH = cheerBar.el.getBoundingClientRect().height || 128;
   page.style.setProperty('--cheerbar-h', `${Math.round(cbH)}px`);
+
+  /* ── the masthead ↔ HUD flip ───────────────────────────────────────── */
+  // The stage's canvas carries its own scoreboard; the band only prints score +
+  // clock once that scoreboard has scrolled away (the "two scoreboards 100px
+  // apart" disease). A sentinel rides the top slice of the stage window; when it
+  // leaves the viewport (under the sticky band), the HUD prints in.
+  const sentinel = document.createElement('div');
+  sentinel.setAttribute('aria-hidden', 'true');
+  sentinel.style.cssText = 'position:absolute;top:0;left:0;right:0;height:14%;pointer-events:none;visibility:hidden;';
+  stageWrap.appendChild(sentinel);
+  let hudIO: IntersectionObserver | null = null;
+  if (typeof IntersectionObserver !== 'undefined') {
+    hudIO = new IntersectionObserver(
+      (entries) => {
+        const e = entries[entries.length - 1];
+        if (e) scoreband.setHud(!e.isIntersecting);
+      },
+      { rootMargin: '-64px 0px 0px 0px', threshold: 0 },
+    );
+    hudIO.observe(sentinel);
+  } else {
+    scoreband.setHud(true); // no observer → always carry the state (never lose the score)
+  }
 
   /* ── the stage ─────────────────────────────────────────────────────── */
   const stage: Stage = createStage({ canvas, fixture, mySide: null, posed: false });
@@ -206,8 +242,6 @@ export function createApp(opts: CreateAppOptions): RooootApp {
     strip.set(v);
     cheerBar.set(v);
     stage.setCrowd(toStageCrowd(v));
-    // the scoreband's phase chip speaks the stakes when faith is live
-    scoreband.setFaith(v.faithSide != null);
   });
 
   cheerBar.onCheer(() => crowd.cheer());
@@ -289,6 +323,7 @@ export function createApp(opts: CreateAppOptions): RooootApp {
     destroy() {
       window.removeEventListener('resize', onResize);
       window.clearInterval(pumpTimer);
+      hudIO?.disconnect();
       crowd.close();
       ledger.destroy();
       stage.destroy();
@@ -298,11 +333,10 @@ export function createApp(opts: CreateAppOptions): RooootApp {
   };
 }
 
-/** kickoff time as UTC "HH:MM" for the ledger's greeting; '' if unparseable. */
-function kickoffHHMM(iso: string): string {
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return '';
-  return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) =>
+    c === '&' ? '&amp;' : c === '<' ? '&lt;' : c === '>' ? '&gt;' : c === '"' ? '&quot;' : '&#39;',
+  );
 }
 
 function readSide(): Side | null {

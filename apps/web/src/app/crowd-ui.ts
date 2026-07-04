@@ -1,26 +1,29 @@
 /**
- * ROOOT app — THE SOCIAL STRIP + THE CHEER BAR (BRIEF-WATCHING §1.3, §3).
+ * ROOOT app — THE SOCIAL STRIP + THE DRUM (the cheer bar).
  *
  * Both consume the CrowdView shape (contracts/ledger.ts) through the crowd seam —
  * COUNTS + roar only, NEVER percentages, never blended with the market (the honesty
  * separation is spatial: market on the pitch, crowd in the strip/ends). Lane C
  * delivers the real CrowdClient; we bind to the interface and render an honest
- * DISCONNECTED state when `connected` is false: "STANDS OPENING SOON — counts are
- * local", with cheer still tappable and the local count clearly ghosted.
+ * DISCONNECTED state when `connected` is false: counts ghost (grey italic — the one
+ * legal ghost), and the strip states the fact.
  *
- *  · social strip  — two end-plates: flag-block + tricode + ROOTED counter (Doto,
- *    live-ticking, discrete steps) + roar meter (segmented blocks, team ink) +
- *    faith badge on the trailing end when the service says so.
- *  · cheer bar     — the touch surface (fixed at thumb): before a side is picked
- *    it invites the tap; after root it is the CHEER drum (big, round, pop-ball
- *    energy) flanked by both ROOTED counts + a roar fill + CHEERS COUNT DOUBLE when
- *    faith is on. Hitting it must feel like a drum, not a form: squash on press,
- *    roar swells, count ticks.
+ *  · social strip — two end-plates: drawn flag-block + tricode + ROOTED counter
+ *    (Doto, discrete ticks) + roar meter (segmented blocks, team ink) + FAITH ×2
+ *    badge (gold, the rare mark) on the trailing end when the service says so.
+ *  · the drum — the touch surface, fixed at thumb. Its face IS the pop-ball
+ *    (§6.10): a five-segment pinwheel disc with a press-black band across the
+ *    middle carrying the word. Pre-root the band reads ROOT (tap = open the
+ *    door); rooted it reads ROOOAR. A hit squashes the disc, step-spins the
+ *    pinwheel one hard increment, and fires a crisp ring outward — cartoon
+ *    timing, no glow, no fade (SYSTEM §7).
  */
 
 import type { CrowdView } from '@contracts/ledger';
 import type { Side } from '@contracts/crowd';
 import type { Fixture } from '@contracts/match';
+import { STEPS } from '../lib/theme';
+import { popBall, flagBlock } from './glyphs';
 
 /** roar count → 0..1 fill for the meter/segments (a printed swell, not a % of belief). */
 function roar01(v: number): number {
@@ -45,10 +48,10 @@ export function createSocialStrip(fixture: Fixture): SocialStrip {
   const el = document.createElement('section');
   el.className = 'rt-strip';
   el.innerHTML =
-    endPlate('home', fixture.home.code, fixture.home.flag) +
-    endPlate('away', fixture.away.code, fixture.away.flag) +
+    endPlate('home', fixture.home.code, fixture.home.colors) +
+    endPlate('away', fixture.away.code, fixture.away.colors) +
     `<div class="rt-strip-offline" data-el="offline" style="display:none">
-       <b>Stands opening soon</b> — <span class="ghost">counts are local for now</span>
+       STANDS OPENING SOON · COUNTS ARE LOCAL
      </div>`;
 
   const homeCount = el.querySelector<HTMLElement>('[data-el="rooted-home"]')!;
@@ -84,31 +87,31 @@ export function createSocialStrip(fixture: Fixture): SocialStrip {
   };
 }
 
-function endPlate(side: Side, code: string, flag: string): string {
+function endPlate(side: Side, code: string, colors: readonly [string, string]): string {
   const segs = Array.from({ length: ROAR_SEGMENTS }, () => '<span class="seg"></span>').join('');
   return `
     <div class="rt-strip-end ${side}">
       <div class="rt-end-head">
-        <span class="rt-end-flag">${escapeHtml(flag)}</span>
+        ${flagBlock(colors, 'rt-flagblock rt-end-flag')}
         <span class="rt-end-code">${escapeHtml(code)}</span>
-        <span class="rt-end-faith" data-el="faith-${side}" style="display:none">Faith ×2</span>
+        <span class="rt-end-faith" data-el="faith-${side}" style="display:none">FAITH ×2</span>
       </div>
-      <div class="rt-rooted"><span data-el="rooted-${side}">0</span><span class="rt-rooted-lbl">Rooted</span></div>
+      <div class="rt-rooted"><span data-el="rooted-${side}">0</span><span class="rt-rooted-lbl">ROOTED</span></div>
       <div class="rt-roar" data-el="roar-${side}">${segs}</div>
     </div>`;
 }
 
-/* ── the cheer bar ────────────────────────────────────────────────────── */
+/* ── the drum ─────────────────────────────────────────────────────────── */
 
 export interface CheerBar {
   el: HTMLElement;
-  /** update the counts / roar / faith from the latest CrowdView */
+  /** update the counts / faith from the latest CrowdView */
   set(v: CrowdView): void;
-  /** the side the fan rooted (null before they pick) — drives button colour + which count ghosts */
+  /** the side the fan rooted (null before they pick) — drives the drum band + plate inks */
   setSide(side: Side | null): void;
   /** fired on each drum hit; the app forwards to the crowd client's cheer() */
   onCheer(cb: () => void): void;
-  /** fired when the fan taps the un-rooted bar (open the root interstitial) */
+  /** fired when the fan taps the un-rooted drum (open the root door) */
   onPickRequest(cb: () => void): void;
 }
 
@@ -117,20 +120,26 @@ export function createCheerBar(fixture: Fixture, reducedMotion: boolean): CheerB
   el.className = 'rt-cheerbar';
   el.innerHTML = `
     <div class="rt-cheer-count home ghost">
-      <span class="n" data-el="c-home">0</span><span class="l">${escapeHtml(fixture.home.code)} rooted</span>
+      <span class="n" data-el="c-home">0</span>
+      <span class="l">${flagBlock(fixture.home.colors, 'rt-flagblock mini')}${escapeHtml(fixture.home.code)} ROOTED</span>
     </div>
-    <button class="rt-cheer-btn unpicked" type="button" data-el="btn">
-      <span class="roar-fill" data-el="roar"></span>
-      <span class="rt-cheer-double" data-el="double" style="display:none">Cheers count double</span>
-      <span class="lbl" data-el="lbl">Pick an end</span>
-    </button>
+    <div class="rt-drum-seat">
+      <span class="rt-cheer-double" data-el="double" style="display:none">CHEERS COUNT DOUBLE</span>
+      <button class="rt-drum unpicked" type="button" data-el="btn" aria-label="cheer">
+        <span class="rt-drum-ring" data-el="ring"></span>
+        <span class="rt-drum-disc" data-el="disc">${popBall(1, 'rt-popball drum-face')}</span>
+        <span class="rt-drum-band" data-el="lbl">ROOT</span>
+      </button>
+    </div>
     <div class="rt-cheer-count away ghost">
-      <span class="n" data-el="c-away">0</span><span class="l">${escapeHtml(fixture.away.code)} rooted</span>
+      <span class="n" data-el="c-away">0</span>
+      <span class="l">${flagBlock(fixture.away.colors, 'rt-flagblock mini')}${escapeHtml(fixture.away.code)} ROOTED</span>
     </div>`;
 
   const btn = el.querySelector<HTMLButtonElement>('[data-el="btn"]')!;
+  const disc = el.querySelector<HTMLElement>('[data-el="disc"]')!;
+  const ring = el.querySelector<HTMLElement>('[data-el="ring"]')!;
   const lbl = el.querySelector<HTMLElement>('[data-el="lbl"]')!;
-  const roarFill = el.querySelector<HTMLElement>('[data-el="roar"]')!;
   const dbl = el.querySelector<HTMLElement>('[data-el="double"]')!;
   const cHome = el.querySelector<HTMLElement>('[data-el="c-home"]')!;
   const cAway = el.querySelector<HTMLElement>('[data-el="c-away"]')!;
@@ -140,21 +149,27 @@ export function createCheerBar(fixture: Fixture, reducedMotion: boolean): CheerB
   let mySide: Side | null = null;
   let cheerCb: (() => void) | null = null;
   let pickCb: (() => void) | null = null;
+  let spinDeg = 0;
+  let ringTimer = 0;
 
   btn.addEventListener('click', () => {
     if (mySide == null) {
       pickCb?.();
       return;
     }
-    // the drum hit — squash handled by :active; a tiny stepped roar kick for feel
+    // the drum hit: one hard pinwheel step + the crisp ring, then the count travels
     if (!reducedMotion) {
-      btn.style.setProperty('--roar', String(Math.min(1, currentRoar + 0.25)));
-      window.setTimeout(() => btn.style.setProperty('--roar', String(currentRoar)), 120);
+      spinDeg += 360 / STEPS.popBall;
+      disc.style.setProperty('--spin', `${spinDeg}deg`);
+      ring.classList.remove('fire');
+      // restart the ring animation (force reflow so consecutive hits re-fire)
+      void ring.offsetWidth;
+      ring.classList.add('fire');
+      window.clearTimeout(ringTimer);
+      ringTimer = window.setTimeout(() => ring.classList.remove('fire'), 400);
     }
     cheerCb?.();
   });
-
-  let currentRoar = 0;
 
   return {
     el,
@@ -164,27 +179,16 @@ export function createCheerBar(fixture: Fixture, reducedMotion: boolean): CheerB
       // ghost the counts when offline (local-only, honest)
       homeCount.classList.toggle('ghost', !v.connected);
       awayCount.classList.toggle('ghost', !v.connected);
-      // roar fill = the fan's own end swell
-      const mine = mySide === 'away' ? v.roar.away : mySide === 'home' ? v.roar.home : 0;
-      currentRoar = roar01(mine);
-      btn.style.setProperty('--roar', String(currentRoar));
       // CHEERS COUNT DOUBLE when the fan's rooted end is the faith (trailing) side
       const faithOn = mySide != null && v.faithSide === mySide;
       dbl.style.display = faithOn ? '' : 'none';
     },
     setSide(side) {
       mySide = side;
-      if (side == null) {
-        btn.classList.add('unpicked');
-        btn.classList.remove('side-home', 'side-away');
-        lbl.textContent = 'Pick an end';
-      } else {
-        btn.classList.remove('unpicked');
-        btn.classList.toggle('side-away', side === 'away');
-        btn.classList.toggle('side-home', side === 'home');
-        // the button LABELS itself — a word, not an icon (BRIEF-PRINT-SOUL §5)
-        lbl.textContent = 'ROOOAR';
-      }
+      el.classList.toggle('side-home', side === 'home');
+      el.classList.toggle('side-away', side === 'away');
+      btn.classList.toggle('unpicked', side == null);
+      lbl.textContent = side == null ? 'ROOT' : 'ROOOAR';
     },
     onCheer(cb) {
       cheerCb = cb;

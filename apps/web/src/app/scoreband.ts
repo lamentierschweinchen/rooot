@@ -1,16 +1,26 @@
 /**
- * ROOOT app — THE SCOREBAND (sticky, slim; BRIEF-WATCHING §1.1). Always visible so
- * someone joining at 60' gets the state at a glance: tricodes + flag-blocks + score
- * (Doto) + clock + phase chip + feed state. Plus the PAUSE→poster button (§4): it
- * flips the stage's live chrome to the full §10 print frame (the collect moment);
- * the poster crystallisation itself is the relic printers' job — we only wire the
- * button + the chrome switch.
+ * ROOOT app — THE SCOREBAND: the masthead that becomes a HUD.
  *
- * Print anatomy: Press-Black band, cream type, flags as keyline-boxed blocks,
- * tricodes in Anybody (a name is shouted), score/clock in Doto (measured data).
+ * The band has two printed states, because the stage directly below it already
+ * carries a full scoreboard (score, flags, clock, on the canvas). Duplicating
+ * that 100px lower was the "incoherent card" disease. So:
+ *
+ *   · MASTHEAD (stage on screen)  — the page names itself: the ROOOT wordmark
+ *     (pop-ball as the middle O, §6.10) + the feed state + the PRINT action.
+ *     No score, no clock — they're right there on the stage.
+ *   · HUD (stage scrolled away)   — the wordmark folds to the ball glyph and
+ *     the state prints in: team ticks + tricodes + score (Doto) + clock cell.
+ *     The fan reading the ledger never loses the match.
+ *
+ * createApp drives the flip from an IntersectionObserver via setHud(). The
+ * swap is a stepped print action (no slide, no fade — SYSTEM §7), instant
+ * under reduced motion. Anatomy: press-black band of keylined CELLS with hard
+ * seams (the España strip, not a flexbox with margins). Faith lives on the
+ * drum, not here — one signal, one home.
  */
 
 import type { Fixture, MatchPhase } from '@contracts/match';
+import { popBall, flagBlock } from './glyphs';
 
 export interface ScorebandState {
   homeScore: number;
@@ -20,29 +30,28 @@ export interface ScorebandState {
   feed: 'connected' | 'reconnecting' | 'replay' | 'lost';
 }
 
-const PHASE_LABEL: Record<MatchPhase, string> = {
-  PRE: 'Kick-off soon',
-  FIRST_HALF: '1st half',
-  HALF_TIME: 'Half-time',
-  SECOND_HALF: '2nd half',
-  EXTRA_TIME: 'Extra time',
-  PENALTIES: 'Penalties',
-  FULL_TIME: 'Full-time',
-};
+/** the clock cell speaks minute when there is one, else the phase, short. */
+function clockText(s: ScorebandState): string {
+  if (s.phase === 'HALF_TIME') return 'HT';
+  if (s.phase === 'FULL_TIME') return 'FT';
+  if (s.phase === 'PENALTIES') return 'PENS';
+  if (s.minute != null) return `${s.minute}'`;
+  if (s.phase === 'PRE') return 'PRE';
+  return '·';
+}
 
 const FEED_LABEL: Record<ScorebandState['feed'], string> = {
-  connected: 'Live',
-  reconnecting: 'Reconnecting',
-  replay: 'Replay',
-  lost: 'Feed lost',
+  connected: 'LIVE',
+  reconnecting: 'RECONNECTING',
+  replay: 'REPLAY',
+  lost: 'FEED LOST',
 };
 
 export interface Scoreband {
   el: HTMLElement;
   set(s: Partial<ScorebandState>): void;
-  /** faith on (a rooted end is trailing + singing) → the phase chip SPEAKS the stakes
-   * ("CHEERS COUNT DOUBLE") instead of the plain phase (BRIEF-PRINT-SOUL §5). */
-  setFaith(on: boolean): void;
+  /** stage scrolled away → the HUD prints in (score/clock cells). */
+  setHud(on: boolean): void;
   onPause(cb: () => void): void;
   setPosed(posed: boolean): void;
 }
@@ -50,26 +59,29 @@ export interface Scoreband {
 export function createScoreband(fixture: Fixture): Scoreband {
   const el = document.createElement('header');
   el.className = 'rt-scoreband';
+  el.setAttribute('data-hud', '0');
   el.innerHTML = `
-    <div class="rt-sb-flag" data-el="homeflag">${escapeHtml(fixture.home.flag)}</div>
-    <div class="rt-sb-tri home">${escapeHtml(fixture.home.code)}</div>
-    <div class="rt-sb-score">
+    <div class="rt-sb-mast" data-el="mast">
+      <span class="rt-sb-word">R<span class="o">O</span><span class="ball">${popBall(0.92, 'rt-popball')}</span><span class="o">O</span>T</span>
+    </div>
+    <div class="rt-sb-hud" data-el="hud">
+      <span class="rt-sb-ball">${popBall(1.05, 'rt-popball')}</span>
+      <span class="rt-sb-team">${flagBlock(fixture.home.colors)}<b>${escapeHtml(fixture.home.code)}</b></span>
       <span class="rt-sb-scorebox" data-el="score">0–0</span>
+      <span class="rt-sb-team away"><b>${escapeHtml(fixture.away.code)}</b>${flagBlock(fixture.away.colors)}</span>
       <span class="rt-sb-clock" data-el="clock">·</span>
     </div>
-    <div class="rt-sb-tri away">${escapeHtml(fixture.away.code)}</div>
-    <div class="rt-sb-flag" data-el="awayflag">${escapeHtml(fixture.away.flag)}</div>
-    <div class="rt-sb-right">
-      <span class="rt-sb-phase" data-el="phase">Kick-off soon</span>
-      <span class="rt-sb-feed" data-el="feed" data-state="replay">Replay</span>
-      <button class="rt-sb-pause" type="button" data-el="pause" data-posed="0" title="pose the stage as a poster">Pose</button>
-    </div>`;
+    <div class="rt-sb-gap"></div>
+    <div class="rt-sb-feed" data-el="feed" data-state="replay"><i></i><span data-el="feedlbl">REPLAY</span></div>
+    <button class="rt-sb-print" type="button" data-el="print" data-posed="0">PRINT</button>`;
 
+  const hudEl = el.querySelector<HTMLElement>('[data-el="hud"]')!;
+  const mastEl = el.querySelector<HTMLElement>('[data-el="mast"]')!;
   const scoreEl = el.querySelector<HTMLElement>('[data-el="score"]')!;
   const clockEl = el.querySelector<HTMLElement>('[data-el="clock"]')!;
-  const phaseEl = el.querySelector<HTMLElement>('[data-el="phase"]')!;
   const feedEl = el.querySelector<HTMLElement>('[data-el="feed"]')!;
-  const pauseBtn = el.querySelector<HTMLButtonElement>('[data-el="pause"]')!;
+  const feedLbl = el.querySelector<HTMLElement>('[data-el="feedlbl"]')!;
+  const printBtn = el.querySelector<HTMLButtonElement>('[data-el="print"]')!;
 
   const state: ScorebandState = {
     homeScore: 0,
@@ -78,15 +90,11 @@ export function createScoreband(fixture: Fixture): Scoreband {
     phase: 'PRE',
     feed: 'replay',
   };
-  let faith = false;
 
   function paint(): void {
     scoreEl.textContent = `${state.homeScore}–${state.awayScore}`;
-    clockEl.textContent = state.minute != null ? `${state.minute}'` : '·';
-    // faith speaks over the phase — the stakes, not the clock label
-    phaseEl.textContent = faith ? 'Cheers count double' : PHASE_LABEL[state.phase];
-    phaseEl.classList.toggle('faith', faith);
-    feedEl.textContent = FEED_LABEL[state.feed];
+    clockEl.textContent = clockText(state);
+    feedLbl.textContent = FEED_LABEL[state.feed];
     feedEl.setAttribute('data-state', state.feed);
   }
   paint();
@@ -97,16 +105,18 @@ export function createScoreband(fixture: Fixture): Scoreband {
       Object.assign(state, s);
       paint();
     },
-    setFaith(on) {
-      faith = on;
-      paint();
+    setHud(on) {
+      el.setAttribute('data-hud', on ? '1' : '0');
+      // a11y: the hidden group is display:none via CSS; nothing else to manage
+      hudEl.setAttribute('aria-hidden', on ? 'false' : 'true');
+      mastEl.setAttribute('aria-hidden', on ? 'true' : 'false');
     },
     onPause(cb) {
-      pauseBtn.addEventListener('click', cb);
+      printBtn.addEventListener('click', cb);
     },
     setPosed(posed) {
-      pauseBtn.setAttribute('data-posed', posed ? '1' : '0');
-      pauseBtn.textContent = posed ? 'Live' : 'Pose';
+      printBtn.setAttribute('data-posed', posed ? '1' : '0');
+      printBtn.textContent = posed ? 'LIVE' : 'PRINT';
     },
   };
 }
