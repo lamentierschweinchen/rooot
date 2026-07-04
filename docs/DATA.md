@@ -27,6 +27,12 @@ pending key) is *garnish*: subtle, labeled, and the product never blinks if it d
   `/api/odds/stream` (SSE) · `/api/scores/snapshot/{fixtureId}` · `/api/scores/stream`
   (SSE) · validation: `/api/odds/validation`, `/api/scores/stat-validation`,
   `/api/fixtures/validation` (Merkle proofs — the provenance differentiator).
+  **EXERCISED (Jul 4): GET odds/validation?messageId&ts → 200 with
+  {odds, summary{updateStats, oddsSubTreeRoot}, subTreeProof, mainTreeProof}
+  — two-level branch to the on-chain root. Specimen (the tick after Messi's
+  28' goal, ARG 95.4%): fixtures/provenance/messi-goal-tick-proof.json.
+  Relic txlineRefs get real anchors from this path; root-reconstruction +
+  on-chain comparison = submission-week depth.**
 - **Odds SSE event fields (observed live):** `FixtureId, MessageId, Ts, Bookmaker,
   BookmakerId, SuperOddsType, GameState, InRunning, MarketParameters, MarketPeriod,
   PriceNames, Prices, Pct` — `Pct` is the StablePrice probability vector; filter by
