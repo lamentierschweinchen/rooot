@@ -99,11 +99,25 @@ export function createScoreband(fixture: Fixture): Scoreband {
   }
   paint();
 
+  // the house ball turns when the score turns — one stepped revolution, no smear
+  let spinTimer = 0;
+  function goalSpin(): void {
+    el.classList.remove('goal-spin');
+    void el.offsetWidth; // restart the stepped animation on consecutive goals
+    el.classList.add('goal-spin');
+    window.clearTimeout(spinTimer);
+    spinTimer = window.setTimeout(() => el.classList.remove('goal-spin'), 1300);
+  }
+
   return {
     el,
     set(s) {
+      const scored =
+        (s.homeScore != null && s.homeScore > state.homeScore) ||
+        (s.awayScore != null && s.awayScore > state.awayScore);
       Object.assign(state, s);
       paint();
+      if (scored) goalSpin();
     },
     setHud(on) {
       el.setAttribute('data-hud', on ? '1' : '0');

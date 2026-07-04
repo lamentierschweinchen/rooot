@@ -138,6 +138,23 @@
 .rt-sb-word.small {
   font-size: 18px;
 }
+/* GOOOL: the house ball turns one hard-stepped revolution when the score turns */
+.rt-scoreband.goal-spin .rt-popball {
+  animation: rt-ball-rev 1200ms steps(10, end);
+}
+@keyframes rt-ball-rev {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rt-scoreband.goal-spin .rt-popball {
+    animation: none;
+  }
+}
+.rt-page[data-reduced] .rt-scoreband.goal-spin .rt-popball {
+  animation: none;
+}
 
 /* ═══ SCOREBAND — the masthead that becomes a HUD ═══════════════════════ */
 .rt-scoreband {
