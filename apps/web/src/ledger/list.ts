@@ -99,10 +99,11 @@ export function createLedgerList(opts: LedgerListOptions): LedgerList {
       typeof window.matchMedia === 'function' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
-  // the empty ledger SPEAKS (BRIEF-PRINT-SOUL §5): "THE STORY PRINTS HERE" + kickoff.
+  // COPY LAW (owner, Jul 4): show, don't tell. The empty ledger states the one
+  // fact it has — kickoff — or stays quiet. No narration about itself.
   const emptyLine = opts.kickoffLabel
-    ? `The story prints here<span class="ko"> — kick-off ${escapeHtml(opts.kickoffLabel)}</span>`
-    : 'The story prints here';
+    ? `Kick-off <span class="ko">${escapeHtml(opts.kickoffLabel)}</span>`
+    : '';
 
   const root = document.createElement('section');
   root.className = 'rt-ledger';

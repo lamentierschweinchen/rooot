@@ -23,18 +23,20 @@ export interface Interstitial {
 export function createInterstitial(fixture: Fixture): Interstitial {
   const el = document.createElement('div');
   el.className = 'rt-root-overlay';
-  // the page SPEAKS FIRST (BRIEF-PRINT-SOUL §5 voice bank, verbatim). Anybody shouts
-  // the stakes; Doto sets the fine print. Stadium plain-speak, crypto backstage.
+  // COPY LAW (owner, Jul 4): show, don't tell — no slogans, no hype. The door
+  // states the facts (fixture, kickoff) and offers the two ends; the choice
+  // explains itself. The experiential-design chapter owns the voice from here;
+  // this is the quiet interim. (The old shouted headline is condemned.)
   el.innerHTML = `
     <div class="rt-root-head">
-      <div class="rt-root-title">Pick an end.<br>Lose the match, win the stands.</div>
-      <div class="rt-root-sub">Root a stand for the 90 · cheer all match · call rarely</div>
+      <div class="rt-root-title">${escapeHtml(fixture.home.name)} — ${escapeHtml(fixture.away.name)}</div>
+      <div class="rt-root-sub">${kickoffTimeLabel(fixture.kickoffISO)}</div>
     </div>
     <div class="rt-root-ends">
       ${endPanel('home', fixture.home.code, fixture.home.name, fixture.home.flag)}
       ${endPanel('away', fixture.away.code, fixture.away.name, fixture.away.flag)}
     </div>
-    <div class="rt-root-neutral">Neutral? Adopt an end — you're in the stands either way.</div>`;
+    <div class="rt-root-neutral">One end per fan · you can switch</div>`;
 
   let pickCb: ((side: Side) => void) | null = null;
 
@@ -67,6 +69,16 @@ function endPanel(side: Side, code: string, name: string, flag: string): string 
       <span class="name">${escapeHtml(name)}</span>
       <span class="adopt">Root ${escapeHtml(code)}</span>
     </button>`;
+}
+
+/** viewer-local kickoff time — a HUD tells you when to be there in YOUR clock
+ * (memento captions are the opposite: fixture-fact UTC; see stage formatDate). */
+function kickoffTimeLabel(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `Kick-off ${hh}:${mm}`;
 }
 
 function escapeHtml(s: string): string {
