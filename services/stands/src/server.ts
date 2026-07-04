@@ -45,16 +45,82 @@ function broadcastToMatch(matchId: string, msg: ServerMsg | FeedMsg): void {
   for (const [ws, state] of conns) {
     if (state.matchId === matchId && ws.readyState === WebSocket.OPEN) ws.send(payload);
   }
-  if (msg.type === 'feedState') lastFeedState.set(matchId, msg); // see handleHello: replay-on-join
+  rememberForJoin(matchId, msg); // snapshot the match state for mid-match joiners
 }
 
 /**
- * feedState is edge-triggered (onFeedState fires on TRANSITIONS — task spec),
- * so a client that connects between transitions would otherwise never learn
- * current feed health. Cache the latest per match and replay it to anyone
- * who hellos in after the fact.
+ * MATCH SNAPSHOT for mid-match joins (caught live at CAN–MAR, Jul 4: a fan
+ * loading 20' in saw "KICK OFF SOON" and a still tide — status/score are
+ * edge-triggered on the wire, so between events a fresh socket learns
+ * nothing until the NEXT change, which can be many minutes). We cache the
+ * last of each state-bearing message per match and replay them on join so
+ * the page shows the TRUE live state instantly. Odds/score/status are single
+ * latest-wins; ledger keeps a bounded recent tail so the story isn't blank.
+ * Everything replayed is a REAL message the wire actually sent — no
+ * fabrication, just "catch you up to now."
  */
+interface JoinSnapshot {
+  feedState?: Extract<FeedMsg, { type: 'feedState' }>;
+  odds?: Extract<FeedMsg, { type: 'odds' }>;
+  score?: Extract<FeedMsg, { type: 'score' }>;
+  status?: Extract<FeedMsg, { type: 'status' }>;
+  fixtureInfo?: Extract<FeedMsg, { type: 'fixtureInfo' }>;
+  ledgerTail: Array<Extract<FeedMsg, { type: 'ledger' }>>;
+}
+const LEDGER_TAIL_MAX = 40;
+const joinSnapshots = new Map<string, JoinSnapshot>();
 const lastFeedState = new Map<string, Extract<FeedMsg, { type: 'feedState' }>>();
+
+function snapshotFor(matchId: string): JoinSnapshot {
+  let snap = joinSnapshots.get(matchId);
+  if (!snap) {
+    snap = { ledgerTail: [] };
+    joinSnapshots.set(matchId, snap);
+  }
+  return snap;
+}
+
+function rememberForJoin(matchId: string, msg: ServerMsg | FeedMsg): void {
+  switch (msg.type) {
+    case 'feedState':
+      lastFeedState.set(matchId, msg);
+      snapshotFor(matchId).feedState = msg;
+      break;
+    case 'odds':
+      snapshotFor(matchId).odds = msg;
+      break;
+    case 'score':
+      snapshotFor(matchId).score = msg;
+      break;
+    case 'status':
+      snapshotFor(matchId).status = msg;
+      break;
+    case 'fixtureInfo':
+      snapshotFor(matchId).fixtureInfo = msg;
+      break;
+    case 'ledger': {
+      const tail = snapshotFor(matchId).ledgerTail;
+      tail.push(msg);
+      if (tail.length > LEDGER_TAIL_MAX) tail.splice(0, tail.length - LEDGER_TAIL_MAX);
+      break;
+    }
+    default:
+      break; // stands/room/callReceipt are live-only, not part of the join catch-up
+  }
+}
+
+/** Replay the cached match state to a freshly-seated socket (order: identity →
+ * feed health → status/score → the tide → recent story). Only sends what exists. */
+function replaySnapshot(ws: WebSocket, matchId: string): void {
+  const snap = joinSnapshots.get(matchId);
+  if (!snap) return;
+  if (snap.fixtureInfo) send(ws, snap.fixtureInfo);
+  if (snap.feedState) send(ws, snap.feedState);
+  if (snap.status) send(ws, snap.status);
+  if (snap.score) send(ws, snap.score);
+  if (snap.odds) send(ws, snap.odds);
+  for (const l of snap.ledgerTail) send(ws, l);
+}
 
 const registry = new MatchRegistry((matchId, msg) => broadcastToMatch(matchId, msg));
 
@@ -244,8 +310,9 @@ export function createStandsServer() {
       const mid = url.searchParams.get('matchId');
       if (mid) {
         state.matchId = mid;
-        const last = lastFeedState.get(mid);
-        if (last && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(last));
+        // catch a mid-match joiner up to the live state immediately (phase,
+        // score, tide, recent story) — not just feed health.
+        replaySnapshot(ws, mid);
       }
     } catch {
       // unparseable URL — stay unseated; hello can still seat this conn

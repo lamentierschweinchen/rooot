@@ -283,6 +283,46 @@ export function startTxLineIngest(opts: {
     signal: controller.signal,
   });
 
+  // STARTUP SEED (caught live at CAN–MAR, Jul 4): the streams are edge-
+  // triggered — after a (re)start mid-match, a fresh service has no cached
+  // status/score until the NEXT change, so joiners saw "KICK OFF SOON" and a
+  // still tide for minutes. Both /snapshot endpoints return arrays of the
+  // SAME envelope shapes as the streams, so we replay each element through
+  // the SAME dispatch — seeding the join snapshot with the true current
+  // state instantly. Best-effort: a failed snapshot never blocks the streams.
+  const seedSnapshot = async (): Promise<void> => {
+    for (const fid of opts.fixtureIds) {
+      for (const [name, path] of [
+        ['scores', `/api/scores/snapshot/${fid}`],
+        ['odds', `/api/odds/snapshot/${fid}`],
+      ] as const) {
+        try {
+          const res = await fetch(`${TXLINE_API}${path}`, { headers, signal: controller.signal });
+          if (!res.ok) continue;
+          const arr = (await res.json()) as unknown;
+          if (!Array.isArray(arr)) continue;
+          const streamOpts: StreamOptions = {
+            name,
+            url: '',
+            headers,
+            fixtureIds: opts.fixtureIds,
+            onFeedMsg: opts.onFeedMsg,
+            onFeedState: () => {},
+            signal: controller.signal,
+          };
+          for (const env of arr) {
+            const ts = typeof (env as { Ts?: unknown }).Ts === 'number' ? (env as { Ts: number }).Ts : Date.now();
+            dispatch(streamOpts, 'message', JSON.stringify(env), ts);
+          }
+          console.log(`[txline:seed] ${name} snapshot for ${fid}: ${arr.length} envelopes replayed`);
+        } catch {
+          // aborted or unreachable — the live streams still carry the match
+        }
+      }
+    }
+  };
+  void seedSnapshot();
+
   void Promise.allSettled([oddsPromise, scoresPromise]);
 
   return {
