@@ -47,6 +47,10 @@ export interface TextureSample {
   pressure: { home: number; away: number };
   /** real events this minute (shots/corners/frees/cards/etc — not spell chatter) */
   tempo: number;
+  /** market reprices this minute — the wire's own nerves (the Instrument's
+   * CHATTER: "8/min calm → 30/min at the storm"). odds-tick-rate, distinct
+   * from tempo (event-rate): the market's pulse vs the game's. */
+  chatter: number;
   /** true once the minute is closed; false for the still-accumulating live minute */
   settled: boolean;
 }

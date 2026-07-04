@@ -23,6 +23,7 @@ interface MinuteAcc {
   possSecs: { home: number; away: number };
   dangerWeighted: { home: number; away: number };
   tempo: number;
+  chatter: number;
   touched: boolean;
 }
 
@@ -37,7 +38,7 @@ export class TextureBuilder {
   private acc(minute: number): MinuteAcc {
     let a = this.minutes.get(minute);
     if (!a) {
-      a = { possSecs: { home: 0, away: 0 }, dangerWeighted: { home: 0, away: 0 }, tempo: 0, touched: false };
+      a = { possSecs: { home: 0, away: 0 }, dangerWeighted: { home: 0, away: 0 }, tempo: 0, chatter: 0, touched: false };
       this.minutes.set(minute, a);
       if (minute > this.maxMinute) this.maxMinute = minute;
     }
@@ -69,10 +70,23 @@ export class TextureBuilder {
     this.republish();
   }
 
+  /** feed one market reprice (odds tick) at its minute — the CHATTER signal.
+   * Odds ticks carry no clock; the caller supplies the current match minute
+   * (from the latest status/kickoff clock). Suspended ticks (empty Pct) are a
+   * held breath — the caller decides whether to count them; by default a real
+   * reprice is a non-suspended tick. */
+  pushRepriceAt(minute: number | null): void {
+    if (minute === null || !Number.isFinite(minute)) return;
+    const a = this.acc(minute);
+    a.touched = true;
+    a.chatter += 1;
+    this.republish();
+  }
+
   private sampleFor(minute: number, settled: boolean): TextureSample {
     const a = this.minutes.get(minute);
     if (!a || !a.touched) {
-      return { minute, possession: { home: 0, away: 0 }, pressure: { home: 0, away: 0 }, tempo: 0, settled };
+      return { minute, possession: { home: 0, away: 0 }, pressure: { home: 0, away: 0 }, tempo: 0, chatter: 0, settled };
     }
     const pTot = a.possSecs.home + a.possSecs.away;
     const dTot = a.dangerWeighted.home + a.dangerWeighted.away;
@@ -81,6 +95,7 @@ export class TextureBuilder {
       possession: pTot > 0 ? { home: a.possSecs.home / pTot, away: a.possSecs.away / pTot } : { home: 0, away: 0 },
       pressure: dTot > 0 ? { home: a.dangerWeighted.home / dTot, away: a.dangerWeighted.away / dTot } : { home: 0, away: 0 },
       tempo: a.tempo,
+      chatter: a.chatter,
       settled,
     };
   }
