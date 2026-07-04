@@ -60,19 +60,29 @@ stands — as a SYSTEM, never as a slogan.
   pre / the-dark / GOOOL / late-winner / full-time states.
 - **rooot.club/relic-dev** — the four relic printers on real match data.
 - **rooot.club/hello** — the concept pitch page (owner-shared, older voice).
-- Repo (you have it): design/SYSTEM.md (the locked visual law) ·
-  design/references/_chosen/ (14 canon images — the taste bar) ·
-  design/POP-LANGUAGE.md · docs/PRODUCT.md · docs/DATA.md (what data
-  honestly exists) · apps/web/src/ (stage, app shell, ledger, relics).
+- Repo (you have it): design/references/{tickets, cards, fabric, badges,
+  pennants, atmosphere, trophy-room} — **the owner's actual collected
+  references. THESE are the honored sources**, together with the direction
+  they point: bauhaus-meets-panini, colorful, collectible, cartoon-fun over
+  realistic. design/references/_chosen/ is one PRIOR EXPLORATION (GPT
+  comps) — useful reference, explicitly NOT canon; do not pixel-match it.
+  design/SYSTEM.md + POP-LANGUAGE.md (working design law — see below) ·
+  docs/PRODUCT.md · docs/DATA.md (what data honestly exists) ·
+  apps/web/src/ (stage, app shell, ledger, relics).
 
 ## The laws you inherit (locked; work inside them)
 
-- **The pop-print system**: Lichtenstein-subdued louds (poppy + kickoff-sky
-  lead; fizz-pink is an ACCENT only), Newsprint/Press-Black neutrals,
-  dot-fray frontiers (never torn-paper teeth), boxes-first grid, ONE
-  diagonal max, type voices (Anybody = display, Doto = data, Young Serif =
-  programme, Silkscreen = knit). Banned forever: hexagon soccer balls,
-  blur/streaks/distress, sticker-bomb, trophy imagery in frames,
+- **The pop-print system — working law, not scripture** (owner, Jul 4:
+  "there is no real canon here, this is exploratory"): the tokens
+  (Lichtenstein-subdued louds — poppy + kickoff-sky lead, fizz-pink accent
+  only — Newsprint/Press-Black neutrals), the type voices (Anybody =
+  display, Doto = data, Young Serif = programme, Silkscreen = knit), and
+  the grammar (dot-fray frontiers, boxes-first grid, ONE diagonal max) are
+  the current working system — build within it tonight, and where the REAL
+  references pull you elsewhere, propose the evolution loudly (the owner
+  gates). The specific rendered comps (SYSTEM.md examples, /system page,
+  _chosen/) bind nothing. Truly banned regardless: hexagon soccer balls,
+  blur/streaks/fake-distress, sticker-bomb, trophy imagery in frames,
   faces/likenesses/FIFA marks, emoji-as-UI.
 - **Honesty**: market numbers and crowd numbers NEVER blend; the pitch is
   the probability axis; counts are counts, never invented; swings are two
@@ -111,8 +121,9 @@ is the interface itself, working in code, live by morning.** Direction
 documents are for what code can't reach tonight, not instead of it.
 
 Order of work:
-1. **Critique first** (≤30 min): open rooot.club, /stage-dev, /relic-dev, the
-   canon folder. Write the ruthless critique to design/experiments/CRITIQUE.md
+1. **Critique first** (≤30 min): open rooot.club, /stage-dev, /relic-dev, and
+   steep in the REAL reference folders (tickets/cards/fabric/badges/pennants/
+   atmosphere/trophy-room). Write the ruthless critique to design/experiments/CRITIQUE.md
    — everything previous instances built is fair game; nothing is precious
    except the laws above.
 2. **Then design in code, in your lane** — composition, rhythm, hierarchy,
