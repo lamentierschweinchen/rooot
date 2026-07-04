@@ -119,8 +119,12 @@ function peekOdds(data: string): OddsPeek {
 
 function peekScoreFixtureId(data: string): number | null {
   try {
-    const d = JSON.parse(data) as { fixtureId?: number };
-    return d.fixtureId ?? null;
+    // the LIVE wire speaks UpperCamelCase (FixtureId — docs/DATA.md "THE LIVE
+    // WIRE"); the lowercase field belongs to the snapshot schema this script
+    // was first written against. Accept both — this exact miss shipped an
+    // odds-only bundle on re-cut night (zero story lines).
+    const d = JSON.parse(data) as { FixtureId?: number; fixtureId?: number };
+    return d.FixtureId ?? d.fixtureId ?? null;
   } catch {
     return null;
   }
