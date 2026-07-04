@@ -126,3 +126,42 @@ design session's; each line just states that the data exists to honor it)
 4. ET-market decision support: enumerate what other SuperOddsTypes the wire
    carries in-running for a knockout (evidence scan of the vault). (~1h)
 5. Whatever seam the design session names that the data can honestly feed.
+
+## RICHER STATS — the answer (evidence-scanned Jul 4, live matches)
+
+**We already have most of it, FREE, from TxLINE — just unsurfaced.** Per
+complete match, from the SAME scores stream we parse:
+- **Corners** — running totals per period (Score.{H1,H2,ET,Total}.Corners). Clean numbers.
+- **Cards** — Yellow/Red running totals per period (Score.*.YellowCards).
+- **Shots** — ~57–63 `shot` actions/match, each side-tagged + minute-stamped.
+  Special outcomes (Woodwork, …) arrive via action_amend. (Clean on-target
+  split is NOT reliably amended — see gaps.)
+- **Possession — DERIVABLE and honest**: the possession-spell stream
+  (possession / safe / attack / danger / high_danger, each side + clock)
+  gives time-share. PROVEN: ARG–CPV → ARG 65% possession (matches reality).
+  BONUS: **dangerous-possession share** (ARG 70%) — quality/territory, not
+  just quantity. Richer than a flat % and on-brand (data-as-experience).
+- **Free kicks, throw-ins, goal kicks** — countable from actions.
+- **Goals** — scorer names (rosters), GoalType (header/own/…).
+
+**THE OPAQUE WIN: the `Stats` block.** Every scores envelope carries a
+`Stats` map — 64 distinct keys, 19 go non-zero per match — of numeric
+stat-key → value. The OpenAPI models it as a free-form `Map_ScoreStatKey`
+(keys NOT enumerated), so we can't decode "7008"=4 etc. without TxODDS's
+stat-key catalog. This almost certainly holds shots-on-target, offsides,
+fouls, possession% pre-computed. **ACTION: one email to TxODDS for the
+ScoreStatKey legend — free, they're the sponsor, and it's a strong
+API-feedback-bank item ("publish the stat-key catalog / add it to the IDL").**
+
+**GENUINELY MISSING from TxLINE** (would need external): passes / pass
+accuracy, clean shots-on-target count, xG, formations, player-level stats.
+
+**External APIs — verdict: DON'T PAY YET.** API-Football FREE tier is DEAD
+(live-probed: "Free plans do not have access to this season" for WC2026).
+Its PAID tier (fixtures/statistics: shots/possession%/passes/pass%/fouls/
+offsides, ~$19–39/mo) would hand us the pre-computed sheet incl. passes —
+the one thing TxLINE lacks. But TxLINE already covers the fan-legible core
+(possession, territory, shots, corners, cards) for free and IN OUR PIPELINE.
+Recommendation: surface the free TxLINE stats first; email for the Stats
+catalog; only buy API-Football paid if passes/pass-accuracy prove essential
+to the design AND the decoded Stats block doesn't contain them.
