@@ -80,6 +80,18 @@ instrument (redundant with the meter) · pop-ball except as brand mark.
 Ratio today: ~fifteen live numbers carried by tens of thousands of marks.
 That ratio is the diagnosis.
 
+## THE PRIME REFERENCE (owner-named): AI Reach / the Large Labor Model
+
+largelabormodel.com — the owner's own work (local: `/Users/ls/Documents/AI
+Reach/ai-reach/`, incl. `docs/hero-2041.png`, the `mirror/` interactive, and
+`design/Revisions/mirror-albers-wireframes.html`). Why it is the standard,
+as observable fact: the hero is THIRTEEN RECTANGLES and nothing else — each
+one a territory of work, its AREA the real worker count, its color its
+identity, its label the name + two numbers. Zero texture, zero chrome; every
+unit of ink maps to real people; it passes the delete test at 100% while
+being bold, colorful, and beautiful. The design session should open the live
+site and the local mirror pages before proposing anything.
+
 ## Mappings the data can support 1:1 (FACTS, not designs — form is the
 design session's; each line just states that the data exists to honor it)
 
