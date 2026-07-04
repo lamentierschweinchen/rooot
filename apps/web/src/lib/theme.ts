@@ -327,16 +327,38 @@ export const GEOMETRY = {
  * ===================================================================== */
 
 export const FRAY = {
-  /** fraction of the fray zone (0=solid core side, 1=working edge/seam side) at which coverage begins to decay */
-  frayStart: 0.15,
+  /**
+   * fraction of the fray zone (0=solid core side, 1=working edge/seam side) at which
+   * coverage begins to decay.
+   * PRINT-SOUL item 1 re-tune (old 0.15 → 0.12): with HALFTONE.cell fattened ~2.4×, the
+   * fray zone now spans FAR fewer cells. Starting the decay a touch earlier spreads it over
+   * more of them so the frontier stays a gradual printed tide, not a 2-cell picket fence.
+   */
+  frayStart: 0.12,
   /** dot placement-probability floor at the working edge (a few last outriders, not zero, so the frontier stays alive) */
   frayFloor: 0.04,
-  /** ease-out exponent on the coverage-decay curve (>1 = holds dense then falls away fast near the edge) */
-  frayCurve: 2.2,
-  /** surviving stray-dot MIN radius as a fraction of HALFTONE.cell (specks at the frontier; normal dot = HALFTONE.dotMax) */
-  strayDotMin: 0.12,
-  /** size-decay lags coverage-decay by this fraction of the zone (dots THIN before they SHRINK) */
-  sizeLag: 0.12,
+  /**
+   * ease-out exponent on the coverage-decay curve (>1 = holds dense then falls away fast).
+   * PRINT-SOUL item 1 re-tune (old 2.2 → 1.6): the fatter dots make a steep curve read as a
+   * HARD SLAB then an abrupt scatter (the r2 lesson). A gentler exponent thins the coverage
+   * more linearly across the coarse grid — the canon's gradual receding-ink hem.
+   */
+  frayCurve: 1.6,
+  /**
+   * surviving stray-dot MIN radius as a fraction of HALFTONE.cell (specks at the frontier;
+   * normal dot = HALFTONE.dotMax).
+   * PRINT-SOUL item 1 re-tune (old 0.12 → 0.16): a bigger cell makes 0.12 specks nearly
+   * invisible dust; 0.16 keeps the last outriders reading as small-but-present dots (canon
+   * outriders are specks you can still see), not sensor noise vanishing to nothing.
+   */
+  strayDotMin: 0.16,
+  /**
+   * size-decay lags coverage-decay by this fraction of the zone (dots THIN before they SHRINK).
+   * PRINT-SOUL item 1 re-tune (old 0.12 → 0.2): a longer lag keeps a run of full-size
+   * outriders at the leading edge before they shrink — at the coarse scale this is what
+   * separates "a field fraying" from "a field of specks" (the canon's few big leading dots).
+   */
+  sizeLag: 0.2,
   /** combined per-field coverage at/below which a cell counts as DRAW (near-zero density = the draw width) */
   collapseCoverage: 0.06,
   /** sub-cell offset (fraction of HALFTONE.cell) that lets two colours' stray dots interleave as DISCRETE dots, never blended */
@@ -352,18 +374,94 @@ export const FRAY = {
  * ===================================================================== */
 
 export const HALFTONE = {
-  /** dot cell size in px at 1× (coarse — reads as dots, ~the 66-duotone panel) */
-  cell: 7,
+  /**
+   * dot cell size in px at 1× (coarse — reads as dots, ~the 66-duotone panel).
+   * PRINT-SOUL item 1 — DOT SCALE (old 7 → 17, ~2.4×). At 7px the dots printed at ~3px on a
+   * dpr2 phone: they read as sensor NOISE / dithering — the exact "generated flat texture"
+   * the owner rejected. Canon benday dots are BIG, round, finger-touchable (Lichtenstein pop,
+   * ~8–14px equivalent at stage scale). 17px cells × dotMax give ~15px dots at the goal-core:
+   * fewer, fatter, rounder. Extents/fray law/honesty are UNTOUCHED — same edges, fatter ink.
+   * (Territory buffers are pre-baked & keyed by edge-y, so fewer dots also means CHEAPER bakes.)
+   */
+  cell: 17,
   /** min / max dot radius as a fraction of the cell (density = belief) */
   dotMin: 0.06,
-  dotMax: 0.46,
+  /**
+   * max dot radius as a fraction of the cell.
+   * PRINT-SOUL item 1 (old 0.46 → 0.5): at the goal-core, coverage=1 dots sit edge-to-edge on
+   * the offset screen (alternate rows shifted ½ cell), rims just KISSING — so the field reads
+   * dense/near-solid yet still shows the fine cream interstices between dots the canon has (and
+   * the pitch chalk reads THROUGH the field, as in stage-prematch-canonical). 0.54 was tried
+   * and overlapped into a solid slab that buried the penalty-box chalk — 0.5 is the canon line.
+   */
+  dotMax: 0.5,
   /** dot grid angle (deg) — the classic offset screen tilt */
   angleDeg: 15,
+  /**
+   * per-field dot-grid micro-rotation cap (deg), ± around angleDeg — PRINT-SOUL item 2 (INK,
+   * NOT FILL). Each halftone field's screen is rotated by a tiny seeded amount within ±this
+   * so no two fields (or a field and a relic panel) share a mathematically identical grid —
+   * the "hand-registered screen" tell. Never animated; baked once. Kept ≤0.4° so it reads as
+   * press character, not a visible tilt. (Consumed by ink.ts inkField grids.)
+   */
+  gridJitterDeg: 0.4,
+  /**
+   * per-dot radius jitter (± fraction) — PRINT-SOUL item 2. A seeded ±4% wobble on each dot's
+   * radius so the ink deposit is never uniform (real dots over-round / under-ink by a hair).
+   * Deterministic per cell; deposited at bake time; never a blur or a fade.
+   */
+  dotJitter: 0.04,
+  /**
+   * discrete edge-gain rim step — PRINT-SOUL item 2. On big flat fields the dot may print one
+   * discrete step fatter (ink gain at the rim) — a single quantised bump, NEVER a radial blur
+   * or alpha gradient. This is the fraction added to the radius when the gain step is on.
+   * Real-ref nudge (0.06 → 0.08): the OWNER'S real Panini/ticket benday shows MORE visible ink
+   * gain (dots over-round noticeably where ink pooled) than the GPT comps — a fatter, more
+   * present step reads as real letterpress/offset gain, still a single quantised bump.
+   */
+  rimGain: 0.08,
   /** deliberate CMYK misregistration offset, as a fraction of object width (0.3–0.8%) */
   misregister: 0.005,
   /** uniform paper grain opacity on grounds (subtle "printed on paper" tooth) */
   grain: 0.05,
 } as const;
+
+/* =========================================================================
+ * 6b · WEIGHT — the stroke-weight SCALE (PRINT-SOUL item 4, NEW token trio).
+ * Canon prints have a CONFIDENT weight hierarchy — fat frame keylines, medium panel
+ * rules, fine detail lines (~8:4:2 at card scale). The stage/relics previously used
+ * near-uniform thin strokes within 1–2px of each other: no hierarchy, no confidence,
+ * "generated". Every stroke in the stage layers + relic renderers now maps to ONE of
+ * these three tiers deliberately — orphan magic-number line widths are killed. The 50%
+ * seam stays THE unique thin line (GEOMETRY.seamWeight, a fraction of pitch HEIGHT) and
+ * GAINS meaning from being thinner than even `detail`. Values are fractions of the framed
+ * object's WIDTH; `weightPx(objectWidth)` resolves them with sane px floors so a tiny chip
+ * still shows all three. (frame mirrors GRID.keyline 2%; panel mirrors keylineInner 1%;
+ * detail is the new half-of-panel tier for chalk, meter cells, netting, glyph strokes.)
+ * ===================================================================== */
+
+export const WEIGHT = {
+  /** FAT — the object-defining keylines: outer frame, scoreboard band, card/stub border rules. ≈2% of width. */
+  frame: 0.02,
+  /** MEDIUM — panel/chip/cell keylines, ornament-rail dividers, band separators. ≈1% (half of frame). */
+  panel: 0.011,
+  /** FINE — chalk pitch lines, meter-cell strokes, goal-net mesh, pop-ball spokes, glyph outlines. ≈0.5% (half of panel). */
+  detail: 0.0055,
+} as const;
+export type WeightTier = keyof typeof WEIGHT;
+
+/**
+ * Resolve the three weight tiers to px for a given object width, with px floors so the
+ * hierarchy survives on a small chip (frame ≥ panel ≥ detail always holds). Consumed by
+ * every stage layer + relic renderer so no lane hand-picks a magic line width again.
+ */
+export function weightPx(objectWidthPx: number): { frame: number; panel: number; detail: number } {
+  const w = Number.isFinite(objectWidthPx) && objectWidthPx > 0 ? objectWidthPx : 0;
+  const frame = Math.max(2, w * WEIGHT.frame);
+  const panel = Math.max(1.5, Math.min(frame - 0.5, w * WEIGHT.panel));
+  const detail = Math.max(1, Math.min(panel - 0.25, w * WEIGHT.detail));
+  return { frame, panel, detail };
+}
 
 /* =========================================================================
  * 7 · MOTION SYSTEM
@@ -609,6 +707,7 @@ export const THEME = {
   geometry: GEOMETRY,
   fray: FRAY,
   halftone: HALFTONE,
+  weight: WEIGHT,
   motionMs: MOTION_MS,
   easing: EASING,
   steps: STEPS,

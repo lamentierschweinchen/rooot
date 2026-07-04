@@ -20,6 +20,7 @@ import type { PopTheme } from '../pop';
 import type { StageRect, PitchRect } from '../layout';
 import { rgba, clamp01 } from '../../lib/stage-math';
 import type { RGBTuple } from '../../lib/stage-math';
+import { inkStrokeRect, inkTooth } from '../../lib/ink';
 
 export interface RailInputs {
   /** eased shown probabilities (the same values driving the fronts — number matches picture) */
@@ -48,15 +49,18 @@ function drawPctChip(
   headerInk: RGBTuple,
   numberInk: RGBTuple,
 ): void {
-  const kw = Math.max(1, w * 0.03);
-  // chip body = Newsprint with a Press-Black keyline
+  // chip body = the warm printed paper (PRINT-SOUL item 3 — a chip face is a small sheet,
+  // not a flat hex) then a PANEL-weight Press-Black keyline (item 4).
   ctx.fillStyle = rgba(INK.newsprint, 1);
   ctx.fillRect(x, y, w, h);
+  inkTooth(ctx, { x, y, w, h });
 
-  // header cap — the team color (or terraceGrey for DRAW), label in Anybody
+  // header cap — the team color (or terraceGrey for DRAW), label in Anybody. The loud cap
+  // gets a whisper of tooth too so it prints on paper, not as a sterile swatch.
   const headH = h * 0.24;
   ctx.fillStyle = rgba(headerInk, 1);
   ctx.fillRect(x, y, w, headH);
+  inkTooth(ctx, { x, y, w, h: headH }, 0.05);
   ctx.fillStyle = rgba(luma(headerInk) > 150 ? INK.pressBlack : INK.newsprint, 1);
   ctx.font = fontDisplay(headH * 0.62, 800);
   setStretch(ctx, 108);
@@ -99,10 +103,8 @@ function drawPctChip(
     }
   }
 
-  // chip keyline last (crisp over everything)
-  ctx.strokeStyle = rgba(INK.pressBlack, 1);
-  ctx.lineWidth = kw;
-  ctx.strokeRect(x, y, w, h);
+  // chip keyline last (crisp over everything) — PANEL weight, a breathing pressed rule
+  inkStrokeRect(ctx, x, y, w, h, w, 'panel', INK.pressBlack, Math.round(pct * 100));
 }
 
 /** the ROAR ring-meter — off-center concentric rings pulsing outward with cheer rate. */
@@ -224,27 +226,25 @@ export function drawRail(
   drawPctChip(ctx, railX, y, railW, chipH, inp.awayCode, inp.pAway, inp.awayTheme.primary, inp.awayTheme.primary);
   y += chipH + gap * 1.6;
 
-  // ROAR meter cell
+  // ROAR meter cell — warm paper face + PANEL keyline
   const meterH = totalH * 0.14;
   ctx.save();
   ctx.fillStyle = rgba(INK.newsprint, 1);
   ctx.fillRect(railX, y, railW, meterH);
-  ctx.strokeStyle = rgba(INK.pressBlack, 1);
-  ctx.lineWidth = Math.max(1, railW * 0.03);
-  ctx.strokeRect(railX, y, railW, meterH);
+  inkTooth(ctx, { x: railX, y, w: railW, h: meterH });
+  inkStrokeRect(ctx, railX, y, railW, meterH, railW, 'panel', INK.pressBlack, 7);
   drawRoarMeter(ctx, railX + railW / 2, y + meterH * 0.5, Math.min(railW, meterH) * 0.36, inp.roar, inp.t, inp.reducedMotion);
   ctx.restore();
   y += meterH + gap;
 
-  // pop-ball cell
+  // pop-ball cell — warm paper face + PANEL keyline
   const ballH = Math.min(totalH * 0.1, bottom - y);
   if (ballH > 8) {
     ctx.save();
     ctx.fillStyle = rgba(INK.newsprint, 1);
     ctx.fillRect(railX, y, railW, ballH);
-    ctx.strokeStyle = rgba(INK.pressBlack, 1);
-    ctx.lineWidth = Math.max(1, railW * 0.03);
-    ctx.strokeRect(railX, y, railW, ballH);
+    inkTooth(ctx, { x: railX, y, w: railW, h: ballH });
+    inkStrokeRect(ctx, railX, y, railW, ballH, railW, 'panel', INK.pressBlack, 9);
     const rr = Math.min(railW, ballH) * 0.34;
     const rot = inp.reducedMotion ? 0 : Math.floor((inp.t * 4) % 10) * (Math.PI * 2 / 10); // stepped spin
     drawPopBall(ctx, railX + railW / 2, y + ballH / 2, rr, INK.poppy, INK.aztecaSun, rot);

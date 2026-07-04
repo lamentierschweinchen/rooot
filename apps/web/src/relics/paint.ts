@@ -23,6 +23,17 @@ import {
   FONT_URLS,
   COMPONENTS,
 } from '../lib/theme';
+// PRINT-SOUL: the shared print PHYSICS live in lib/ink.ts so the relics and the live stage
+// print the SAME dot / rule / sheet. A relic halftone and a stage territory are one benday.
+import {
+  inkField as sharedInkField,
+  inkDot as sharedInkDot,
+  inkLine as drawInkLine,
+  paperField as sharedPaperField,
+  inkTooth as sharedInkTooth,
+  inkStrokeRect as sharedInkStrokeRect,
+  tierPx as sharedTierPx,
+} from '../lib/ink';
 
 /* =========================================================================
  * COLOR — the law's hexes resolved to rgb once; never re-typed here.
@@ -324,24 +335,25 @@ export function paintFrame(
   paperBorder: RGB = INK.newsprint,
 ): FrameResult {
   const border = Math.max(2, Math.round(full.w * GRID.border));
-  const keyline = Math.max(2, Math.round(full.w * GRID.keyline));
+  const keyline = sharedTierPx(full.w, 'frame'); // the FAT frame tier (PRINT-SOUL item 4)
 
-  // cream border = the whole surface painted paper first
-  ctx.fillStyle = rgb(paperBorder);
-  ctx.fillRect(full.x, full.y, full.w, full.h);
+  // cream border = the whole surface painted as the WARM LIVING SHEET (item 3): vignette +
+  // real tooth + warm↔cool drift, so the border reads as a printed deckle, not a flat hex.
+  sharedPaperField(ctx, full, paperBorder, 7);
 
-  // the loud ground sits inside the border
+  // the loud ground sits inside the border — flat loud, then a whisper of tooth so even the
+  // saturated ground prints on paper (item 3). NEVER a vignette on the loud (the border owns
+  // the sheet warmth); the loud stays a clean saturated ink.
   const gx = full.x + border;
   const gy = full.y + border;
   const gw = full.w - border * 2;
   const gh = full.h - border * 2;
   ctx.fillStyle = rgb(ground);
   ctx.fillRect(gx, gy, gw, gh);
+  sharedInkTooth(ctx, { x: gx, y: gy, w: gw, h: gh }, 0.06);
 
-  // Press-Black keyline ringing the ground (drawn as a stroked rect on the seam)
-  ctx.strokeStyle = rgb(INK.pressBlack);
-  ctx.lineWidth = keyline;
-  ctx.strokeRect(gx + keyline / 2, gy + keyline / 2, gw - keyline, gh - keyline);
+  // Press-Black FRAME keyline ringing the ground — a breathing pressed rule (item 4, top tier)
+  sharedInkStrokeRect(ctx, gx, gy, gw, gh, full.w, 'frame', INK.pressBlack, 70);
 
   const inner: Rect = {
     x: gx + keyline,
@@ -352,67 +364,58 @@ export function paintFrame(
   return { ground: { x: gx, y: gy, w: gw, h: gh }, inner, border, keyline };
 }
 
-/** A keyline-boxed cell: cream fill (or given fill) + Press-Black stroke. */
+/**
+ * A keyline-boxed cell: fill + a BREATHING pressed Press-Black keyline (PRINT-SOUL item 2/4).
+ * `strokeW` is the explicit width (callers already tier it via `keylinePx`/proportions); the
+ * stroke is drawn as four breathing `inkLine`s so a stat chip / panel reads as a printed box,
+ * not a sterile vector rect. A `seed` keeps a given box's breathing stable per render.
+ */
 export function keyBox(
   ctx: CanvasRenderingContext2D,
   r: Rect,
   fill: RGB,
   strokeW: number,
   stroke: RGB = INK.pressBlack,
+  seed = 0,
 ): void {
   ctx.fillStyle = rgb(fill);
   ctx.fillRect(r.x, r.y, r.w, r.h);
-  ctx.strokeStyle = rgb(stroke);
-  ctx.lineWidth = strokeW;
-  ctx.strokeRect(r.x + strokeW / 2, r.y + strokeW / 2, r.w - strokeW, r.h - strokeW);
+  // draw the four sides as breathing pressed rules at the given width (weight already chosen
+  // by the caller's proportion math; ink.ts adds the ±0.5px stepped breathing + square joins)
+  const o = strokeW / 2;
+  const l = r.x + o;
+  const t = r.y + o;
+  const rr = r.x + r.w - o;
+  const b = r.y + r.h - o;
+  drawInkLine(ctx, l, t, rr, t, strokeW, stroke, seed + 1);
+  drawInkLine(ctx, rr, t, rr, b, strokeW, stroke, seed + 2);
+  drawInkLine(ctx, rr, b, l, b, strokeW, stroke, seed + 3);
+  drawInkLine(ctx, l, b, l, t, strokeW, stroke, seed + 4);
 }
 
 /* =========================================================================
- * PAPER TOOTH — a faint even speckle over a ground (§5 offset grain).
- * A whisper of "printed on paper", never distress. Multiply-blended.
+ * PAPER — the "printed on paper" surface (§5 / PRINT-SOUL item 3). The local grain
+ * baker is retired: the tooth + the warm living sheet now come from lib/ink.ts so a
+ * relic, the stage pitch, and the page are ONE sheet family. Never distress.
  * ===================================================================== */
 
-let grainTile: HTMLCanvasElement | null = null;
-
-function bakeGrain(size = 160, seed = 7): HTMLCanvasElement {
-  const rnd = mulberry32(seed);
-  const c = makeCanvas(size, size);
-  const g = ctxOf(c);
-  const img = g.createImageData(size, size);
-  for (let i = 0; i < size * size; i++) {
-    const v = rnd();
-    const idx = i * 4;
-    const grey = 200 + Math.round(v * 55);
-    const speck = v < 0.13 ? Math.round(((0.13 - v) / 0.13) * 80) : 0;
-    img.data[idx] = grey;
-    img.data[idx + 1] = grey;
-    img.data[idx + 2] = grey;
-    img.data[idx + 3] = speck;
-  }
-  g.putImageData(img, 0, 0);
-  return c;
+/**
+ * Deposit the paper tooth over a rect (PRINT-SOUL item 3). DELEGATES to the shared
+ * `inkTooth` in lib/ink.ts so a relic's tooth matches the stage's and the page's — the whole
+ * app is ONE sheet. Default alpha ~3× the old flat HALFTONE.grain (canon-effective; the old
+ * 0.05 was invisible). Clean press language, never aging.
+ */
+export function paperTooth(ctx: CanvasRenderingContext2D, r: Rect, alpha: number = HALFTONE.grain * 3): void {
+  sharedInkTooth(ctx, r, alpha);
 }
 
-/** Deposit the paper tooth over a rect (multiply, low alpha). Clean press, not aging. */
-export function paperTooth(ctx: CanvasRenderingContext2D, r: Rect, alpha: number = HALFTONE.grain): void {
-  if (!grainTile) grainTile = bakeGrain();
-  const prev = ctx.globalCompositeOperation;
-  const prevA = ctx.globalAlpha;
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(r.x, r.y, r.w, r.h);
-  ctx.clip();
-  ctx.globalCompositeOperation = 'multiply';
-  ctx.globalAlpha = alpha;
-  const tile = grainTile;
-  for (let yy = r.y; yy < r.y + r.h; yy += tile.height) {
-    for (let xx = r.x; xx < r.x + r.w; xx += tile.width) {
-      ctx.drawImage(tile, xx, yy);
-    }
-  }
-  ctx.restore();
-  ctx.globalCompositeOperation = prev;
-  ctx.globalAlpha = prevA;
+/**
+ * Fill a rect with the warm LIVING PAPER (PRINT-SOUL item 3) — corner vignette + real tooth +
+ * a ±2 RGB warm↔cool drift, baked once per size. For relic grounds / large cream panels that
+ * want the full sheet (not just a tooth). Same family as the page + the stage pitch.
+ */
+export function paperGround(ctx: CanvasRenderingContext2D, r: Rect, base: RGB = INK.newsprint, seed = 7): void {
+  sharedPaperField(ctx, r, base, seed);
 }
 
 /* =========================================================================
@@ -433,6 +436,12 @@ export interface HalftoneOpts {
  * Fill the current clip region with a halftone dot field of the given ink.
  * `coverageFn(px,py)` → 0..1 controls per-cell dot placement probability + size,
  * so callers can drive a skyline, a territory, or a flat panel through one path.
+ *
+ * PRINT-SOUL items 1+2: this now DELEGATES to the shared `inkField` in lib/ink.ts, so a relic
+ * halftone gets the fattened benday cell, the ±4% radius jitter, the discrete rim-gain, and
+ * the per-field micro-rotated screen — byte-identical to a stage territory's ink. The relic
+ * lane no longer owns a second, drifting copy of the benday. Extents/coverage are unchanged
+ * (the caller's coverageFn still owns where the ink is), so no data edge moves.
  */
 export function halftoneField(
   ctx: CanvasRenderingContext2D,
@@ -441,39 +450,12 @@ export function halftoneField(
   coverageFn: (px: number, py: number) => number,
   opts: HalftoneOpts = {},
 ): void {
-  const cell = opts.cell ?? HALFTONE.cell;
-  const dotMax = opts.dotMax ?? HALFTONE.dotMax;
-  const ang = ((opts.angleDeg ?? HALFTONE.angleDeg) * Math.PI) / 180;
-  const rnd = mulberry32(opts.seed ?? 1337);
-  ctx.fillStyle = rgb(ink);
-  const cos = Math.cos(ang);
-  const sin = Math.sin(ang);
-  // iterate an axis-aligned grid, then rotate each dot center around bounds center
-  const cx = bounds.x + bounds.w / 2;
-  const cy = bounds.y + bounds.h / 2;
-  const diag = Math.hypot(bounds.w, bounds.h);
-  const cols = Math.ceil(diag / cell) + 2;
-  const rows = Math.ceil(diag / cell) + 2;
-  for (let gy = -rows; gy <= rows; gy++) {
-    for (let gx = -cols; gx <= cols; gx++) {
-      const lx = gx * cell + (gy % 2 ? cell * 0.5 : 0);
-      const ly = gy * cell;
-      // rotate into place
-      const px = cx + lx * cos - ly * sin;
-      const py = cy + lx * sin + ly * cos;
-      if (px < bounds.x - cell || px > bounds.x + bounds.w + cell) continue;
-      if (py < bounds.y - cell || py > bounds.y + bounds.h + cell) continue;
-      const cov = coverageFn(px, py);
-      if (cov <= 0) continue;
-      // placement probability + size both track coverage (dropped = absent, kept = full ink)
-      if (rnd() > cov) continue;
-      const r = cell * dotMax * Math.sqrt(Math.min(1, cov));
-      if (r < 0.4) continue;
-      ctx.beginPath();
-      ctx.arc(px, py, r, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
+  sharedInkField(ctx, bounds, ink, coverageFn, {
+    cell: opts.cell ?? HALFTONE.cell,
+    angleDeg: opts.angleDeg ?? HALFTONE.angleDeg,
+    dotMax: opts.dotMax ?? HALFTONE.dotMax,
+    seed: opts.seed ?? 1337,
+  });
 }
 
 /* =========================================================================
@@ -532,9 +514,8 @@ export function skyline(ctx: CanvasRenderingContext2D, area: Rect, o: SkylineOpt
         if (rnd() > cov) continue;
         const rr = cell * HALFTONE.dotMax * (0.62 + 0.38 * Math.sqrt(cov));
         if (rr < 0.4) continue;
-        ctx.beginPath();
-        ctx.arc(px, py, rr, 0, Math.PI * 2);
-        ctx.fill();
+        // shared press character (PRINT-SOUL item 2) — the equalizer's dots are the same ink
+        sharedInkDot(ctx, px, py, rr, o.ink, (i * 131 + cyi) * cols + cxi, (o.seed ?? 4242) | 0);
       }
     }
   }

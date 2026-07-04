@@ -16,6 +16,7 @@ import type { PopTheme } from '../pop';
 import { rgba, clamp01 } from '../../lib/stage-math';
 import type { RGBTuple } from '../../lib/stage-math';
 import { drawFlagBlock } from './flags';
+import { inkStrokeRect } from '../../lib/ink';
 
 export interface ScoreboardInputs {
   homeCode: string;
@@ -51,12 +52,11 @@ export function drawScoreboard(
   const bw = stage.w - border * 2;
 
   ctx.save();
-  // the Press-Black band + keyline
+  // the Press-Black band + FRAME-weight keyline (PRINT-SOUL item 4 — the band is a top-tier
+  // object; its keyline is the fat frame weight, a breathing pressed rule).
   ctx.fillStyle = rgba(INK.pressBlack, 1);
   ctx.fillRect(x, y, bw, bandH);
-  ctx.strokeStyle = rgba(INK.pressBlack, 1);
-  ctx.lineWidth = Math.max(1, Math.round(w * GRID.keyline));
-  ctx.strokeRect(x, y, bw, bandH);
+  inkStrokeRect(ctx, x, y, bw, bandH, w, 'frame', INK.pressBlack, 20);
 
   const cx = x + bw / 2;
   const midY = y + bandH * 0.44;
@@ -130,9 +130,8 @@ function drawTricodeChip(
     ctx.save();
     ctx.fillStyle = rgba(theme.primary, 1);
     ctx.fillRect(chipX, chipY, tw + px * 2, fs * 1.24);
-    ctx.strokeStyle = rgba(INK.newsprint, 0.9);
-    ctx.lineWidth = Math.max(1, fs * 0.05);
-    ctx.strokeRect(chipX, chipY, tw + px * 2, fs * 1.24);
+    // team scoreChip keyline = PANEL weight (cream on the dark band) — a mid-tier rule
+    inkStrokeRect(ctx, chipX, chipY, tw + px * 2, fs * 1.24, tw + px * 2, 'panel', INK.newsprint);
     // type on the chip: black or cream by the chip's luminance (legibility gate)
     ctx.fillStyle = rgba(luma(theme.primary) > 150 ? INK.pressBlack : INK.newsprint, 1);
     ctx.fillText(code, ex, cy);

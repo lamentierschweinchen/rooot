@@ -17,6 +17,7 @@ import { INK, inkOn, fontData } from '../pop';
 import type { StageRect } from '../layout';
 import { rgba } from '../../lib/stage-math';
 import type { RGBTuple } from '../../lib/stage-math';
+import { inkStrokeRect, inkTooth, tierPx } from '../../lib/ink';
 
 export interface PaperArgs {
   ground: RGBTuple; // the loud fixture ground (fills around the pitch)
@@ -31,6 +32,10 @@ export interface PaperArgs {
 export function drawGround(ctx: CanvasRenderingContext2D, stage: StageRect, ground: RGBTuple): void {
   ctx.fillStyle = rgba(ground, 1);
   ctx.fillRect(stage.x, stage.y, stage.w, stage.h);
+  // PRINT-SOUL item 3: even the loud posed ground is INK ON PAPER — a whisper of tooth over
+  // the flat loud so it reads as a printed poster stock, not a sterile vector fill. Static,
+  // ≤ a whisper of alpha, no vignette on the loud (the border carries the sheet warmth).
+  inkTooth(ctx, { x: stage.x, y: stage.y, w: stage.w, h: stage.h }, 0.055);
 }
 
 /**
@@ -40,20 +45,17 @@ export function drawGround(ctx: CanvasRenderingContext2D, stage: StageRect, grou
  */
 export function drawFrame(ctx: CanvasRenderingContext2D, stage: StageRect): void {
   const w = stage.w;
-  const outer = Math.max(1, Math.round(w * GRID.keyline)); // ~2%
+  const outer = tierPx(w, 'frame'); // the FAT frame tier (PRINT-SOUL item 4) ≈2%
   const inset = Math.max(2, Math.round(w * GRID.border * 0.5)); // half-border inset for the keyline
 
-  // a thin cream margin just inside the very edge, then the Press-Black keyline
-  ctx.save();
-  // Press-Black keyline rectangle around the composed stage
-  ctx.strokeStyle = rgba(INK.pressBlack, 1);
-  ctx.lineWidth = outer;
-  const kx = stage.x + inset + outer / 2;
-  const ky = stage.y + inset + outer / 2;
-  const kw = stage.w - (inset + outer / 2) * 2;
-  const kh = stage.h - (inset + outer / 2) * 2;
-  ctx.strokeRect(kx, ky, kw, kh);
-  ctx.restore();
+  // Press-Black FRAME keyline around the composed stage — a breathing pressed rule (the
+  // object-defining line, top of the weight hierarchy).
+  const kx = stage.x + inset;
+  const ky = stage.y + inset;
+  const kw = stage.w - inset * 2;
+  const kh = stage.h - inset * 2;
+  inkStrokeRect(ctx, kx, ky, kw, kh, w, 'frame', INK.pressBlack, 60);
+  void outer;
 }
 
 /**
@@ -74,12 +76,12 @@ export function drawCaption(
   const ww = stage.w - border * 2;
 
   ctx.save();
-  // the strip is a Newsprint band with a Press-Black keyline (a caption plate on the ground)
+  // the strip is a Newsprint band (warm printed plate — item 3 tooth) with a PANEL-weight
+  // Press-Black keyline (item 4 — a caption plate on the ground).
   ctx.fillStyle = rgba(INK.newsprint, 1);
   ctx.fillRect(x, y, ww, stripH);
-  ctx.strokeStyle = rgba(INK.pressBlack, 1);
-  ctx.lineWidth = Math.max(1, Math.round(w * GRID.keylineInner));
-  ctx.strokeRect(x, y, ww, stripH);
+  inkTooth(ctx, { x, y, w: ww, h: stripH });
+  inkStrokeRect(ctx, x, y, ww, stripH, w, 'panel', INK.pressBlack, 5);
 
   const fs = Math.max(9, stripH * 0.46);
   const cy = y + stripH / 2;
@@ -95,10 +97,11 @@ export function drawCaption(
   ctx.fillStyle = rgba(INK.pressBlack, 0.7);
   ctx.fillText(serial, x + ww - pad, cy);
 
-  // a thin Press-Black divider between caption and serial (a plate seam)
+  // a thin faint Press-Black divider between caption and serial (a plate seam — a texture
+  // hairline below the DETAIL tier, kept faint on purpose so it reads as a seam not a rule)
   const divX = x + ww - pad - serialW - pad * 0.8;
   ctx.strokeStyle = rgba(INK.pressBlack, 0.3);
-  ctx.lineWidth = 1;
+  ctx.lineWidth = Math.max(1, tierPx(w, 'detail') * 0.55);
   ctx.beginPath();
   ctx.moveTo(divX, y + stripH * 0.22);
   ctx.lineTo(divX, y + stripH * 0.78);

@@ -13,10 +13,11 @@
  * the seam + center circle ON TOP so they stay crisp above the dots.
  */
 
-import { GRID, GEOMETRY } from '../../lib/theme';
+import { GEOMETRY } from '../../lib/theme';
 import { INK } from '../pop';
 import type { PitchRect, StageRect } from '../layout';
 import { rgba } from '../../lib/stage-math';
+import { paperField, inkLine, tierPx } from '../../lib/ink';
 
 const GOAL_W = 0.34; // goal-mouth width as a fraction of pitch width
 
@@ -26,17 +27,26 @@ export function drawPitchPaper(
   _stage: StageRect,
   pitch: PitchRect,
 ): void {
-  // Newsprint paper bed
-  ctx.fillStyle = rgba(INK.newsprint, 1);
-  ctx.fillRect(pitch.x, pitch.y, pitch.w, pitch.h);
+  // PAPER, NOT HEX (PRINT-SOUL item 3): the pitch bed is the WARM LIVING SHEET — corner
+  // vignette + real tooth + a ±2 RGB warm↔cool drift, baked once per size — not one flat
+  // Newsprint hex. Same paper family as the page (app/paper-field.ts) so the whole surface
+  // reads as ONE sheet. seed 11 = the pitch's own bake (distinct from posed ground seed 7).
+  paperField(ctx, { x: pitch.x, y: pitch.y, w: pitch.w, h: pitch.h }, INK.newsprint, 11);
 
-  // the box geometry UNDER the halftone (Press-Black chalk, full ink, thin)
+  // the box geometry UNDER the halftone (Press-Black chalk, full ink, DETAIL weight)
   drawChalkGeometry(ctx, pitch, 1);
 }
 
 /** re-strike the seam + center circle + spots ON TOP of the dots so they read crisp. */
 export function drawChalkOver(ctx: CanvasRenderingContext2D, pitch: PitchRect): void {
-  const lw = Math.max(1, pitch.w * GRID.keylineInner * 1.4);
+  // chalk = DETAIL weight (PRINT-SOUL item 4): the fine tier, sitting below panel/frame.
+  const lw = tierPx(pitch.w, 'detail');
+
+  // PRINT-SOUL: with the benday fattened + densified, the penalty/six-yard boxes laid UNDER
+  // the field get buried at the goal-core. Re-strike them OVER the dots at a slightly reduced
+  // alpha so the box reads clearly (as in stage-prematch-canonical, where the box shows
+  // through the halftone) while still feeling embedded in the print. HONESTY: geometry only.
+  drawBoxesAndArcs(ctx, pitch, 0.82, lw);
 
   // center circle + spot (over the dots)
   ctx.save();
@@ -52,39 +62,48 @@ export function drawChalkOver(ctx: CanvasRenderingContext2D, pitch: PitchRect): 
   ctx.fill();
   ctx.restore();
 
-  // THE SEAM — the constant thin Press-Black 50% line. Weight per GEOMETRY.seamWeight of
-  // pitch height. It rides inside the draw collapse and NEVER moves. Struck last so it is
-  // always the crispest line on the pitch.
+  // THE SEAM — THE unique thin line (PRINT-SOUL item 4): the constant Press-Black 50% rule,
+  // weight per GEOMETRY.seamWeight of pitch HEIGHT — deliberately THINNER than even `detail`,
+  // which is what gives its thinness meaning now that a real weight hierarchy surrounds it.
+  // It rides inside the draw collapse and NEVER moves; drawn as a breathing pressed rule but
+  // its centerline is exactly at 50% (honesty). Struck last so it is always the crispest line.
   const seamY = pitch.y + pitch.h * GEOMETRY.halfwaySeam;
   const seamW = Math.max(1.5, pitch.h * GEOMETRY.seamWeight);
-  ctx.save();
-  ctx.strokeStyle = rgba(INK.pressBlack, 1);
-  ctx.lineWidth = seamW;
-  ctx.beginPath();
-  ctx.moveTo(pitch.x, seamY);
-  ctx.lineTo(pitch.x + pitch.w, seamY);
-  ctx.stroke();
-  ctx.restore();
+  inkLine(ctx, pitch.x, seamY, pitch.x + pitch.w, seamY, seamW, INK.pressBlack, 42);
 }
 
 /** Press-Black chalk: touchlines, both penalty + six-yard boxes, penalty spots, corner arcs. */
 function drawChalkGeometry(ctx: CanvasRenderingContext2D, pitch: PitchRect, alpha: number): void {
-  const lw = Math.max(1, pitch.w * GRID.keylineInner * 1.4);
+  // chalk = DETAIL weight (PRINT-SOUL item 4)
+  const lw = tierPx(pitch.w, 'detail');
   ctx.save();
   ctx.strokeStyle = rgba(INK.pressBlack, 0.9 * alpha);
   ctx.lineWidth = lw;
   ctx.lineCap = 'butt';
   ctx.lineJoin = 'miter';
 
-  // pitch rectangle (touchlines + goal lines)
+  // pitch rectangle (touchlines + goal lines) — DETAIL weight breathing keyline
   ctx.strokeRect(pitch.x, pitch.y, pitch.w, pitch.h);
 
+  drawBoxesAndArcs(ctx, pitch, alpha, lw);
+
+  ctx.restore();
+}
+
+/** the penalty + six-yard boxes, penalty spots, D-arcs, corner arcs. Shared so they can be
+ *  laid UNDER the dots (the printed-over texture) AND re-struck OVER them for legibility. */
+function drawBoxesAndArcs(ctx: CanvasRenderingContext2D, pitch: PitchRect, alpha: number, lw: number): void {
   const gw = pitch.w * GOAL_W;
   const gx0 = pitch.cx - gw / 2;
   const gx1 = pitch.cx + gw / 2;
   const boxDepth = pitch.h * 0.13;
   const sixDepth = pitch.h * 0.06;
   const boxHalfExtra = gw * 0.42;
+  ctx.save();
+  ctx.strokeStyle = rgba(INK.pressBlack, 0.9 * alpha);
+  ctx.lineWidth = lw;
+  ctx.lineCap = 'butt';
+  ctx.lineJoin = 'miter';
 
   for (const dir of [1, -1] as const) {
     const gy = dir === 1 ? pitch.homeGoalY : pitch.awayGoalY;
@@ -124,7 +143,6 @@ function drawChalkGeometry(ctx: CanvasRenderingContext2D, pitch: PitchRect, alph
       ctx.stroke();
     }
   }
-
   ctx.restore();
 }
 

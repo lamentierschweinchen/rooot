@@ -23,8 +23,9 @@ import { HALFTONE, FRAY, GEOMETRY } from '../../lib/theme';
 import { INK } from '../pop';
 import type { PopTheme } from '../pop';
 import type { PitchRect, MarketFront } from '../layout';
-import { rgba, clamp01, hash21, hash11, mixRgb } from '../../lib/stage-math';
+import { clamp01, hash21, hash11, mixRgb } from '../../lib/stage-math';
 import type { RGBTuple } from '../../lib/stage-math';
+import { inkDot, inkHash } from '../../lib/ink';
 
 export interface TerritoryArgs {
   pitch: PitchRect;
@@ -94,9 +95,25 @@ export class Territories {
     const ctx = c.getContext('2d')!;
     ctx.clearRect(0, 0, w, h);
 
+    // DOT SCALE (PRINT-SOUL item 1): HALFTONE.cell is now fat (~2.4× the old value), so the
+    // benday reads as Lichtenstein pop, not sensor dither — fewer, bigger, rounder dots, same
+    // extents. The per-dot PRESS CHARACTER (±4% radius jitter + discrete rim-gain) + the
+    // per-field micro-rotated SCREEN are the shared ink.ts law (item 2), so a stage field and
+    // a relic halftone are the same dot.
     const cell = HALFTONE.cell;
     const cols = Math.ceil(w / cell) + 2;
     const rows = Math.ceil(h / cell) + 2;
+    // per-field screen micro-rotation (±HALFTONE.gridJitterDeg) — the hand-registered screen.
+    // Seeded per side so the two fields never share an identical grid. Kept ≤0.4° so it reads
+    // as press character, not a visible tilt. Applied as a shear on the sample point below.
+    const seed = dir === 1 ? 131 : 617;
+    const screenRad =
+      ((HALFTONE.angleDeg * 0 + (inkHash(seed, seed * 1.3 + 5, 0) - 0.5) * 2 * HALFTONE.gridJitterDeg) * Math.PI) /
+      180;
+    const sCos = Math.cos(screenRad);
+    const sSin = Math.sin(screenRad);
+    const cxr = w / 2;
+    const cyr = h / 2;
     // Work in buffer-local coords (0..h, top=0).
     const goalLocal = goalY - pitch.y; // buffer y of this team's goal line
     const edgeLocal = edgeY - pitch.y; // buffer y of the working edge
@@ -108,15 +125,21 @@ export class Territories {
     // `along` is 0 at the goal, 1 at the working edge. We split into two decays layered:
     //  · a gentle whole-field density ramp (dense core → a bit sparser) for the tide feel;
     //  · the fray-zone speck collapse near the edge (frayFrom..1) for the working frontier.
-    const frayFrom = 0.42; // fray begins ~42% out (earlier than the raw token → gradual hem)
-    const salt = dir === 1 ? 17.13 : 91.77; // decorrelate the two fields' grids
-    const seed = dir === 1 ? 0 : 500;
+    // frayFrom widened for the coarse grid (PRINT-SOUL item 1 re-tune): at the fat cell the
+    // fray zone is only a handful of dot rows, so beginning the hem earlier spreads it over
+    // more of them — a gradual printed tide, not a 2-row picket fence (the r2 lesson).
+    const frayFrom = 0.36;
 
     for (let gy = 0; gy < rows; gy++) {
       for (let gx = 0; gx < cols; gx++) {
         // dot grid with the classic screen tilt: offset alternate rows a touch
-        const px = gx * cell + (gy % 2 ? cell * 0.5 : 0);
-        const py = gy * cell;
+        const gpx = gx * cell + (gy % 2 ? cell * 0.5 : 0);
+        const gpy = gy * cell;
+        // apply the tiny per-field screen rotation about the buffer center (baked once)
+        const rx = gpx - cxr;
+        const ry = gpy - cyr;
+        const px = cxr + rx * sCos - ry * sSin;
+        const py = cyr + rx * sSin + ry * sCos;
         if (px < -cell || px > w + cell || py < -cell || py > h + cell) continue;
         const along = clamp01(Math.abs(py - goalLocal) / fieldLen);
         if (along > 1.04) continue; // past the edge → cream (draw / opponent)
@@ -132,21 +155,27 @@ export class Territories {
         const cover = along <= frayFrom ? tide : coverageAt(frayT);
 
         // WELL-MIXED 2D hash per cell (kills the vertical streaking of a 1D-correlated hash)
-        const rnd = hash21(gx * 12.9898 + seed + gy * 4.1414, gy * 78.233 + salt + gx * 2.7182);
+        const rnd = hash21(gx * 12.9898 + seed + gy * 4.1414, gy * 78.233 + gx * 2.7182);
         if (rnd > cover) continue; // dropped dot = absent (never faded)
 
         const rFrac = sizeAt(frayT);
         // core dots are BIG (nearly fill the cell → solid field); strays shrink to specks
         const r = Math.max(0.5, rFrac * cell);
-        // sub-cell jitter ONLY on the fraying strays — core dots stay on-grid (solid screen)
-        const jAmt = frayT > 0.02 ? cell * frayT * 0.9 : 0;
-        const jx = jAmt ? (hash21(gx * 3.1 + seed, gy * 5.7) - 0.5) * jAmt : 0;
-        const jy = jAmt ? (hash21(gx * 7.7, gy * 9.3 + salt) - 0.5) * jAmt : 0;
-        const jit = frayT > 0.02 ? 0.82 + hash21(gx * 1.7 + seed, gy * 2.3) * 0.36 : 1;
-        ctx.fillStyle = rgba(color, 1);
-        ctx.beginPath();
-        ctx.arc(px + jx, py + jy, r * jit, 0, Math.PI * 2);
-        ctx.fill();
+        // sub-cell jitter: a small ALWAYS-ON base scatter (±12% cell) breaks the rigid offset
+        // grid so the dense core reads as an organically-packed printed screen, not a rigid
+        // herringbone/moiré (the canon's core dots are hand-registered, not lattice-perfect);
+        // PLUS the larger fraying scatter near the working edge. HONESTY: this is a TEXTURE
+        // jitter of individual dot positions within their own cell — it can't move the field
+        // EDGE, which is set by `along`/`fieldLen` (the coverage), not by any single dot.
+        const baseJ = cell * 0.12;
+        const frayJ = frayT > 0.02 ? cell * frayT * 0.85 : 0;
+        const jAmt = baseJ + frayJ;
+        const jx = (hash21(gx * 3.1 + seed, gy * 5.7) - 0.5) * jAmt;
+        const jy = (hash21(gx * 7.7, gy * 9.3 + seed) - 0.5) * jAmt;
+        // ink.ts inkDot brings the shared PRESS CHARACTER (±4% radius, discrete rim-gain).
+        // HONESTY: character fattens the ink, never moves the field edge.
+        const id = gy * (cols + 1) + gx;
+        inkDot(ctx, px + jx, py + jy, r, color, id, seed);
       }
     }
     void paper;
@@ -243,10 +272,8 @@ export class Territories {
       const px = pitch.x + fx * pitch.w;
       const py = edgeLocalY - dir * (hash11(i * 5.1) * spread);
       const r = Math.max(0.5, FRAY.strayDotMin * cell * (0.7 + hash11(i * 9.2) * 0.6));
-      ctx.fillStyle = rgba(color, 1);
-      ctx.beginPath();
-      ctx.arc(px, py, r, 0, Math.PI * 2);
-      ctx.fill();
+      // same shared ink as the baked field so the blinking outriders read as the same press
+      inkDot(ctx, px, py, r, color, i * 13 + (dir === 1 ? 1 : 2), dir === 1 ? 131 : 617);
     }
     ctx.restore();
   }

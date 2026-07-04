@@ -19,6 +19,7 @@ import type { PopTheme } from '../pop';
 import type { PitchRect, StageRect } from '../layout';
 import { rgba, clamp01, hash11, hash21 } from '../../lib/stage-math';
 import type { RGBTuple } from '../../lib/stage-math';
+import { inkStrokeRect } from '../../lib/ink';
 
 export interface EndInputs {
   roarHome: number;
@@ -273,12 +274,10 @@ export class Ends {
     const padX = chipH * 0.55;
     const chipW = tw + padX * 2;
     const chipX = cx - chipW / 2;
-    // Newsprint chip + Press-Black keyline (a readout plate on the dark stand)
+    // Newsprint chip + PANEL-weight Press-Black keyline (a readout plate on the dark stand)
     ctx.fillStyle = rgba(INK.newsprint, 1);
     ctx.fillRect(chipX, y, chipW, chipH);
-    ctx.strokeStyle = rgba(INK.pressBlack, 1);
-    ctx.lineWidth = Math.max(1, chipH * 0.08);
-    ctx.strokeRect(chipX, y, chipW, chipH);
+    inkStrokeRect(ctx, chipX, y, chipW, chipH, chipW, 'panel', INK.pressBlack);
     // the count in Doto — Medal Gold if this side is trailing (the faith highlight), else black
     ctx.fillStyle = rgba(behind ? INK.medalGold : INK.pressBlack, 1);
     ctx.fillText(label, cx, y + chipH / 2);

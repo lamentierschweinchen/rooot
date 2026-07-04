@@ -13,6 +13,7 @@ import { MOTION_MS, STEPS, COMPONENTS, HALFTONE } from '../../lib/theme';
 import { INK, fontDisplay, setStretch } from '../pop';
 import type { PitchRect } from '../layout';
 import { rgba, clamp01, hash11, hash21 } from '../../lib/stage-math';
+import { inkDot } from '../../lib/ink';
 
 interface Blast {
   side: 'home' | 'away';
@@ -91,7 +92,9 @@ export class Goool {
       ctx.stroke();
     }
 
-    // 2) HALFTONE SHOCK-DOTS — a ring of drawn dots blasting outward (fizzPink accent)
+    // 2) HALFTONE SHOCK-DOTS — a ring of drawn benday dots blasting outward (fizzPink accent).
+    // Through ink.ts inkDot so the shock-dots carry the same press character (±4% radius,
+    // discrete rim-gain) as the territory fields — the eruption is the same ink as the pitch.
     const nDots = 26;
     const dotRing = burstR * 0.92;
     for (let i = 0; i < nDots; i++) {
@@ -99,12 +102,10 @@ export class Goool {
       const dr = dotRing * (0.7 + hash11(i * 3.3) * 0.5);
       const dx = Math.cos(ang) * dr;
       const dy = Math.sin(ang) * dr;
-      const rad = Math.max(1, HALFTONE.cell * (0.5 - f * 0.3) * (0.7 + hash11(i * 7.1) * 0.6));
+      // scale with the fattened HALFTONE.cell so the shock-dots read as pop benday, not dust
+      const rad = Math.max(1, HALFTONE.cell * (0.42 - f * 0.24) * (0.7 + hash11(i * 7.1) * 0.6));
       if (rad < 0.6) continue;
-      ctx.fillStyle = rgba(INK.fizzPink, 1);
-      ctx.beginPath();
-      ctx.arc(dx, dy, rad, 0, Math.PI * 2);
-      ctx.fill();
+      inkDot(ctx, dx, dy, rad, INK.fizzPink, i * 7 + 1, 313);
     }
 
     // 3) the DRAWN STARBURST — hard-pointed Press-Black rays around a Newsprint core
