@@ -230,8 +230,26 @@ export function createStandsServer() {
 
   const wss = new WebSocketServer({ server: httpServer });
 
-  wss.on('connection', (ws: WebSocket) => {
+  wss.on('connection', (ws: WebSocket, req) => {
     const state: ConnState = { ws, matchId: null, anonId: null, helloTimestamps: [] };
+    // FEED SEATING BY URL (caught live at CAN-MAR, Jul 4): broadcastToMatch
+    // filters on state.matchId, which only hello set — so a feed-only client
+    // (LiveSource watches; it has no crowd identity to hello with) received
+    // NOTHING. Watching the match is public: seat the socket into its match
+    // from ?matchId= at connect. hello still owns crowd identity/actions,
+    // and the 1-match-per-connection cap still holds (hello for a DIFFERENT
+    // match on a URL-seated conn is rejected by handleHello as before).
+    try {
+      const url = new URL(req.url ?? '/', 'http://x');
+      const mid = url.searchParams.get('matchId');
+      if (mid) {
+        state.matchId = mid;
+        const last = lastFeedState.get(mid);
+        if (last && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(last));
+      }
+    } catch {
+      // unparseable URL — stay unseated; hello can still seat this conn
+    }
     conns.set(ws, state);
     ws.on('message', (data) => handleMessage(ws, state, data.toString()));
     ws.on('close', () => handleClose(ws));
