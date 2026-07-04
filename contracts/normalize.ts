@@ -331,8 +331,9 @@ interface RawLiveEnvelope {
  *   8=ET break · 11=end-of-ET-before-pens
  *   12=penalty shootout · 13=final (observed after pens; expected to also be
  *   the straight-90 final — confirm vs ARG–CPV/COL–GHA tonight)
- *   never observed: 5, 10 — unmapped, return null rather than guess. Break
- *   codes 6/8/11 also return null: the stage honestly holds the prior playing
+ *   5=FULL-TIME decided in 90 (COL–GHA 2–0) · 10=end-of-ET decided
+ *   (ARG–CPV 3–2) — the ladder is COMPLETE, all rungs observed live. Break
+ *   codes 6/8/11 return null: the stage honestly holds the prior playing
  *   phase through a break (HALF_TIME is the one break the product surfaces).
  */
 function mapLiveStatusId(id: number | undefined): MatchPhase | null {
@@ -349,11 +350,15 @@ function mapLiveStatusId(id: number | undefined): MatchPhase | null {
       return 'EXTRA_TIME'; // CONFIRMED live — ET1 kickoff (Clock 5400s)
     case 9:
       return 'EXTRA_TIME'; // CONFIRMED live — ET2 kickoff (Clock 6300s)
+    case 5:
+      // CONFIRMED live — full-time, DECIDED IN 90 (COL–GHA 2–0: arrived at
+      // the straight-90 whistle). The ladder's last rung, caught Jul 4 ~03:2xZ.
+      return 'FULL_TIME';
     case 10:
       // CONFIRMED live — end of ET, DECIDED (ARG–CPV 3–2: arrived at the ET2
-      // whistle with the clock zeroed; the official seal (13) follows minutes
-      // later). At MatchPhase granularity both are full-time — relic
-      // crystallization should await the seal, never this phase flip.
+      // whistle with the clock zeroed; the official seal (game_finalised)
+      // follows minutes later). At MatchPhase granularity both are full-time —
+      // relic crystallization should await the seal, never this phase flip.
       return 'FULL_TIME';
     case 12:
       return 'PENALTIES'; // CONFIRMED live — shootout under way
