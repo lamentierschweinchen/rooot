@@ -98,9 +98,10 @@ full knockout epic, all captured):** playing phases pair a `status` with a
 `kickoff` (top-level StatusId + running Clock): **2**=H1(0s) · **4**=H2(2700s)
 · **7**=ET1(5400s) · **9**=ET2(6300s). Breaks are `status`-only, no Clock:
 **3**=HT · **6**=end-of-90-before-ET · **8**=ET break · **11**=end-of-ET.
-**12**=penalty shootout · **13**=final whistle (observed after pens; expected
-also straight-90 — confirm vs ARG–CPV FT). Never observed: 5, 10 → unmapped
-(null, never guess). Breaks 6/8/11 also null: the stage holds the prior
+**10**=end of ET DECIDED (ARG–CPV 3–2, clock zeroed at the ET2 whistle) ·
+**12**=penalty shootout · **13**=final seal (observed after pens; follows 10
+too). Never observed: **5** → unmapped (null, never guess) — almost certainly
+the straight-90-decided twin of 10/11; COL–GHA should prove it. Breaks 6/8/11 also null: the stage holds the prior
 playing phase through them. `mapLiveStatusId` carries this exact table.
 
 **✅ SIDE-TRUTH BUG FIXED (coordinator, Jul 3):** the odds envelope carries NO

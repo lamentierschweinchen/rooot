@@ -349,10 +349,16 @@ function mapLiveStatusId(id: number | undefined): MatchPhase | null {
       return 'EXTRA_TIME'; // CONFIRMED live — ET1 kickoff (Clock 5400s)
     case 9:
       return 'EXTRA_TIME'; // CONFIRMED live — ET2 kickoff (Clock 6300s)
+    case 10:
+      // CONFIRMED live — end of ET, DECIDED (ARG–CPV 3–2: arrived at the ET2
+      // whistle with the clock zeroed; the official seal (13) follows minutes
+      // later). At MatchPhase granularity both are full-time — relic
+      // crystallization should await the seal, never this phase flip.
+      return 'FULL_TIME';
     case 12:
       return 'PENALTIES'; // CONFIRMED live — shootout under way
     case 13:
-      return 'FULL_TIME'; // CONFIRMED live — final (after pens; see ladder note)
+      return 'FULL_TIME'; // CONFIRMED live — final seal (after pens AUS–EGY; expected after 10 too)
     default:
       return null;
   }
