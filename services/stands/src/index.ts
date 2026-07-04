@@ -56,6 +56,18 @@ function parseFixtureIds(): Set<string> {
  * blended/mislabeled). This pulls the true id back out for routing.
  */
 function fixtureIdOfFeedMsg(msg: FeedMsg): string | null {
+  // ledger msgs carry their fixture on every variant (event: the id's
+  // `${fixtureKey}:` prefix; amend/discard: fixtureKey) — MISSING THIS CASE
+  // dropped every live ledger row before the room (caught live, CAN-MAR
+  // kickoff, Jul 4: zero rows reached clients while replay mode worked).
+  if (msg.type === 'ledger') {
+    const m = msg.msg;
+    if (m.type === 'event') {
+      const sep = m.ev.id.indexOf(':');
+      return sep > 0 ? m.ev.id.slice(0, sep) : null;
+    }
+    return m.fixtureKey || null;
+  }
   let raw: unknown;
   if (msg.type === 'odds') raw = msg.tick.raw;
   else if (msg.type === 'score') raw = msg.ev.raw;
