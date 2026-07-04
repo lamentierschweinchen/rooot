@@ -42,6 +42,8 @@ const ROAR_SEGMENTS = 10;
 export interface SocialStrip {
   el: HTMLElement;
   set(v: CrowdView): void;
+  /** a plate tap re-opens the door — the promised switch path ("YOU CAN SWITCH") */
+  onPlateTap(cb: () => void): void;
 }
 
 export function createSocialStrip(fixture: Fixture): SocialStrip {
@@ -53,6 +55,11 @@ export function createSocialStrip(fixture: Fixture): SocialStrip {
     `<div class="rt-strip-offline" data-el="offline" style="display:none">
        STANDS OPENING SOON · COUNTS ARE LOCAL
      </div>`;
+
+  let plateCb: (() => void) | null = null;
+  el.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement).closest('.rt-strip-end')) plateCb?.();
+  });
 
   const homeCount = el.querySelector<HTMLElement>('[data-el="rooted-home"]')!;
   const awayCount = el.querySelector<HTMLElement>('[data-el="rooted-away"]')!;
@@ -83,6 +90,9 @@ export function createSocialStrip(fixture: Fixture): SocialStrip {
       // ghost the counters when offline (they're local-only, honest)
       homePlate.classList.toggle('rt-offline', !v.connected);
       awayPlate.classList.toggle('rt-offline', !v.connected);
+    },
+    onPlateTap(cb) {
+      plateCb = cb;
     },
   };
 }

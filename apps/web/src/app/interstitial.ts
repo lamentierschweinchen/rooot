@@ -23,7 +23,8 @@ import { fixtureDateLine } from './voice';
 export interface Interstitial {
   el: HTMLElement;
   onPick(cb: (side: Side) => void): void;
-  open(): void;
+  /** re-opening while rooted: mark the held gate (gold punch) + allow dismissing */
+  open(current?: Side | null): void;
   close(): void;
 }
 
@@ -36,6 +37,9 @@ export function createInterstitial(fixture: Fixture): Interstitial {
       <span>THE TOURNAMENT</span>
       <span class="fx">${escapeHtml(fixture.home.code)}–${escapeHtml(fixture.away.code)}</span>
       ${dateLine ? `<span class="dt">${escapeHtml(dateLine)}</span>` : ''}
+      <button class="rt-door-close" type="button" data-el="close" aria-label="keep my end" style="display:none">
+        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M4 4 L20 20 M20 4 L4 20" stroke="currentColor" stroke-width="4"/></svg>
+      </button>
     </div>
     <div class="rt-door-head">
       <span class="rt-sb-word big">R<span class="o">O</span><span class="ball">${popBall(0.92, 'rt-popball')}</span><span class="o">O</span>T</span>
@@ -47,6 +51,7 @@ export function createInterstitial(fixture: Fixture): Interstitial {
     <div class="rt-root-neutral">ONE END PER FAN · YOU CAN SWITCH</div>`;
 
   let pickCb: ((side: Side) => void) | null = null;
+  const closeBtn = el.querySelector<HTMLButtonElement>('[data-el="close"]')!;
 
   el.addEventListener('click', (e) => {
     const panel = (e.target as HTMLElement).closest<HTMLElement>('.rt-root-end');
@@ -54,13 +59,23 @@ export function createInterstitial(fixture: Fixture): Interstitial {
     const side = panel.getAttribute('data-side') as Side | null;
     if (side === 'home' || side === 'away') pickCb?.(side);
   });
+  closeBtn.addEventListener('click', () => {
+    el.style.display = 'none';
+  });
 
   return {
     el,
     onPick(cb) {
       pickCb = cb;
     },
-    open() {
+    open(current = null) {
+      // the held gate wears its punch (a filled gold die-cut — the ticket is punched);
+      // with an end already held the door may be dismissed (first visit may not)
+      for (const p of el.querySelectorAll<HTMLElement>('.rt-root-end')) {
+        const held = current != null && p.getAttribute('data-side') === current;
+        p.toggleAttribute('data-held', held);
+      }
+      closeBtn.style.display = current != null ? '' : 'none';
       el.style.display = '';
     },
     close() {

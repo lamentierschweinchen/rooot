@@ -245,7 +245,8 @@ export function createApp(opts: CreateAppOptions): RooootApp {
   });
 
   cheerBar.onCheer(() => crowd.cheer());
-  cheerBar.onPickRequest(() => interstitial.open());
+  cheerBar.onPickRequest(() => interstitial.open(sideRef));
+  strip.onPlateTap(() => interstitial.open(sideRef)); // the promised switch path
 
   /* ── root choice (persist locally + hello the service) ─────────────── */
   function applySide(side: Side | null): void {
