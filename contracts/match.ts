@@ -89,6 +89,10 @@ export interface MatchCallbacks {
    * matching/replacement (goals re-emit with the same id — replace, newest
    * wins). Optional so the bare stage keeps working; the watching shell wires it. */
   onLedger?(msg: import('./ledger').LedgerMsg): void;
+  /** the derived threads' atom (contracts/texture.ts): every possession spell,
+   * for the TextureBuilder to weave into POSSESSION/PRESSURE/TEMPO. The wire's
+   * biggest stream (~5k/match) — optional, only the loom wires it. */
+  onSpell?(spell: import('./texture').Spell): void;
 }
 
 export interface MatchDataSource {

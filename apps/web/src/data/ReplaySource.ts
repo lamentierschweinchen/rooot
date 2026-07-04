@@ -35,6 +35,7 @@ import {
   parseLineups,
   parseOddsMessage,
   parseScoreMessage,
+  parseSpell,
   parseStatusMessage,
   sniffParticipant1IsHome,
 } from '@contracts/normalize';
@@ -239,6 +240,13 @@ export class ReplaySource implements MatchDataSource {
     if (this.cb.onLedger) {
       const ledger = parseLedgerMessage(line.data, line.receivedAtMs, 'replay', this.roster);
       if (ledger) this.cb.onLedger(ledger);
+    }
+
+    // the derived-threads channel: possession spells → onSpell (the loom's
+    // TextureBuilder weaves POSSESSION/PRESSURE/TEMPO). Only when wired.
+    if (this.cb.onSpell) {
+      const spell = parseSpell(line.data, line.receivedAtMs, 'replay', this.p1IsHome);
+      if (spell) this.cb.onSpell(spell);
     }
 
     const odds = parseOddsMessage(line.data, line.receivedAtMs, 'replay', this.p1IsHome, this.oddsPeriod);

@@ -165,3 +165,35 @@ the one thing TxLINE lacks. But TxLINE already covers the fan-legible core
 Recommendation: surface the free TxLINE stats first; email for the Stats
 catalog; only buy API-Football paid if passes/pass-accuracy prove essential
 to the design AND the decoded Stats block doesn't contain them.
+
+## THE FIVE THREADS — now wired (for the Full Cloth prototype, Jul 4)
+
+The design's "Full Cloth" (throughlines-jul4.html) needs five continuous
+threads + typed event marks. All five are now REAL seams, proven on ARG–CPV:
+
+| Thread | Source | Seam | Shape / range |
+|---|---|---|---|
+| BELIEF | 1X2 odds | `onOdds` (OddsTick) + `period:'full'|'et'` | pHome/pDraw/pAway 0..1, sums 1 |
+| POSSESSION | possession spells | `onSpell` → `TextureBuilder` → TextureSample.possession | {home,away} share 0..1/minute |
+| PRESSURE | danger-grade spells | same → TextureSample.pressure | {home,away} threat-share 0..1 |
+| TEMPO | event rate | `builder.pushTempoAt(minute)` → TextureSample.tempo | events/minute (int) |
+| CROWD | rooted/roar | `CrowdView` (contracts/ledger) | counts + roar/s, never mixed |
+
+`TextureBuilder` (apps/web/src/texture) is pure + subscribe()-based like the
+ledger builder; `parseSpell` (normalize) is the stateless atom. ReplaySource
+forwards spells via `onSpell` — the loom prototype on replay consumes it now.
+Proven: at 58' CPV held 90% possession AND 100% pressure — they scored. The
+cloth's masthead claim is literally the data.
+
+**Typed event marks (ledger enrichments, all live):** goal `goalKind`
+(Shot/Head/Own — sew the right patch) · shot `detail`
+(OnTarget/OffTarget/Blocked/Woodwork) · VAR as a **span** (`var`→`var_end`,
+detail OPEN/END + outcome e.g. "Stands") · penalty outcome, cards, subs,
+injuries — all in `parseLedgerMessage`.
+
+**DEFERRED (deliberate, not blocking the prototype):** the LIVE service
+texture channel. Spells are ~5k/match — shipping them raw to every socket is
+a firehose. Correct design: the SERVICE runs a TextureBuilder and broadcasts
+~90–120 `TextureSample` FeedMsgs (one/minute + a live partial), not raw
+spells. Build that once the prototype consumes texture AND not onto a live
+service mid-match. Replay path (the prototype's test bed) needs nothing more.

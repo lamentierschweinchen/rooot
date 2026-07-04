@@ -720,6 +720,54 @@ function normalizeMinute(data: RawSoccerData | undefined): number | null {
  */
 
 import type { LedgerEvent, LedgerKind, LedgerMsg } from './ledger';
+import type { Spell } from './texture';
+
+/* ── possession spells (the POSSESSION/PRESSURE/TEMPO threads' atoms) ─── */
+
+const SPELL_KIND: Record<string, Spell['kind']> = {
+  safe_possession: 'safe',
+  possession: 'possession',
+  attack_possession: 'attack',
+  danger_possession: 'danger',
+  high_danger_possession: 'high-danger',
+};
+
+/**
+ * Parse a possession-spell envelope into a Spell, or null for any other line.
+ * Stateless like every parser here; the TextureBuilder does the accumulation.
+ * The wire emits ~5,000 of these per match (the biggest stream) — most lines
+ * cost one JSON.parse and stop. Side needs the fixture's participant1IsHome
+ * (same as odds/scores) — threaded by the caller's latch; default true.
+ */
+export function parseSpell(
+  raw: string,
+  receivedAtMs: number,
+  source: 'live' | 'replay',
+  participant1IsHome = true,
+): Spell | null {
+  let msg: { FixtureId?: unknown; Action?: unknown; Participant?: unknown; Clock?: { Seconds?: unknown } };
+  try {
+    msg = JSON.parse(raw) as typeof msg;
+  } catch {
+    return null;
+  }
+  const kind = typeof msg.Action === 'string' ? SPELL_KIND[msg.Action] : undefined;
+  if (!kind || typeof msg.FixtureId !== 'number') return null;
+  const p = msg.Participant;
+  if (p !== 1 && p !== 2) return null;
+  const isP1 = p === 1;
+  const side: Spell['side'] = isP1 === participant1IsHome ? 'home' : 'away';
+  const sec = msg.Clock?.Seconds;
+  const clockSeconds = typeof sec === 'number' && Number.isFinite(sec) ? sec : null;
+  return {
+    side,
+    kind,
+    clockSeconds,
+    minute: clockSeconds === null ? null : Math.floor(clockSeconds / 60),
+    tMs: receivedAtMs,
+    source,
+  };
+}
 
 interface RawLedgerEnvelope {
   FixtureId?: number;
@@ -740,6 +788,7 @@ interface RawLedgerEnvelope {
     Outcome?: string;
     Participant?: number;
     Action?: string;
+    GoalType?: string;
     New?: { Clock?: { Seconds?: number }; Outcome?: string };
     Previous?: { Clock?: { Seconds?: number }; Outcome?: string };
   };
@@ -764,6 +813,8 @@ const LEDGER_ACTION_KIND: Record<string, LedgerKind> = {
   danger_possession: 'danger',
   high_danger_possession: 'danger',
   penalty_outcome: 'penalty-kick',
+  var: 'var',
+  var_end: 'var',
 };
 
 const LEDGER_HEADLINE: Record<LedgerKind, string> = {
@@ -783,6 +834,7 @@ const LEDGER_HEADLINE: Record<LedgerKind, string> = {
   break: 'The break',
   penalties: 'Penalty shootout',
   'penalty-kick': 'Penalty',
+  var: 'VAR check',
   'full-time': 'Full-time',
 };
 
@@ -795,6 +847,7 @@ const LEDGER_MAJOR = new Set<LedgerKind>([
   'break',
   'penalties',
   'penalty-kick',
+  'var',
   'full-time',
 ]);
 
@@ -908,17 +961,26 @@ export function parseLedgerMessage(
     if (typeof p1 === 'number' && typeof p2 === 'number') {
       ev.score = p1IsHome ? { home: p1, away: p2 } : { home: p2, away: p1 };
     }
+    // GoalType (Shot|Head|Own) → goalKind, so the loom sews the RIGHT patch
+    // (design's "GOAL — BY TYPE": shot-starburst vs header vs own-goal mark).
+    const gt = msg.Data?.GoalType;
+    if (gt === 'Shot' || gt === 'Head' || gt === 'Own') ev.goalKind = gt;
     // scorer from the same wire's roster (the goal's final re-emission carries
     // Data.PlayerId; the row upgrades in place — replace-by-id, newest wins).
     const pid = (msg.Data as { PlayerId?: unknown } | undefined)?.PlayerId;
     const who = roster && typeof pid === 'number' ? roster.byPlayerId.get(pid)?.name : undefined;
-    if (who) {
-      const og = (msg.Data as { GoalType?: unknown } | undefined)?.GoalType === 'Own';
-      ev.detail = og ? `${who} (OG)` : who;
-    }
+    if (who) ev.detail = gt === 'Own' ? `${who} (OG)` : who;
   }
-  const outcome = msg.Data?.Outcome;
+  // VAR is a SPAN: `var` opens (major, pulsing), `var_end` closes it — the
+  // client pairs them by proximity. var_end carries the outcome if any.
+  if (kind === 'var') {
+    ev.headline = msg.Action === 'var_end' ? 'VAR — decision' : 'VAR check';
+    ev.detail = msg.Action === 'var_end' ? 'END' : 'OPEN';
+  }
+  const outcome = msg.Data?.Outcome ?? msg.Data?.New?.Outcome;
   if (typeof outcome === 'string' && outcome) {
+    // shot outcome (OnTarget/OffTarget/Blocked/Woodwork) → detail, so the loom
+    // sews shot-by-outcome marks; penalty-kick folds it into the headline.
     ev.detail = outcome;
     if (kind === 'penalty-kick') ev.headline = `Penalty — ${outcome}`;
   }

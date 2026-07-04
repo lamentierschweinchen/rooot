@@ -41,6 +41,7 @@ export type LedgerKind =
   | 'break' // HT / end-of-90 / ET break / awaiting pens (StatusIds 3/6/8/11)
   | 'penalties' // shootout under way (StatusId 12)
   | 'penalty-kick' // one shootout kick: penalty_outcome {Outcome:"Scored"|"Missed"|…}
+  | 'var' // a VAR review — a SPAN (var → var_end); detail carries the outcome
   | 'full-time';
 
 /** One observed market read (fractions 0..1, straight off an OddsTick). */
@@ -79,6 +80,8 @@ export interface LedgerEvent {
   confirmed?: boolean;
   /** wire detail the headline compresses (shot Outcome, penalty Outcome, possible flags) */
   detail?: string;
+  /** goal's GoalType (Shot|Head|Own) — the loom sews the matching patch */
+  goalKind?: 'Shot' | 'Head' | 'Own';
   raw?: unknown;
 }
 
