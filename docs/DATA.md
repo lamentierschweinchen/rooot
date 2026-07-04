@@ -143,3 +143,50 @@ from REAL data in the demo video.
    a funded-wallet path or dedicated faucet would unblock teams.
 3. The repo IDL embeds **mainnet** address/mint constants; devnet values live only in
    the quickstart config block — a devnet-flavored IDL would prevent the trap.
+
+## THE COMPLETE EVENT CATALOG (every action TxLINE emits — scanned across all 4 captured matches, Jul 4)
+
+**42 distinct top-level `Action` types observed live.** Grouped by use:
+
+**Match flow / phase** — `status` + `kickoff` (carry StatusId + running Clock).
+Full StatusId ladder (all 13 seen live): 1 PRE · 2 H1 · 3 HT · 4 H2 · 5 FT(decided-90)
+· 6 end-of-90-before-ET · 7 ET1 · 8 ET-break · 9 ET2 · 10 FT(decided-ET) · 11 end-of-ET
+· 12 PENALTIES · 13 final-seal. Also `additional_time`, `clock_adjustment`,
+`halftime_finalised`, `game_finalised`, `standby`.
+
+**Scoring** — `goal` (confirmation ladder: unconfirmed→confirmed→+GoalType+PlayerId;
+GoalType ∈ {Shot, Head, Own}) · `possible` (held-breath: Data flags {Goal, Penalty,
+Corner} — 188 possible-goals, 9 possible-pens across our matches).
+
+**Attacking play** — `shot` (Outcome ∈ **OnTarget, OffTarget, Blocked, Woodwork** —
+so shots-on-target IS free, correcting the earlier note) · `corner` · `free_kick` ·
+`throw_in` · `goal_kick`. (Schema also defines `Offside`, `FreeKickType`,
+`ThrowInType` — not in our 4 matches but on the wire.)
+
+**Possession / pressure** — `possession` · `safe_possession` · `attack_possession`
+· `danger_possession` · `high_danger_possession` (each side + clock — the richest
+untapped seam; territory + threat, derivable to possession% AND danger-share).
+
+**Discipline & VAR** — `yellow_card` (149 seen) · `red_card` (schema, none in our
+matches) · `var` + `var_end` (review start/stop!) · `penalty_outcome` (shootout
+kicks: Scored/Missed/Stands) · `penalty_shootout_team`.
+
+**Squad / personnel** — `lineups` (both full rosters — names) · `substitution` ·
+`injury` (OnPitch/OffPitch/NotReturning) · `players_warming_up` ·
+`players_on_the_pitch` · `players_on_the_pitch_adjustment` · `kickoff_team`.
+
+**Ops / transport** — `connected` · `disconnected` · `suspend` · `coverage_update`
+· `comment`.
+
+**Context (garnish)** — `venue` · `pitch` · `weather` · `jersey`.
+
+**Running score aggregates** (Score.{H1,H2,ET,Total}.*) — **Goals, Corners,
+YellowCards** as per-period totals.
+
+**The opaque `Stats` block** — 64 numeric keys/envelope, ~19 populated per match,
+undecoded (needs the TxODDS ScoreStatKey catalog — likely fouls, offsides, shots-
+on-target-count, possession%). One email unlocks it.
+
+**Verdict: passes/pass-accuracy are the ONLY fan-relevant stat TxLINE lacks.**
+Everything else — shots (+quality), corners, cards, possession, territory, VAR,
+scorers, injuries — is on the wire, free, already parsed or one small step away.
