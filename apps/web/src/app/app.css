@@ -86,7 +86,8 @@
   z-index: 1;
   max-width: 1280px;
   margin: 0 auto;
-  padding: 0 0 calc(var(--cheerbar-h, 128px) + env(safe-area-inset-bottom, 0px));
+  /* +28px: the drum sits proud of its bar and must never eclipse the colophon */
+  padding: 0 0 calc(var(--cheerbar-h, 128px) + 28px + env(safe-area-inset-bottom, 0px));
 }
 
 /* ── layout: phone one column; desktop two-column grid ─────────────────── */

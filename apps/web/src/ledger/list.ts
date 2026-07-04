@@ -18,6 +18,7 @@
 import type { LedgerBuilder, LedgerRow, EventRow, FoldRow, LedgerSnapshot } from './types';
 import type { OddsSwing, LedgerEvent } from '@contracts/ledger';
 import type { Side } from '@contracts/crowd';
+import { stepArrow, foldCaret, newestMark } from '../app/glyphs';
 
 export interface LedgerListOptions {
   builder: LedgerBuilder;
@@ -56,16 +57,19 @@ function swingDisplay(swing: OddsSwing): {
   return { before: PCT(readB), after: PCT(readA), gain };
 }
 
-/** headline the row: uppercase for majors/goals, and DON'T double-print detail
- * when the parser already folded the outcome into the headline (penalty-kick). A
- * `possible` that is no longer pending (the VAR check has resolved / the feed moved
- * on) drops the "…Checking…" for a settled past-tense label — honest: the check
- * happened, we just don't claim a verdict the wire never sent. */
+/** headline the row — the wire's fact in the house voice (CAPS lives in CSS).
+ * A goal prints as GOOOL (the house spelling of the same fact — the canvas
+ * screams it, the ledger records it). A pending `possible` holds its breath as
+ * a bare question — GOAL? — with the CHECKING chip carrying the state ONCE. A
+ * `possible` that resolved without a verdict settles to a past-tense check —
+ * honest: the check happened; the wire never sent a verdict. */
 function headlineText(ev: LedgerEvent, pending: boolean): string {
   const h = ev.headline;
-  if (ev.kind === 'goal') return h.toUpperCase();
-  if (ev.kind === 'possible' && !pending) {
-    return ev.detail === 'Penalty' || h.startsWith('Penalty') ? 'Penalty check' : 'Goal check';
+  if (ev.kind === 'goal') return h.replace(/^goal/i, 'GOOOL');
+  if (ev.kind === 'possible') {
+    const isPen = ev.detail === 'Penalty' || h.startsWith('Penalty');
+    if (pending) return isPen ? 'PENALTY?' : 'GOAL?';
+    return isPen ? 'Penalty check' : 'Goal check';
   }
   return h;
 }
@@ -99,23 +103,25 @@ export function createLedgerList(opts: LedgerListOptions): LedgerList {
       typeof window.matchMedia === 'function' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
-  // COPY LAW (owner, Jul 4): show, don't tell. The empty ledger states the one
-  // fact it has — kickoff — or stays quiet. No narration about itself.
-  const emptyLine = opts.kickoffLabel
-    ? `Kick-off <span class="ko">${escapeHtml(opts.kickoffLabel)}</span>`
-    : '';
+  // COPY LAW (owner, Jul 4): show, don't tell. The empty ledger doesn't narrate —
+  // it SHOWS the waiting: blank ruled row-slots (the paper the match will print
+  // on) and the one fact it has, the kickoff. Nothing else.
+  const emptySlots = Array.from(
+    { length: 3 },
+    () => `<div class="slot"><span class="min"></span><span class="rule"></span></div>`,
+  ).join('');
+  const emptyLine = opts.kickoffLabel ? `<div class="ko">${escapeHtml(opts.kickoffLabel)}</div>` : '';
 
   const root = document.createElement('section');
   root.className = 'rt-ledger';
   root.innerHTML = `
     <div class="rt-ledger-head">
-      <span class="ttl">The Ledger</span>
-      <span class="sub">newest first</span>
+      <span class="ttl">THE LEDGER</span>
+      <button class="rt-ledger-unread" type="button"></button>
     </div>
     <div class="rt-ledger-scroll">
-      <button class="rt-ledger-unread" type="button"></button>
       <div class="rt-ledger-rows"></div>
-      <div class="rt-ledger-empty">${emptyLine}</div>
+      <div class="rt-ledger-empty">${emptySlots}${emptyLine}</div>
     </div>`;
 
   const scroll = root.querySelector<HTMLElement>('.rt-ledger-scroll')!;
@@ -210,7 +216,7 @@ export function createLedgerList(opts: LedgerListOptions): LedgerList {
         scroll.scrollTop = 0;
       } else {
         unreadCount += 1;
-        unread.textContent = `▲ ${unreadCount} NEW`;
+        unread.innerHTML = `${newestMark(0.8)}<b>${unreadCount}</b> NEW`;
         unread.classList.add('show');
       }
     }
@@ -246,11 +252,11 @@ export function createLedgerList(opts: LedgerListOptions): LedgerList {
     let swingHTML = '';
     if (row.swing) {
       const s = swingDisplay(row.swing);
-      // stepped arrow direction: up when the reading rose, down when it fell
+      // stepped arrow (drawn, §7 — never a unicode glyph that falls out of Doto):
+      // up when the reading rose, down when it fell
       const rose = parseInt(s.after, 10) >= parseInt(s.before, 10);
-      const arrow = rose ? '↗' : '↘';
       swingHTML =
-        `<span class="rt-swing gain-${s.gain}">${s.before}<span class="arrow">${arrow}</span>${s.after}</span>`;
+        `<span class="rt-swing gain-${s.gain}">${s.before}${stepArrow(rose ? 'up' : 'down')}${s.after}</span>`;
     }
 
     node.innerHTML =
@@ -292,7 +298,7 @@ export function createLedgerList(opts: LedgerListOptions): LedgerList {
     }
 
     node.innerHTML =
-      `<button class="rt-fold-line" type="button"><span class="caret">▸</span>${line}</button>` +
+      `<button class="rt-fold-line" type="button"><span class="caret">${foldCaret(0.66)}</span>${line}</button>` +
       `<div class="rt-fold-body">${body}</div>`;
   }
 
