@@ -315,6 +315,32 @@ export function startTxLineIngest(opts: {
             dispatch(streamOpts, 'message', JSON.stringify(env), ts);
           }
           console.log(`[txline:seed] ${name} snapshot for ${fid}: ${arr.length} envelopes replayed`);
+
+          // CLOCK SEED: playing-phase kickoff/status envelopes are edge-
+          // triggered, so the freshest 'status' in the snapshot can be the
+          // clock-0 kickoff — a joiner then sees "0'" on a match 30' in
+          // (caught live, CAN–MAR). Every envelope, though, carries the
+          // TRUE current StatusId + running Clock. Surface the freshest one
+          // as a status so the scoreboard shows the real minute at once.
+          // Honest: StatusId and Clock are the wire's own latest values.
+          if (name === 'scores') {
+            let freshest: { StatusId?: number; Clock?: { Running?: boolean; Seconds?: number }; Ts?: number } | null = null;
+            for (const env of arr as Array<{ StatusId?: number; Clock?: { Running?: boolean; Seconds?: number }; Ts?: number }>) {
+              if (typeof env.StatusId !== 'number' || !env.Clock?.Running) continue;
+              if (!freshest || (env.Ts ?? 0) > (freshest.Ts ?? 0)) freshest = env;
+            }
+            if (freshest) {
+              const synthetic = {
+                FixtureId: Number(fid),
+                Action: 'status',
+                Data: { StatusId: freshest.StatusId },
+                Clock: freshest.Clock,
+                Ts: freshest.Ts,
+              };
+              dispatch(streamOpts, 'message', JSON.stringify(synthetic), freshest.Ts ?? Date.now());
+              console.log(`[txline:seed] clock seed ${fid}: StatusId ${freshest.StatusId} @ ${Math.floor((freshest.Clock?.Seconds ?? 0) / 60)}'`);
+            }
+          }
         } catch {
           // aborted or unreachable — the live streams still carry the match
         }
