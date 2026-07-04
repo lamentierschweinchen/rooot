@@ -1,0 +1,425 @@
+/*
+ * ROOOT — THE LEDGER, readable (BRIEF-WATCHING §2). A print-anatomy LIST, not a
+ * chat feed: minute chip (Doto, keyline box, right-aligned) · side tick (team-ink
+ * square) · headline (Anybody, weight by magnitude) · detail (Doto small) · the
+ * swing chip (Doto in a keyline pill, team ink, stepped arrow) when the market
+ * moved. Majors always; minors fold per stretch; goals are mini-mementos; possibles
+ * hold their breath; discards strike through. Reverse-chronological, auto-follow.
+ * Colours/type inherit the page vars set by createApp. Flat ink, stepped motion.
+ */
+
+.rt-ledger {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--np);
+  border: var(--keyline) solid var(--ink);
+  border-top: none;
+  /* PHONE: a bounded live-feed pane below the stage — its OWN scroller so the sticky
+     header, the reverse-chron auto-follow, and the unread chip all work (the page
+     doesn't swallow the ledger's scroll). Tall enough to read the match at a glance. */
+  height: 62vh;
+}
+@media (min-width: 900px) {
+  .rt-ledger {
+    border-top: var(--keyline) solid var(--ink);
+    /* DESKTOP: full-height right column, scrolls independently of the stage column */
+    height: calc(100dvh - var(--scoreband-h, 56px));
+    position: sticky;
+    top: var(--scoreband-h, 56px);
+  }
+}
+
+/* header plate — "THE LEDGER" + the reverse-chron hint */
+.rt-ledger-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--ink);
+  color: var(--np);
+  border-bottom: var(--keyline) solid var(--ink);
+}
+.rt-ledger-head .ttl {
+  font-family: var(--f-scream);
+  font-weight: 900;
+  font-size: 15px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.rt-ledger-head .sub {
+  font-family: var(--f-data);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.6;
+  margin-left: auto;
+}
+
+/* the scroller holds the rows; auto-follow pins to top (reverse-chron) */
+.rt-ledger-scroll {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+/* the unread chip — shows when scrolled away from the head; tap to jump */
+.rt-ledger-unread {
+  position: sticky;
+  top: 6px;
+  z-index: 5;
+  width: max-content;
+  margin: 0 auto;
+  transform: translateY(-2px);
+  font-family: var(--f-data);
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--np);
+  background: var(--ink);
+  border: var(--hair) solid var(--ink);
+  padding: 4px 10px;
+  cursor: pointer;
+  display: none;
+  box-shadow: 0 2px 0 rgba(26, 26, 24, 0.25);
+}
+.rt-ledger-unread.show {
+  display: block;
+}
+
+/* ── a row ─────────────────────────────────────────────────────────────── */
+.rt-row {
+  display: grid;
+  grid-template-columns: 44px 12px 1fr auto;
+  align-items: start;
+  gap: 8px;
+  padding: 9px 10px;
+  border-bottom: var(--hair) solid rgba(26, 26, 24, 0.16);
+  position: relative;
+}
+.rt-row:last-child {
+  border-bottom: none;
+}
+
+/* minute chip — Doto, keyline box, right-aligned digits */
+.rt-row .min {
+  font-family: var(--f-data);
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: right;
+  color: var(--ink);
+  border: var(--hair) solid var(--ink);
+  padding: 1px 4px;
+  min-width: 40px;
+  font-variant-numeric: tabular-nums;
+  background: var(--sb);
+}
+.rt-row .min.blank {
+  border-color: rgba(26, 26, 24, 0.28);
+  color: rgba(26, 26, 24, 0.5);
+  background: transparent;
+}
+
+/* side tick — 8px team-ink square, or neutral blank */
+.rt-row .tick {
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border: var(--hair) solid var(--ink);
+}
+.rt-row .tick.home {
+  background: var(--home);
+}
+.rt-row .tick.away {
+  background: var(--away);
+}
+.rt-row .tick.neutral {
+  background: transparent;
+  border-color: rgba(26, 26, 24, 0.3);
+}
+
+/* body — headline (weight by magnitude) + detail */
+.rt-row .body {
+  min-width: 0;
+}
+.rt-row .head {
+  font-family: var(--f-scream);
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+}
+.rt-row.mag-major .head {
+  font-weight: 800;
+  font-size: 16px;
+}
+.rt-row.mag-minor .head {
+  font-weight: 600;
+  font-size: 13px;
+  color: rgba(26, 26, 24, 0.78);
+}
+.rt-row .detail {
+  font-family: var(--f-data);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(26, 26, 24, 0.62);
+  margin-top: 2px;
+}
+/* goal score stamp line */
+.rt-row .score {
+  font-family: var(--f-data);
+  font-weight: 500;
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  color: var(--ink);
+  margin-top: 3px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── the swing chip: Doto in a keyline pill, team ink, stepped arrow ────── */
+.rt-swing {
+  align-self: center;
+  font-family: var(--f-data);
+  font-weight: 500;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  border: var(--hair) solid var(--ink);
+  padding: 2px 6px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--sb);
+  color: var(--ink);
+}
+.rt-swing .arrow {
+  font-size: 10px;
+  transform: translateY(-0.5px);
+}
+/* the pill is tinted by the side that GAINED (team ink header stripe) */
+.rt-swing.gain-home {
+  border-color: var(--home);
+  box-shadow: inset 3px 0 0 var(--home);
+  padding-left: 8px;
+}
+.rt-swing.gain-away {
+  border-color: var(--away);
+  box-shadow: inset 3px 0 0 var(--away);
+  padding-left: 8px;
+}
+.rt-swing.gain-draw {
+  box-shadow: inset 3px 0 0 var(--grey);
+  padding-left: 8px;
+}
+
+/* ── goal row = a mini-memento: thicker keyline, score stamped ──────────── */
+.rt-row.is-goal {
+  background: var(--sb);
+  border-top: var(--keyline) solid var(--ink);
+  border-bottom: var(--keyline) solid var(--ink);
+  padding-top: 11px;
+  padding-bottom: 11px;
+}
+.rt-row.is-goal .head {
+  font-weight: 900;
+  font-size: 18px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.rt-row.is-goal .min {
+  background: var(--ink);
+  color: var(--np);
+}
+
+/* ── possible = held breath: pulsing dot-fray underline ─────────────────── */
+.rt-row.is-pending .head {
+  color: var(--ink);
+}
+.rt-row.is-pending .breath {
+  display: inline-block;
+  margin-left: 6px;
+  font-family: var(--f-data);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--poppy);
+}
+.rt-row.is-pending .head::after {
+  content: '';
+  display: block;
+  height: 3px;
+  margin-top: 3px;
+  background-image: radial-gradient(var(--poppy) 40%, transparent 45%);
+  background-size: 6px 3px;
+  background-repeat: repeat-x;
+  animation: rt-breath 1400ms steps(6, end) infinite;
+}
+@keyframes rt-breath {
+  0% {
+    opacity: 0.3;
+    background-position-x: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.3;
+    background-position-x: 12px;
+  }
+}
+
+/* ── discard = strike-through, never gone ───────────────────────────────── */
+.rt-row.is-discarded .head,
+.rt-row.is-discarded .detail,
+.rt-row.is-discarded .score {
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+  opacity: 0.55;
+}
+.rt-row.is-discarded .min {
+  opacity: 0.55;
+}
+
+/* ── fold row: "▸ 7 MOMENTS · 3 SHOTS · 2 CORNERS · DANGER 4'" ──────────── */
+.rt-fold {
+  border-bottom: var(--hair) solid rgba(26, 26, 24, 0.16);
+}
+.rt-fold-line {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px 7px 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: var(--f-data);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(26, 26, 24, 0.7);
+}
+.rt-fold-line:hover {
+  background: rgba(26, 26, 24, 0.04);
+}
+.rt-fold-line .caret {
+  display: inline-block;
+  transition: transform 120ms steps(2, end);
+  font-size: 10px;
+}
+.rt-fold[data-open='1'] .rt-fold-line .caret {
+  transform: rotate(90deg);
+}
+.rt-fold-line .sep {
+  opacity: 0.4;
+}
+.rt-fold-line .cnt {
+  color: var(--ink);
+  font-weight: 500;
+}
+.rt-fold-body {
+  display: none;
+  background: rgba(26, 26, 24, 0.02);
+  border-top: var(--hair) solid rgba(26, 26, 24, 0.1);
+}
+.rt-fold[data-open='1'] .rt-fold-body {
+  display: block;
+}
+/* expanded minors are lighter (smaller type, dimmer) */
+.rt-fold-body .rt-row {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+.rt-fold-body .rt-row .head {
+  font-weight: 500;
+  font-size: 12px;
+  color: rgba(26, 26, 24, 0.72);
+}
+.rt-fold-body .rt-row .min {
+  font-size: 11px;
+  min-width: 36px;
+}
+
+/* ── print-in: discrete slide-stamp (2 steps, ~90ms), minute inks first ─── */
+@keyframes rt-stamp {
+  0% {
+    transform: translateY(-8px);
+    opacity: 0;
+  }
+  50% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+@keyframes rt-min-ink {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+.rt-row.printing {
+  animation: rt-stamp 120ms steps(2, end);
+}
+.rt-row.printing .min {
+  animation: rt-min-ink 60ms steps(1, end);
+}
+@media (prefers-reduced-motion: reduce) {
+  .rt-row.printing,
+  .rt-row.printing .min,
+  .rt-row.is-pending .head::after,
+  .rt-fold-line .caret {
+    animation: none !important;
+    transition: none !important;
+  }
+  .rt-row.is-pending .head::after {
+    opacity: 1;
+  }
+}
+/* same gate via the attribute createApp sets, so ?reduced reaches CSS animations */
+.rt-page[data-reduced] .rt-row.printing,
+.rt-page[data-reduced] .rt-row.printing .min,
+.rt-page[data-reduced] .rt-row.is-pending .head::after,
+.rt-page[data-reduced] .rt-fold-line .caret {
+  animation: none !important;
+  transition: none !important;
+}
+.rt-page[data-reduced] .rt-row.is-pending .head::after {
+  opacity: 1;
+}
+
+/* empty state — the ledger SPEAKS before kickoff: "THE STORY PRINTS HERE — KICK-OFF 17:00" */
+.rt-ledger-empty {
+  padding: 28px 16px;
+  text-align: center;
+  font-family: var(--f-scream);
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(26, 26, 24, 0.72);
+  line-height: 1.4;
+}
+.rt-ledger-empty .ko {
+  display: block;
+  margin-top: 6px;
+  font-family: var(--f-data);
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: rgba(26, 26, 24, 0.5);
+}

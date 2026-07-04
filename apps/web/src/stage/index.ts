@@ -51,6 +51,16 @@ export interface Stage {
   callbacks: MatchCallbacks;
   setCrowd(c: StageCrowdInput): void;
   setMySide(s: Side | null): void;
+  /**
+   * LIVE-MODE CHROME SWITCH (BRIEF-WATCHING §1/§4/§5). Live mode (posed=false)
+   * sheds the outer loud FRAME + CAPTION strip + Press-Black LETTERBOX so the pitch
+   * meets the Newsprint page like a broadcast window — a thin keyline is all that
+   * remains. Posed mode (posed=true) restores the full §10 memento anatomy (frame,
+   * caption, serial, letterbox) so a paused / GOOOL / HT / FT moment composes as an
+   * ownable print. The watching shell flips this via the scoreband's PAUSE button;
+   * a live GOOOL eruption also poses itself for the freeze. Default: live.
+   */
+  setPosed(posed: boolean): void;
   resize(): void;
   destroy(): void;
 }
@@ -73,14 +83,25 @@ interface Odds {
   away: number;
 }
 
-export function createStage(opts: { canvas: HTMLCanvasElement; fixture: Fixture; mySide?: Side | null }): Stage {
+export function createStage(opts: {
+  canvas: HTMLCanvasElement;
+  fixture: Fixture;
+  mySide?: Side | null;
+  /** start posed (full poster chrome) instead of live (broadcast window)? default false = live */
+  posed?: boolean;
+}): Stage {
   const canvas = opts.canvas;
-  const maybeCtx = canvas.getContext('2d', { alpha: false }) as CanvasRenderingContext2D | null;
+  // live mode meets the Newsprint PAGE, so the canvas must be transparent where the
+  // poster ground/letterbox no longer paint (posed mode still fills opaque). alpha:true
+  // keeps the print quality identical while letting the page show through in live.
+  const maybeCtx = canvas.getContext('2d', { alpha: true }) as CanvasRenderingContext2D | null;
   if (!maybeCtx) throw new Error('[stage] 2D context unavailable');
   const g2d: CanvasRenderingContext2D = maybeCtx;
 
   const fixture = opts.fixture;
   let mySide: Side | null = opts.mySide ?? null;
+  // live-chrome switch: posed=false → broadcast window (keyline only); posed=true → full §10 print
+  let posed = opts.posed ?? false;
 
   const homeTheme: PopTheme = resolvePop(fixture.home.colors);
   const awayTheme: PopTheme = resolvePop(fixture.away.colors);
@@ -262,8 +283,20 @@ export function createStage(opts: { canvas: HTMLCanvasElement; fixture: Fixture;
   function render(): void {
     const ctx = g2d;
 
-    // 1) GROUND — the fixture's loud ground fills the page (the poster's paper stock)
-    drawGround(ctx, stage, ground);
+    // LIVE-CHROME SWITCH: a live GOOOL freeze poses itself (the eruption is a poster
+    // moment); otherwise honour the shell's posed flag. Posed → full §10 poster;
+    // live → broadcast window on the Newsprint page.
+    const showPoster = posed || goool.active;
+
+    // clear the whole canvas each frame — in live mode the letterbox margins stay
+    // TRANSPARENT so the Newsprint page shows through (no dead black void); in posed
+    // mode the ground + letterbox repaint over it opaquely, so this is a no-op cost.
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 1) GROUND — posed: the fixture's loud ground (the poster's paper stock).
+    // live: the Newsprint PAGE ground, so the stage merges with the shell as a
+    // broadcast window (keyline only), the loud ground reserved for the collect moment.
+    drawGround(ctx, stage, showPoster ? ground : INK.newsprint);
 
     // 2) PITCH paper + chalk geometry under the dots, then the territories, then chalk over
     drawPitchPaper(ctx, stage, pitch);
@@ -348,18 +381,31 @@ export function createStage(opts: { canvas: HTMLCanvasElement; fixture: Fixture;
       awayBehind: awayScore < homeScore,
     });
 
-    // 7) FRAME + CAPTION (the print anatomy that makes it ownable) + press grain + letterbox
-    drawCaption(ctx, stage, {
-      ground,
-      fixtureLabel,
-      dateLabel,
-      frameLabel: gooolActive() ? 'GOOOL' : PHASE_LABEL[phase],
-      serial: SERIAL_PLACEHOLDER,
-      posed: phase === 'PRE' || phase === 'FULL_TIME',
-    });
-    drawFrame(ctx, stage);
-    drawGrain(ctx, stage, grainTile, frame, reducedMotion);
-    drawLetterbox(ctx, stage);
+    // 7) FRAME + CAPTION + LETTERBOX — the §10 memento anatomy. POSED ONLY: a paused/
+    // GOOOL/HT/FT freeze composes as an ownable print (caption strip, serial, cream
+    // frame, Press-Black letterbox mount). In LIVE mode these are SHED — the stage is a
+    // broadcast window that meets the Newsprint page with a thin keyline only, no caption,
+    // no black void (BRIEF-WATCHING §1/§4/§5). Grain rides over both (a printed tooth is
+    // always present). The keyline stays in both modes.
+    if (showPoster) {
+      drawCaption(ctx, stage, {
+        ground,
+        fixtureLabel,
+        dateLabel,
+        frameLabel: gooolActive() ? 'GOOOL' : PHASE_LABEL[phase],
+        serial: SERIAL_PLACEHOLDER,
+        posed: phase === 'PRE' || phase === 'FULL_TIME',
+      });
+      drawFrame(ctx, stage);
+      drawGrain(ctx, stage, grainTile, frame, reducedMotion);
+      drawLetterbox(ctx, stage);
+    } else {
+      // live: a thin Press-Black keyline hugging the stage rect (the broadcast window's
+      // edge — the .rt-stage-wrap in the shell carries the outer keyline too; this keeps
+      // the pitch honestly bounded even standalone). Grain over the window only.
+      drawGrain(ctx, stage, grainTile, frame, reducedMotion);
+      drawLiveKeyline(ctx, stage);
+    }
 
     drawMySideHint(ctx, stage, pitch, mySide);
     if (feedState !== 'connected') drawFeedNote(ctx, stage, feedState);
@@ -400,6 +446,9 @@ export function createStage(opts: { canvas: HTMLCanvasElement; fixture: Fixture;
     setMySide(s) {
       mySide = s;
     },
+    setPosed(p) {
+      posed = !!p;
+    },
     resize() {
       sizeToCanvas();
     },
@@ -421,6 +470,21 @@ export function createStage(opts: { canvas: HTMLCanvasElement; fixture: Fixture;
 /* ── small helpers ─────────────────────────────────────────────────────── */
 
 const SERIAL_PLACEHOLDER = 'Nº 000000';
+
+/**
+ * The LIVE broadcast-window keyline: a thin Press-Black rule hugging the composed
+ * stage rect (no cream border, no loud frame — that's the poster's dress). Weight
+ * matches the shell's .rt-stage-wrap keyline so a standalone stage and the shell
+ * read the same. This is the "keyline stays" of BRIEF-WATCHING §5(e).
+ */
+function drawLiveKeyline(ctx: CanvasRenderingContext2D, stage: StageRect): void {
+  const w = Math.max(1, Math.round(stage.w * 0.005));
+  ctx.save();
+  ctx.strokeStyle = `rgb(${INK.pressBlack[0]},${INK.pressBlack[1]},${INK.pressBlack[2]})`;
+  ctx.lineWidth = w;
+  ctx.strokeRect(stage.x + w / 2, stage.y + w / 2, stage.w - w, stage.h - w);
+  ctx.restore();
+}
 
 /** score-flip progress 0..1 over MOTION_MS.scoreFlip, else 1 (settled). */
 function flipTProgress(flipT: number): number {
