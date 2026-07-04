@@ -587,12 +587,21 @@ export function parseScoreMessage(
   }
 
   /* ── live wire (UpperCamelCase envelope — validated vs AUS–EGY) ── */
-  // A score line rides on many actions ("goal", "corner", ...). We report it
-  // only from 'goal' actions: that is the moment the score CHANGED, which is
-  // what ScoreEvent means on the bus (the stage's delta-guard absorbs the
-  // repeated emissions of the same goal Id as it upgrades to Confirmed).
+  // A score line rides on many actions. We report it from the actions that
+  // ACTUALLY CHANGE the match score:
+  //   · 'goal'            — open-play goals + own goals (GoalType Own)
+  //   · 'penalty_outcome' — an IN-PLAY penalty scored (PAR–FRA 69', Jul 4:
+  //     France's only goal came as penalty_outcome, NOT a 'goal' action — the
+  //     scoreboard stayed 0–0 because we keyed on 'goal' alone. THE bug this
+  //     branch exists to kill.) A missed/saved pen re-emits the UNCHANGED
+  //     running score → the client's delta-guard makes it a no-op, no eruption.
+  //     Shootout pens (StatusId 12) leave Total.Goals unchanged (they live in
+  //     PE.Goals), so those too are harmless no-ops here.
+  // The running Score.Total.Goals is authoritative on every envelope; keying on
+  // the scoring actions + client-side delta-dedup keeps the score honest even
+  // when a goal arrives by an action other than 'goal'.
   if (typeof msg.Action === 'string') {
-    if (msg.Action !== 'goal') return null;
+    if (msg.Action !== 'goal' && msg.Action !== 'penalty_outcome') return null;
     const p1Goals = msg.Score?.Participant1?.Total?.Goals ?? 0;
     const p2Goals = msg.Score?.Participant2?.Total?.Goals ?? 0;
     if (typeof p1Goals !== 'number' || typeof p2Goals !== 'number') return null;
