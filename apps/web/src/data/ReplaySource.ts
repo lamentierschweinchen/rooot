@@ -71,6 +71,11 @@ export class ReplaySource implements MatchDataSource {
   private cursor = 0;
   /** side-truth latch — learned from the bundle's scores envelopes (see emitLine) */
   private p1IsHome = true;
+  /** wall-clock due time of the next scheduled line (for backgrounded catch-up) */
+  private nextDueMs: number | null = null;
+  private onVisible = (): void => {
+    if (typeof document !== 'undefined' && !document.hidden) this.catchUp();
+  };
 
   constructor(options: ReplaySourceOptions) {
     this.opts = { speed: 1, ...options };
@@ -106,6 +111,9 @@ export class ReplaySource implements MatchDataSource {
     this.stopped = false;
     this.cursor = 0;
     cb.onFeedState?.('replay');
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', this.onVisible);
+    }
     this.scheduleNext();
   }
 
@@ -114,6 +122,9 @@ export class ReplaySource implements MatchDataSource {
     if (this.timer !== null) {
       clearTimeout(this.timer);
       this.timer = null;
+    }
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', this.onVisible);
     }
   }
 
@@ -131,11 +142,48 @@ export class ReplaySource implements MatchDataSource {
     const gapMs = prevLine ? line.receivedAtMs - prevLine.receivedAtMs : 0;
     const delayMs = Math.min(Math.max(gapMs, 0), MAX_GAP_MS) / this.opts.speed;
 
+    this.nextDueMs = performance.now() + delayMs;
     this.timer = setTimeout(() => {
       this.emitLine(line);
       this.cursor++;
       this.scheduleNext();
     }, delayMs);
+  }
+
+  /**
+   * Backgrounded-tab catch-up: browsers clamp background setTimeout to ≥1s, so
+   * a fan who pockets their phone mid-replay would return minutes behind with
+   * the tape crawling. On return to visibility, drain every line whose due
+   * time has already passed — instantly, in order, through the SAME emit path
+   * (the ledger builder replaces-by-id and the stage eases to the newest
+   * truth, so a burst lands as "catching you up", never as fabricated pacing).
+   * Burst-capped so a very long absence can't jank the return frame.
+   */
+  private catchUp(): void {
+    if (this.stopped || !this.cb) return;
+    const BURST_MAX = 600;
+    let burst = 0;
+    while (
+      this.cursor < this.lines.length &&
+      this.nextDueMs !== null &&
+      this.nextDueMs <= performance.now() &&
+      burst < BURST_MAX
+    ) {
+      if (this.timer !== null) {
+        clearTimeout(this.timer);
+        this.timer = null;
+      }
+      const line = this.lines[this.cursor];
+      if (!line) break;
+      this.emitLine(line);
+      this.cursor++;
+      burst++;
+      // recompute the next due from "now" so pacing resumes honestly
+      const next = this.lines[this.cursor];
+      const gapMs = next ? Math.min(Math.max(next.receivedAtMs - line.receivedAtMs, 0), MAX_GAP_MS) / this.opts.speed : 0;
+      this.nextDueMs = performance.now() + gapMs;
+    }
+    if (this.timer === null) this.scheduleNext();
   }
 
   private emitLine(line: RawLine): void {
