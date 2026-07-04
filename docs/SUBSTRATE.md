@@ -21,9 +21,13 @@ information content is unchanged, the mark was decoration.*
   the market literally holds its breath (6 suspended ticks around the
   ARG–CPV equalizer). These are data, currently invisible.
 - **The 90' settlement**: the primary 1X2 settles on the 90-minute result.
-  After a level 90th minute the market resolves to draw≈1 and DIES — extra
-  time happens outside it. (An ET-market seam is an open decision; the
-  death itself is honest, dramatic data.)
+  After a level 90th minute it resolves to draw≈1 and DIES — honest,
+  dramatic data in itself. **BUT the wire keeps a full ET-scoped 1X2 alive
+  (MarketPeriod:'et' — 464 real ticks during ARG–CPV's extra time, same
+  de-vigged triple shape), plus 'penalties'-period markets during a
+  shootout. The belief-curve can honestly continue through every phase —
+  the period hand-off seam is a coordinator commitment (~2h) whenever the
+  design wants it, provided the surface labels the market it's showing.**
 
 ### The match (scores stream, real-time, UpperCamelCase envelopes)
 - **Goals** with a confirmation ladder: unconfirmed → confirmed (~90s
