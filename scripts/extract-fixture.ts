@@ -153,7 +153,16 @@ function main(): void {
     }
     const peek = peekOdds(line.data);
     if (peek.fixtureId !== args.fixtureId) continue;
-    if (peek.superOddsType === '1X2_PARTICIPANT_RESULT' && peek.marketPeriod === null && peek.pct) {
+    // BOTH belief markets are first-class: the full-match 1X2 (MarketPeriod
+    // null) AND the ET-scoped 1X2 (MarketPeriod 'et') — after a level 90'
+    // the full line settles and the 'et' line carries the belief (the phase
+    // hand-off, contracts/normalize.ts). Thinning either would delete the
+    // tide. Everything else is context and may thin.
+    if (
+      peek.superOddsType === '1X2_PARTICIPANT_RESULT' &&
+      (peek.marketPeriod === null || peek.marketPeriod === 'et') &&
+      peek.pct
+    ) {
       fixture1x2.push({ line, pct: peek.pct });
     } else {
       fixtureOtherMarket.push(line);

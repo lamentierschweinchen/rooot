@@ -71,6 +71,11 @@ export class ReplaySource implements MatchDataSource {
   private cursor = 0;
   /** side-truth latch — learned from the bundle's scores envelopes (see emitLine) */
   private p1IsHome = true;
+  /** phase-aware market hand-off: after a level 90' the full-match 1X2 dies
+   * (settles on the 90' score) and the wire's ET-scoped 1X2 carries the
+   * belief — switch what we accept when the phase enters extra time. Ticks
+   * carry `period` so the surface can label the market honestly. */
+  private oddsPeriod: 'full' | 'et' = 'full';
   /** wall-clock due time of the next scheduled line (for backgrounded catch-up) */
   private nextDueMs: number | null = null;
   private onVisible = (): void => {
@@ -225,7 +230,7 @@ export class ReplaySource implements MatchDataSource {
       if (ledger) this.cb.onLedger(ledger);
     }
 
-    const odds = parseOddsMessage(line.data, line.receivedAtMs, 'replay', this.p1IsHome);
+    const odds = parseOddsMessage(line.data, line.receivedAtMs, 'replay', this.p1IsHome, this.oddsPeriod);
     if (odds) {
       this.cb.onOdds(odds);
       return;
@@ -237,6 +242,9 @@ export class ReplaySource implements MatchDataSource {
     }
     const status = parseStatusMessage(line.data, line.receivedAtMs, 'replay');
     if (status) {
+      // market hand-off latch: entering ET (or pens) → the ET-scoped 1X2 is
+      // the live belief; the full-match line has settled. One-way per match.
+      if (status.phase === 'EXTRA_TIME' || status.phase === 'PENALTIES') this.oddsPeriod = 'et';
       this.cb.onStatus(status);
       return;
     }

@@ -48,6 +48,14 @@ export interface OddsTick {
   pDraw: number;
   pAway: number;
   source: 'live' | 'replay';
+  /**
+   * WHICH market this tick reads (honesty label — a surface showing 'et'
+   * ticks must say so). 'full' = the match-result 1X2 (settles on the
+   * 90-minute score and DIES after a level 90'); 'et' = the extra-time-
+   * scoped 1X2 the wire keeps alive through ET (observed live: 464 ticks,
+   * ARG–CPV). Sources hand off by phase; absent = 'full' (legacy ticks).
+   */
+  period?: 'full' | 'et';
   raw?: unknown;
 }
 

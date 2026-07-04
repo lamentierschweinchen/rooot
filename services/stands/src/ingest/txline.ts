@@ -84,12 +84,25 @@ function ledgerFixtureId(msg: LedgerMsg): string | null {
  */
 const p1IsHomeByFixture = new Map<string, boolean>();
 
+/** phase-aware market hand-off, per fixture (contracts/normalize.ts
+ * parseOddsMessage doc): once a fixture enters EXTRA_TIME/PENALTIES the
+ * full-match 1X2 has settled and the ET-scoped 1X2 carries the belief.
+ * Written by the scores dispatch, read by the odds dispatch — same
+ * cross-stream latch pattern as the side-truth map above. */
+const oddsPeriodByFixture = new Map<string, 'full' | 'et'>();
+
 function dispatch(opts: StreamOptions, event: string, data: string, receivedAtMs: number): void {
   if (event === 'heartbeat' || event === '__meta' || event === '__disconnect') return;
   try {
     if (opts.name === 'odds') {
       const fid = rawFixtureId(data);
-      const tick = parseOddsMessage(data, receivedAtMs, 'live', fid ? (p1IsHomeByFixture.get(fid) ?? true) : true);
+      const tick = parseOddsMessage(
+        data,
+        receivedAtMs,
+        'live',
+        fid ? (p1IsHomeByFixture.get(fid) ?? true) : true,
+        fid ? (oddsPeriodByFixture.get(fid) ?? 'full') : 'full',
+      );
       if (!tick) return;
       if (!opts.fixtureIds.has(fixtureIdOf(tick.raw) ?? '')) return;
       opts.onFeedMsg({ type: 'odds', tick });
@@ -127,7 +140,12 @@ function dispatch(opts: StreamOptions, event: string, data: string, receivedAtMs
       }
       const status = parseStatusMessage(data, receivedAtMs, 'live');
       if (status) {
-        if (!opts.fixtureIds.has(fixtureIdOf(status.raw) ?? '')) return;
+        const sfid = fixtureIdOf(status.raw) ?? '';
+        // market hand-off latch (one-way per fixture): ET/pens → 'et' 1X2
+        if (sfid && (status.phase === 'EXTRA_TIME' || status.phase === 'PENALTIES')) {
+          oddsPeriodByFixture.set(sfid, 'et');
+        }
+        if (!opts.fixtureIds.has(sfid)) return;
         opts.onFeedMsg({ type: 'status', ev: status });
       }
     }

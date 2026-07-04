@@ -206,6 +206,15 @@ export function parseOddsMessage(
   receivedAtMs: number,
   source: 'live' | 'replay',
   participant1IsHome = true,
+  /**
+   * WHICH 1X2 to accept (the phase hand-off): 'full' (default) = the
+   * match-result line (MarketPeriod null — settles on the 90' score);
+   * 'et' = the extra-time-scoped 1X2 (MarketPeriod 'et' — the wire keeps
+   * it alive through ET; observed 464 live ticks, ARG–CPV). Sources switch
+   * by match phase; the returned tick carries `period` so surfaces can
+   * label the market they're showing.
+   */
+  period: 'full' | 'et' = 'full',
 ): OddsTick | null {
   let msg: RawOddsMessage;
   try {
@@ -215,7 +224,11 @@ export function parseOddsMessage(
   }
   if (typeof msg.FixtureId !== 'number') return null;
   if (msg.SuperOddsType !== MATCH_RESULT_TYPE) return null;
-  if (msg.MarketPeriod !== null && msg.MarketPeriod !== undefined) return null;
+  if (period === 'full') {
+    if (msg.MarketPeriod !== null && msg.MarketPeriod !== undefined) return null;
+  } else {
+    if (msg.MarketPeriod !== 'et') return null;
+  }
 
   const names = msg.PriceNames ?? [];
   const pct = msg.Pct ?? [];
@@ -251,6 +264,7 @@ export function parseOddsMessage(
     pDraw: draw,
     pAway: away,
     source,
+    period,
     raw: msg,
   };
 }

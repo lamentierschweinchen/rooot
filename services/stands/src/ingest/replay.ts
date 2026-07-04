@@ -106,6 +106,8 @@ export function startReplayIngest(opts: {
   // stream via readline, so this learns lazily — bundles carry pre-kickoff
   // scores envelopes, so the latch lands before the in-running odds.
   let p1IsHome = true;
+  // phase-aware market hand-off (see txline.ts twin): ET/pens → 'et' 1X2
+  let oddsPeriod: 'full' | 'et' = 'full';
 
   function emit(line: FixtureLine): void {
     try {
@@ -125,7 +127,7 @@ export function startReplayIngest(opts: {
         opts.onFeedMsg({ type: 'ledger', msg: ledger });
       }
 
-      const tick = parseOddsMessage(line.data, line.receivedAtMs, 'replay', p1IsHome);
+      const tick = parseOddsMessage(line.data, line.receivedAtMs, 'replay', p1IsHome, oddsPeriod);
       if (tick) {
         if (fixtureIdOf(tick.raw) !== opts.fixtureId) return;
         opts.onFeedMsg({ type: 'odds', tick });
@@ -140,6 +142,7 @@ export function startReplayIngest(opts: {
       const status = parseStatusMessage(line.data, line.receivedAtMs, 'replay');
       if (status) {
         if (fixtureIdOf(status.raw) !== opts.fixtureId) return;
+        if (status.phase === 'EXTRA_TIME' || status.phase === 'PENALTIES') oddsPeriod = 'et';
         opts.onFeedMsg({ type: 'status', ev: status });
       }
     } catch (err) {
