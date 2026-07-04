@@ -17,6 +17,7 @@ import type { FixtureRoster } from '@contracts/normalize';
 import {
   parseLedgerMessage,
   parseLineups,
+  parseSpell,
   parseOddsMessage,
   parseScoreMessage,
   parseStatusMessage,
@@ -133,6 +134,13 @@ export function startReplayIngest(opts: {
       const ledger = parseLedgerMessage(line.data, line.receivedAtMs, 'replay', roster);
       if (ledger && ledgerFixtureId(ledger) === opts.fixtureId) {
         opts.onFeedMsg({ type: 'ledger', msg: ledger });
+      }
+
+      // possession spells → the loom's possession/pressure/tempo threads
+      const spell = parseSpell(line.data, line.receivedAtMs, 'replay', p1IsHome);
+      if (spell) {
+        const sfid = (() => { try { return String((JSON.parse(line.data) as { FixtureId?: number }).FixtureId ?? ''); } catch { return ''; } })();
+        if (sfid === opts.fixtureId) opts.onFeedMsg({ type: 'spell', fixtureId: opts.fixtureId, spell });
       }
 
       const tick = parseOddsMessage(line.data, line.receivedAtMs, 'replay', p1IsHome, oddsPeriod);

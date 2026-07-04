@@ -16,7 +16,7 @@
 import { readFileSync } from 'node:fs';
 import type { FeedMsg } from '@contracts/feed';
 import type { LedgerMsg } from '@contracts/ledger';
-import { parseLedgerMessage, parseLineups, parseOddsMessage, parseScoreMessage, parseStatusMessage } from '@contracts/normalize';
+import { parseLedgerMessage, parseLineups, parseOddsMessage, parseScoreMessage, parseSpell, parseStatusMessage } from '@contracts/normalize';
 import type { FixtureRoster } from '@contracts/normalize';
 
 const TXLINE_API = process.env.TXLINE_API ?? 'https://txline-dev.txodds.com';
@@ -138,6 +138,13 @@ function dispatch(opts: StreamOptions, event: string, data: string, receivedAtMs
       if (ledger) {
         const lfid = ledgerFixtureId(ledger);
         if (lfid && opts.fixtureIds.has(lfid)) opts.onFeedMsg({ type: 'ledger', msg: ledger });
+      }
+      // possession spells (contracts/texture.ts) — the loom's possession/
+      // pressure/tempo threads. Biggest stream; forwarded to fixtures a client
+      // is watching. Side via the same p1IsHome latch as odds.
+      if (lfidPeek && opts.fixtureIds.has(lfidPeek)) {
+        const spell = parseSpell(data, receivedAtMs, 'live', p1IsHomeByFixture.get(lfidPeek) ?? true);
+        if (spell) opts.onFeedMsg({ type: 'spell', fixtureId: lfidPeek, spell });
       }
       // a scores line is either a score change or a status change, not both
       // (see contracts/normalize.ts parseStatusMessage doc comment) — try

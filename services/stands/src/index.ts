@@ -68,6 +68,7 @@ function fixtureIdOfFeedMsg(msg: FeedMsg): string | null {
     }
     return m.fixtureKey || null;
   }
+  if (msg.type === 'spell') return msg.fixtureId; // tagged at emit (Spell has no id)
   let raw: unknown;
   if (msg.type === 'odds') raw = msg.tick.raw;
   else if (msg.type === 'score') raw = msg.ev.raw;

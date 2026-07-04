@@ -164,6 +164,9 @@ export class LiveSource implements MatchDataSource {
       case 'ledger':
         this.cb.onLedger?.(msg.msg);
         return;
+      case 'spell':
+        this.cb.onSpell?.(msg.spell);
+        return;
       case 'feedState':
         this.cb.onFeedState?.(msg.state);
         return;

@@ -12,6 +12,7 @@
 
 import type { Fixture, OddsTick, ScoreEvent, StatusEvent } from './match';
 import type { LedgerMsg } from './ledger';
+import type { Spell } from './texture';
 
 export type FeedState = 'connected' | 'reconnecting' | 'replay' | 'lost';
 
@@ -22,4 +23,9 @@ export type FeedMsg =
   | { type: 'status'; ev: StatusEvent }
   /** the readable story (contracts/ledger.ts) — LiveSource forwards to onLedger */
   | { type: 'ledger'; msg: LedgerMsg }
+  /** possession spells (contracts/texture.ts) — the loom's possession/pressure/
+   * tempo threads; the wire's biggest stream. Carries fixtureId because a Spell
+   * has none of its own (unlike odds/score/status whose .raw does) — the
+   * service routes to the room by it. */
+  | { type: 'spell'; fixtureId: string; spell: Spell }
   | { type: 'feedState'; state: FeedState };
