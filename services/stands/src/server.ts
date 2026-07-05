@@ -11,8 +11,10 @@
 import { createServer } from 'node:http';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { WebSocket, WebSocketServer } from 'ws';
-import type { CallMsg, CallReceiptMsg, ClientMsg, RoomStateMsg, ServerMsg, Side } from '@contracts/crowd';
+import type { CallMsg, CallReceiptMsg, ClientMsg, MomentKind, MomentOpenMsg, MomentResultMsg, RoomStateMsg, ServerMsg, Side } from '@contracts/crowd';
+import { FEELING_PALETTES } from '@contracts/crowd';
 import type { FeedMsg } from '@contracts/feed';
+import { REACT_WINDOW_MS, SWING_DELTA_MIN } from './decay';
 import { MatchRegistry } from './registry';
 import { anchorRecordHash, relayCall } from './relay';
 import { SentimentAccumulator } from './sentiment/accumulator';
@@ -21,6 +23,9 @@ import { fixtureInfo } from './sentiment/teams';
 const PORT = Number(process.env.PORT ?? 8787);
 const DISABLE_PULSE = process.env.DISABLE_PULSE === '1';
 const DISABLE_ROOMS = process.env.DISABLE_ROOMS === '1';
+/** Kill switch for REACT drama windows (docs/MECHANISMS.md §4) — momentReact
+ * handling + auto window open/close both stop; hello/cheer/predict/call stay. */
+const DISABLE_MOMENTS = process.env.DISABLE_MOMENTS === '1';
 
 /** Rate-limit hello floods: max hellos per connection per window. */
 const HELLO_MAX_PER_WINDOW = 5;
@@ -51,6 +56,7 @@ function broadcastToMatch(matchId: string, msg: ServerMsg | FeedMsg): void {
   rememberForJoin(matchId, msg); // snapshot the match state for mid-match joiners
   feedSentiment(matchId, msg); // accumulate the sentiment record (docs/SENTIMENT.md)
   predictLifecycle(matchId, msg); // lock at KO, resolve at FT (docs/MECHANISMS.md §2)
+  momentLifecycle(matchId, msg); // REACT: open/close drama windows (docs/MECHANISMS.md §4)
 }
 
 /** Send one message only to the connections of a specific anonId. */
@@ -83,6 +89,148 @@ function predictLifecycle(matchId: string, msg: ServerMsg | FeedMsg): void {
       crystallizeSentiment(matchId, match); // the record — persist + emit (docs/SENTIMENT.md)
     }
   }
+}
+
+/* ── REACT / the Pulse — drama moments (docs/MECHANISMS.md §4) ─────────── */
+/** per-match close timer for the one open window. */
+const openMomentTimers = new Map<string, ReturnType<typeof setTimeout>>();
+/** last de-vigged triple per match — the baseline for swing detection. */
+const lastTriple = new Map<string, { home: number; draw: number; away: number }>();
+/** trigger sources already turned into a moment (a goal re-emits as it upgrades;
+ * full-time can repeat) — dedupe so one drama opens exactly one window. */
+const openedTriggerIds = new Map<string, Set<string>>();
+
+interface MomentTrigger {
+  kind: MomentKind;
+  side: Side | null;
+  minute: number | null;
+  /** hard events supersede an open soft window and ignore the cooldown. */
+  hard: boolean;
+  /** stable id for dedupe (ledger event id / `${matchId}:ft`); null = swing. */
+  sourceId: string | null;
+}
+
+/** Read a drama trigger off a REAL wire message — never synthesized.
+ * Exported for the REACT dry-run (src/dev/react-dryrun.ts). */
+export function detectMoment(matchId: string, msg: ServerMsg | FeedMsg): MomentTrigger | null {
+  if (msg.type === 'ledger') {
+    if (msg.msg.type !== 'event') return null;
+    const ev = msg.msg.ev;
+    switch (ev.kind) {
+      case 'goal':
+        return { kind: 'goal', side: ev.side, minute: ev.minute, hard: true, sourceId: ev.id };
+      case 'possible':
+        return { kind: 'possible', side: ev.side, minute: ev.minute, hard: true, sourceId: ev.id };
+      case 'red-card':
+        return { kind: 'red', side: null, minute: ev.minute, hard: true, sourceId: ev.id };
+      case 'var':
+        return { kind: 'var', side: null, minute: ev.minute, hard: true, sourceId: ev.id };
+      case 'shot': {
+        const d = (ev.detail ?? '').toLowerCase();
+        // a shot off the frame — the "OOOH" without a goal (soft: yields to goals)
+        if (d.includes('woodwork') || d.includes('post') || d.includes('bar')) {
+          return { kind: 'near-miss', side: ev.side, minute: ev.minute, hard: false, sourceId: ev.id };
+        }
+        return null;
+      }
+      default:
+        return null;
+    }
+  }
+  if (msg.type === 'status') {
+    if (msg.ev.phase !== 'FULL_TIME') return null;
+    return { kind: 'full-time', side: null, minute: msg.ev.minute ?? null, hard: true, sourceId: `${matchId}:ft` };
+  }
+  if (msg.type === 'odds') {
+    const t = msg.tick;
+    const cur = { home: t.pHome, draw: t.pDraw, away: t.pAway };
+    const prev = lastTriple.get(matchId);
+    lastTriple.set(matchId, cur);
+    if (!prev) return null;
+    const dH = Math.abs(cur.home - prev.home);
+    const dD = Math.abs(cur.draw - prev.draw);
+    const dA = Math.abs(cur.away - prev.away);
+    const deltaMax = Math.max(dH, dD, dA);
+    if (deltaMax < SWING_DELTA_MIN) return null; // below the noise floor — not a moment
+    const toward: Side | null = deltaMax === dH ? 'home' : deltaMax === dA ? 'away' : null;
+    return { kind: 'swing', side: toward, minute: null, hard: false, sourceId: null };
+  }
+  return null;
+}
+
+/** Drive the drama windows off the same broadcast every message rides. */
+function momentLifecycle(matchId: string, msg: ServerMsg | FeedMsg): void {
+  if (DISABLE_MOMENTS) return;
+  const trig = detectMoment(matchId, msg);
+  if (!trig) return;
+  const match = registry.get(matchId);
+  if (!match) return;
+
+  if (trig.sourceId) {
+    let seen = openedTriggerIds.get(matchId);
+    if (!seen) {
+      seen = new Set();
+      openedTriggerIds.set(matchId, seen);
+    }
+    if (seen.has(trig.sourceId)) return; // already made a moment of this drama
+    seen.add(trig.sourceId);
+  }
+
+  const active = match.activeMomentId();
+  if (active) {
+    if (!trig.hard) return; // a soft trigger never interrupts an open window
+    closeMomentNow(matchId, active); // hard event supersedes: reveal the prior, then open
+  } else if (!trig.hard && !match.canOpenSoft()) {
+    return; // still inside the cooldown after the last close
+  }
+
+  const now = Date.now();
+  const momentId = trig.sourceId ?? `${matchId}:${trig.kind}:${now}`;
+  const palette = match.beginMoment(momentId, trig.kind, trig.side, trig.minute, now);
+  if (!palette) return; // defensive — we ensured no window was open
+  const open: MomentOpenMsg = {
+    type: 'moment',
+    matchId,
+    momentId,
+    kind: trig.kind,
+    side: trig.side,
+    minute: trig.minute,
+    opensAtMs: now,
+    closesAtMs: now + REACT_WINDOW_MS,
+    palette,
+  };
+  broadcastToMatch(matchId, open);
+  const timer = setTimeout(() => closeMomentNow(matchId, momentId), REACT_WINDOW_MS);
+  (timer as { unref?: () => void }).unref?.(); // a pending window must not hold the process open
+  openMomentTimers.set(matchId, timer);
+}
+
+/** Close a window (on timer or supersede): aggregate the split + reveal it. */
+function closeMomentNow(matchId: string, momentId: string): void {
+  const timer = openMomentTimers.get(matchId);
+  if (timer) {
+    clearTimeout(timer);
+    openMomentTimers.delete(matchId);
+  }
+  const match = registry.get(matchId);
+  if (!match) return;
+  const result = match.endMoment(momentId);
+  if (!result) return; // already closed / superseded
+  const msg: MomentResultMsg = {
+    type: 'momentResult',
+    matchId,
+    momentId,
+    kind: result.kind,
+    minute: result.minute,
+    byEnd: result.byEnd,
+    closedAtMs: Date.now(),
+  };
+  broadcastToMatch(matchId, msg); // → clients (the reveal) + feedSentiment (into feel.moments)
+  const h = msg.byEnd.home;
+  const a = msg.byEnd.away;
+  console.log(
+    `[moment] ${matchId} ${result.kind}@${result.minute ?? '?'}' — home ${h.n}×${h.top || '—'} · away ${a.n}×${a.top || '—'}`,
+  );
 }
 
 /* ── sentiment record (docs/SENTIMENT.md) ─────────────────────────────── */
@@ -198,6 +346,22 @@ function replaySnapshot(ws: WebSocket, matchId: string): void {
   if (snap.score) send(ws, snap.score);
   if (snap.odds) send(ws, snap.odds);
   for (const l of snap.ledgerTail) send(ws, l);
+  // a mid-window joiner sees the open drama immediately, so they can still react.
+  const activeMoment = match?.activeMomentSnapshot();
+  if (activeMoment) {
+    const openMsg: MomentOpenMsg = {
+      type: 'moment',
+      matchId,
+      momentId: activeMoment.momentId,
+      kind: activeMoment.kind,
+      side: activeMoment.side,
+      minute: activeMoment.minute,
+      opensAtMs: activeMoment.openedMs,
+      closesAtMs: activeMoment.openedMs + REACT_WINDOW_MS,
+      palette: FEELING_PALETTES[activeMoment.kind],
+    };
+    send(ws, openMsg);
+  }
 }
 
 const registry = new MatchRegistry((matchId, msg) => broadcastToMatch(matchId, msg));
@@ -278,6 +442,17 @@ function handleReact(state: ConnState, msg: Extract<ClientMsg, { type: 'react' }
   match.react(state.anonId, msg.side, msg.kind);
 }
 
+function handleMomentReact(state: ConnState, msg: Extract<ClientMsg, { type: 'momentReact' }>): void {
+  if (DISABLE_MOMENTS) return;
+  if (!state.matchId || !state.anonId || state.matchId !== msg.matchId) return;
+  if (!isValidSide(msg.side) || typeof msg.momentId !== 'string' || typeof msg.token !== 'string') return;
+  const match = registry.get(msg.matchId);
+  if (!match) return;
+  // trust the connection's identity, not the message's anonId (mirrors handleReact).
+  match.momentReact(state.anonId, msg.momentId, msg.side, msg.token);
+  // no per-react broadcast — the reveal at window close carries the aggregate.
+}
+
 function handlePredict(state: ConnState, msg: Extract<ClientMsg, { type: 'predict' }>): void {
   if (!state.matchId || !state.anonId || state.matchId !== msg.matchId) return;
   const match = registry.getOrCreate(msg.matchId);
@@ -356,6 +531,8 @@ function handleMessage(ws: WebSocket, state: ConnState, raw: string): void {
       return handleCheer(state, msg);
     case 'react':
       return handleReact(state, msg);
+    case 'momentReact':
+      return handleMomentReact(state, msg);
     case 'call':
       void handleCall(ws, state, msg);
       return;

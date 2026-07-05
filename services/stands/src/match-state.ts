@@ -12,7 +12,8 @@
  *  - pulse: reacts are 1/sec/user/kind (checked via lastReactAtMs), counted in
  *    a 60s RollingCounter per side+kind.
  */
-import type { ConsensusMsg, PredictGroup, PredictVerdictMsg, ReactKind, Side } from '@contracts/crowd';
+import type { ConsensusMsg, MomentEndHist, MomentKind, PredictGroup, PredictVerdictMsg, ReactKind, Side } from '@contracts/crowd';
+import { FEELING_PALETTES } from '@contracts/crowd';
 
 /** Summarize a cohort's predictions into mean / outcome-split / modal scoreline. */
 function summarize(preds: Array<{ home: number; away: number }>): PredictGroup {
@@ -42,6 +43,7 @@ function summarize(preds: Array<{ home: number; away: number }>): PredictGroup {
 }
 import {
   CHEER_MAX_BATCH,
+  MOMENT_COOLDOWN_MS,
   PULSE_WINDOW_MS,
   REACT_MIN_INTERVAL_MS,
   ROAR_WINDOW_MS,
@@ -123,6 +125,20 @@ export class MatchState {
     nerves: new RollingCounter(PULSE_WINDOW_MS),
     rage: new RollingCounter(PULSE_WINDOW_MS),
   }));
+
+  /** The single open drama window (docs/MECHANISMS.md §4). One at a time: the
+   * server supersedes a soft window with a hard event by ending it first. Each
+   * fan's react is last-write-wins until close. Null between moments. */
+  private activeMoment: {
+    momentId: string;
+    kind: MomentKind;
+    side: Side | null;
+    minute: number | null;
+    openedMs: number;
+    reacts: Map<string, { token: string; side: Side }>;
+  } | null = null;
+  /** wall-clock of the last window close — SOFT triggers honour a cooldown. */
+  private lastMomentClosedMs = 0;
 
   readonly rooms = new Map<string, RoomState>();
 
@@ -276,6 +292,85 @@ export class MatchState {
       rage: r.rage.sum(),
     });
     return { home: sum(this.pulse.home), away: sum(this.pulse.away) };
+  }
+
+  /* ── REACT / the Pulse — drama moments (docs/MECHANISMS.md §4) ─────────── */
+
+  /** The open window's id, or null. The server uses this to supersede. */
+  activeMomentId(): string | null {
+    return this.activeMoment?.momentId ?? null;
+  }
+
+  /** True when a SOFT trigger (swing/near-miss) may open a window: none active
+   * and past the cooldown since the last close. Hard events bypass this. */
+  canOpenSoft(nowMs = Date.now()): boolean {
+    return this.activeMoment === null && nowMs - this.lastMomentClosedMs >= MOMENT_COOLDOWN_MS;
+  }
+
+  /** Open a drama window. The caller owns the open/supersede policy (and ends
+   * any prior window first); this just installs the window and returns its
+   * feeling palette. Returns null if one is already open (defensive). */
+  beginMoment(momentId: string, kind: MomentKind, side: Side | null, minute: number | null, nowMs = Date.now()): readonly string[] | null {
+    if (this.activeMoment) return null;
+    this.activeMoment = { momentId, kind, side, minute, openedMs: nowMs, reacts: new Map() };
+    return FEELING_PALETTES[kind];
+  }
+
+  /**
+   * Record one fan's feeling at the open moment. One per fan (last-write-wins
+   * until close). Rejected (false) if there's no open window, the momentId is
+   * stale, or the token isn't in this kind's palette — expression stays inside
+   * the curated set, and nothing is ever scored for correctness.
+   */
+  momentReact(anonId: string, momentId: string, side: Side, token: string, nowMs = Date.now()): boolean {
+    const m = this.activeMoment;
+    if (!m || m.momentId !== momentId) return false;
+    if (!FEELING_PALETTES[m.kind].includes(token)) return false;
+    m.reacts.set(anonId, { token, side });
+    void nowMs;
+    return true;
+  }
+
+  /**
+   * Close the open window and aggregate each end's feeling histogram. Returns
+   * null if the id doesn't match the open window (already closed / superseded).
+   * An end with no reactors returns honestly empty (top '' / pct 0 / {} / n 0).
+   */
+  endMoment(momentId: string, nowMs = Date.now()): {
+    kind: MomentKind;
+    side: Side | null;
+    minute: number | null;
+    byEnd: { home: MomentEndHist; away: MomentEndHist };
+  } | null {
+    const m = this.activeMoment;
+    if (!m || m.momentId !== momentId) return null;
+    const tally: { home: Record<string, number>; away: Record<string, number> } = { home: {}, away: {} };
+    for (const { token, side } of m.reacts.values()) {
+      tally[side][token] = (tally[side][token] ?? 0) + 1;
+    }
+    const fold = (h: Record<string, number>): MomentEndHist => {
+      let top = '';
+      let topN = 0;
+      let n = 0;
+      for (const [tok, c] of Object.entries(h)) {
+        n += c;
+        if (c > topN) {
+          topN = c;
+          top = tok;
+        }
+      }
+      return { top, pct: n > 0 ? topN / n : 0, hist: h, n };
+    };
+    this.activeMoment = null;
+    this.lastMomentClosedMs = nowMs;
+    return { kind: m.kind, side: m.side, minute: m.minute, byEnd: { home: fold(tally.home), away: fold(tally.away) } };
+  }
+
+  /** The open window as an OPEN message payload, for catching up mid-window
+   * joiners (server fills matchId/opensAt/closesAt/palette). Null when none. */
+  activeMomentSnapshot(): { momentId: string; kind: MomentKind; side: Side | null; minute: number | null; openedMs: number } | null {
+    const m = this.activeMoment;
+    return m ? { momentId: m.momentId, kind: m.kind, side: m.side, minute: m.minute, openedMs: m.openedMs } : null;
   }
 
   /* ── rooms (rows) ─────────────────────────────────────────────────── */

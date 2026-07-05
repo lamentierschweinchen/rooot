@@ -34,7 +34,7 @@
  * (with the rooted side, if any) so the server re-seats presence + root.
  */
 import type { CrowdClient, CrowdView } from '@contracts/ledger';
-import type { CheerMsg, ConsensusMsg, HelloMsg, PredictMsg, PredictVerdictMsg, ServerMsg, Side, StandsStateMsg } from '@contracts/crowd';
+import type { CheerMsg, ConsensusMsg, HelloMsg, MomentOpenMsg, MomentReactMsg, MomentResultMsg, PredictMsg, PredictVerdictMsg, ServerMsg, Side, StandsStateMsg } from '@contracts/crowd';
 import type { FeedMsg } from '@contracts/feed';
 
 export interface CrowdClientOptions {
@@ -88,6 +88,10 @@ export class StandsCrowdClient implements CrowdClient {
   private stateCb: ((s: CrowdView) => void) | null = null;
   private consensusCb: ((c: ConsensusMsg) => void) | null = null;
   private verdictCb: ((v: PredictVerdictMsg) => void) | null = null;
+  private momentCb: ((m: MomentOpenMsg) => void) | null = null;
+  private momentResultCb: ((r: MomentResultMsg) => void) | null = null;
+  /** the open drama window's id, if any — set on 'moment', cleared on reveal. */
+  private activeMomentId: string | null = null;
   private lastConsensus: ConsensusMsg | null = null;
   private mySide: Side | null = null;
   private trailingSide: Side | null = null;
@@ -160,6 +164,39 @@ export class StandsCrowdClient implements CrowdClient {
   /** Your own prediction verdict, delivered at full time. */
   onVerdict(cb: (v: PredictVerdictMsg) => void): void {
     this.verdictCb = cb;
+  }
+
+  /**
+   * REACT to the open drama moment (docs/MECHANISMS.md §4). One feeling; the
+   * server keeps last-write-wins until the window closes. You react as the end
+   * you rooted — an unrooted fan has no end to place, so it's a no-op (like
+   * cheer). `token` must be one of the open moment's palette; the server drops
+   * anything else. Never scored for correctness — this is expression.
+   */
+  momentReact(momentId: string, token: string): void {
+    if (!this.mySide) return;
+    const msg: MomentReactMsg = {
+      type: 'momentReact',
+      matchId: this.opts.matchId,
+      momentId,
+      anonId: this.anonId,
+      side: this.mySide,
+      token,
+      atMs: Date.now(),
+    };
+    this.sendRaw(msg);
+  }
+
+  /** Subscribe to drama windows OPENING — the react prompt (kind + palette +
+   * closesAtMs). The current window (if one is open when you subscribe) arrives
+   * via the join catch-up, not replayed here. */
+  onMoment(cb: (m: MomentOpenMsg) => void): void {
+    this.momentCb = cb;
+  }
+
+  /** Subscribe to the REVEAL at window close — each end's feeling, split. */
+  onMomentResult(cb: (r: MomentResultMsg) => void): void {
+    this.momentResultCb = cb;
   }
 
   close(): void {
@@ -284,7 +321,7 @@ export class StandsCrowdClient implements CrowdClient {
     this.sendRaw(msg);
   }
 
-  private sendRaw(msg: HelloMsg | CheerMsg | PredictMsg): void {
+  private sendRaw(msg: HelloMsg | CheerMsg | PredictMsg | MomentReactMsg): void {
     const ws = this.ws;
     if (!ws || ws.readyState !== ws.OPEN) return; // dropped while offline; reconnect re-hellos
     try {
@@ -314,6 +351,14 @@ export class StandsCrowdClient implements CrowdClient {
     } else if (msg.type === 'predictVerdict') {
       if (msg.matchId !== this.opts.matchId || msg.anonId !== this.anonId) return;
       this.verdictCb?.(msg);
+    } else if (msg.type === 'moment') {
+      if (msg.matchId !== this.opts.matchId) return;
+      this.activeMomentId = msg.momentId;
+      this.momentCb?.(msg);
+    } else if (msg.type === 'momentResult') {
+      if (msg.matchId !== this.opts.matchId) return;
+      if (this.activeMomentId === msg.momentId) this.activeMomentId = null;
+      this.momentResultCb?.(msg);
     }
   }
 

@@ -14,6 +14,42 @@
 export type Side = 'home' | 'away';
 export type ReactKind = 'belief' | 'nerves' | 'rage';
 
+/**
+ * REACT / the Pulse (docs/MECHANISMS.md §4) — the DRAMA KINDS that open a react
+ * window. The server detects each from the real wire (a goal/red/VAR off the
+ * ledger, full-time off the status, a lurch off the odds); nothing is ever
+ * synthesized to manufacture a moment.
+ */
+export type MomentKind =
+  | 'goal'
+  | 'possible' // the held breath before a goal/VAR is confirmed
+  | 'var'
+  | 'red'
+  | 'penalty'
+  | 'near-miss' // a shot off the woodwork — the "OOOH" without a goal
+  | 'swing' // the market lurched with no single event to pin it on
+  | 'full-time';
+
+/**
+ * The feeling vocabulary per moment kind — STABLE TOKENS, not glyphs. The set
+ * is deliberately AMBIGUOUS / multi-context (never literal to the event): the
+ * same six feelings are offered to BOTH ends, and the split between how each
+ * end felt is the content ("their 💀 vs your 🚀"). Design maps tokens → glyphs
+ * in the surface (its vocabulary); the record stores tokens so a re-skin never
+ * breaks the data. Honesty: a feeling is NEVER scored for correctness — this is
+ * expression, not a guess (the mechanic the owner killed twice; do not re-add).
+ */
+export const FEELING_PALETTES: Record<MomentKind, readonly string[]> = {
+  goal: ['euphoria', 'relief', 'disbelief', 'anguish', 'tension', 'pride'],
+  possible: ['hope', 'dread', 'held-breath', 'disbelief', 'nerves', 'faith'],
+  var: ['injustice', 'vindication', 'confusion', 'impatience', 'dread', 'hope'],
+  red: ['justice', 'outrage', 'shock', 'fear', 'glee', 'disbelief'],
+  penalty: ['nerve', 'terror', 'hope', 'dread', 'faith', 'disbelief'],
+  'near-miss': ['agony', 'relief', 'so-close', 'phew', 'awe', 'frustration'],
+  swing: ['momentum', 'worry', 'belief', 'doubt', 'surge', 'slipping'],
+  'full-time': ['elation', 'heartbreak', 'pride', 'emptiness', 'relief', 'disbelief'],
+};
+
 /* ── client → stands ──────────────────────────────────────────────── */
 
 /** First message on connect (and on side-pick / room-join changes). */
@@ -43,6 +79,25 @@ export interface ReactMsg {
   matchId: string;
   side: Side;
   kind: ReactKind;
+  atMs: number;
+}
+
+/**
+ * REACT — one feeling at a DRAMA MOMENT (docs/MECHANISMS.md §4, the Pulse).
+ * One per fan per moment: a re-react replaces the prior until the window closes
+ * (last-write-wins). `token` MUST be one of FEELING_PALETTES for the open
+ * moment's kind — the server validates and drops anything else. `side` is the
+ * reacting fan's rooted end (the split axis of the reveal). This is distinct
+ * from the ambient `ReactMsg` pulse: windowed, one-shot, and it crystallizes
+ * into the match's sentiment record (contracts/sentiment.ts MomentFeeling).
+ */
+export interface MomentReactMsg {
+  type: 'momentReact';
+  matchId: string;
+  momentId: string;
+  anonId: string;
+  side: Side;
+  token: string;
   atMs: number;
 }
 
@@ -82,7 +137,7 @@ export interface PredictMsg {
   atMs: number;
 }
 
-export type ClientMsg = HelloMsg | CheerMsg | ReactMsg | CallMsg | PredictMsg;
+export type ClientMsg = HelloMsg | CheerMsg | ReactMsg | MomentReactMsg | CallMsg | PredictMsg;
 
 /* ── stands → clients ─────────────────────────────────────────────── */
 
@@ -161,4 +216,56 @@ export interface PredictVerdictMsg {
   verdict: 'exact' | 'outcome' | 'wrong';
 }
 
-export type ServerMsg = StandsStateMsg | CallReceiptMsg | RoomStateMsg | ConsensusMsg | PredictVerdictMsg;
+/**
+ * REACT — a drama window OPENING (docs/MECHANISMS.md §4). Fans have until
+ * `closesAtMs` to pick ONE feeling. `side` is the end the moment favours (the
+ * scorer on a goal), or null where there's no clear beneficiary (a red card,
+ * VAR, full-time). `palette` is the token set for this kind (FEELING_PALETTES) —
+ * design renders the glyphs. `minute` is the match minute where known.
+ */
+export interface MomentOpenMsg {
+  type: 'moment';
+  matchId: string;
+  momentId: string;
+  kind: MomentKind;
+  side: Side | null;
+  minute: number | null;
+  opensAtMs: number;
+  closesAtMs: number;
+  palette: readonly string[];
+}
+
+/** One end's aggregated feeling at a moment: the top token, its share (0..1),
+ * the full histogram, and how many fans reacted. Empty ('' / 0 / {} / 0) when
+ * that end was silent — never synthesized. */
+export interface MomentEndHist {
+  top: string;
+  pct: number;
+  hist: Record<string, number>;
+  n: number;
+}
+
+/**
+ * REACT — the REVEAL at window close (docs/MECHANISMS.md §4): each end's feeling,
+ * split ("their 💀 vs your 🚀"). The server aggregates real reactions only; an
+ * end with no reactors reveals honestly empty. Maps directly to the record's
+ * MomentFeeling (contracts/sentiment.ts) — the mood-quilt's data.
+ */
+export interface MomentResultMsg {
+  type: 'momentResult';
+  matchId: string;
+  momentId: string;
+  kind: MomentKind;
+  minute: number | null;
+  byEnd: { home: MomentEndHist; away: MomentEndHist };
+  closedAtMs: number;
+}
+
+export type ServerMsg =
+  | StandsStateMsg
+  | CallReceiptMsg
+  | RoomStateMsg
+  | ConsensusMsg
+  | PredictVerdictMsg
+  | MomentOpenMsg
+  | MomentResultMsg;

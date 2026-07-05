@@ -23,6 +23,17 @@ export const PULSE_WINDOW_MS = 60_000;
 /** One react of a given kind per user per second, max. */
 export const REACT_MIN_INTERVAL_MS = 1_000;
 
+/* ── REACT / the Pulse — drama moments (docs/MECHANISMS.md §4) ─────────── */
+/** How long a drama window stays open for feelings (~25s per spec). */
+export const REACT_WINDOW_MS = 25_000;
+/** After a window closes, SOFT triggers (swing/near-miss) are suppressed this
+ * long — a goal's own swing shouldn't immediately re-open a swing moment. Hard
+ * events (goal/red/VAR/full-time) ignore the cooldown and supersede. */
+export const MOMENT_COOLDOWN_MS = 15_000;
+/** A market lurch this large (max single-leg move, 0..1) with no event to pin
+ * it on opens a standalone `swing` moment. */
+export const SWING_DELTA_MIN = 0.12;
+
 /**
  * Token bucket: `take(n, now)` returns how many of the requested n tokens
  * were actually available (0..n), and drains that many. Refills continuously

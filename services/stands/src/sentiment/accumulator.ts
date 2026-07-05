@@ -11,10 +11,45 @@ import type { FeedMsg } from '@contracts/feed';
 import type { ConsensusMsg, ServerMsg } from '@contracts/crowd';
 import type { MatchPhase } from '@contracts/match';
 import type { LedgerEvent } from '@contracts/ledger';
-import type { SentimentRecord } from '@contracts/sentiment';
+import type { MomentFeeling, SentimentRecord } from '@contracts/sentiment';
 import { summarizeMarket, assembleSentimentRecord, type MarketPoint } from './builder';
 
 const MATERIAL = new Set(['goal', 'yellow-card', 'red-card', 'var', 'shot', 'corner', 'penalty-kick']);
+
+/**
+ * How much the crowd's FEELING swung across the match — the mean total-variation
+ * distance between consecutive moments' whole-crowd feeling distributions (0 =
+ * every moment felt the same, →1 = the mood lurched each time). <2 moments = 0.
+ */
+function computeFeelVolatility(moments: MomentFeeling[]): number {
+  if (moments.length < 2) return 0;
+  const dist = (m: MomentFeeling): Record<string, number> => {
+    const h: Record<string, number> = {};
+    let n = 0;
+    for (const end of [m.byEnd.home, m.byEnd.away]) {
+      for (const [tok, v] of Object.entries(end.hist)) {
+        h[tok] = (h[tok] ?? 0) + v;
+        n += v;
+      }
+    }
+    if (n > 0) for (const tok of Object.keys(h)) h[tok] = (h[tok] ?? 0) / n;
+    return h;
+  };
+  let sum = 0;
+  let pairs = 0;
+  let prev: Record<string, number> | null = null;
+  for (const m of moments) {
+    const cur = dist(m);
+    if (prev) {
+      let tv = 0;
+      for (const tok of new Set([...Object.keys(prev), ...Object.keys(cur)])) tv += Math.abs((prev[tok] ?? 0) - (cur[tok] ?? 0));
+      sum += tv / 2;
+      pairs++;
+    }
+    prev = cur;
+  }
+  return pairs > 0 ? sum / pairs : 0;
+}
 
 export interface CrowdInputs {
   consensus: ConsensusMsg | null;
@@ -28,6 +63,8 @@ export class SentimentAccumulator {
   private phases: MatchPhase[] = [];
   private phaseSnaps: Array<{ phase: MatchPhase; belief: { home: number; draw: number; away: number } }> = [];
   private events: LedgerEvent[] = [];
+  /** the FELT drama moments (REACT reveals) — the feel.moments layer. */
+  private readonly moments: MomentFeeling[] = [];
   private minute: number | null = null;
   private lastBelief: { home: number; draw: number; away: number } | null = null;
   private final = { home: 0, away: 0 };
@@ -69,6 +106,24 @@ export class SentimentAccumulator {
         if (MATERIAL.has(ev.kind)) this.events.push(ev);
         break;
       }
+      case 'momentResult': {
+        // a FELT moment (docs/MECHANISMS.md §4). Store only when at least one end
+        // reacted — an unwatched drama is already in events[]; feel.moments is for
+        // what was actually FELT, never synthesized from an empty window.
+        const { home, away } = msg.byEnd;
+        if (home.n > 0 || away.n > 0) {
+          this.moments.push({
+            momentId: msg.momentId,
+            kind: msg.kind,
+            minute: msg.minute,
+            byEnd: {
+              home: { top: home.top, pct: home.pct, hist: home.hist },
+              away: { top: away.top, pct: away.pct, hist: away.hist },
+            },
+          });
+        }
+        break;
+      }
       default:
         break;
     }
@@ -99,9 +154,9 @@ export class SentimentAccumulator {
       faith: { home: 0, away: 0 }, // faith accumulation: follow-up
     };
     const feel = {
-      moments: [], // per-moment reaction histograms: wired with REACT
-      roar: { peak: null, total: crowd.roarTotal },
-      volatility: 0,
+      moments: this.moments,
+      roar: { peak: null, total: crowd.roarTotal }, // peak: follow-up (needs roar over time)
+      volatility: computeFeelVolatility(this.moments),
     };
     return assembleSentimentRecord({
       matchId: this.matchId,
