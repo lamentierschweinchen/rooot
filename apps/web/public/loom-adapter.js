@@ -88,7 +88,11 @@
           // only the full-match 1X2 feeds the belief; when it settles at the 90'
           // level the wire switches to period 'et' → we stop (loom greys). Honest.
           if (t.period === 'et' || etPhase) break;
-          L.odds({ minute: minute, pHome: t.pHome, pDraw: t.pDraw, pAway: t.pAway });
+          // a JOIN replay stamps the historical minute onto the tick (live ticks
+          // carry none) — use it so the belief CURVE lands at its real minutes;
+          // live ticks fall back to the running clock.
+          var om = typeof t.minute === 'number' ? t.minute : minute;
+          L.odds({ minute: om, pHome: t.pHome, pDraw: t.pDraw, pAway: t.pAway });
           report.odds++;
           break;
         }

@@ -301,15 +301,24 @@ interface JoinSnapshot {
   status?: Extract<FeedMsg, { type: 'status' }>;
   fixtureInfo?: Extract<FeedMsg, { type: 'fixtureInfo' }>;
   ledgerTail: Array<Extract<FeedMsg, { type: 'ledger' }>>;
+  /** A downsampled belief CURVE for the whole match, each tick stamped with the
+   * match minute it landed at (odds carry no minute of their own), so a JOIN
+   * weaves the real arc instead of one stretched-flat point (owner caught the
+   * straight-line loom live, Jul 5). */
+  oddsHistory: Array<Extract<FeedMsg, { type: 'odds' }>>;
+  lastOddsMs?: number;
+  lastMinute?: number;
 }
 const LEDGER_TAIL_MAX = 40;
+const ODDS_HISTORY_MAX = 400;
+const ODDS_HISTORY_GAP_MS = 12000; // ~1 belief point / 12s of wire time → a smooth curve
 const joinSnapshots = new Map<string, JoinSnapshot>();
 const lastFeedState = new Map<string, Extract<FeedMsg, { type: 'feedState' }>>();
 
 function snapshotFor(matchId: string): JoinSnapshot {
   let snap = joinSnapshots.get(matchId);
   if (!snap) {
-    snap = { ledgerTail: [] };
+    snap = { ledgerTail: [], oddsHistory: [] };
     joinSnapshots.set(matchId, snap);
   }
   return snap;
@@ -321,15 +330,32 @@ function rememberForJoin(matchId: string, msg: ServerMsg | FeedMsg): void {
       lastFeedState.set(matchId, msg);
       snapshotFor(matchId).feedState = msg;
       break;
-    case 'odds':
-      snapshotFor(matchId).odds = msg;
+    case 'odds': {
+      const snap = snapshotFor(matchId);
+      snap.odds = msg;
+      // downsample a belief CURVE, stamping the current match minute onto each
+      // kept tick (odds carry no minute of their own) so a join weaves the arc.
+      const tMs = msg.tick.tMs;
+      if (snap.lastOddsMs === undefined || tMs - snap.lastOddsMs >= ODDS_HISTORY_GAP_MS) {
+        snap.lastOddsMs = tMs;
+        const stamped = { ...msg, tick: { ...msg.tick, minute: snap.lastMinute ?? msg.tick.minute } };
+        snap.oddsHistory.push(stamped);
+        if (snap.oddsHistory.length > ODDS_HISTORY_MAX) snap.oddsHistory.splice(0, snap.oddsHistory.length - ODDS_HISTORY_MAX);
+      }
       break;
-    case 'score':
-      snapshotFor(matchId).score = msg;
+    }
+    case 'score': {
+      const snap = snapshotFor(matchId);
+      snap.score = msg;
+      if (typeof msg.ev.minute === 'number') snap.lastMinute = msg.ev.minute;
       break;
-    case 'status':
-      snapshotFor(matchId).status = msg;
+    }
+    case 'status': {
+      const snap = snapshotFor(matchId);
+      snap.status = msg;
+      if (typeof msg.ev.minute === 'number') snap.lastMinute = msg.ev.minute;
       break;
+    }
     case 'fixtureInfo':
       snapshotFor(matchId).fixtureInfo = msg;
       break;
@@ -356,6 +382,9 @@ function replaySnapshot(ws: WebSocket, matchId: string): void {
   if (snap.feedState) send(ws, snap.feedState);
   if (snap.status) send(ws, snap.status);
   if (snap.score) send(ws, snap.score);
+  // the belief CURVE (minute-stamped) so the loom weaves the real arc, not one
+  // flat point — then the definitive latest tick.
+  for (const o of snap.oddsHistory) send(ws, o);
   if (snap.odds) send(ws, snap.odds);
   for (const l of snap.ledgerTail) send(ws, l);
   // a mid-window joiner sees the open drama immediately, so they can still react.
