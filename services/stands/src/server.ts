@@ -47,6 +47,13 @@ function send(ws: WebSocket, msg: ServerMsg | FeedMsg): void {
   ws.send(JSON.stringify(msg));
 }
 
+/** Like send, but tags the message as a JOIN replay so the client can weave the
+ * match's history WITHOUT re-firing one-shot live effects (the goal eruption). */
+function sendReplay(ws: WebSocket, msg: ServerMsg | FeedMsg): void {
+  if (ws.readyState !== WebSocket.OPEN) return;
+  ws.send(JSON.stringify({ ...msg, _replay: true }));
+}
+
 /** Broadcast to every connection currently in matchId's room. */
 function broadcastToMatch(matchId: string, msg: ServerMsg | FeedMsg): void {
   const payload = JSON.stringify(msg);
@@ -300,25 +307,30 @@ interface JoinSnapshot {
   score?: Extract<FeedMsg, { type: 'score' }>;
   status?: Extract<FeedMsg, { type: 'status' }>;
   fixtureInfo?: Extract<FeedMsg, { type: 'fixtureInfo' }>;
-  ledgerTail: Array<Extract<FeedMsg, { type: 'ledger' }>>;
-  /** A downsampled belief CURVE for the whole match, each tick stamped with the
-   * match minute it landed at (odds carry no minute of their own), so a JOIN
-   * weaves the real arc instead of one stretched-flat point (owner caught the
-   * straight-line loom live, Jul 5). */
+  /** The whole match, downsampled, so a JOIN weaves the full cloth — the belief
+   * arc, every woven event, and the pressure shape — not one stretched-flat
+   * point (owner caught the straight-line loom live, Jul 5). Odds carry no minute
+   * of their own, so each kept tick is stamped with the match minute it landed at. */
   oddsHistory: Array<Extract<FeedMsg, { type: 'odds' }>>;
+  eventHistory: Array<Extract<FeedMsg, { type: 'ledger' }>>;
+  pressureHistory: Array<Extract<FeedMsg, { type: 'ledger' }>>;
   lastOddsMs?: number;
   lastMinute?: number;
+  lastDangerMs?: { home: number; away: number };
 }
-const LEDGER_TAIL_MAX = 40;
 const ODDS_HISTORY_MAX = 400;
 const ODDS_HISTORY_GAP_MS = 12000; // ~1 belief point / 12s of wire time → a smooth curve
+const EVENT_HISTORY_MAX = 180; // woven marks (goals/cards/VAR/shots/corners) — sparse; keep the lot
+const PRESSURE_HISTORY_MAX = 350;
+const DANGER_HISTORY_GAP_MS = 4000; // ~1 pressure point per side per 4s → the cord's shape, no flood
+const WOVEN_KINDS = new Set(['goal', 'yellow-card', 'red-card', 'var', 'shot', 'corner', 'possible', 'penalty-kick']);
 const joinSnapshots = new Map<string, JoinSnapshot>();
 const lastFeedState = new Map<string, Extract<FeedMsg, { type: 'feedState' }>>();
 
 function snapshotFor(matchId: string): JoinSnapshot {
   let snap = joinSnapshots.get(matchId);
   if (!snap) {
-    snap = { ledgerTail: [], oddsHistory: [] };
+    snap = { oddsHistory: [], eventHistory: [], pressureHistory: [] };
     joinSnapshots.set(matchId, snap);
   }
   return snap;
@@ -360,9 +372,22 @@ function rememberForJoin(matchId: string, msg: ServerMsg | FeedMsg): void {
       snapshotFor(matchId).fixtureInfo = msg;
       break;
     case 'ledger': {
-      const tail = snapshotFor(matchId).ledgerTail;
-      tail.push(msg);
-      if (tail.length > LEDGER_TAIL_MAX) tail.splice(0, tail.length - LEDGER_TAIL_MAX);
+      if (msg.msg.type !== 'event') break; // amend/discard: the chalk-off rides the score, not a replay
+      const snap = snapshotFor(matchId);
+      const ev = msg.msg.ev;
+      if (WOVEN_KINDS.has(ev.kind)) {
+        snap.eventHistory.push(msg);
+        if (snap.eventHistory.length > EVENT_HISTORY_MAX) snap.eventHistory.splice(0, snap.eventHistory.length - EVENT_HISTORY_MAX);
+      } else if (ev.kind === 'danger') {
+        // downsample danger per side into a pressure curve for the cord's history.
+        const side = ev.side === 'away' ? 'away' : 'home';
+        if (!snap.lastDangerMs) snap.lastDangerMs = { home: 0, away: 0 };
+        if (ev.tMs - snap.lastDangerMs[side] >= DANGER_HISTORY_GAP_MS) {
+          snap.lastDangerMs[side] = ev.tMs;
+          snap.pressureHistory.push(msg);
+          if (snap.pressureHistory.length > PRESSURE_HISTORY_MAX) snap.pressureHistory.splice(0, snap.pressureHistory.length - PRESSURE_HISTORY_MAX);
+        }
+      }
       break;
     }
     default:
@@ -382,11 +407,13 @@ function replaySnapshot(ws: WebSocket, matchId: string): void {
   if (snap.feedState) send(ws, snap.feedState);
   if (snap.status) send(ws, snap.status);
   if (snap.score) send(ws, snap.score);
-  // the belief CURVE (minute-stamped) so the loom weaves the real arc, not one
-  // flat point — then the definitive latest tick.
+  // THE WHOLE MATCH, downsampled, so the loom weaves the full cloth on join: the
+  // belief arc + the pressure shape + every event. Events/pressure go out marked
+  // `_replay` so the loom weaves historical goals WITHOUT re-firing their GOOOOL.
   for (const o of snap.oddsHistory) send(ws, o);
+  for (const p of snap.pressureHistory) sendReplay(ws, p);
+  for (const e of snap.eventHistory) sendReplay(ws, e);
   if (snap.odds) send(ws, snap.odds);
-  for (const l of snap.ledgerTail) send(ws, l);
   // a mid-window joiner sees the open drama immediately, so they can still react.
   const activeMoment = match?.activeMomentSnapshot();
   if (activeMoment) {

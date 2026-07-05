@@ -177,7 +177,7 @@ window.__loom={
       e.out=d.indexOf('wood')>=0?'wood':d.indexOf('off')>=0?'off':d.indexOf('block')>=0?'blocked':'on';}
     if(e.kind==='card'&&(e.type==='red-card'||e.type==='red'))e.col='r';   // if the wire ever passes the colour
     LIVE.events.push(e);
-    if(e.kind==='goal'){if(e.side)LIVE.score[e.side-1]++;st.erupt={on:true,t0:performance.now(),side:e.side,et:e.et};}
+    if(e.kind==='goal'){if(e.side)LIVE.score[e.side-1]++;if(!e.quiet)st.erupt={on:true,t0:performance.now(),side:e.side,et:e.et};} // e.quiet = a JOIN replay: weave the goal, don't re-fire GOOOOL
     if(e.kind==='card'&&e.col==='r'){NARROWM=e.m;NARROWS=e.side||1;}
   },
   clock:function(minute,running){LIVE.clock=minute;st.t=minute;},
@@ -209,6 +209,12 @@ function drawBelief(y0,y1,t){
     g.fillStyle=bink(TH.homeInk,dl); g.fillRect(rx0,y,aw,2.5);
     g.fillStyle=dl<0.5?SK.drawA:SK.drawB; g.fillRect(rx0+aw,y,dw,2.5);
     g.fillStyle=bink(TH.awayInk,dl); g.fillRect(rx0+aw+dw,y,cw,2.5);
+    // each team's SECOND colour woven through its OWN band — reads as the kit, not a third nation's flag
+    var _to=(Math.floor(m*7)%10);
+    g.fillStyle=bink(TH.homeInk2,dl);
+    for(var tx=rx0+3+_to;tx<rx0+aw-1.5;tx+=10){g.fillRect(tx,y,2,2.5);}
+    g.fillStyle=bink(TH.awayInk2,dl);
+    for(var tx=rx0+aw+dw+3+_to;tx<rx0+rw-1.5;tx+=10){g.fillRect(tx,y,2,2.5);}
     g.fillStyle='rgba(255,255,255,0.085)'; g.fillRect(x0,y,w,0.7);
     g.fillStyle='rgba(0,0,0,0.10)'; g.fillRect(x0,y+1.9,w,0.6);
     if(WOB[(Math.floor(m*2.5)>>>0)%WOB.length].sl>0.955){g.fillStyle='rgba(255,255,255,0.05)';g.fillRect(x0,y-0.4,w,0.8);g.fillStyle='rgba(0,0,0,0.06)';g.fillRect(x0,y+0.9,w,1.0);}
@@ -445,7 +451,7 @@ const FIXTURES={
 (function(){var q=new URLSearchParams(location.search);
  var SITE=(location.pathname==='/'||location.pathname==='/live'||q.get('site')==='1'); // clean live front door (rooot.club, /live via rewrite; ?site=1 fallback) \u2014 live with no query hedge
  if(q.get('loomfeed')!=='1'&&!SITE)return;
- var fx=FIXTURES[q.get('match')||'18187298']; if(!fx||!window.__loom)return;
+ var fx=FIXTURES[q.get('match')||'18192996']; if(!fx||!window.__loom)return;
  var mk=function(a){return {tri:a[0],name:a[1],primary:a[2],secondary:a[3]};};
  __loom.teams(mk(fx.h),mk(fx.a));
  var st2=document.getElementById('subtitle');

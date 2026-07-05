@@ -24,7 +24,7 @@
   // the self-contained demo — untouched.
   var SITE = location.pathname === '/' || location.pathname === '/live' || q.get('site') === '1';
   if (q.get('loomfeed') !== '1' && !SITE) return;
-  var matchId = q.get('match') || '18187298'; // BRA–NOR default
+  var matchId = q.get('match') || '18192996'; // MEX–ENG default (tonight's fixture)
   var wsBase = q.get('ws') || 'wss://rooot-stands.fly.dev/';
 
   function waitForLoom(cb) {
@@ -138,7 +138,7 @@
             if (ev.confirmed && !firedGoals[ev.id]) {
               firedGoals[ev.id] = true;
               var gs = sideNum(ev.side);
-              L.event({ minute: mn, kind: 'goal', side: gs, type: goalType(ev.goalKind), et: etPhase });
+              L.event({ minute: mn, kind: 'goal', side: gs, type: goalType(ev.goalKind), et: etPhase, quiet: !!msg._replay });
               report.goal++;
               if (gs) wove[gs]++; // track woven goals for chalk-off reconciliation
               // truth-align: the goal event auto-increments; the row carries the
