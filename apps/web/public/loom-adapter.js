@@ -50,7 +50,7 @@
     var firedGoals = {};       // ledger goal id → true (fire the weave ONCE)
     var firedVars = {};        // VAR review id → true — ONE mark per review, not per envelope
     var wove = { 1: 0, 2: 0 }; // goals actually woven per side — for chalk-off reconciliation
-    var report = { odds: 0, spell: 0, event: 0, goal: 0, chalked: 0, score: '0-0' };
+    var report = { odds: 0, spell: 0, event: 0, goal: 0, chalked: 0, pressure: 0, score: '0-0' };
     window.__loomAdapter = { report: report, matchId: matchId };
 
     function setClock(mDec, running) {
@@ -117,9 +117,17 @@
           var m = msg.msg;
           if (m.type !== 'event') break; // amend/discard: no loom mark today
           var ev = m.ev, k = ev.kind, mn = typeof ev.minute === 'number' ? ev.minute : minute;
+          if (k === 'danger') {
+            // THE PRESSURE CORD'S REAL FUEL. The live wire sends danger/high-danger
+            // as LEDGER events (~25 per 18s on BRA-NOR), not as spells — so route
+            // them to the cord here, or it sits dead at centre (owner caught this
+            // live). Not tempo: a danger spell isn't a discrete beat.
+            var dsd = sideNum(ev.side);
+            if (dsd) { L.pressure(mn, dsd, (ev.detail || '').toLowerCase().indexOf('high') >= 0 ? 2 : 1.5); report.pressure++; }
+            break;
+          }
           // tempo: every DISCRETE match event (not possession chatter — that's
-          // its own cord). Meaningful "how frantic" rail. (handback: flip to
-          // every-spell if the design wants raw density.)
+          // its own cord). Meaningful "how frantic" rail.
           L.tempo(mn);
           report.event++;
           if (k === 'goal') {

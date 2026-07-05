@@ -295,7 +295,9 @@ function render(t){
   const mm=Math.floor(Math.min(t,124)); fD(g,12,600);g.fillStyle=C.gold;g.fillText(mm+"'",W/2,50);
   fD(g,9,600);g.fillStyle='#9a927c';g.textAlign='center';g.fillText(phaseAt(t),W/2,62);
   fD(g,9,600);g.fillStyle=C.poppy;g.textAlign='left';g.fillText(t<124?'● LIVE':'FULL TIME',14,50);
-  fD(g,8,600);g.fillStyle='#9a927c';g.textAlign='right';const[pa,pc]=[argp(mm),cpvp(mm)];g.fillText('POSS '+TH.homeTri+' '+Math.round(shAt(mm)*100)+'%',W-14,50);
+  fD(g,8,600);g.fillStyle='#9a927c';g.textAlign='right';const[pa,pc]=[argp(mm),cpvp(mm)];
+  var _noPoss=LIVE.on&&!Object.keys(LIVE.poss).length; // honesty (coordinator): no live possession source yet — it's in the undecoded Stats block — so show — , never a fake 0%
+  g.fillText('POSS '+TH.homeTri+' '+(_noPoss?'—':Math.round(shAt(mm)*100)+'%'),W-14,50);
 
   // ---- warp waiting below the shuttle (future, not yet woven) ----
   g.fillStyle=SK.warp;g.fillRect(x0,liveY,w,H-liveY);
