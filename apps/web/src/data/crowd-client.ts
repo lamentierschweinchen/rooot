@@ -34,7 +34,7 @@
  * (with the rooted side, if any) so the server re-seats presence + root.
  */
 import type { CrowdClient, CrowdView } from '@contracts/ledger';
-import type { CheerMsg, HelloMsg, ServerMsg, Side, StandsStateMsg } from '@contracts/crowd';
+import type { CheerMsg, ConsensusMsg, HelloMsg, PredictMsg, PredictVerdictMsg, ServerMsg, Side, StandsStateMsg } from '@contracts/crowd';
 import type { FeedMsg } from '@contracts/feed';
 
 export interface CrowdClientOptions {
@@ -86,6 +86,9 @@ export class StandsCrowdClient implements CrowdClient {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
   private stateCb: ((s: CrowdView) => void) | null = null;
+  private consensusCb: ((c: ConsensusMsg) => void) | null = null;
+  private verdictCb: ((v: PredictVerdictMsg) => void) | null = null;
+  private lastConsensus: ConsensusMsg | null = null;
   private mySide: Side | null = null;
   private trailingSide: Side | null = null;
 
@@ -131,6 +134,32 @@ export class StandsCrowdClient implements CrowdClient {
     // push the current view immediately so a just-subscribed strip has a frame
     // to render (connected:false until the first server tick lands).
     this.publish();
+  }
+
+  /** PREDICT the final scoreline (docs/MECHANISMS.md §2). Editable until KO;
+   * the server locks after. Send whenever the fan changes it. */
+  predict(home: number, away: number, marketAtPredict?: { home: number; draw: number; away: number }): void {
+    const msg: PredictMsg = {
+      type: 'predict',
+      matchId: this.opts.matchId,
+      anonId: this.anonId,
+      home,
+      away,
+      ...(marketAtPredict ? { marketAtPredict } : {}),
+      atMs: Date.now(),
+    };
+    this.sendRaw(msg);
+  }
+
+  /** Subscribe to the crowd's predicted-scoreline consensus (grouped by end). */
+  onConsensus(cb: (c: ConsensusMsg) => void): void {
+    this.consensusCb = cb;
+    if (this.lastConsensus) cb(this.lastConsensus);
+  }
+
+  /** Your own prediction verdict, delivered at full time. */
+  onVerdict(cb: (v: PredictVerdictMsg) => void): void {
+    this.verdictCb = cb;
   }
 
   close(): void {
@@ -255,7 +284,7 @@ export class StandsCrowdClient implements CrowdClient {
     this.sendRaw(msg);
   }
 
-  private sendRaw(msg: HelloMsg | CheerMsg): void {
+  private sendRaw(msg: HelloMsg | CheerMsg | PredictMsg): void {
     const ws = this.ws;
     if (!ws || ws.readyState !== ws.OPEN) return; // dropped while offline; reconnect re-hellos
     try {
@@ -278,6 +307,13 @@ export class StandsCrowdClient implements CrowdClient {
     if (msg.type === 'stands') {
       if (msg.matchId !== this.opts.matchId) return; // not our room
       this.applyStands(msg);
+    } else if (msg.type === 'consensus') {
+      if (msg.matchId !== this.opts.matchId) return;
+      this.lastConsensus = msg;
+      this.consensusCb?.(msg);
+    } else if (msg.type === 'predictVerdict') {
+      if (msg.matchId !== this.opts.matchId || msg.anonId !== this.anonId) return;
+      this.verdictCb?.(msg);
     }
   }
 
