@@ -56,7 +56,13 @@ function broadcastToMatch(matchId: string, msg: ServerMsg | FeedMsg): void {
   rememberForJoin(matchId, msg); // snapshot the match state for mid-match joiners
   feedSentiment(matchId, msg); // accumulate the sentiment record (docs/SENTIMENT.md)
   predictLifecycle(matchId, msg); // lock at KO, resolve at FT (docs/MECHANISMS.md §2)
-  momentLifecycle(matchId, msg); // REACT: open/close drama windows (docs/MECHANISMS.md §4)
+  // REACT drama windows (docs/MECHANISMS.md §4) — isolated: this new layer must
+  // NEVER be able to break the core crowd/feed broadcast above.
+  try {
+    momentLifecycle(matchId, msg);
+  } catch (err) {
+    console.warn(`[moment] lifecycle error on ${matchId}: ${String(err)}`);
+  }
 }
 
 /** Send one message only to the connections of a specific anonId. */
@@ -200,7 +206,13 @@ function momentLifecycle(matchId: string, msg: ServerMsg | FeedMsg): void {
     palette,
   };
   broadcastToMatch(matchId, open);
-  const timer = setTimeout(() => closeMomentNow(matchId, momentId), REACT_WINDOW_MS);
+  const timer = setTimeout(() => {
+    try {
+      closeMomentNow(matchId, momentId);
+    } catch (err) {
+      console.warn(`[moment] close error on ${matchId}: ${String(err)}`);
+    }
+  }, REACT_WINDOW_MS);
   (timer as { unref?: () => void }).unref?.(); // a pending window must not hold the process open
   openMomentTimers.set(matchId, timer);
 }
