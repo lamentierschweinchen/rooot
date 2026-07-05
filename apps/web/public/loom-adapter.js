@@ -44,12 +44,29 @@
     var minute = 0;            // current match minute (decimal), the live edge
     var etPhase = false;       // true once EXTRA_TIME/PENALTIES — full 1X2 is dead
     var firedGoals = {};       // ledger goal id → true (fire the weave ONCE)
-    var report = { odds: 0, spell: 0, event: 0, goal: 0, score: '0-0' };
+    var firedVars = {};        // VAR review id → true — ONE mark per review, not per envelope
+    var wove = { 1: 0, 2: 0 }; // goals actually woven per side — for chalk-off reconciliation
+    var report = { odds: 0, spell: 0, event: 0, goal: 0, chalked: 0, score: '0-0' };
     window.__loomAdapter = { report: report, matchId: matchId };
 
     function setClock(mDec, running) {
       if (typeof mDec !== 'number' || !isFinite(mDec) || mDec < 0) return;
       if (mDec >= minute) { minute = mDec; L.clock(mDec, !!running); }
+    }
+
+    // The authoritative score is truth. If we've woven more goals on a side than
+    // the score now supports, VAR/offside chalked one off → un-weave it. Keyed on
+    // the score (not the discard msg, which carries no target-kind), so any
+    // disallowance — offside, foul, handball — reconciles the same honest way.
+    function reconcile(hAuth, aAuth) {
+      var auth = { 1: hAuth, 2: aAuth };
+      for (var s = 1; s <= 2; s++) {
+        while (wove[s] > auth[s]) {
+          if (typeof L.chalkOff === 'function') L.chalkOff(s);
+          wove[s]--;
+          report.chalked++;
+        }
+      }
     }
 
     function onFeed(msg) {
@@ -88,6 +105,7 @@
           if (msg.ev && typeof msg.ev.home === 'number') {
             L.score(msg.ev.home, msg.ev.away);
             report.score = msg.ev.home + '-' + msg.ev.away;
+            reconcile(msg.ev.home, msg.ev.away); // chalk off any goal the score no longer supports
           }
           break;
         }
@@ -103,17 +121,22 @@
           if (k === 'goal') {
             if (ev.confirmed && !firedGoals[ev.id]) {
               firedGoals[ev.id] = true;
-              L.event({ minute: mn, kind: 'goal', side: sideNum(ev.side), type: goalType(ev.goalKind), et: etPhase });
+              var gs = sideNum(ev.side);
+              L.event({ minute: mn, kind: 'goal', side: gs, type: goalType(ev.goalKind), et: etPhase });
               report.goal++;
+              if (gs) wove[gs]++; // track woven goals for chalk-off reconciliation
               // truth-align: the goal event auto-increments; the row carries the
               // authoritative score — set it absolute so no drift/double-count.
               if (ev.score && typeof ev.score.home === 'number') {
                 L.score(ev.score.home, ev.score.away);
                 report.score = ev.score.home + '-' + ev.score.away;
+                reconcile(ev.score.home, ev.score.away);
               }
             }
           } else if (k === 'possible') {
-            L.event({ minute: mn, kind: 'var' }); // held breath (goal being checked)
+            // held-breath (a goal/corner being CHECKED) — NOT a VAR review. Owner
+            // caught this live on BRA-NOR: drawing every `possible` as VAR badly
+            // over-reports reviews. Dropped; only a real `var` review marks the cloth.
           } else if (k === 'shot') {
             L.event({ minute: mn, kind: 'shot', side: sideNum(ev.side), type: (ev.detail || '').toLowerCase() });
           } else if (k === 'yellow-card' || k === 'red-card') {
@@ -121,7 +144,9 @@
           } else if (k === 'corner') {
             L.event({ minute: mn, kind: 'corner', side: sideNum(ev.side) });
           } else if (k === 'var') {
-            L.event({ minute: mn, kind: 'var' });
+            // ONE mark per REVIEW, not per envelope: a review re-fires with the
+            // same id (OPEN → OPEN → Overturned) — dedupe so 2 reviews ≠ 6 marks.
+            if (!firedVars[ev.id]) { firedVars[ev.id] = true; L.event({ minute: mn, kind: 'var', detail: ev.detail }); }
           }
           break;
         }
