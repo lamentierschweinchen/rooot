@@ -1,0 +1,66 @@
+{
+  "ARG": {
+    "fanbase": "ARG",
+    "optimism": 0,
+    "volatility": 0,
+    "foresight": 0,
+    "loyalty": 0,
+    "matchesContributed": 1
+  },
+  "CPV": {
+    "fanbase": "CPV",
+    "optimism": 0,
+    "volatility": 0,
+    "foresight": 0,
+    "loyalty": 0,
+    "matchesContributed": 1
+  },
+  "COL": {
+    "fanbase": "COL",
+    "optimism": 0,
+    "volatility": 0,
+    "foresight": 0,
+    "loyalty": 0,
+    "matchesContributed": 1
+  },
+  "GHA": {
+    "fanbase": "GHA",
+    "optimism": 0,
+    "volatility": 0,
+    "foresight": 0,
+    "loyalty": 0,
+    "matchesContributed": 1
+  },
+  "CAN": {
+    "fanbase": "CAN",
+    "optimism": 0,
+    "volatility": 0,
+    "foresight": 0,
+    "loyalty": 0,
+    "matchesContributed": 1
+  },
+  "MAR": {
+    "fanbase": "MAR",
+    "optimism": 0,
+    "volatility": 0,
+    "foresight": 0,
+    "loyalty": 0,
+    "matchesContributed": 1
+  },
+  "PAR": {
+    "fanbase": "PAR",
+    "optimism": 0,
+    "volatility": 0,
+    "foresight": 0,
+    "loyalty": 0,
+    "matchesContributed": 1
+  },
+  "FRA": {
+    "fanbase": "FRA",
+    "optimism": 0,
+    "volatility": 0,
+    "foresight": 0,
+    "loyalty": 0,
+    "matchesContributed": 1
+  }
+}
