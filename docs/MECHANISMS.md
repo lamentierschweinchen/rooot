@@ -50,7 +50,7 @@ against the real wire; every keepsake carries its own provenance.
 - **Data:** `cheer { anonId, matchId, side, n, atMs }` — continuous, rate-decayed server-side.
 - **Views:** roar/s per end (the meter); faith windows (cheering while behind, gold).
 
-## 4 · REACT — the Pulse — expression (designed, unbuilt; corrected mechanic)
+## 4 · REACT — the Pulse — expression (BACKEND BUILT + proven; surface → design/BRIEF-REACT.md)
 - **Trigger:** a DRAMA MOMENT opens a react window — goal, possible-goal/VAR, red card, penalty, FT. Server broadcasts `reactWindow { momentId, kind, opensAt, closesAt(~25s), emojiSet }` (server detects the moment from the ledger).
 - **Claim:** pick ONE of 6 curated ambiguous emojis (rotating set by moment kind — multi-context, never literal). **Stamp:** which moment, which end. **Resolve (the reveal — the spectacle):** at window close, split-screen each end's TOP emoji + %. "Their 💀 vs your 🚀." **Keep:** the MOOD QUILT (tile/moment, dominant emoji, ends' split) — a collectible sentiment record.
 - **Data:** `react { anonId, matchId, momentId, emoji, side, atMs }` — one/fan/moment.
@@ -78,8 +78,8 @@ against the real wire; every keepsake carries its own provenance.
 ---
 
 ## What's WIRED vs what design can start on NOW
-- **Wired (data ready, design renders):** root, cheer, the loom's live threads (belief/possession/pressure/tempo/crowd), the ledger events, the keepsake printers (scorecard/stub/poster/scarf), the call RELAYER (on-chain receipt proven).
-- **Schema ready, coordinator wires on design's go:** REACT (windows + reveal + quilt), CALL trigger/press-hold surfacing, the ALBUM/CASE container, the mint.
+- **Wired (data ready, design renders):** root, predict, cheer, REACT (drama windows + split reveal + mood-quilt data — BUILT + proven, see design/BRIEF-REACT.md), the loom's live threads (belief/possession/pressure/tempo/crowd), the ledger events, the keepsake printers (scorecard/stub/poster/scarf), the call RELAYER (on-chain receipt proven).
+- **Schema ready, coordinator wires on design's go:** CALL trigger/press-hold surfacing, the ALBUM/CASE container, the mint.
 - **The one thing that blocks a non-ARG fixture:** the loom's `__loom.teams()` label/colour injection (I have every team's data ready).
 
 Design does not need the loom locked to start on PREDICT, REACT, the STANDS
