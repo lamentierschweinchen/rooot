@@ -264,7 +264,7 @@ function crystallizeSentiment(matchId: string, match: ReturnType<MatchRegistry['
   if (!acc || !match) return;
   try {
     const record = acc.crystallize(
-      { consensus: match.consensus(), rooted: match.counts(), roarTotal: { home: 0, away: 0 } },
+      { consensus: match.consensus(), rooted: match.counts() },
       { serial: 1, editionSize: null, caption: matchId },
     );
     mkdirSync(SENTIMENT_DIR, { recursive: true });

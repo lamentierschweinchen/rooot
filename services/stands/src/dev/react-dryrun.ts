@@ -142,14 +142,21 @@ acc.onFeed(asMsg(A, `${MATCH}:g23`));
 if (B) acc.onFeed(asMsg(B, `${MATCH}:s61`));
 if (C) acc.onFeed(asMsg(C, `${MATCH}:v78`));
 
+// roar capture off the 4 Hz stands tick: two ticks a second apart, away loudest.
+const pulse0 = { belief: 0, nerves: 0, rage: 0 };
+acc.onFeed({ type: 'stands', matchId: MATCH, ts: t, counts: { home: 3, away: 2 }, roar: { home: 2, away: 5 }, pulse: { home: pulse0, away: pulse0 }, presence: 5 } as never);
+acc.onFeed({ type: 'stands', matchId: MATCH, ts: t + 1000, counts: { home: 3, away: 2 }, roar: { home: 3, away: 1 }, pulse: { home: pulse0, away: pulse0 }, presence: 5 } as never);
+
 const record = acc.crystallize(
-  { consensus: null, rooted: { home: 3, away: 2 }, roarTotal: { home: 0, away: 0 } },
+  { consensus: null, rooted: { home: 3, away: 2 } },
   { serial: 1, editionSize: null, caption: MATCH },
 );
 check('all three felt moments are in the record', record.feel.moments.length === 3, `moments=${record.feel.moments.length}`);
 check('the first moment kept its goal identity + split', record.feel.moments[0]?.kind === 'goal' && record.feel.moments[0]?.byEnd.home.top === 'euphoria');
 check('feel.volatility is a real, non-zero swing (0..1)', record.feel.volatility > 0 && record.feel.volatility <= 1, `volatility=${record.feel.volatility.toFixed(3)}`);
 check('the record still hashes + carries its headline', typeof record.provenance.recordHash === 'string' && record.provenance.recordHash.length > 0, record.headline);
+check('roar peak captured — the loudest instant (away, 5)', record.feel.roar.peak?.side === 'away' && record.feel.roar.peak?.value === 5, `peak=${JSON.stringify(record.feel.roar.peak)}`);
+check('roar total integrated off the ticks (no longer a hardcoded 0)', record.feel.roar.total.home > 0, `total=${JSON.stringify(record.feel.roar.total)}`);
 
 console.log(`\n${failures === 0 ? 'ALL CHECKS PASSED' : `${failures} CHECK(S) FAILED`}\n`);
 process.exit(failures === 0 ? 0 : 1);

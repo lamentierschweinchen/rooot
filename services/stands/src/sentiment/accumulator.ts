@@ -8,7 +8,7 @@
  * Acceptable — the belief path/swings/volatility are all captured; flagged.
  */
 import type { FeedMsg } from '@contracts/feed';
-import type { ConsensusMsg, ServerMsg } from '@contracts/crowd';
+import type { ConsensusMsg, ServerMsg, Side } from '@contracts/crowd';
 import type { MatchPhase } from '@contracts/match';
 import type { LedgerEvent } from '@contracts/ledger';
 import type { MomentFeeling, SentimentRecord } from '@contracts/sentiment';
@@ -54,7 +54,6 @@ function computeFeelVolatility(moments: MomentFeeling[]): number {
 export interface CrowdInputs {
   consensus: ConsensusMsg | null;
   rooted: { home: number; away: number };
-  roarTotal: { home: number; away: number };
 }
 
 export class SentimentAccumulator {
@@ -68,6 +67,10 @@ export class SentimentAccumulator {
   private minute: number | null = null;
   private lastBelief: { home: number; draw: number; away: number } | null = null;
   private final = { home: 0, away: 0 };
+  /** roar captured live off the 4 Hz stands tick — the record's loudness layer. */
+  private roarTotal = { home: 0, away: 0 };
+  private roarPeak: { minute: number | null; side: Side; value: number } | null = null;
+  private lastRoarMs: number | null = null;
   private fromMs = Infinity;
   private toMs = 0;
 
@@ -90,6 +93,18 @@ export class SentimentAccumulator {
         this.final = { home: msg.ev.home, away: msg.ev.away };
         if (typeof msg.ev.minute === 'number') this.minute = msg.ev.minute;
         break;
+      case 'stands': {
+        // roar is a decayed cheers/sec rate off the 4 Hz tick; integrate it for a
+        // ~total and remember the single loudest instant (either end) as the peak.
+        // dt is clamped so a reconnect/idle gap can't inflate the total.
+        const dt = this.lastRoarMs != null ? Math.max(0, Math.min(2000, msg.ts - this.lastRoarMs)) / 1000 : 0;
+        this.lastRoarMs = msg.ts;
+        this.roarTotal.home += msg.roar.home * dt;
+        this.roarTotal.away += msg.roar.away * dt;
+        if (msg.roar.home > (this.roarPeak?.value ?? 0)) this.roarPeak = { minute: this.minute, side: 'home', value: msg.roar.home };
+        if (msg.roar.away > (this.roarPeak?.value ?? 0)) this.roarPeak = { minute: this.minute, side: 'away', value: msg.roar.away };
+        break;
+      }
       case 'odds': {
         const t = msg.tick;
         const b = { home: t.pHome, draw: t.pDraw, away: t.pAway };
@@ -155,7 +170,7 @@ export class SentimentAccumulator {
     };
     const feel = {
       moments: this.moments,
-      roar: { peak: null, total: crowd.roarTotal }, // peak: follow-up (needs roar over time)
+      roar: { peak: this.roarPeak, total: this.roarTotal },
       volatility: computeFeelVolatility(this.moments),
     };
     return assembleSentimentRecord({
