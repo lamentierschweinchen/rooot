@@ -4,6 +4,9 @@
   "outputDirectory": "apps/web/dist",
   "cleanUrls": true,
   "redirects": [
-    { "source": "/", "destination": "/loom-proto?loomfeed=1&match=18187298", "permanent": false }
+    { "source": "/", "destination": "/live", "permanent": false }
+  ],
+  "rewrites": [
+    { "source": "/live", "destination": "/loom-proto" }
   ]
 }

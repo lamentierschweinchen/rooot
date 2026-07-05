@@ -19,7 +19,11 @@
 (function () {
   'use strict';
   var q = new URLSearchParams(location.search);
-  if (q.get('loomfeed') !== '1') return; // design proto mode — do nothing
+  // Activate on the explicit dev opt-in (?loomfeed=1) OR the clean live front
+  // door (rooot.club / /live, served by a rewrite). Direct /loom-proto stays
+  // the self-contained demo — untouched.
+  var SITE = location.pathname === '/' || location.pathname === '/live' || q.get('site') === '1';
+  if (q.get('loomfeed') !== '1' && !SITE) return;
   var matchId = q.get('match') || '18187298'; // BRA–NOR default
   var wsBase = q.get('ws') || 'wss://rooot-stands.fly.dev/';
 
