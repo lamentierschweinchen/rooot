@@ -61,6 +61,29 @@ function permille(v: number): number {
   return Math.round(v * 1000);
 }
 
+/**
+ * Anchor a SentimentRecord's hash on devnet — the collectible's provenance
+ * (docs/SENTIMENT.md). A tiny memo tx binding the record to the chain, so the
+ * dataset is provable, not just persisted. Best-effort; returns null on failure.
+ */
+export async function anchorRecordHash(matchId: string, recordHash: string): Promise<string | null> {
+  const r = relayer();
+  if (!r) return null;
+  const memo = JSON.stringify({ v: 1, app: 'rooot', kind: 'sentiment', m: matchId, h: recordHash });
+  try {
+    const ix = new TransactionInstruction({ keys: [], programId: MEMO_PROGRAM_ID, data: Buffer.from(memo, 'utf8') });
+    const sig = await Promise.race([
+      sendAndConfirmTransaction(r.conn, new Transaction().add(ix), [r.payer], { commitment: 'confirmed' }),
+      new Promise<never>((_, rej) => setTimeout(() => rej(new Error('anchor timeout')), SEND_TIMEOUT_MS)),
+    ]);
+    console.log(`[relay] sentiment ${matchId} anchored ${sig.slice(0, 12)}…`);
+    return sig;
+  } catch (err) {
+    console.warn(`[relay] anchor failed (${(err as Error).message.slice(0, 50)})`);
+    return null;
+  }
+}
+
 export async function relayCall(call: CallMsg): Promise<string> {
   const r = relayer();
   if (!r) return 'PENDING-RELAYER';

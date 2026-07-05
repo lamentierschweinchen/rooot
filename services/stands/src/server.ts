@@ -9,11 +9,14 @@
  * cheer/call still work); DISABLE_ROOMS drops roomId join/RoomStateMsg.
  */
 import { createServer } from 'node:http';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { WebSocket, WebSocketServer } from 'ws';
 import type { CallMsg, CallReceiptMsg, ClientMsg, RoomStateMsg, ServerMsg, Side } from '@contracts/crowd';
 import type { FeedMsg } from '@contracts/feed';
 import { MatchRegistry } from './registry';
-import { relayCall } from './relay';
+import { anchorRecordHash, relayCall } from './relay';
+import { SentimentAccumulator } from './sentiment/accumulator';
+import { fixtureInfo } from './sentiment/teams';
 
 const PORT = Number(process.env.PORT ?? 8787);
 const DISABLE_PULSE = process.env.DISABLE_PULSE === '1';
@@ -46,6 +49,7 @@ function broadcastToMatch(matchId: string, msg: ServerMsg | FeedMsg): void {
     if (state.matchId === matchId && ws.readyState === WebSocket.OPEN) ws.send(payload);
   }
   rememberForJoin(matchId, msg); // snapshot the match state for mid-match joiners
+  feedSentiment(matchId, msg); // accumulate the sentiment record (docs/SENTIMENT.md)
   predictLifecycle(matchId, msg); // lock at KO, resolve at FT (docs/MECHANISMS.md §2)
 }
 
@@ -70,13 +74,52 @@ function predictLifecycle(matchId: string, msg: ServerMsg | FeedMsg): void {
     broadcastToMatch(matchId, match.consensus()); // clients flip to the locked view
   }
   if (phase === 'FULL_TIME' && !resolvedMatches.has(matchId)) {
-    var snap = joinSnapshots.get(matchId);
-    var fh = snap && snap.score ? snap.score.ev.home : undefined;
-    var fa = snap && snap.score ? snap.score.ev.away : undefined;
+    const snap = joinSnapshots.get(matchId);
+    const fh = snap && snap.score ? snap.score.ev.home : undefined;
+    const fa = snap && snap.score ? snap.score.ev.away : undefined;
     if (typeof fh === 'number' && typeof fa === 'number') {
       resolvedMatches.add(matchId);
       for (const v of match.resolvePredictions(fh, fa)) sendToAnon(matchId, v.anonId, v);
+      crystallizeSentiment(matchId, match); // the record — persist + emit (docs/SENTIMENT.md)
     }
+  }
+}
+
+/* ── sentiment record (docs/SENTIMENT.md) ─────────────────────────────── */
+const accumulators = new Map<string, SentimentAccumulator>();
+function feedSentiment(matchId: string, msg: ServerMsg | FeedMsg): void {
+  let acc = accumulators.get(matchId);
+  if (!acc) {
+    const fx = fixtureInfo(matchId);
+    if (!fx) return; // unknown fixture — no team identity to record against
+    acc = new SentimentAccumulator(matchId, fx);
+    accumulators.set(matchId, acc);
+  }
+  acc.onFeed(msg);
+}
+
+const SENTIMENT_DIR = process.env.SENTIMENT_DIR ?? '/tmp/rooot-sentiment';
+function crystallizeSentiment(matchId: string, match: ReturnType<MatchRegistry['get']>): void {
+  const acc = accumulators.get(matchId);
+  if (!acc || !match) return;
+  try {
+    const record = acc.crystallize(
+      { consensus: match.consensus(), rooted: match.counts(), roarTotal: { home: 0, away: 0 } },
+      { serial: 1, editionSize: null, caption: matchId },
+    );
+    mkdirSync(SENTIMENT_DIR, { recursive: true });
+    writeFileSync(`${SENTIMENT_DIR}/${matchId}.json`, JSON.stringify(record, null, 2));
+    broadcastToMatch(matchId, { type: 'sentiment', record } as unknown as ServerMsg);
+    console.log(`[sentiment] crystallized ${matchId}: ${record.headline} (hash ${record.provenance.recordHash.slice(0, 12)})`);
+    // anchor the hash on-chain (best-effort) → persist + re-emit with the txSig.
+    void anchorRecordHash(matchId, record.provenance.recordHash).then((sig: string | null) => {
+      if (!sig) return;
+      record.provenance.anchorTxSig = sig;
+      writeFileSync(`${SENTIMENT_DIR}/${matchId}.json`, JSON.stringify(record, null, 2));
+      broadcastToMatch(matchId, { type: 'sentiment', record } as unknown as ServerMsg);
+    });
+  } catch (err) {
+    console.warn(`[sentiment] crystallize failed for ${matchId}: ${String(err)}`);
   }
 }
 
