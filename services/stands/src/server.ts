@@ -46,6 +46,38 @@ function broadcastToMatch(matchId: string, msg: ServerMsg | FeedMsg): void {
     if (state.matchId === matchId && ws.readyState === WebSocket.OPEN) ws.send(payload);
   }
   rememberForJoin(matchId, msg); // snapshot the match state for mid-match joiners
+  predictLifecycle(matchId, msg); // lock at KO, resolve at FT (docs/MECHANISMS.md §2)
+}
+
+/** Send one message only to the connections of a specific anonId. */
+function sendToAnon(matchId: string, anonId: string, msg: ServerMsg): void {
+  const payload = JSON.stringify(msg);
+  for (const [ws, state] of conns) {
+    if (state.matchId === matchId && state.anonId === anonId && ws.readyState === WebSocket.OPEN) ws.send(payload);
+  }
+}
+
+/** Predictions lock at kickoff and resolve at full time — driven by the phase
+ * on the status feed (the match's own truth). Idempotent: resolve fires once. */
+const resolvedMatches = new Set<string>();
+function predictLifecycle(matchId: string, msg: ServerMsg | FeedMsg): void {
+  if (msg.type !== 'status') return;
+  const phase = msg.ev.phase;
+  const match = registry.get(matchId);
+  if (!match) return;
+  if (phase === 'FIRST_HALF' && !match.predictionsLocked()) {
+    match.lockPredictions();
+    broadcastToMatch(matchId, match.consensus()); // clients flip to the locked view
+  }
+  if (phase === 'FULL_TIME' && !resolvedMatches.has(matchId)) {
+    var snap = joinSnapshots.get(matchId);
+    var fh = snap && snap.score ? snap.score.ev.home : undefined;
+    var fa = snap && snap.score ? snap.score.ev.away : undefined;
+    if (typeof fh === 'number' && typeof fa === 'number') {
+      resolvedMatches.add(matchId);
+      for (const v of match.resolvePredictions(fh, fa)) sendToAnon(matchId, v.anonId, v);
+    }
+  }
 }
 
 /**
@@ -112,6 +144,9 @@ function rememberForJoin(matchId: string, msg: ServerMsg | FeedMsg): void {
 /** Replay the cached match state to a freshly-seated socket (order: identity →
  * feed health → status/score → the tide → recent story). Only sends what exists. */
 function replaySnapshot(ws: WebSocket, matchId: string): void {
+  // the crowd's prediction so far — a joiner sees the consensus instantly.
+  const match = registry.get(matchId);
+  if (match && match.predictionCount() > 0) send(ws, match.consensus());
   const snap = joinSnapshots.get(matchId);
   if (!snap) return;
   if (snap.fixtureInfo) send(ws, snap.fixtureInfo);
@@ -200,6 +235,14 @@ function handleReact(state: ConnState, msg: Extract<ClientMsg, { type: 'react' }
   match.react(state.anonId, msg.side, msg.kind);
 }
 
+function handlePredict(state: ConnState, msg: Extract<ClientMsg, { type: 'predict' }>): void {
+  if (!state.matchId || !state.anonId || state.matchId !== msg.matchId) return;
+  const match = registry.getOrCreate(msg.matchId);
+  if (!match.predict(state.anonId, msg.home, msg.away, msg.atMs)) return; // locked/invalid
+  // predictions are sparse (pre-match) — broadcast the fresh consensus on change.
+  broadcastToMatch(msg.matchId, match.consensus());
+}
+
 function isValidCall(msg: CallMsg): boolean {
   return (
     typeof msg.matchId === 'string' &&
@@ -273,6 +316,8 @@ function handleMessage(ws: WebSocket, state: ConnState, raw: string): void {
     case 'call':
       void handleCall(ws, state, msg);
       return;
+    case 'predict':
+      return handlePredict(state, msg);
     default:
       return; // unknown type, ignore
   }

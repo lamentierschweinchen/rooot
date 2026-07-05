@@ -64,7 +64,25 @@ export interface CallMsg {
   atMs: number;
 }
 
-export type ClientMsg = HelloMsg | CheerMsg | ReactMsg | CallMsg;
+/**
+ * PREDICT — the universal entry claim (docs/MECHANISMS.md §2, the retention
+ * spine). One per fan; editable until kickoff, then LOCKED server-side (a claim
+ * on the future locks when the future starts). `marketAtPredict` is the client-
+ * stamped de-vigged triple at predict time — "were you braver than the market?"
+ * Scores are clamped 0..MAX server-side; a re-predict from the same anonId
+ * replaces the prior (until lock).
+ */
+export interface PredictMsg {
+  type: 'predict';
+  matchId: string;
+  anonId: string;
+  home: number;
+  away: number;
+  marketAtPredict?: { home: number; draw: number; away: number };
+  atMs: number;
+}
+
+export type ClientMsg = HelloMsg | CheerMsg | ReactMsg | CallMsg | PredictMsg;
 
 /* ── stands → clients ─────────────────────────────────────────────── */
 
@@ -103,4 +121,44 @@ export interface RoomStateMsg {
   members: Array<{ anonId: string; name: string; side: Side; present: boolean }>;
 }
 
-export type ServerMsg = StandsStateMsg | CallReceiptMsg | RoomStateMsg;
+/**
+ * One cohort's predictions (all fans, or fans rooted to one end). The crowd's
+ * belief — the THIRD signal beside market and result (docs/MECHANISMS.md §2).
+ * Means are decimal goals; `outcome` fractions sum to ~1; `modal` is the single
+ * most-predicted exact scoreline. Never blended with market data.
+ */
+export interface PredictGroup {
+  n: number;
+  mean: { home: number; away: number };
+  /** fraction predicting each result — home win / draw / away win */
+  outcome: { homeWin: number; draw: number; awayWin: number };
+  /** the single most common exact scoreline in this cohort */
+  modal: { home: number; away: number; pct: number };
+}
+
+/**
+ * The crowd's predicted scoreline, whole + sliced. `all` = everyone; `byRoot`
+ * = the honest cuts ("ARG fans say…", "the doubters among them" =
+ * byRoot.home.outcome.{draw+awayWin}). `locked` flips true at kickoff.
+ */
+export interface ConsensusMsg {
+  type: 'consensus';
+  matchId: string;
+  ts: number;
+  locked: boolean;
+  all: PredictGroup;
+  byRoot: { home: PredictGroup; away: PredictGroup; neutral: PredictGroup };
+}
+
+/** A fan's prediction resolved at full time (docs/MECHANISMS.md §2 → FORESIGHT). */
+export interface PredictVerdictMsg {
+  type: 'predictVerdict';
+  matchId: string;
+  anonId: string;
+  predicted: { home: number; away: number };
+  final: { home: number; away: number };
+  /** exact score · right outcome (W/D/L) but wrong score · wrong outcome */
+  verdict: 'exact' | 'outcome' | 'wrong';
+}
+
+export type ServerMsg = StandsStateMsg | CallReceiptMsg | RoomStateMsg | ConsensusMsg | PredictVerdictMsg;

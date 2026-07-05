@@ -12,7 +12,34 @@
  *  - pulse: reacts are 1/sec/user/kind (checked via lastReactAtMs), counted in
  *    a 60s RollingCounter per side+kind.
  */
-import type { ReactKind, Side } from '@contracts/crowd';
+import type { ConsensusMsg, PredictGroup, PredictVerdictMsg, ReactKind, Side } from '@contracts/crowd';
+
+/** Summarize a cohort's predictions into mean / outcome-split / modal scoreline. */
+function summarize(preds: Array<{ home: number; away: number }>): PredictGroup {
+  const n = preds.length;
+  if (n === 0) {
+    return { n: 0, mean: { home: 0, away: 0 }, outcome: { homeWin: 0, draw: 0, awayWin: 0 }, modal: { home: 0, away: 0, pct: 0 } };
+  }
+  let sh = 0, sa = 0, hw = 0, d = 0, aw = 0;
+  const tally = new Map<string, number>();
+  for (const p of preds) {
+    sh += p.home;
+    sa += p.away;
+    const s = Math.sign(p.home - p.away);
+    if (s > 0) hw++; else if (s < 0) aw++; else d++;
+    const key = p.home + '-' + p.away;
+    tally.set(key, (tally.get(key) ?? 0) + 1);
+  }
+  let modalKey = '0-0', modalN = 0;
+  for (const [k, c] of tally) if (c > modalN) { modalN = c; modalKey = k; }
+  const [mh, ma] = modalKey.split('-').map(Number);
+  return {
+    n,
+    mean: { home: sh / n, away: sa / n },
+    outcome: { homeWin: hw / n, draw: d / n, awayWin: aw / n },
+    modal: { home: mh ?? 0, away: ma ?? 0, pct: modalN / n },
+  };
+}
 import {
   CHEER_MAX_BATCH,
   PULSE_WINDOW_MS,
@@ -79,6 +106,10 @@ export class MatchState {
 
   /** anonId -> side, for the once-per-fan rooted counter. */
   private readonly rooted = new Map<string, Side>();
+  /** anonId -> prediction (docs/MECHANISMS.md §2). Editable until kickoff. */
+  private readonly predictions = new Map<string, { home: number; away: number; atMs: number }>();
+  /** predictions lock at kickoff — a claim on the future locks when it starts. */
+  private predictLocked = false;
   /** connected clients (presence), keyed by anonId — last-hello-wins per anonId. */
   private readonly connected = new Set<string>();
   /** anonId -> token bucket, cheer throttle. */
@@ -125,6 +156,77 @@ export class MatchState {
       else away++;
     }
     return { home, away };
+  }
+
+  /* ── predict (the retention spine, docs/MECHANISMS.md §2) ──────────── */
+
+  /** Record/replace a fan's predicted scoreline. Ignored once locked (KO).
+   * Clamped to a sane range. Returns false if rejected (locked/invalid). */
+  predict(anonId: string, home: number, away: number, atMs: number): boolean {
+    if (this.predictLocked) return false;
+    if (!Number.isFinite(home) || !Number.isFinite(away)) return false;
+    const h = Math.max(0, Math.min(19, Math.floor(home)));
+    const a = Math.max(0, Math.min(19, Math.floor(away)));
+    this.predictions.set(anonId, { home: h, away: a, atMs });
+    return true;
+  }
+
+  /** Lock predictions (call at kickoff — FIRST_HALF). Idempotent. */
+  lockPredictions(): void {
+    this.predictLocked = true;
+  }
+
+  predictionsLocked(): boolean {
+    return this.predictLocked;
+  }
+
+  /** Aggregate the crowd's predicted scoreline, whole + sliced by rooted end.
+   * The THIRD belief signal (market/crowd/result) — never blended with market. */
+  consensus(): ConsensusMsg {
+    const groups = {
+      all: [] as Array<{ home: number; away: number }>,
+      home: [] as Array<{ home: number; away: number }>,
+      away: [] as Array<{ home: number; away: number }>,
+      neutral: [] as Array<{ home: number; away: number }>,
+    };
+    for (const [anonId, p] of this.predictions) {
+      groups.all.push(p);
+      const side = this.rooted.get(anonId);
+      if (side === 'home') groups.home.push(p);
+      else if (side === 'away') groups.away.push(p);
+      else groups.neutral.push(p);
+    }
+    return {
+      type: 'consensus',
+      matchId: this.matchId,
+      ts: Date.now(),
+      locked: this.predictLocked,
+      all: summarize(groups.all),
+      byRoot: { home: summarize(groups.home), away: summarize(groups.away), neutral: summarize(groups.neutral) },
+    };
+  }
+
+  /** Resolve every prediction against the final score → verdicts. */
+  resolvePredictions(finalHome: number, finalAway: number): PredictVerdictMsg[] {
+    const out: PredictVerdictMsg[] = [];
+    const finalOutcome = Math.sign(finalHome - finalAway);
+    for (const [anonId, p] of this.predictions) {
+      const exact = p.home === finalHome && p.away === finalAway;
+      const outcome = Math.sign(p.home - p.away) === finalOutcome;
+      out.push({
+        type: 'predictVerdict',
+        matchId: this.matchId,
+        anonId,
+        predicted: { home: p.home, away: p.away },
+        final: { home: finalHome, away: finalAway },
+        verdict: exact ? 'exact' : outcome ? 'outcome' : 'wrong',
+      });
+    }
+    return out;
+  }
+
+  predictionCount(): number {
+    return this.predictions.size;
   }
 
   /* ── cheer / roar ─────────────────────────────────────────────────── */

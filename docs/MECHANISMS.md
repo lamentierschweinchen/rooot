@@ -32,7 +32,7 @@ against the real wire; every keepsake carries its own provenance.
 - **Views:** rooted counts per end (the counter).
 - **Honesty:** two ends only; no neutral STAND (adopt is a tag, not a bucket).
 
-## 2 · PREDICT — foresight — THE RETENTION SPINE (designed, unbuilt)
+## 2 · PREDICT — foresight — THE RETENTION SPINE (SERVER WIRED, proven)
 - **Claim:** "it ends X–Y." **Stamp:** the market's triple at predict-time. **Resolve:** at FT → exact / outcome-right / wrong → FORESIGHT. **Keep:** on your scorecard ("you called 2–1; it finished 2–1").
 - **Data:** `predict { anonId, matchId, home, away, marketAtPredict:{h,d,a}, atMs }` — one/fan, editable until KO, then LOCKED (a claim on the future locks when the future starts).
 - **States:** none → predicted(editable) → locked(KO) → resolving → resolved(verdict: exact|outcome|wrong).
@@ -79,7 +79,7 @@ against the real wire; every keepsake carries its own provenance.
 
 ## What's WIRED vs what design can start on NOW
 - **Wired (data ready, design renders):** root, cheer, the loom's live threads (belief/possession/pressure/tempo/crowd), the ledger events, the keepsake printers (scorecard/stub/poster/scarf), the call RELAYER (on-chain receipt proven).
-- **Schema ready, coordinator wires on design's go:** PREDICT (consensus + filters), REACT (windows + reveal + quilt), CALL trigger/press-hold surfacing, the ALBUM/CASE container, the mint.
+- **Schema ready, coordinator wires on design's go:** REACT (windows + reveal + quilt), CALL trigger/press-hold surfacing, the ALBUM/CASE container, the mint.
 - **The one thing that blocks a non-ARG fixture:** the loom's `__loom.teams()` label/colour injection (I have every team's data ready).
 
 Design does not need the loom locked to start on PREDICT, REACT, the STANDS
