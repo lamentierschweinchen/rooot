@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SHEET Nº 012 — THE PULSE</title>
+<style>
+__FONTS__
+:root{ --paper:#EFE7D3; --ink:#1A1815; --grey:#8a836e; --gold:#D6A33B; --poppy:#C8504D; --cold:#5E7488; --line:rgba(26,24,21,0.82); --card:#EBE2CC; --slot:#1A1815; }
+body.night{ --paper:#100D0A; --ink:#E9E0CB; --grey:#7a725f; --gold:#D6A33B; --poppy:#D98C86; --cold:#7C93A6; --line:rgba(233,224,203,0.75); --card:#15120E; --slot:#050404; }
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:'Anybody',sans-serif;padding:34px 22px 60px;transition:background .18s step-end,color .18s step-end;}
+.sheet{max-width:840px;margin:0 auto;}
+header{border-bottom:3px solid var(--line);padding-bottom:14px;margin-bottom:8px;position:relative;}
+.no{font:800 11px 'Doto';letter-spacing:.22em;color:var(--gold);}
+h1{font:900 30px/1.02 'Anybody';letter-spacing:.01em;margin-top:6px;}
+h1 .thin{color:var(--gold);}
+.law{font:600 10px/1.7 'Doto';color:var(--grey);margin-top:10px;max-width:700px;}
+.law b{color:var(--ink);font-weight:800;}
+#mode{position:absolute;right:0;top:2px;background:none;border:1.5px solid var(--line);color:var(--ink);font:800 10px 'Anybody';letter-spacing:.14em;padding:7px 12px;cursor:pointer;}
+.hint{font:600 9px 'Doto';letter-spacing:.14em;color:var(--grey);margin:10px 0 26px;}
+.group{margin-top:38px;}
+.gh{display:flex;align-items:baseline;gap:12px;border-bottom:1.5px solid var(--line);padding-bottom:6px;margin-bottom:20px;}
+.gh h2{font:900 15px 'Anybody';letter-spacing:.06em;}
+.gh .tier{font:800 8.5px 'Doto';letter-spacing:.2em;color:var(--gold);}
+.gh .note{font:600 8.5px 'Doto';color:var(--grey);margin-left:auto;letter-spacing:.06em;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:24px 18px;}
+.spec{position:relative;}
+.mount{position:relative;background:var(--card);padding:10px;border:1px solid rgba(127,118,95,0.35);}
+.mount canvas{display:block;width:100%;height:auto;}
+.slotc{position:absolute;width:12px;height:12px;background:var(--slot);}
+.slotc.tl{top:-3px;left:-3px;clip-path:polygon(0 0,100% 0,0 100%);}
+.slotc.tr{top:-3px;right:-3px;clip-path:polygon(0 0,100% 0,100% 100%);}
+.slotc.bl{bottom:-3px;left:-3px;clip-path:polygon(0 0,0 100%,100% 100%);}
+.slotc.br{bottom:-3px;right:-3px;clip-path:polygon(100% 0,100% 100%,0 100%);}
+.lbl{margin-top:9px;}
+.lbl .nm{font:900 12px 'Anybody';letter-spacing:.1em;}
+.lbl .hn{font:600 8.5px/1.55 'Doto';color:var(--grey);margin-top:4px;}
+.rvexpl{font:600 9.5px/1.7 'Doto';color:var(--grey);margin-bottom:14px;max-width:640px;}
+.rvexpl b{color:var(--ink);}
+.reveal{border:2px solid var(--line);background:var(--card);}
+.rvtop{display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:1.5px solid var(--line);}
+.rvtop .mn{font:900 13px 'Anybody';letter-spacing:.1em;}
+.rvtop .clk{font:800 12px 'Doto';color:var(--gold);letter-spacing:.08em;}
+.rvsub{text-align:center;font:800 8.5px 'Doto';letter-spacing:.2em;color:var(--grey);padding:9px 0 0;}
+.rvsplit{display:grid;grid-template-columns:1fr 1fr;}
+.rvside{padding:6px 16px 20px;text-align:center;position:relative;}
+.rvside.them{border-right:1.5px solid var(--line);}
+.rvside .who{font:800 8.5px 'Doto';letter-spacing:.2em;color:var(--grey);margin-top:10px;}
+.rvside .end{font:900 16px 'Anybody';letter-spacing:.05em;margin-top:2px;}
+.rvside canvas{display:block;margin:10px auto 6px;width:118px;height:auto;}
+.rvside .feel{font:900 11px 'Anybody';letter-spacing:.12em;}
+.rvside .cnt{font:800 20px 'Doto';letter-spacing:.03em;margin-top:5px;}
+.rvside .cap{font:600 8px 'Doto';color:var(--grey);letter-spacing:.1em;margin-top:1px;}
+.win{border:1.5px dashed var(--line);padding:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.win .wl{font:800 9px 'Doto';letter-spacing:.16em;color:var(--grey);}
+.win canvas{display:block;cursor:pointer;background:var(--card);border:1px solid rgba(127,118,95,0.3);}
+.win .timer{font:900 22px 'Doto';color:var(--poppy);margin-left:auto;}
+footer{margin-top:46px;border-top:3px solid var(--line);padding-top:16px;}
+footer h3{font:900 13px 'Anybody';letter-spacing:.08em;}
+.gate{font:600 9.5px/1.75 'Doto';color:var(--grey);margin-top:8px;max-width:700px;}
+.gate b{color:var(--ink);}
+.foot{font:600 8.5px 'Doto';letter-spacing:.12em;color:var(--grey);margin-top:26px;}
+</style>
+</head>
+<body class="night">
+<div class="sheet">
+<header>
+  <div class="no">PAPER &amp; CLOTH · THE STANDS · JUL 5 · SECOND CUT</div>
+  <h1>SHEET Nº 012 — THE PULSE<span class="thin"> · SIX FEELINGS</span></h1>
+  <div class="law"><b>What it is:</b> when something happens, everyone in the stands presses ONE of six feelings —
+  gut-level, human, the way you’d actually react. They are <b>bespoke embroidered ROOOT patches</b>, not stock emoji — the <b>same six for both ends,</b> so the split, not the palette, is the story.</div>
+  <button id="mode">☀ DAY</button>
+</header>
+<div class="hint">MUSCLE · FIRE · FEAR · PRAYER · DISAPPOINTMENT · ANGER — THE SIX A FAN FEELS</div>
+
+<section class="group">
+  <div class="gh"><h2>THE SIX FEELINGS</h2><span class="tier">THE PULSE VOCABULARY</span><span class="note">gut-level · instant · human</span></div>
+  <div class="grid" id="g-marks"></div>
+</section>
+
+<section class="group">
+  <div class="gh"><h2>THE REVEAL</h2><span class="tier">THE PAYOFF · WHEN THE WINDOW CLOSES</span><span class="note">the two ends, side by side</span></div>
+  <div class="rvexpl">Here is what the Pulse is <b>for.</b> A goal goes in. For ~25 seconds both stands press their feeling. Then the
+  window closes and you see <b>the room split in two</b> — your end against theirs, the top feeling of each with how many pressed it.
+  One end erupts, the other sinks; <b>the gap between them is the moment.</b> This is what you screenshot and send your mate.</div>
+  <div class="reveal">
+    <div class="rvtop"><span class="mn">GOAL — BRAZIL SCORE</span><span class="clk">58' · BRA 1–1 NOR</span></div>
+    <div class="rvsub">HOW EACH END TOOK IT</div>
+    <div class="rvsplit">
+      <div class="rvside them"><div class="who">THEIR END</div><div class="end">NORWAY</div><canvas id="rv-them" width="236" height="180"></canvas><div class="feel" id="rv-them-f">DISAPPOINTMENT</div><div class="cnt" id="rv-them-n">1,204</div><div class="cap">PRESSED IT</div></div>
+      <div class="rvside"><div class="who">YOUR END</div><div class="end">BRAZIL</div><canvas id="rv-you" width="236" height="180"></canvas><div class="feel" id="rv-you-f">FIRE</div><div class="cnt" id="rv-you-n">3,891</div><div class="cap">PRESSED IT</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="group">
+  <div class="gh"><h2>THE WINDOW</h2><span class="tier">WHAT YOU TAP · ~25s</span><span class="note">press one — the reveal above answers for your end</span></div>
+  <div class="win" id="win"><span class="wl">GOAL · 58'</span></div>
+</section>
+
+<footer>
+  <h3>THE GATE</h3>
+  <div class="gate">Do these read <b>instantly and feel like ROOOT</b> — a printed object, not a keyboard? Name any that’s
+  unclear or off and it gets redrawn. The set <b>rotates by moment</b> (a red card offers different six than a goal). The
+  aggregate becomes the <b>sparks along the cloth’s selvage</b> — FEEL, in the loom’s border, the third belief beside market and result.</div>
+  <div class="foot">THE PULSE · THE STANDS · ROOOT · PAPER &amp; CLOTH · REPLACES THE STOCK-EMOJI PLACEHOLDER</div>
+</footer>
+</div>
+
+<script>
+'use strict';
+let NIGHT=true;
+const RX=__RX__;
+const RXIMG={};
+const HN={MUSCLE:'we got this \u00b7 strength \u00b7 come on',FIRE:'this is awesome \u00b7 hype \u00b7 lit',FEAR:'this is scary \u00b7 nerves \u00b7 uh-oh',PRAYER:'hope this works \u00b7 please \u00b7 come on',DISAPPOINTMENT:'this sucks \u00b7 deflated \u00b7 not again',ANGER:'wtf \u00b7 robbed \u00b7 fuming'};
+const ORDER=['MUSCLE','FIRE','FEAR','PRAYER','DISAPPOINTMENT','ANGER'];
+function drawMark(g,k,cx,cy,S){var im=RXIMG[k];if(im&&im.complete&&im.naturalWidth){g.drawImage(im,cx-S/2,cy-S/2,S,S);}}
+function buildMarks(){var grid=document.getElementById('g-marks');grid.innerHTML='';
+ ORDER.forEach(function(k){
+  var spec=document.createElement('div');spec.className='spec';
+  var mount=document.createElement('div');mount.className='mount';
+  ['tl','tr','bl','br'].forEach(function(c){var s=document.createElement('div');s.className='slotc '+c;mount.appendChild(s);});
+  var cv=document.createElement('canvas');cv.width=300;cv.height=230;cv.style.aspectRatio='150/115';
+  var g=cv.getContext('2d');g.setTransform(2,0,0,2,0,0);drawMark(g,k,75,57,96);
+  mount.appendChild(cv);spec.appendChild(mount);
+  var lbl=document.createElement('div');lbl.className='lbl';lbl.innerHTML='<div class="nm">'+k+'</div><div class="hn">'+HN[k]+'</div>';
+  spec.appendChild(lbl);grid.appendChild(spec);});}
+function drawReveal(themKey,youKey){
+ [['rv-them',themKey],['rv-you',youKey]].forEach(function(pair){
+  var cv=document.getElementById(pair[0]);var g=cv.getContext('2d');
+  g.setTransform(2,0,0,2,0,0);g.clearRect(0,0,cv.width,cv.height);drawMark(g,pair[1],59,45,86);});
+ document.getElementById('rv-them-f').textContent=themKey;document.getElementById('rv-you-f').textContent=youKey;}
+function buildWindow(){var win=document.getElementById('win');win.querySelectorAll('canvas,.timer').forEach(function(n){n.remove();});
+ ORDER.forEach(function(k,idx){var cv=document.createElement('canvas');cv.width=120;cv.height=120;cv.style.width='60px';cv.style.height='60px';
+  var g=cv.getContext('2d');g.setTransform(2,0,0,2,0,0);drawMark(g,k,30,30,54);cv.title=k;
+  cv.onclick=function(){var them=ORDER[(idx+2)%6];drawReveal(them,k);
+   document.getElementById('rv-you-n').textContent=(2400+idx*519%2200).toLocaleString();
+   document.getElementById('rv-them-n').textContent=(800+((idx+2)*641%1500)).toLocaleString();};
+  win.insertBefore(cv,null);});
+ var t=document.createElement('span');t.className='timer';t.textContent='0:18';win.appendChild(t);}
+function drawAll(){buildMarks();drawReveal('DISAPPOINTMENT','FIRE');buildWindow();}
+ORDER.forEach(function(k){var im=new Image();im.onload=drawAll;im.src=RX[k];RXIMG[k]=im;});
+drawAll();
+document.getElementById('mode').onclick=function(){NIGHT=!NIGHT;document.body.classList.toggle('night',NIGHT);this.textContent=NIGHT?'\u2600 DAY':'\u263e NIGHT';drawAll();};
+</script>
+</body>
+</html>

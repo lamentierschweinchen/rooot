@@ -27,10 +27,10 @@
   'use strict';
   var q = new URLSearchParams(location.search);
   var ON = location.pathname === '/' || location.pathname === '/live'
-    || location.pathname === '/count-live.html'
+    || location.pathname === '/count-live.html' || location.pathname === '/stadium.html'
     || q.get('site') === '1' || q.get('loomfeed') === '1' || q.get('statsfeed') === '1';
   if (!ON) return;
-  var matchId = q.get('match') || '18198205'; // POR–ESP default tonight
+  var matchId = q.get('match') || '18193785'; // USA–BEL (Jul 7 hero fixture)
   var wsBase = q.get('ws') || 'wss://rooot-stands.fly.dev/';
 
   // PRESS weights (match the loom) — for the TERRITORY proxy (danger-weighted).
@@ -99,7 +99,7 @@
       case 'yellow-card': if (id) seen[id] = true; sd.cards.yellow++; break;
       case 'red-card': if (id) seen[id] = true; sd.cards.red++; break;
       case 'var': if (id && !seen['V' + id]) { seen['V' + id] = true; sd.varReviews++; } break;
-      case 'goal': if (ev.confirmed && id && !seen['G' + id]) { seen['G' + id] = true; sd.goals++; } break;
+      case 'goal': break; // goals come from the authoritative 'score' message (onFeed), not ledger-counted — avoids the late-join under-count
       case 'danger': {
         if (id) seen[id] = true;
         var high = d.indexOf('high') >= 0;
@@ -144,7 +144,15 @@
   function onFeed(msg) {
     switch (msg.type) {
       case 'status': if (msg.ev && typeof msg.ev.minute === 'number') stats.minute = msg.ev.minute; emit(); break;
-      case 'score': if (msg.ev && typeof msg.ev.minute === 'number') stats.minute = msg.ev.minute; emit(); break;
+      case 'score':
+        if (msg.ev) {
+          if (typeof msg.ev.minute === 'number') stats.minute = msg.ev.minute;
+          // authoritative score (Score.Total.Goals) — correct on ANY join; the ledger
+          // goal-count under-counts on a late join. The headline number, always true.
+          if (typeof msg.ev.home === 'number') stats.home.goals = msg.ev.home;
+          if (typeof msg.ev.away === 'number') stats.away.goals = msg.ev.away;
+        }
+        emit(); break;
       case 'ledger':
         if (msg.msg && msg.msg.type === 'event') { onLedgerEvent(msg.msg.ev); recomputeTerritory(); emit(); }
         break;

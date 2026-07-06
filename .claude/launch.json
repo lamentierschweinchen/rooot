@@ -4,35 +4,62 @@
     {
       "name": "web",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 5173,
       "cwd": "apps/web"
     },
     {
       "name": "web-gate",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--", "--port", "5174", "--strictPort"],
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5174",
+        "--strictPort"
+      ],
       "port": 5174,
       "cwd": "apps/web"
     },
     {
       "name": "web-design",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--", "--port", "5175", "--strictPort"],
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5175",
+        "--strictPort"
+      ],
       "port": 5175,
       "cwd": "apps/web"
     },
     {
       "name": "loom-dev",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--", "--port", "5178", "--strictPort"],
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5178",
+        "--strictPort"
+      ],
       "port": 5178,
       "cwd": "apps/web"
     },
     {
       "name": "design-sheet",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-c", "import os,functools,http.server,socketserver;port=int(os.environ.get('PORT','8788'));socketserver.TCPServer.allow_reuse_address=True;s=socketserver.TCPServer(('127.0.0.1',port),http.server.SimpleHTTPRequestHandler);s.serve_forever()"],
+      "runtimeArgs": [
+        "-c",
+        "import os,functools,http.server,socketserver;port=int(os.environ.get('PORT','8788'));socketserver.TCPServer.allow_reuse_address=True;s=socketserver.TCPServer(('127.0.0.1',port),http.server.SimpleHTTPRequestHandler);s.serve_forever()"
+      ],
       "port": 8788,
       "autoPort": true,
       "cwd": "design/experiments"
@@ -40,8 +67,22 @@
     {
       "name": "loom-verify",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-c", "import os,http.server,socketserver;port=int(os.environ.get('PORT','8790'));socketserver.TCPServer.allow_reuse_address=True;s=socketserver.TCPServer(('127.0.0.1',port),http.server.SimpleHTTPRequestHandler);s.serve_forever()"],
+      "runtimeArgs": [
+        "-c",
+        "import os,http.server,socketserver;port=int(os.environ.get('PORT','8790'));socketserver.TCPServer.allow_reuse_address=True;s=socketserver.TCPServer(('127.0.0.1',port),http.server.SimpleHTTPRequestHandler);s.serve_forever()"
+      ],
       "port": 8790,
+      "autoPort": true,
+      "cwd": "apps/web/public"
+    },
+    {
+      "name": "loom",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-c",
+        "import os,http.server,socketserver;port=int(os.environ.get('PORT','8756'));socketserver.TCPServer.allow_reuse_address=True;s=socketserver.TCPServer(('127.0.0.1',port),http.server.SimpleHTTPRequestHandler);s.serve_forever()"
+      ],
+      "port": 8756,
       "autoPort": true,
       "cwd": "apps/web/public"
     }

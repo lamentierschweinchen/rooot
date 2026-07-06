@@ -1,0 +1,327 @@
+<meta charset="utf-8">
+<title>ROOOT — The Tifo</title>
+<style>
+  :root{
+    --newsprint:#F3ECDA; --sunbleach:#EDE3C8; --ink:#1A1A18; --grey:#B0AEA8;
+    --gold:#D6A33B; --poppy:#C8504D; --sky:#3E8CBC; --sun:#E5B431;
+    --grass:#1F6F40; --ultra:#2049AA; --magenta:#AC3A6B;
+    --frame:3px; --panel:1.5px; --detail:0.75px;
+    --display:'Anybody','Arial Black','Helvetica Neue',Helvetica,sans-serif;
+    --data:'Doto',Menlo,'Courier New',monospace;
+    --prog:Georgia,'Times New Roman',serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--newsprint);color:var(--ink);font-family:var(--prog);font-size:15px;line-height:1.5}
+  .sheet{max-width:1160px;margin:0 auto;padding:0 20px 60px}
+  .mast{background:var(--ink);color:var(--newsprint);margin:0 -20px;padding:26px 28px 22px;border-bottom:var(--frame) solid var(--ink)}
+  .mast .row{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px}
+  .mast h1{font-family:var(--display);font-weight:900;font-size:clamp(28px,4.6vw,50px);letter-spacing:.01em;line-height:.95}
+  .mast h1 .o{color:var(--gold)}
+  .kicker{font-family:var(--data);font-size:11px;letter-spacing:.14em}
+  .law{font-family:var(--data);font-size:12px;letter-spacing:.06em;margin-top:14px;border-top:1px solid rgba(243,236,218,.35);padding-top:10px}
+  .law b{color:var(--gold);font-weight:400}
+  .sec{border:var(--frame) solid var(--ink);margin:28px 0}
+  .sec-hd{background:var(--ink);color:var(--newsprint);padding:12px 20px;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px}
+  .sec-hd h2{font-family:var(--display);font-weight:900;font-size:clamp(15px,2vw,20px);letter-spacing:.03em}
+  .sec-hd .sub{font-family:var(--data);font-size:10.5px;letter-spacing:.1em}
+  .sec-bd{padding:18px 20px}
+  .sec-bd canvas{width:100%;height:auto;display:block;border:var(--panel) solid var(--ink);background:var(--newsprint)}
+  .sec-bd .pl{max-width:76ch;margin-bottom:12px}
+  table.ledger{width:100%;border-collapse:collapse;font-size:13px;max-width:760px}
+  table.ledger th{font-family:var(--data);font-size:10px;letter-spacing:.14em;text-align:left;border-bottom:var(--panel) solid var(--ink);padding:4px 8px 4px 0}
+  table.ledger td{border-bottom:var(--detail) solid var(--grey);padding:6px 8px 6px 0;vertical-align:top}
+  table.ledger td:first-child{font-family:var(--data);font-size:11px;white-space:nowrap;letter-spacing:.03em}
+  .kv{font-family:var(--data);font-size:12px;line-height:2;letter-spacing:.03em}
+  .kv b{font-weight:400;background:var(--ink);color:var(--newsprint);padding:1px 6px;margin-right:6px;letter-spacing:.1em;font-size:10px}
+  .note{border-left:var(--frame) solid var(--gold);padding:8px 14px;margin-top:12px;background:var(--sunbleach);font-style:italic;max-width:88ch}
+  .stamp{font-family:var(--data);font-size:10px;letter-spacing:.1em;margin-top:8px;line-height:1.8}
+  .stamp .r{color:var(--grass)} .stamp .s{color:var(--magenta)}
+  .colophon{border-top:var(--frame) solid var(--ink);margin-top:44px;padding-top:14px;font-family:var(--data);font-size:10.5px;letter-spacing:.08em;line-height:2;color:#5a564e;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+</style>
+
+<div class="sheet">
+  <div class="mast">
+    <div class="row">
+      <h1>THE TIF<span class="o">O</span> · DE-PIXELED</h1>
+      <div class="kicker">DESIGN SESSION · 4 JUL 2026 · SHEET Nº 004 · V2 — THE UNFURL × THE CHANT × CONTINUOUS CLOTH</div>
+    </div>
+    <div class="law">THE CORRECTION, OWNED — <b>CLOTH AT VIEWING DISTANCE IS CONTINUOUS FORM; THE GRID IS ONLY TRUE AT THREAD DISTANCE.</b>
+    I GOT TO PIXELS VIA THE MANU KNIT + THE WEAVING DRAFT AND LET QUANTIZATION BECOME THE AESTHETIC. YOUR SILK BAYERN
+    SCARF, THE ALBERS FIELDS, PENDLETON'S FEATHERED EDGES AND THE SERBIA TIFO ALL SAY OTHERWISE. PIXELS RETREAT TO THE
+    MACRO (THE TECHNICAL BACK) AND THE RELIC KNITS — EVERYWHERE ELSE, SOLID SHAPES WITH A MATERIAL WHISPER.</div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hd"><h2>THE UNFURL — FEW HANDS, WHOLE IMAGE</h2>
+      <div class="sub">NO INCOMPLETE TIFOS · THE TRIGGER IS THE DATUM, NOT THE COVERAGE</div></div>
+    <div class="sec-bd">
+      <p class="pl">You're right about pre-match: the stands will be near-empty. So the mechanic flips to how real
+      tifos actually work — a small crew prepares, the image arrives whole. The end's vote picks the motif during
+      the day. Then <b>any five rooted fans pulling together</b> (hold the drum, a 60-second window) unfurl it — it
+      drops over their end complete, stays through the anthem, lowers at kickoff. Honesty moves from coverage to the
+      trigger: the record is <i>who pulled and when</i>, printed on the hem. Five people at a laptop can still throw
+      a full tifo over an empty stand — which is exactly the romance of it.</p>
+      <canvas id="unfurl" width="1760" height="800"></canvas>
+      <div class="stamp">
+        THREE MOMENTS OF ONE DROP · END ARG · MOTIF: THE CHANT (LEADING VOTE)<br>
+        <span class="r">■ VOTE + PULL EVENTS — REAL WHEN LIVE</span> · <span class="s">■ THIS RENDER — SPECIMEN</span>
+      </div>
+      <table class="ledger" style="margin-top:14px">
+        <tr><th>MARK</th><th>DATUM</th></tr>
+        <tr><td>the motif</td><td>the end's real vote, from the fixture's drawn set</td></tr>
+        <tr><td>the drop itself</td><td>five real pulls inside one 60s window (counts + seats on the hem)</td></tr>
+        <tr><td>the hem line</td><td>UNFURLED 20:52 · PULLED BY 5 — the notarized trigger</td></tr>
+        <tr><td>gold fringe on the hem</td><td>pullers who hold a proved call</td></tr>
+        <tr><td>it lowers</td><td>kickoff — the clock's fact, the loom takes over</td></tr>
+      </table>
+      <p class="kv" style="margin-top:10px"><b>PULL</b>five hands fill a five-notch latch, one notch per real pull — then it lets go
+      <br><b>DROP</b>gravity, not easing: fast fall, one soft swing at the hem, settle (the split-flap law)
+      <br><b>LOWER</b>row-by-row furl upward at kickoff, quick and mechanical</p>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hd"><h2>THE BALLOT V2 — FLAG · CHANT · PINWHEEL</h2>
+      <div class="sub">PAINTED-SILK RENDERING · CHANT IN THE TEAM'S LANGUAGE · COUNTS SPECIMEN</div></div>
+    <div class="sec-bd">
+      <p class="pl">Three motifs per fixture, in the end's own voice: the FLAG as drawn blocks, the CHANT in the
+      team's language — VAMOS here, FORÇA for Cape Verde, ALLEZ, DALE — set huge like a banner actually painted by
+      ultras, and the PINWHEEL for the house. All continuous: brushed fields, crisp forms, cloth whisper.</p>
+      <canvas id="ballot" width="1760" height="500"></canvas>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hd"><h2>THE CLOTH, DE-PIXELED — SAME ROWS, NEW LAW</h2>
+      <div class="sub">ROWS 55'–62' (THE CLIFF) · LEFT: THE OLD PIXEL READING · RIGHT: CONTINUOUS FORM, MATERIAL WHISPER</div></div>
+    <div class="sec-bd">
+      <p class="pl">The data law is untouched — one row per minute, dye width = the real triple, dark single picks =
+      tick cadence, the patch at the goal. What changes is the render: solid dye with a Pendleton-feathered working
+      edge, thread texture you feel more than see, and type set as printed silk, not upscaled dots. If you bless the
+      right side, I propagate it through the scarf, the stands, and the graphs — and the pixel grid survives only
+      where it is materially true: the thread-level macro and the knitted relics.</p>
+      <canvas id="depixel" width="1760" height="640"></canvas>
+    </div>
+  </div>
+
+  <div class="note"><b style="font-family:var(--display);letter-spacing:.05em">THE RECORD, UNCHANGED IN SPIRIT.</b>
+  The scarf's end panel still becomes the raised tifo — now woven as continuous cloth, with the hem line and pullers'
+  marks in the border. The Mood Quilt still takes a tifo tile. Verdicts: (1) five pulls — right number? earned how
+  (any rooted fan / thread-holders first)? (2) chant words per fixture — curated by you or a fixed per-nation set?
+  (3) bless the de-pixel law for propagation?</div>
+
+  <div class="colophon">
+    <div>ROOOT · DESIGN SESSION SHEET Nº 004 · V2 · 4 JUL 2026 · CROWD — REAL TAPS, COUNTED</div>
+    <div>TYPE IS STAND-IN — PRODUCT VOICES REMAIN ANYBODY / DOTO / SILKSCREEN</div>
+  </div>
+</div>
+
+<script>
+const C={paper:'#F3ECDA',sun:'#EDE3C8',ink:'#1A1A18',grey:'#B0AEA8',gold:'#D6A33B',poppy:'#C8504D',sky:'#3E8CBC',yellow:'#E5B431',grass:'#1F6F40',ultra:'#2049AA',magenta:'#AC3A6B'};
+const ARG=C.ultra,CPV=C.poppy;
+const DOTO="Menlo,'Courier New',monospace",ANY="'Anybody','Arial Black',sans-serif";
+const TR=[[55,0.938],[56,0.938],[57,0.937],[58,0.93],[59,0.622],[60,0.628],[61,0.623],[62,0.629]];
+const TRD=[[55,0.052],[56,0.051],[57,0.053],[58,0.059],[59,0.327],[60,0.33],[61,0.338],[62,0.333]];
+const TICK8=[3,6,3,4,13,17,17,14];
+function seeded(s){let x=s>>>0;return()=>{x=(x*1664525+1013904223)>>>0;return x/4294967296;};}
+function ctx(id,W,H){const c=document.getElementById(id);const g=c.getContext('2d');g.scale(c.width/W,c.height/H);return g;}
+function shade(hex,f){const n=parseInt(hex.slice(1),16),r=n>>16,gg=(n>>8)&255,b=n&255;const t=f<0?0:243,tg=f<0?0:236,tb=f<0?0:218,a=Math.abs(f);const mix=(x,y)=>Math.round(x+(y-x)*a);return `rgb(${mix(r,t)},${mix(gg,tg)},${mix(b,tb)})`;}
+function dt(g,s,x,y,size,col,al,w,sp){g.font=(w||400)+' '+size+'px '+DOTO;g.fillStyle=col;g.textAlign=al||'left';try{g.letterSpacing=(sp!=null?sp:0.6)+'px'}catch(e){};g.fillText(s,x,y);try{g.letterSpacing='0px'}catch(e){}}
+function at(g,s,x,y,size,col,al){g.font='900 '+size+'px '+ANY;g.fillStyle=col;g.textAlign=al||'left';g.fillText(s,x,y);}
+
+/* cloth whisper: fine weft lines + slubs, clipped to a rect/path — texture, not decoration: it is the material */
+function clothWhisper(g,x,y,w,h,seed,strength){
+  const s=strength||1;const rand=seeded(seed);
+  g.save();g.beginPath();g.rect(x,y,w,h);g.clip();
+  for(let yy=y;yy<y+h;yy+=2.2){
+    g.fillStyle='rgba(255,255,255,'+(0.035*s)+')';g.fillRect(x,yy,w,0.8);
+    g.fillStyle='rgba(26,24,24,'+(0.028*s)+')';g.fillRect(x,yy+1.1,w,0.6);
+  }
+  for(let i=0;i<w*h/300;i++){g.fillStyle='rgba(26,24,24,'+(0.05*s)+')';
+    g.fillRect(x+rand()*w,y+rand()*h,1.6+rand()*2,0.9);}
+  g.restore();
+}
+
+/* ================= THE UNFURL — three moments ================= */
+(function(){
+  const W=880,H=400,g=ctx('unfurl',W,H);
+  const pw=262,ph=300,y0=40;
+  const drops=[0.12,0.62,1.0],labels=['THE PULL — 3 OF 5 HANDS','THE DROP','WHOLE — UNFURLED 20:52 · PULLED BY 5'];
+  function tifoFace(x0,yTop,wid,hgt,revealH){
+    // the banner face: ultra field, VAMOS huge, gold rule — painted silk
+    g.save();g.beginPath();
+    // hem curve (slight swing while dropping)
+    const hemY=yTop+revealH;const sw=revealH<hgt?10:3;
+    g.moveTo(x0,yTop);g.lineTo(x0+wid,yTop);
+    g.lineTo(x0+wid,hemY-sw*0.4);
+    g.quadraticCurveTo(x0+wid*0.72,hemY+sw,x0+wid*0.5,hemY-sw*0.2);
+    g.quadraticCurveTo(x0+wid*0.26,hemY-sw*1.2,x0,hemY+sw*0.3);
+    g.closePath();g.clip();
+    g.fillStyle=ARG;g.fillRect(x0,yTop,wid,revealH+14);
+    // subtle vertical brush variation
+    for(let i=0;i<6;i++){g.fillStyle='rgba(255,255,255,0.04)';g.fillRect(x0+i*wid/6+3,yTop,wid/14,revealH+14);}
+    // the chant — huge, painted
+    const cy=yTop+hgt*0.46;
+    g.font='900 '+(wid*0.23)+'px '+ANY;g.textAlign='center';
+    g.fillStyle='#F6F0DF';g.fillText('VAMOS',x0+wid/2,cy);
+    g.fillStyle='rgba(26,24,24,0.16)';g.fillText('VAMOS',x0+wid/2+1.6,cy+1.8); // paint double-pass
+    g.fillStyle='#F6F0DF';g.fillText('VAMOS',x0+wid/2,cy);
+    // gold underline rule + small sun disc (the flag's sun, drawn)
+    g.fillStyle=C.gold;g.fillRect(x0+wid*0.2,cy+10,wid*0.6,5);
+    g.beginPath();g.arc(x0+wid/2,cy+38,13,0,7);g.fillStyle=C.gold;g.fill();
+    g.strokeStyle='rgba(26,24,24,0.35)';g.lineWidth=1.4;g.stroke();
+    // hem line: the notarized trigger, on the cloth itself
+    if(revealH>hgt*0.86){
+      g.fillStyle='rgba(26,24,24,0.78)';g.fillRect(x0,yTop+hgt-20,wid,14);
+      dt(g,'UNFURLED 20:52 · PULLED BY 5 · SPECIMEN',x0+wid/2,yTop+hgt-10,7.5,'#F3ECDA','center');
+    }
+    clothWhisper(g,x0,yTop,wid,revealH+10,77,1.1);
+    g.restore();
+    // top pole
+    g.fillStyle=C.ink;g.fillRect(x0-4,yTop-6,wid+8,6);
+  }
+  drops.forEach((d,i)=>{
+    const x0=18+i*(pw+30);
+    dt(g,labels[i],x0,y0-14,8.5,C.ink,'left',700,1.1);
+    // the end behind: quiet dark field (the stand at night — no fake crowd)
+    g.fillStyle=shade(ARG,-0.72);g.fillRect(x0,y0,pw,ph);
+    clothWhisper(g,x0,y0,pw,ph,300+i,0.5);
+    if(i===0){
+      // furled roll + the latch filling
+      g.fillStyle=shade(ARG,0.15);g.beginPath();
+      g.ellipse(x0+pw/2,y0+16,pw/2-8,9,0,0,7);g.fill();
+      g.strokeStyle=C.ink;g.lineWidth=1.2;g.stroke();
+      // five-notch latch, 3 filled
+      for(let n=0;n<5;n++){const lx=x0+pw/2-44+n*22;
+        g.fillStyle=n<3?C.gold:'rgba(243,236,218,0.25)';
+        g.fillRect(lx,y0+ph/2-8,16,16);
+        g.strokeStyle='#F3ECDA';g.lineWidth=1;g.strokeRect(lx,y0+ph/2-8,16,16);}
+      dt(g,'3 OF 5 PULLS — HOLD THE DRUM',x0+pw/2,y0+ph/2+26,7.5,'#F3ECDA','center');
+      dt(g,'EACH NOTCH = ONE REAL FAN PULLING',x0+pw/2,y0+ph/2+40,6.5,'rgba(243,236,218,0.6)','center');
+    } else {
+      tifoFace(x0+10,y0+10,pw-20,ph-24,(ph-24)*d);
+    }
+    g.strokeStyle=C.ink;g.lineWidth=1.6;g.strokeRect(x0,y0,pw,ph);
+  });
+  dt(g,'THE IMAGE ARRIVES WHOLE — THE CREW IS THE DATUM. FIVE FANS AND AN EMPTY STAND CAN STILL THROW A FULL TIFO.',W/2,H-16,8.5,'#5a564e','center');
+})();
+
+/* ================= THE BALLOT V2 — flag · chant · pinwheel ================= */
+(function(){
+  const W=880,H=250,g=ctx('ballot',W,H);
+  const pw=262,ph=160,y0=34;
+  function frame(x0,name,votes,lead){
+    g.strokeStyle=C.ink;g.lineWidth=1.6;g.strokeRect(x0,y0,pw,ph);
+    dt(g,name,x0,y0-12,9,C.ink,'left',700,1.2);
+    g.fillStyle=lead?C.gold:C.sun;g.fillRect(x0,y0+ph+8,pw,16);
+    g.strokeStyle=C.ink;g.lineWidth=0.8;g.strokeRect(x0,y0+ph+8,pw,16);
+    dt(g,(lead?'LEADING · ':'')+votes+' VOTES · SPECIMEN',x0+pw/2,y0+ph+19.5,7.5,C.ink,'center');
+  }
+  // 1 THE FLAG — drawn blocks + sun (flags are legal; crests are not)
+  (function(){const x0=24;
+    g.fillStyle=shade(ARG,0.12);g.fillRect(x0,y0,pw,ph/3);
+    g.fillStyle='#F6F0DF';g.fillRect(x0,y0+ph/3,pw,ph/3);
+    g.fillStyle=shade(ARG,0.12);g.fillRect(x0,y0+2*ph/3,pw,ph/3);
+    g.beginPath();g.arc(x0+pw/2,y0+ph/2,17,0,7);g.fillStyle=C.gold;g.fill();
+    g.strokeStyle='rgba(26,24,24,0.4)';g.lineWidth=1.6;g.stroke();
+    for(let i=0;i<12;i++){const a=Math.PI*2*i/12;g.strokeStyle=C.gold;g.lineWidth=2;
+      g.beginPath();g.moveTo(x0+pw/2+19*Math.cos(a),y0+ph/2+19*Math.sin(a));
+      g.lineTo(x0+pw/2+25*Math.cos(a),y0+ph/2+25*Math.sin(a));g.stroke();}
+    clothWhisper(g,x0,y0,pw,ph,11,1);
+    frame(x0,'THE FLAG — DRAWN BLOCKS','96');})();
+  // 2 THE CHANT
+  (function(){const x0=24+pw+22;
+    g.fillStyle=ARG;g.fillRect(x0,y0,pw,ph);
+    g.font='900 52px '+ANY;g.textAlign='center';
+    g.fillStyle='rgba(26,24,24,0.18)';g.fillText('VAMOS',x0+pw/2+1.5,y0+ph/2+18+1.5);
+    g.fillStyle='#F6F0DF';g.fillText('VAMOS',x0+pw/2,y0+ph/2+18);
+    g.fillStyle=C.gold;g.fillRect(x0+pw*0.2,y0+ph/2+28,pw*0.6,4);
+    clothWhisper(g,x0,y0,pw,ph,22,1);
+    frame(x0,'THE CHANT — THE END\'S LANGUAGE','118',true);})();
+  // 3 THE PINWHEEL — smooth, drawn
+  (function(){const x0=24+2*(pw+22);
+    g.fillStyle=shade(ARG,0.75);g.fillRect(x0,y0,pw,ph);
+    const cx=x0+pw/2,cy=y0+ph/2,R=58;
+    g.beginPath();g.arc(cx,cy,R,0,7);g.fillStyle='#F6F0DF';g.fill();
+    g.lineWidth=7;g.strokeStyle=C.ink;g.stroke();
+    for(let i=0;i<5;i++){const a0=(i*72-90)*Math.PI/180,a1=(i*72+44-90)*Math.PI/180;
+      g.beginPath();g.moveTo(cx,cy);g.arc(cx,cy,R*0.78,a0,a1);g.closePath();
+      g.fillStyle=i%2?C.ink:C.gold;g.fill();}
+    clothWhisper(g,x0,y0,pw,ph,33,1);
+    frame(x0,'THE PINWHEEL — THE HOUSE','74');})();
+  dt(g,'ONE BALLOT PER END PER MATCH · CHANT WORDS PER NATION: VAMOS · FORÇA · ALLEZ · DALE — CURATED SET, CROWD\'S CHOICE',W/2,H-10,8.5,'#5a564e','center');
+})();
+
+/* ================= THE CLOTH, DE-PIXELED — comparison ================= */
+(function(){
+  const W=880,H=320,g=ctx('depixel',W,H);
+  const pw=396,ph=232,y0=42,rowH=ph/8;
+  const rand1=seeded(41),rand2=seeded(42);
+  function events(x0,useClean){
+    // 58' patch + swing label
+    const y58=y0+3*rowH+rowH/2;
+    const cx=x0+pw-56;
+    const pts=[];for(let k=0;k<16;k++){const rr=k%2?5.5:12;const a=Math.PI*k/8-Math.PI/2;pts.push([cx+rr*Math.cos(a),y58+rr*Math.sin(a)]);}
+    g.beginPath();g.moveTo(pts[0][0],pts[0][1]);for(const p of pts)g.lineTo(p[0],p[1]);g.closePath();
+    g.fillStyle=CPV;g.fill();g.lineWidth=1.4;g.strokeStyle='#F3ECDA';g.stroke();
+    g.fillStyle=C.ink;g.fillRect(cx-118,y58-9,76,18);
+    if(useClean){g.font='700 11px '+DOTO;g.textAlign='center';g.fillStyle='#F3ECDA';g.fillText('94→62',cx-80,y58+4);}
+    else{ // old: chunky pixel text imitation
+      g.fillStyle='#F3ECDA';for(let i=0;i<5;i++)g.fillRect(cx-112+i*13,y58-4,9,8);}
+  }
+  // ---- LEFT: the old pixel render
+  (function(){const x0=28;
+    dt(g,'BEFORE — THE PIXEL READING',x0,y0-14,9,'#8a857a','left',700,1.1);
+    const cols=64,cw=pw/cols;
+    for(let r2=0;r2<8;r2++){const wa=TR[r2][1],y=y0+r2*rowH;
+      for(let c2=0;c2<cols;c2++){
+        const u=c2/cols;const h=(rand1()*3)|0;
+        let f;if(u<wa-0.005)f=[shade(ARG,0),shade(ARG,-0.13),shade(ARG,0.12)][h];
+        else if(u>1-TRD[r2][1]*0.28)f=[shade(CPV,0),shade(CPV,-0.13)][h%2];
+        else f=['#E7DCC3','#E2D7BD'][ (c2+r2)%2];
+        g.fillStyle=f;g.fillRect(x0+c2*cw+0.4,y+0.5,cw-0.8,rowH-1);
+      }}
+    events(x0,false);
+    g.strokeStyle=C.ink;g.lineWidth=1.4;g.strokeRect(x0,y0,pw,ph);})();
+  // ---- RIGHT: continuous form, material whisper
+  (function(){const x0=28+pw+32;
+    dt(g,'AFTER — CONTINUOUS FORM, MATERIAL WHISPER',x0,y0-14,9,C.ink,'left',700,1.1);
+    // undyed ground
+    g.fillStyle='#E9DFC8';g.fillRect(x0,y0,pw,ph);
+    // ARG dye: one solid shape, stepped per row, Pendleton-feathered working edge
+    g.beginPath();g.moveTo(x0,y0);
+    for(let r2=0;r2<8;r2++){const y=y0+r2*rowH,we=x0+TR[r2][1]*pw;
+      g.lineTo(we,y);g.lineTo(we,y+rowH);}
+    g.lineTo(x0,y0+ph);g.closePath();
+    g.fillStyle=ARG;g.fill();
+    // per-row dye-lot variation (barely)
+    for(let r2=0;r2<8;r2++){const y=y0+r2*rowH,we=x0+TR[r2][1]*pw;
+      g.fillStyle=r2%2?'rgba(255,255,255,0.045)':'rgba(26,24,24,0.035)';
+      g.fillRect(x0,y,we-x0,rowH);}
+    // feathered edge: fine serration teeth along the boundary
+    for(let r2=0;r2<8;r2++){const y=y0+r2*rowH,we=x0+TR[r2][1]*pw;
+      for(let t=0;t<rowH-2;t+=4.6){
+        g.fillStyle=ARG;g.beginPath();
+        g.moveTo(we,y+t);g.lineTo(we+5,y+t+2.3);g.lineTo(we,y+t+4.6);g.closePath();g.fill();}}
+    // CPV sliver at right, same law
+    g.beginPath();g.moveTo(x0+pw,y0);
+    const cpvw=[0.011,0.011,0.01,0.011,0.051,0.042,0.039,0.038];
+    for(let r2=0;r2<8;r2++){const y=y0+r2*rowH,we=x0+pw-Math.max(5,cpvw[r2]*pw);
+      g.lineTo(we,y);g.lineTo(we,y+rowH);}
+    g.lineTo(x0+pw,y0+ph);g.closePath();g.fillStyle=CPV;g.fill();
+    // tick cadence: fine single-pick dashes inside the dye (dark, whisper-level, count = real)
+    const rr=seeded(58);
+    for(let r2=0;r2<8;r2++){const y=y0+r2*rowH,we=x0+TR[r2][1]*pw;
+      for(let i=0;i<TICK8[r2];i++){
+        g.fillStyle='rgba(16,20,50,0.5)';
+        g.fillRect(x0+6+rr()*(we-x0-16),y+2+rr()*(rowH-5),7,1.1);}}
+    // minute rules, whisper
+    for(let r2=1;r2<8;r2++){g.fillStyle='rgba(26,24,24,0.09)';g.fillRect(x0,y0+r2*rowH,pw,0.8);}
+    clothWhisper(g,x0,y0,pw,ph,90,1.15);
+    events(x0,true);
+    // minute labels
+    for(let r2=0;r2<8;r2+=1){dt(g,(55+r2)+'′',x0-8,y0+r2*rowH+rowH/2+3,8,'#8a857a','right');}
+    g.strokeStyle=C.ink;g.lineWidth=1.4;g.strokeRect(x0,y0,pw,ph);})();
+  dt(g,'SAME DATA LAW — ROW = MINUTE · DYE = THE TRIPLE · DASHES = REAL TICKS · THE PATCH AT ITS ROW. ONLY THE MATERIAL GREW UP.',W/2,H-14,8.5,'#5a564e','center');
+})();
+</script>

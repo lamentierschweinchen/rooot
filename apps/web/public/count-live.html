@@ -19,17 +19,23 @@ html,body{background:var(--paper);-webkit-font-smoothing:antialiased;text-render
   background:radial-gradient(120% 50% at 12% -6%, rgba(46,106,78,.05), transparent 60%),
     radial-gradient(120% 50% at 100% 106%, rgba(200,80,77,.05), transparent 60%), var(--paper);}
 
-/* live masthead */
-.top{width:100%;max-width:372px;display:flex;flex-direction:column;gap:3px;text-align:center}
-.top .status{font-family:var(--disp);font-weight:700;font-size:10px;letter-spacing:.24em;color:var(--sub);display:flex;gap:8px;justify-content:center;align-items:center}
-.top .status .dot{width:7px;height:7px;border-radius:50%;background:var(--away)}
-.top .status.live .dot{background:#C8202A;animation:pulse 1.4s ease-in-out infinite}
+/* THE RESULT — the collectible front */
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
-.top .line{display:flex;align-items:baseline;justify-content:center;gap:12px}
-.top .tri{font-family:var(--disp);font-weight:900;font-size:26px}
-.top .tri.h{color:var(--home)}.top .tri.a{color:var(--away)}
-.top .sc{font-family:var(--disp);font-weight:900;font-size:34px;letter-spacing:.02em}
-.top .min{font-family:var(--disp);font-weight:600;font-size:10px;letter-spacing:.18em;color:var(--sub)}
+.pm .ps .livedot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--sub);margin-right:6px;vertical-align:middle}
+.pm .ps .livedot.on{background:#C8202A;animation:pulse 1.4s ease-in-out infinite}
+.resrow{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:6px;padding:16px 20px 2px}
+.rteam{display:flex;flex-direction:column;gap:4px;min-width:0}
+.rteam.h{align-items:flex-start}.rteam.a{align-items:flex-end}
+.rtri{font-family:var(--disp);font-weight:900;font-size:30px;line-height:.9}
+.rteam.h .rtri{color:var(--home)}.rteam.a .rtri{color:var(--away)}
+.rname{font-family:var(--disp);font-weight:600;font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--sub)}
+.rsc{display:flex;align-items:center;justify-content:center;gap:11px}
+.rn{font-family:var(--disp);font-weight:900;font-size:80px;line-height:.78;letter-spacing:-.03em}
+.rn.h{color:var(--home)}.rn.a{color:var(--away)}
+.rdash{width:20px;height:8px;background:var(--ink);flex:none;transform:translateY(-9px)}
+.reband{display:flex;align-items:center;justify-content:center;gap:10px;margin:12px 0 4px}
+.reband::before,.reband::after{content:"";height:1.5px;width:30px;background:var(--line)}
+.reband span{font-family:var(--disp);font-weight:700;font-size:10px;letter-spacing:.2em;color:var(--sub)}
 
 .plate{position:relative;width:100%;max-width:372px;background:var(--card);color:var(--ink);box-shadow:0 12px 34px rgba(26,24,21,.13);
   background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='120' height='120' filter='url(%23n)' opacity='0.04'/></svg>");}
@@ -75,6 +81,40 @@ html,body{background:var(--paper);-webkit-font-smoothing:antialiased;text-render
 #shots .dot.miss.a{box-shadow:inset 0 0 0 2.5px var(--away)}
 #shots .dot.block{box-shadow:0 0 0 2px #F3ECDB}
 #shots .dot.ww{width:3.6%;padding-bottom:3.6%;border-radius:1px;box-shadow:0 0 0 2px var(--gold)}
+#shots .emb{position:absolute;transform:translate(-50%,-50%);animation:pop .4s cubic-bezier(.3,1.5,.5,1) both}
+#shots .emb img{width:100%;height:auto;display:block}
+#shots .emb.glove{width:8.2%}
+#shots .emb.wall{width:9.6%}
+#shots .ball{position:absolute;width:7%;transform:translate(-50%,-50%);border-radius:50%;box-shadow:0 0 0 2.4px var(--gold);animation:pop .4s cubic-bezier(.3,1.5,.5,1) both}
+#shots .ball svg{width:100%;height:auto;display:block}
+#shots .ball.h{color:var(--home)}#shots .ball.a{color:var(--away)}
+/* corners: each kick is a literal pitch-corner mark, repeating into a band */
+@keyframes popc{0%{transform:scale(0);opacity:0}62%{transform:scale(1.18)}100%{transform:scale(1);opacity:1}}
+.cornerart{position:relative}
+#corners{position:absolute;inset:0;pointer-events:none}
+.cband{position:absolute;left:52%;width:44%;display:flex;flex-wrap:wrap;gap:4px}
+.cband.h{top:40%}.cband.a{top:53%}
+.cmark{width:23px;height:23px;animation:popc .4s cubic-bezier(.3,1.5,.5,1) both}
+.cmark svg{width:100%;height:100%;display:block}
+.cmark.h svg path{stroke:var(--home)}
+.cmark.a svg path{stroke:var(--away)}
+/* THE BOOK — cards fanned in the ref's hand */
+.bookart{position:relative;height:210px;margin:0 16px}
+.bkmid{position:absolute;left:50%;top:12%;bottom:12%;width:1.5px;background:var(--line)}
+.bklab{position:absolute;top:2px;font-family:var(--disp);font-weight:800;font-size:11px;letter-spacing:.09em}
+.bklab.h{left:24%;transform:translateX(-50%);color:var(--home)}
+.bklab.a{left:74%;transform:translateX(-50%);color:var(--away)}
+#cards{position:absolute;inset:0}
+@keyframes popcard{0%{transform:translate(-50%,-50%) rotate(var(--rot,0deg)) scale(0);opacity:0}62%{transform:translate(-50%,-50%) rotate(var(--rot,0deg)) scale(1.08)}100%{transform:translate(-50%,-50%) rotate(var(--rot,0deg)) scale(1);opacity:1}}
+#cards .card{position:absolute;width:9%;height:0;padding-bottom:12.6%;border-radius:2px;border:2px solid var(--ink);transform:translate(-50%,-50%) rotate(var(--rot,0deg));animation:popcard .42s cubic-bezier(.3,1.5,.5,1) both;box-shadow:2px 3px 0 rgba(26,24,21,.18)}
+#cards .card.y{background:#E5B431}
+#cards .card.r{background:#C8202A}
+.cardnums{display:flex;gap:9px;align-items:baseline}
+.read .col.r .cardnums{justify-content:flex-end}
+.cardnums b{font-family:var(--disp);font-weight:900;font-size:26px;line-height:.9}
+.cardnums .y{color:#C0972B}.cardnums .r{color:#C8202A}
+.benchnote{text-align:center;font-family:var(--disp);font-weight:600;font-size:8px;letter-spacing:.1em;color:var(--sub);padding:0 20px 6px}
+.benchnote b{color:var(--ink);font-weight:900}
 .shotkey{display:flex;gap:11px;justify-content:center;padding:9px 16px 3px;flex-wrap:wrap}
 .shotkey span{display:flex;align-items:center;gap:5px;font-family:var(--disp);font-weight:600;font-size:7.5px;letter-spacing:.09em;color:var(--sub)}
 .shotkey i{width:11px;height:11px;border-radius:50%;background:#B9AC8A}
@@ -103,11 +143,20 @@ html,body{background:var(--paper);-webkit-font-smoothing:antialiased;text-render
 <body>
 <div class="page">
 
-  <div class="top">
-    <div class="status" id="status"><span class="dot"></span><span id="statusTxt">CONNECTING…</span></div>
-    <div class="line"><span class="tri h" id="hTri">—</span><span class="sc" id="score">0–0</span><span class="tri a" id="aTri">—</span></div>
-    <div class="min" id="minute">—</div>
-  </div>
+  <!-- THE RESULT — the collectible front -->
+  <article class="plate">
+    <span class="notch tl"></span><span class="notch tr"></span><span class="notch bl"></span><span class="notch br"></span>
+    <div class="hostband"><i class="v"></i><i class="r"></i><i class="a"></i><i class="g"></i></div>
+    <header class="pm"><span class="pn">THE RESULT</span><span class="ps"><span class="livedot" id="reDot"></span><span id="reState">CONNECTING…</span></span></header>
+    <div class="resrow">
+      <div class="rteam h"><span class="rtri" id="reHTri">—</span><span class="rname" id="reHName">HOME</span></div>
+      <div class="rsc"><span class="rn h" id="reHG">0</span><span class="rdash"></span><span class="rn a" id="reAG">0</span></div>
+      <div class="rteam a"><span class="rtri" id="reATri">—</span><span class="rname" id="reAName">AWAY</span></div>
+    </div>
+    <div class="reband"><span id="reMin">—</span></div>
+    <div class="perf"></div>
+    <footer class="stub"><span class="adm">ADMIT ONE · <b id="stub0">LIVE</b></span><span class="serial">N°01</span></footer>
+  </article>
 
   <!-- PITCH -->
   <article class="plate">
@@ -152,6 +201,42 @@ html,body{background:var(--paper);-webkit-font-smoothing:antialiased;text-render
     <footer class="stub"><span class="adm">ADMIT ONE · <b id="stub2">LIVE</b></span><span class="serial">N°03</span></footer>
   </article>
 
+  <!-- THE ARC (corners) -->
+  <article class="plate">
+    <span class="notch tl"></span><span class="notch tr"></span><span class="notch bl"></span><span class="notch br"></span>
+    <div class="hostband"><i class="v"></i><i class="r"></i><i class="a"></i><i class="g"></i></div>
+    <header class="pm"><span class="pn">THE ARC</span><span class="ps">CORNERS · WON AT THE FLAG</span></header>
+    <div class="art cornerart">
+      <img src="plate/gens/arc.png" alt="corner flag">
+      <div id="corners"><div class="cband h" id="corH"></div><div class="cband a" id="corA"></div></div>
+    </div>
+    <div class="read">
+      <div class="col"><span class="t h" id="acHName">HOME</span><span class="n h" id="acH">0</span><span class="sub">CORNERS</span></div>
+      <div class="col r"><span class="t a" id="acAName">AWAY</span><span class="n a" id="acA">0</span><span class="sub">CORNERS</span></div>
+    </div>
+    <div class="perf"></div>
+    <footer class="stub"><span class="adm">ADMIT ONE · <b id="stub4">LIVE</b></span><span class="serial">N°04</span></footer>
+  </article>
+
+  <!-- THE BOOK (cards · VAR · the bench) -->
+  <article class="plate">
+    <span class="notch tl"></span><span class="notch tr"></span><span class="notch bl"></span><span class="notch br"></span>
+    <div class="hostband"><i class="v"></i><i class="r"></i><i class="a"></i><i class="g"></i></div>
+    <header class="pm"><span class="pn">THE BOOK</span><span class="ps">CARDS · VAR · THE BENCH</span></header>
+    <div class="art bookart">
+      <div class="bklab h" id="bkHLab">HOME</div><div class="bklab a" id="bkALab">AWAY</div>
+      <div class="bkmid"></div>
+      <div id="cards"></div>
+    </div>
+    <div class="read">
+      <div class="col"><span class="t h" id="bkHName">HOME</span><span class="cardnums"><b class="y" id="bkHY">0</b><b class="r" id="bkHR">0</b></span><span class="sub">YELLOW · RED</span></div>
+      <div class="col r"><span class="t a" id="bkAName">AWAY</span><span class="cardnums"><b class="y" id="bkAY">0</b><b class="r" id="bkAR">0</b></span><span class="sub">YELLOW · RED</span></div>
+    </div>
+    <div class="benchnote">VAR REVIEWS <b id="bkVar">0</b> &nbsp;·&nbsp; SUBS &amp; INJURIES — AWAITING THE FEED</div>
+    <div class="perf"></div>
+    <footer class="stub"><span class="adm">ADMIT ONE · <b id="stub5">LIVE</b></span><span class="serial">N°05</span></footer>
+  </article>
+
 </div>
 
 <script>
@@ -169,9 +254,18 @@ html,body{background:var(--paper);-webkit-font-smoothing:antialiased;text-render
    '18193785':['USA','USA','#2A3B78','BEL','BELGIUM','#B4232B']
   };
   var q=new URLSearchParams(location.search);
-  var mid=q.get('match')||'18198205';
+  var mid=q.get('match')||'18193785';
   var fx=FIX[mid]||FIX['18175918'];
-  var HOME={tri:fx[0],name:fx[1],ink:fx[2]}, AWAY={tri:fx[3],name:fx[4],ink:fx[5]};
+  // map a team's ink to the nearest generated emblem skin
+  function skin(ink){
+    var A={green:[30,122,68],red:[170,21,27],blue:[32,73,170]};
+    var c=[parseInt(ink.slice(1,3),16),parseInt(ink.slice(3,5),16),parseInt(ink.slice(5,7),16)], best='blue', bd=1e15;
+    for(var k in A){var a=A[k],d=Math.pow(a[0]-c[0],2)+Math.pow(a[1]-c[1],2)+Math.pow(a[2]-c[2],2); if(d<bd){bd=d;best=k;}}
+    return best;
+  }
+  var GLV={green:'glove-verde',red:'glove-cpv',blue:'glove-arg'};
+  function mkTeam(tri,name,ink){ var sk=skin(ink); return {tri:tri,name:name,ink:ink,glove:'plate/gens/'+GLV[sk]+'.png',wall:'plate/gens/wall-'+sk+'.png'}; }
+  var HOME=mkTeam(fx[0],fx[1],fx[2]), AWAY=mkTeam(fx[3],fx[4],fx[5]);
 
   // ARG–CPV replay fallback (real recorded numbers) so the page is never blank
   var FALLBACK={ minute:124, live:false,
@@ -200,22 +294,49 @@ html,body{background:var(--paper);-webkit-font-smoothing:antialiased;text-render
   function SLOTS(zone,side){ var k=zone+side; return _slots[k]||(_slots[k]=(zone==='ww')?wwSlots(side):makeSlots(ZONE[zone],side)); }
   // incremental: only ADD new marks (they pop in) / remove extras — never redraw the set
   var SHOT={};
-  function ensureDots(key,cls,n,slots){
-    var arr=SHOT[key]||(SHOT[key]=[]), wrap=el('shots');
-    while(arr.length<n){ var p=slots[Math.min(arr.length,slots.length-1)];
-      var d=document.createElement('div'); d.className='dot '+cls; d.style.left=p.x+'%'; d.style.top=p.y+'%';
-      wrap.appendChild(d); arr.push(d); }
+  function ensureMarks(wrap,key,n,slots,make){
+    var arr=SHOT[key]||(SHOT[key]=[]);
+    while(arr.length<n){ var idx=arr.length, p=slots[Math.min(idx,slots.length-1)];
+      var d=make(idx); d.style.left=p.x+'%'; d.style.top=p.y+'%'; wrap.appendChild(d); arr.push(d); }
     while(arr.length>n){ var g=arr.pop(); if(g&&g.parentNode)g.parentNode.removeChild(g); }
   }
+  function dotEl(cls){ var d=document.createElement('div'); d.className='dot '+cls; return d; }
+  function embEl(cls,src){ var d=document.createElement('div'); d.className='emb '+cls; var i=new Image(); i.src=src; d.appendChild(i); return d; }
+  function ballEl(tc){ var d=document.createElement('div'); d.className='ball '+tc;
+    d.innerHTML='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10.6" fill="currentColor" stroke="#1A1815" stroke-width="1.5"/><polygon points="12,7 15.7,9.7 14.3,14 9.7,14 8.3,9.7" fill="#1A1815"/><g stroke="#1A1815" stroke-width="1" fill="none"><path d="M12 2.4V7M21.4 9.1l-5.7.6M17.9 19.3L14.3 14M6.1 19.3L9.7 14M2.6 9.1l5.7.6"/></g></svg>'; return d; }
   function placeShots(h,a){
-    [['h',h,'L'],['a',a,'R']].forEach(function(T){
-      var tc=T[0], t=T[1]||{}, side=T[2], s=t.shots||{};
+    var wrap=el('shots');
+    [['h',h,'L',HOME],['a',a,'R',AWAY]].forEach(function(T){
+      var tc=T[0], t=T[1]||{}, side=T[2], tm=T[3], s=t.shots||{};
       var g=t.goals||0, on=s.onTarget||0, off=s.offTarget||0, bl=s.blocked||0, ww=s.woodwork||0, saved=Math.max(0,on-g);
-      ensureDots(tc+'_goal','goal '+tc,g,SLOTS('goal',side));
-      ensureDots(tc+'_saved','saved '+tc,saved,SLOTS('saved',side));
-      ensureDots(tc+'_miss','miss '+tc,off,SLOTS('miss',side));
-      ensureDots(tc+'_block','block '+tc,bl,SLOTS('block',side));
-      ensureDots(tc+'_ww','ww '+tc,ww,SLOTS('ww',side));
+      ensureMarks(wrap,tc+'_goal',g,SLOTS('goal',side),function(){return ballEl(tc);});
+      ensureMarks(wrap,tc+'_saved',saved,SLOTS('saved',side),function(){return embEl('glove '+tc,tm.glove);});
+      ensureMarks(wrap,tc+'_miss',off,SLOTS('miss',side),function(){return dotEl('miss '+tc);});
+      ensureMarks(wrap,tc+'_block',bl,SLOTS('block',side),function(){return embEl('wall '+tc,tm.wall);});
+      ensureMarks(wrap,tc+'_ww',ww,SLOTS('ww',side),function(){return dotEl('ww '+tc);});
+    });
+  }
+  // each corner kick draws a literal pitch-corner (two touchlines + the quarter-arc);
+  // they repeat into a team-coloured band.
+  function cornerMark(side){
+    var d=document.createElement('div'); d.className='cmark '+side;
+    d.innerHTML='<svg viewBox="0 0 24 24"><path d="M4 21 L4 12 A8 8 0 0 1 12 4 L21 4" fill="none" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    return d;
+  }
+  function ensureCorners(id,side,n){
+    var wrap=el(id); if(!wrap)return; var cur=wrap.children.length;
+    while(cur<n){ wrap.appendChild(cornerMark(side)); cur++; }
+    while(cur>n){ wrap.removeChild(wrap.lastChild); cur--; }
+  }
+  function placeCorners(h,a){ ensureCorners('corH','h',h.corners||0); ensureCorners('corA','a',a.corners||0); }
+  // THE BOOK — each booking is a literal card
+  function cardEl(k,i){ var d=document.createElement('div'); d.className='card '+k; d.style.setProperty('--rot',((i%4)*7-9)+'deg'); return d; }
+  function cardSlots(side,kind){ var y=kind==='y'?42:67, x0=side==='L'?23:59, p=[]; for(var i=0;i<7;i++)p.push({x:x0+i*5.5,y:y-(i%2?2.5:0)}); return p; }
+  function placeCards(h,a){
+    var wrap=el('cards'); if(!wrap)return;
+    [['h',h,'L'],['a',a,'R']].forEach(function(T){ var tc=T[0], c=(T[1]||{}).cards||{}, side=T[2];
+      ensureMarks(wrap,tc+'_cy',c.yellow||0,cardSlots(side,'y'),function(i){return cardEl('y',i);});
+      ensureMarks(wrap,tc+'_cr',c.red||0,cardSlots(side,'r'),function(i){return cardEl('r',i);});
     });
   }
   function num(x){return (x==null)?'—':String(x);}
@@ -238,13 +359,16 @@ html,body{background:var(--paper);-webkit-font-smoothing:antialiased;text-render
     // theme
     document.documentElement.style.setProperty('--home',HOME.ink);
     document.documentElement.style.setProperty('--away',AWAY.ink);
-    el('hTri').textContent=HOME.tri; el('aTri').textContent=AWAY.tri;
-    el('score').textContent=hg+'–'+ag;
-    el('minute').textContent=(s.minute!=null)?(s.minute+"′"):'';
-    var stat=el('status'), txt=el('statusTxt');
-    stat.className='status'+(live?' live':''); txt.textContent=live?'LIVE':'REPLAY · ARG–CPV';
+    // the result face
+    el('reHTri').textContent=HOME.tri; el('reATri').textContent=AWAY.tri;
+    el('reHName').textContent=HOME.name; el('reAName').textContent=AWAY.name;
+    el('reHG').textContent=hg; el('reAG').textContent=ag;
+    el('reState').textContent=live?'LIVE':'REPLAY · ARG–CPV';
+    var rd=el('reDot'); if(rd)rd.className='livedot'+(live?' on':'');
+    el('reMin').textContent=live?((s.minute!=null?s.minute+'′ · ':'')+'IN PLAY'):'FULL TIME · AET';
     var stubT=live?(HOME.tri+'–'+AWAY.tri+' · LIVE'):'ARG–CPV · AET';
-    el('stub1').textContent=stubT; el('stub2').textContent=stubT;
+    if(el('stub0'))el('stub0').textContent=stubT;
+    el('stub1').textContent=stubT; el('stub2').textContent=stubT; if(el('stub4'))el('stub4').textContent=stubT; if(el('stub5'))el('stub5').textContent=stubT;
     // pitch
     var apct=(ap!=null)?ap:50;
     el('terrA').style.height=apct+'%'; el('terrH').style.height=(100-apct)+'%';
@@ -255,6 +379,17 @@ html,body{background:var(--paper);-webkit-font-smoothing:antialiased;text-render
     el('ghName').textContent=HOME.name; el('gaName').textContent=AWAY.name;
     el('ghG').textContent=hg; el('ghS').textContent=Math.max(0,hOn-hg); el('ghM').textContent=hs.offTarget||0; el('ghB').textContent=hs.blocked||0;
     el('gaG').textContent=ag; el('gaS').textContent=Math.max(0,aOn-ag); el('gaM').textContent=as.offTarget||0; el('gaB').textContent=as.blocked||0;
+    // arc / corners
+    placeCorners(h,a);
+    el('acHName').textContent=HOME.tri; el('acAName').textContent=AWAY.tri;
+    el('acH').textContent=h.corners||0; el('acA').textContent=a.corners||0;
+    // the book — cards + var
+    placeCards(h,a);
+    el('bkHName').textContent=HOME.name; el('bkAName').textContent=AWAY.name;
+    el('bkHLab').textContent=HOME.tri; el('bkALab').textContent=AWAY.tri;
+    el('bkHY').textContent=(h.cards&&h.cards.yellow)||0; el('bkHR').textContent=(h.cards&&h.cards.red)||0;
+    el('bkAY').textContent=(a.cards&&a.cards.yellow)||0; el('bkAR').textContent=(a.cards&&a.cards.red)||0;
+    el('bkVar').textContent=(h.varReviews||0)+(a.varReviews||0);
   }
 
   // subscribe to the coordinator's live stats interface; fall back to the replay

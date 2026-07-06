@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>THE GROUND — stat-center (prototype)</title>
+<style>
+@font-face{font-family:'Anybody';src:url(plate/fonts/anybody.woff2) format('woff2');font-weight:400 700;font-display:swap}
+@font-face{font-family:'Anybody';src:url(plate/fonts/anybody900.woff2) format('woff2');font-weight:800 900;font-display:swap}
+:root{
+  --paper:#E6DBC2; --card:#F3ECDB; --ink:#1A1815; --sub:#8C8467; --line:#D3C6A6;
+  --gold:#C79A38; --verde:#2E6A4E; --home:#1E7A44; --away:#AA151B;
+  --disp:'Anybody','Arial Black',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;overflow:hidden;font-family:var(--disp)}
+.wrap{position:relative;width:100%;height:100%;max-width:440px;margin:0 auto;background:var(--paper);overflow:hidden}
+
+/* live masthead */
+.mast{position:absolute;top:0;left:0;right:0;z-index:9;display:flex;align-items:center;justify-content:space-between;padding:11px 16px;background:var(--paper);border-bottom:1.5px solid var(--line)}
+.mast .sc{font-weight:900;font-size:20px;letter-spacing:.02em}
+.mast .sc .h{color:var(--home)}.mast .sc .a{color:var(--away)}
+.mast .st{font-weight:700;font-size:9px;letter-spacing:.18em;color:var(--sub);display:flex;align-items:center;gap:6px}
+.mast .st .dot{width:6px;height:6px;border-radius:50%;background:#C8202A;animation:pulse 1.4s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* the macro pitch fills the screen */
+.ground{position:absolute;inset:0;transition:transform .5s cubic-bezier(.6,0,.2,1),opacity .4s}
+.ground.dimmed{transform:scale(1.06);opacity:.25;filter:saturate(.6)}
+.pitch{position:absolute;inset:0}
+.pitch svg{width:100%;height:100%;display:block}
+.terr{position:absolute;left:0;width:100%;mix-blend-mode:multiply;transition:height .6s cubic-bezier(.23,1,.32,1)}
+.terr.a{top:0;background:var(--away)}.terr.h{bottom:0;background:var(--home)}
+.possnum{position:absolute;left:50%;transform:translateX(-50%);font-weight:900;color:var(--card);text-shadow:0 1px 3px rgba(26,24,21,.3)}
+#pA{top:32%;font-size:34px}#pH{top:68%;font-size:46px}
+.plab{position:absolute;left:50%;transform:translateX(-50%);font-weight:800;font-size:11px;letter-spacing:.14em;color:var(--card)}
+#lA{top:27%}#lH{top:63%}
+
+/* interactive hotspots */
+.hot{position:absolute;transform:translate(-50%,-50%);z-index:3;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;-webkit-tap-highlight-color:transparent}
+.hot .ring{position:relative;width:64px;height:64px;border-radius:50%;border:2.5px solid var(--card);display:flex;align-items:center;justify-content:center;background:rgba(26,24,21,.16)}
+.hot .ring::after{content:"";position:absolute;inset:-2.5px;border-radius:50%;border:2.5px solid var(--gold);animation:halo 2s ease-out infinite;opacity:0}
+@keyframes halo{0%{transform:scale(1);opacity:.9}100%{transform:scale(1.7);opacity:0}}
+.hot .n{font-weight:900;font-size:26px;color:var(--card);line-height:1}
+.hot .cap{font-weight:800;font-size:9px;letter-spacing:.12em;color:var(--card);text-shadow:0 1px 2px rgba(26,24,21,.5);background:rgba(26,24,21,.35);padding:3px 7px;border-radius:2px}
+.hot.corners .ring{width:52px;height:52px}
+.tiphint{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);z-index:5;font-weight:700;font-size:9px;letter-spacing:.16em;color:var(--sub);background:var(--card);padding:7px 14px;border-radius:2px;box-shadow:0 4px 14px rgba(26,24,21,.15)}
+
+/* detail sheet — zooms out of the tapped place */
+.sheet{position:absolute;inset:0;z-index:12;background:var(--card);opacity:0;transform:scale(.12);transform-origin:50% 50%;
+  transition:transform .52s cubic-bezier(.5,0,.2,1),opacity .34s;pointer-events:none;overflow-y:auto;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='120' height='120' filter='url(%23n)' opacity='0.04'/></svg>");}
+.sheet.open{opacity:1;transform:scale(1);pointer-events:auto}
+.sheet .sh-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 8px}
+.sheet .sh-head .t{font-weight:900;font-size:20px;letter-spacing:.02em}
+.sheet .sh-head .t small{display:block;font-weight:600;font-size:9px;letter-spacing:.16em;color:var(--sub)}
+.close{width:34px;height:34px;border-radius:50%;border:2px solid var(--ink);background:none;font-family:var(--disp);font-weight:900;font-size:15px;cursor:pointer;color:var(--ink)}
+.hostband{display:flex;height:5px;margin:0 16px 8px}
+.hostband i{flex:1}.hostband .v{background:var(--verde)}.hostband .r{background:var(--away)}.hostband .a{background:var(--home)}.hostband .g{background:var(--gold)}
+
+/* detail: goal-mouth shot-map (same language as the plate) */
+.art{position:relative;margin:0 16px}
+.art img{display:block;width:100%;height:auto}
+#shots{position:absolute;inset:0}
+@keyframes pop{0%{transform:translate(-50%,-50%) scale(0);opacity:0}62%{transform:translate(-50%,-50%) scale(1.18)}100%{transform:translate(-50%,-50%) scale(1);opacity:1}}
+#shots .dot{position:absolute;width:4.8%;height:0;padding-bottom:4.8%;border-radius:50%;transform:translate(-50%,-50%);animation:pop .38s cubic-bezier(.3,1.5,.5,1) both}
+#shots .dot.miss.h{box-shadow:inset 0 0 0 2.5px var(--home)}
+#shots .dot.miss.a{box-shadow:inset 0 0 0 2.5px var(--away)}
+#shots .dot.ww{width:3.6%;padding-bottom:3.6%;border-radius:1px;box-shadow:0 0 0 2px var(--gold)}
+#shots .dot.ww.h{background:var(--home)}#shots .dot.ww.a{background:var(--away)}
+#shots .emb{position:absolute;transform:translate(-50%,-50%);animation:pop .4s cubic-bezier(.3,1.5,.5,1) both}
+#shots .emb img{width:100%;display:block}.emb.glove{width:8.2%}.emb.wall{width:9.6%}
+#shots .ball{position:absolute;width:7%;transform:translate(-50%,-50%);border-radius:50%;box-shadow:0 0 0 2.4px var(--gold);animation:pop .4s cubic-bezier(.3,1.5,.5,1) both}
+#shots .ball svg{width:100%;display:block}.ball.h{color:var(--home)}.ball.a{color:var(--away)}
+#corners{position:absolute;inset:0}
+@keyframes popc{0%{transform:scale(0);opacity:0}62%{transform:scale(1.18)}100%{transform:scale(1);opacity:1}}
+.cband{position:absolute;left:52%;width:44%;display:flex;flex-wrap:wrap;gap:4px}
+.cband.h{top:40%}.cband.a{top:53%}
+.cmark{width:23px;height:23px;animation:popc .4s cubic-bezier(.3,1.5,.5,1) both}
+.cmark svg{width:100%;height:100%;display:block}.cmark.h svg path{stroke:var(--home)}.cmark.a svg path{stroke:var(--away)}
+.sh-read{display:flex;justify-content:space-between;padding:12px 20px 24px}
+.sh-read .col{display:flex;flex-direction:column;gap:2px}.sh-read .col.r{align-items:flex-end}
+.sh-read .t{font-weight:800;font-size:11px;letter-spacing:.07em}.sh-read .t.h{color:var(--home)}.sh-read .t.a{color:var(--away)}
+.sh-read .n{font-weight:900;font-size:30px}.sh-read .n.h{color:var(--home)}.sh-read .n.a{color:var(--away)}
+.sh-read .sub{font-weight:600;font-size:8px;letter-spacing:.11em;color:var(--sub)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="mast">
+    <span class="sc"><b class="h" id="mHT">—</b> <span id="mSc">0–0</span> <b class="a" id="mAT">—</b></span>
+    <span class="st"><span class="dot"></span><span id="mSt">LIVE</span> · <span id="mMin">—</span></span>
+  </div>
+
+  <!-- THE GROUND: the macro pitch, tendencies visible, places tappable -->
+  <div class="ground" id="ground">
+    <div class="pitch">
+      <svg viewBox="0 0 300 560" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="300" height="560" fill="var(--card)"/>
+        <g fill="none" stroke="#B7A98700" stroke-width="0"></g>
+        <g fill="none" stroke="#1A1815" stroke-width="2" opacity=".85">
+          <rect x="16" y="16" width="268" height="528"/>
+          <line x1="16" y1="280" x2="284" y2="280"/><circle cx="150" cy="280" r="46"/><circle cx="150" cy="280" r="3" fill="#1A1815"/>
+          <rect x="80" y="16" width="140" height="66"/><rect x="118" y="16" width="64" height="26"/><circle cx="150" cy="66" r="3" fill="#1A1815"/>
+          <rect x="80" y="478" width="140" height="66"/><rect x="118" y="518" width="64" height="26"/><circle cx="150" cy="494" r="3" fill="#1A1815"/>
+          <path d="M16 30 A14 14 0 0 1 30 16"/><path d="M270 16 A14 14 0 0 1 284 30"/>
+          <path d="M16 530 A14 14 0 0 0 30 544"/><path d="M284 530 A14 14 0 0 0 270 544"/>
+        </g>
+      </svg>
+    </div>
+    <div class="terr a" id="terrA" style="height:50%"></div>
+    <div class="terr h" id="terrH" style="height:50%"></div>
+    <div class="plab" id="lA">ESP</div><div class="possnum" id="pA">—</div>
+    <div class="plab" id="lH">POR</div><div class="possnum" id="pH">—</div>
+
+    <!-- hotspots: places you can open -->
+    <div class="hot goal" data-place="goal" style="left:50%;top:15%"><div class="ring"><span class="n" id="hGA">0</span></div><span class="cap" id="capA">ESP GOAL · SHOTS</span></div>
+    <div class="hot goal" data-place="goal" style="left:50%;top:85%"><div class="ring"><span class="n" id="hGH">0</span></div><span class="cap" id="capH">POR GOAL · SHOTS</span></div>
+    <div class="hot corners" data-place="arc" style="left:14%;top:47%"><div class="ring"><span class="n" id="hC" style="font-size:19px">0</span></div><span class="cap">CORNERS</span></div>
+  </div>
+
+  <div class="tiphint" id="tip">TAP A GLOWING PLACE TO GO IN</div>
+
+  <!-- DETAIL: THE GOAL-MOUTH -->
+  <section class="sheet" id="sheet-goal">
+    <div class="sh-head"><span class="t">THE GOAL-MOUTH<small>SHOTS · IN OR HELD</small></span><button class="close" data-close>✕</button></div>
+    <div class="hostband"><i class="v"></i><i class="r"></i><i class="a"></i><i class="g"></i></div>
+    <div class="art"><div style="position:relative"><img src="plate/gens/goal-empty.png" alt="goal"><div id="shots"></div></div></div>
+    <div class="sh-read">
+      <div class="col"><span class="t h" id="gH">POR</span><span class="n h" id="gHG">0</span><span class="sub" id="gHS">GOALS · 0 ON TARGET</span></div>
+      <div class="col r"><span class="t a" id="gA">ESP</span><span class="n a" id="gAG">0</span><span class="sub" id="gAS">GOALS · 0 ON TARGET</span></div>
+    </div>
+  </section>
+
+  <!-- DETAIL: THE ARC -->
+  <section class="sheet" id="sheet-arc">
+    <div class="sh-head"><span class="t">THE ARC<small>CORNERS · WON AT THE FLAG</small></span><button class="close" data-close>✕</button></div>
+    <div class="hostband"><i class="v"></i><i class="r"></i><i class="a"></i><i class="g"></i></div>
+    <div class="art"><div style="position:relative"><img src="plate/gens/arc.png" alt="corner"><div id="corners"><div class="cband h" id="corH"></div><div class="cband a" id="corA"></div></div></div></div>
+    <div class="sh-read">
+      <div class="col"><span class="t h" id="cHn">POR</span><span class="n h" id="cH">0</span><span class="sub">CORNERS</span></div>
+      <div class="col r"><span class="t a" id="cAn">ESP</span><span class="n a" id="cA">0</span><span class="sub">CORNERS</span></div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var FIX={'18175918':['ARG','ARGENTINA','#2049AA','CPV','CABO VERDE','#C8504D'],
+   '18187298':['BRA','BRAZIL','#E9C21A','NOR','NORWAY','#BA0C2F'],
+   '18192996':['MEX','MEXICO','#0B7A43','ENG','ENGLAND','#31479B'],
+   '18198205':['POR','PORTUGAL','#1E7A44','ESP','SPAIN','#AA151B'],
+   '18193785':['USA','USA','#2A3B78','BEL','BELGIUM','#B4232B']};
+  var q=new URLSearchParams(location.search), mid=q.get('match')||'18193785', fx=FIX[mid]||FIX['18193785'];
+  function el(id){return document.getElementById(id);}
+  function skin(ink){var A={green:[30,122,68],red:[170,21,27],blue:[32,73,170]},c=[parseInt(ink.slice(1,3),16),parseInt(ink.slice(3,5),16),parseInt(ink.slice(5,7),16)],b='blue',bd=1e15;for(var k in A){var a=A[k],d=Math.pow(a[0]-c[0],2)+Math.pow(a[1]-c[1],2)+Math.pow(a[2]-c[2],2);if(d<bd){bd=d;b=k;}}return b;}
+  var GLV={green:'glove-verde',red:'glove-cpv',blue:'glove-arg'};
+  function mk(tri,name,ink){var s=skin(ink);return{tri:tri,name:name,ink:ink,glove:'plate/gens/'+GLV[s]+'.png',wall:'plate/gens/wall-'+s+'.png'};}
+  var HOME=mk(fx[0],fx[1],fx[2]), AWAY=mk(fx[3],fx[4],fx[5]);
+  document.documentElement.style.setProperty('--home',HOME.ink);
+  document.documentElement.style.setProperty('--away',AWAY.ink);
+  var FALLBACK={minute:124,__live:false,home:{goals:3,shots:{onTarget:10,offTarget:2,blocked:5,woodwork:0},corners:9,possessionPct:61,territory:.55},away:{goals:2,shots:{onTarget:6,offTarget:5,blocked:4,woodwork:0},corners:8,possessionPct:39,territory:.45}};
+
+  // ---- shared mark language ----
+  var SHOT={};
+  function ensureMarks(wrap,key,n,slots,make){var arr=SHOT[key]||(SHOT[key]=[]);while(arr.length<n){var i=arr.length,p=slots[Math.min(i,slots.length-1)];var d=make(i);d.style.left=p.x+'%';d.style.top=p.y+'%';wrap.appendChild(d);arr.push(d);}while(arr.length>n){var g=arr.pop();if(g&&g.parentNode)g.parentNode.removeChild(g);}}
+  function dotEl(cls){var d=document.createElement('div');d.className='dot '+cls;return d;}
+  function embEl(cls,src){var d=document.createElement('div');d.className='emb '+cls;var i=new Image();i.src=src;d.appendChild(i);return d;}
+  function ballEl(tc){var d=document.createElement('div');d.className='ball '+tc;d.innerHTML='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10.6" fill="currentColor" stroke="#1A1815" stroke-width="1.5"/><polygon points="12,7 15.7,9.7 14.3,14 9.7,14 8.3,9.7" fill="#1A1815"/><g stroke="#1A1815" stroke-width="1" fill="none"><path d="M12 2.4V7M21.4 9.1l-5.7.6M17.9 19.3L14.3 14M6.1 19.3L9.7 14M2.6 9.1l5.7.6"/></g></svg>';return d;}
+  var ZONE={goal:{l:23,r:77,t:37,b:50},saved:{l:21,r:79,t:54,b:61},miss:{l:9,r:91,t:15,b:27},block:{l:25,r:75,t:68,b:80}},_sl={};
+  function makeSlots(z,side){var l=side==='L'?z.l:(z.l+z.r)/2,r=side==='L'?(z.l+z.r)/2:z.r,w=r-l,mx=(l+r)/2,rows=(z.b-z.t)>9?2:1,per=7,p=[];for(var ri=0;ri<rows;ri++)for(var ci=0;ci<per;ci++){var x=l+w*((ci+.5)/per),y=(rows===1)?(z.t+z.b)/2:(z.t+(z.b-z.t)*((ri+.5)/rows));p.push({x:x,y:y,d:Math.abs(x-mx)+ri*.6});}p.sort(function(a,b){return a.d-b.d;});return p;}
+  function wwSlots(side){var x=side==='L'?17.5:82.5,p=[];for(var i=0;i<8;i++)p.push({x:x,y:37+i*2.9});return p;}
+  function SLOTS(z,side){var k=z+side;return _sl[k]||(_sl[k]=(z==='ww')?wwSlots(side):makeSlots(ZONE[z],side));}
+  function placeShots(h,a){var wrap=el('shots');[['h',h,'L',HOME],['a',a,'R',AWAY]].forEach(function(T){var tc=T[0],t=T[1]||{},side=T[2],tm=T[3],s=t.shots||{},g=t.goals||0,on=s.onTarget||0,off=s.offTarget||0,bl=s.blocked||0,ww=s.woodwork||0,sv=Math.max(0,on-g);
+    ensureMarks(wrap,tc+'_goal',g,SLOTS('goal',side),function(){return ballEl(tc);});
+    ensureMarks(wrap,tc+'_sv',sv,SLOTS('saved',side),function(){return embEl('glove '+tc,tm.glove);});
+    ensureMarks(wrap,tc+'_ms',off,SLOTS('miss',side),function(){return dotEl('miss '+tc);});
+    ensureMarks(wrap,tc+'_bl',bl,SLOTS('block',side),function(){return embEl('wall '+tc,tm.wall);});
+    ensureMarks(wrap,tc+'_ww',ww,SLOTS('ww',side),function(){return dotEl('ww '+tc);});});}
+  function cornerMark(side){var d=document.createElement('div');d.className='cmark '+side;d.innerHTML='<svg viewBox="0 0 24 24"><path d="M4 21 L4 12 A8 8 0 0 1 12 4 L21 4" fill="none" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';return d;}
+  function ensureC(id,side,n){var w=el(id);if(!w)return;var c=w.children.length;while(c<n){w.appendChild(cornerMark(side));c++;}while(c>n){w.removeChild(w.lastChild);c--;}}
+
+  // ---- render ----
+  function render(s){
+    var live=!!s.__live,h=s.home||{},a=s.away||{},hs=h.shots||{},as=a.shots||{},hg=h.goals||0,ag=a.goals||0;
+    var hp=(h.possessionPct!=null)?Math.round(h.possessionPct):(h.territory!=null?Math.round(h.territory*100):50);
+    var ap=100-hp;
+    el('mHT').textContent=HOME.tri;el('mAT').textContent=AWAY.tri;el('mSc').textContent=hg+'–'+ag;
+    el('mSt').textContent=live?'LIVE':'REPLAY';el('mMin').textContent=(s.minute!=null?s.minute+'′':'');
+    // macro pitch heat
+    el('terrA').style.height=ap+'%';el('terrH').style.height=hp+'%';
+    el('lA').textContent=AWAY.tri;el('lH').textContent=HOME.tri;el('pA').textContent=ap;el('pH').textContent=hp;
+    // hotspot counts (tendencies)
+    el('hGA').textContent=(hs.onTarget||0)+(hs.offTarget||0)+(hs.blocked||0); // home shooting the away (top) goal
+    el('hGH').textContent=(as.onTarget||0)+(as.offTarget||0)+(as.blocked||0);
+    el('capA').textContent=AWAY.tri+' GOAL · SHOTS';el('capH').textContent=HOME.tri+' GOAL · SHOTS';
+    el('hC').textContent=(h.corners||0)+(a.corners||0);
+    // detail: goal-mouth
+    placeShots(h,a);
+    el('gH').textContent=HOME.name;el('gA').textContent=AWAY.name;
+    el('gHG').textContent=hg;el('gAG').textContent=ag;
+    el('gHS').textContent='GOALS · '+(hs.onTarget||0)+' ON TARGET';el('gAS').textContent='GOALS · '+(as.onTarget||0)+' ON TARGET';
+    // detail: arc
+    ensureC('corH','h',h.corners||0);ensureC('corA','a',a.corners||0);
+    el('cHn').textContent=HOME.tri;el('cAn').textContent=AWAY.tri;el('cH').textContent=h.corners||0;el('cA').textContent=a.corners||0;
+  }
+
+  // ---- zoom interaction ----
+  var openSheet=null;
+  function open(place,origin){
+    var sh=el('sheet-'+place); if(!sh)return;
+    sh.style.transformOrigin=origin;
+    sh.classList.add('open'); el('ground').classList.add('dimmed'); el('tip').style.display='none';
+    openSheet=sh;
+  }
+  function close(){ if(openSheet){openSheet.classList.remove('open');openSheet=null;} el('ground').classList.remove('dimmed'); }
+  document.querySelectorAll('.hot').forEach(function(hot){
+    hot.addEventListener('click',function(){
+      var r=hot.getBoundingClientRect(), w=document.querySelector('.wrap').getBoundingClientRect();
+      var ox=((r.left+r.width/2-w.left)/w.width*100).toFixed(1), oy=((r.top+r.height/2-w.top)/w.height*100).toFixed(1);
+      open(hot.getAttribute('data-place'), ox+'% '+oy+'%');
+    });
+  });
+  document.querySelectorAll('[data-close]').forEach(function(b){b.addEventListener('click',close);});
+
+  // ---- feed ----
+  render(FALLBACK);
+  var tries=0,iv=setInterval(function(){tries++;
+    if(window.__stats&&window.__stats.home){clearInterval(iv);
+      if(window.__statsAdapter&&window.__statsAdapter.onStats)window.__statsAdapter.onStats(function(s){s.__live=true;render(s);});
+      else{var s=window.__stats;s.__live=true;render(s);}}
+    else if(tries>12)clearInterval(iv);},400);
+})();
+</script>
+<script src="/stats-adapter.js"></script>
+</body>
+</html>
