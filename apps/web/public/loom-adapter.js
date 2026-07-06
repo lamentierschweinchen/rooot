@@ -63,9 +63,18 @@
     // neither, so the loom froze at 0' while MEX-ENG was 7' live. We extrapolate
     // from the last KNOWN minute + running state, resynced whenever the wire
     // speaks (status/score/any ledger event carries a real match minute).
+    // The wire's Clock.Seconds is MONOTONIC — it counts to 45'/90'/105'/120',
+    // then CAPS and HOLDS there (Running:false) through stoppage + the break,
+    // then continues in the next phase. So: RESPECT the wire's Running flag
+    // (freeze at the cap + at half-time). The old code inferred "running" from
+    // the phase and kept extrapolating past 45' through the break, overshot, then
+    // JUMPED on resume with a stale timestamp — the hang after halftime. We also
+    // never extrapolate more than a small cap past the last sync (a quiet wire
+    // can't run away either). running=undefined advances the minute, keeps state.
     var clkBaseMin = 0, clkBaseMs = Date.now(), clkRunning = false;
+    var CLK_STALL_CAP = 2.5; // minutes we'll tick past the last wire sync, max
     function syncClock(matchMinute, running, atMs) {
-      clkRunning = !!running;
+      if (running !== undefined && running !== null) clkRunning = !!running;
       if (typeof matchMinute === 'number' && isFinite(matchMinute) && matchMinute >= clkBaseMin - 0.05) {
         clkBaseMin = matchMinute;
         clkBaseMs = atMs || Date.now();
@@ -73,7 +82,8 @@
       }
     }
     var clkTimer = setInterval(function () {
-      if (clkRunning) setClock(clkBaseMin + (Date.now() - clkBaseMs) / 60000, true);
+      if (!clkRunning) return;
+      setClock(Math.min(clkBaseMin + (Date.now() - clkBaseMs) / 60000, clkBaseMin + CLK_STALL_CAP), true);
     }, 1000);
     if (clkTimer && clkTimer.unref) clkTimer.unref();
 
@@ -97,9 +107,19 @@
         case 'status': {
           var ph = msg.ev && msg.ev.phase;
           if (ph === 'EXTRA_TIME' || ph === 'PENALTIES') etPhase = true;
-          var running = ph === 'FIRST_HALF' || ph === 'SECOND_HALF' || ph === 'EXTRA_TIME';
+          // respect the wire's OWN running flag — it freezes at the 45'/90' cap
+          // and through half-time. Fall back to the phase only if raw is missing.
+          var clk = msg.ev && msg.ev.raw && msg.ev.raw.Clock;
+          var running = clk && typeof clk.Running === 'boolean'
+            ? clk.Running
+            : (ph === 'FIRST_HALF' || ph === 'SECOND_HALF' || ph === 'EXTRA_TIME');
           if (msg.ev && typeof msg.ev.minute === 'number') syncClock(msg.ev.minute, running, Date.now());
           else clkRunning = running;
+          // hand design the phase so the loom can render STOPPAGE (45+N / 90+N,
+          // its own tone) and the breaks distinctly, and "restart" the timeline
+          // at the half boundary. running=false at the 45'/90' cap IS stoppage/
+          // the break; design implements L.phase (no-op until then).
+          if (typeof L.phase === 'function') L.phase({ phase: ph || null, running: running, minute: msg.ev && typeof msg.ev.minute === 'number' ? msg.ev.minute : minute });
           break;
         }
         case 'odds': {
@@ -134,7 +154,7 @@
             report.score = msg.ev.home + '-' + msg.ev.away;
             reconcile(msg.ev.home, msg.ev.away); // chalk off any goal the score no longer supports
           }
-          if (msg.ev && typeof msg.ev.minute === 'number') syncClock(msg.ev.minute, true, Date.now());
+          if (msg.ev && typeof msg.ev.minute === 'number') syncClock(msg.ev.minute, undefined, Date.now());
           break;
         }
         case 'ledger': {
