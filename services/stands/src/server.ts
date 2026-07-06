@@ -469,12 +469,17 @@ function handleHello(ws: WebSocket, state: ConnState, msg: Extract<ClientMsg, { 
     return;
   }
 
-  const wasConnected = state.matchId !== null;
   state.matchId = msg.matchId;
   state.anonId = msg.anonId;
 
   const match = registry.getOrCreate(msg.matchId);
-  if (!wasConnected) match.markConnected(msg.anonId);
+  // A hello IS crowd presence — even when the socket was already feed-seated by
+  // ?matchId= at connect (that set state.matchId but no crowd identity). Mark on
+  // EVERY hello (markConnected is keyed by anonId, idempotent). Without this,
+  // URL-seated fans — i.e. every loom-proto client since the Jul 4 feed-seating
+  // fix — never became "present", so isActive()===false and the 4 Hz tick never
+  // broadcast stands/consensus: root/predict silently did nothing on-screen.
+  match.markConnected(msg.anonId);
   if (msg.side) match.root(msg.anonId, msg.side);
 
   const cachedFeedState = lastFeedState.get(msg.matchId);
