@@ -798,6 +798,7 @@ interface RawLedgerEnvelope {
     Participant?: number;
     Action?: string;
     GoalType?: string;
+    FreeKickType?: string;
     New?: { Clock?: { Seconds?: number }; Outcome?: string };
     Previous?: { Clock?: { Seconds?: number }; Outcome?: string };
   };
@@ -986,10 +987,13 @@ export function parseLedgerMessage(
     ev.headline = msg.Action === 'var_end' ? 'VAR — decision' : 'VAR check';
     ev.detail = msg.Action === 'var_end' ? 'END' : 'OPEN';
   }
-  const outcome = msg.Data?.Outcome ?? msg.Data?.New?.Outcome;
+  const outcome = msg.Data?.Outcome ?? msg.Data?.New?.Outcome
+    ?? (kind === 'free-kick' ? msg.Data?.FreeKickType : undefined);
   if (typeof outcome === 'string' && outcome) {
     // shot outcome (OnTarget/OffTarget/Blocked/Woodwork) → detail, so the loom
     // sews shot-by-outcome marks; penalty-kick folds it into the headline.
+    // free-kick carries FreeKickType (Safe/Attack/Danger/Offside) instead — the
+    // stats adapter reads detail==='Offside' for the offside count (legend, Jul 6).
     ev.detail = outcome;
     if (kind === 'penalty-kick') ev.headline = `Penalty — ${outcome}`;
   }
