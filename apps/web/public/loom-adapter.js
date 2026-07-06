@@ -58,6 +58,25 @@
       if (mDec >= minute) { minute = mDec; L.clock(mDec, !!running); }
     }
 
+    // THE MATCH CLOCK ticks locally between the wire's sparse updates (task #7).
+    // The wire sends a minute only on status changes + goals; a 0-0 opening has
+    // neither, so the loom froze at 0' while MEX-ENG was 7' live. We extrapolate
+    // from the last KNOWN minute + running state, resynced whenever the wire
+    // speaks (status/score/any ledger event carries a real match minute).
+    var clkBaseMin = 0, clkBaseMs = Date.now(), clkRunning = false;
+    function syncClock(matchMinute, running, atMs) {
+      clkRunning = !!running;
+      if (typeof matchMinute === 'number' && isFinite(matchMinute) && matchMinute >= clkBaseMin - 0.05) {
+        clkBaseMin = matchMinute;
+        clkBaseMs = atMs || Date.now();
+        setClock(matchMinute, clkRunning);
+      }
+    }
+    var clkTimer = setInterval(function () {
+      if (clkRunning) setClock(clkBaseMin + (Date.now() - clkBaseMs) / 60000, true);
+    }, 1000);
+    if (clkTimer && clkTimer.unref) clkTimer.unref();
+
     // The authoritative score is truth. If we've woven more goals on a side than
     // the score now supports, VAR/offside chalked one off → un-weave it. Keyed on
     // the score (not the discard msg, which carries no target-kind), so any
@@ -78,9 +97,9 @@
         case 'status': {
           var ph = msg.ev && msg.ev.phase;
           if (ph === 'EXTRA_TIME' || ph === 'PENALTIES') etPhase = true;
-          if (msg.ev && typeof msg.ev.minute === 'number') {
-            setClock(msg.ev.minute, ph === 'FIRST_HALF' || ph === 'SECOND_HALF' || ph === 'EXTRA_TIME');
-          }
+          var running = ph === 'FIRST_HALF' || ph === 'SECOND_HALF' || ph === 'EXTRA_TIME';
+          if (msg.ev && typeof msg.ev.minute === 'number') syncClock(msg.ev.minute, running, Date.now());
+          else clkRunning = running;
           break;
         }
         case 'odds': {
@@ -115,12 +134,17 @@
             report.score = msg.ev.home + '-' + msg.ev.away;
             reconcile(msg.ev.home, msg.ev.away); // chalk off any goal the score no longer supports
           }
+          if (msg.ev && typeof msg.ev.minute === 'number') syncClock(msg.ev.minute, true, Date.now());
           break;
         }
         case 'ledger': {
           var m = msg.msg;
           if (m.type !== 'event') break; // amend/discard: no loom mark today
           var ev = m.ev, k = ev.kind, mn = typeof ev.minute === 'number' ? ev.minute : minute;
+          // every ledger event carries a real match minute — advance the clock
+          // base off it (danger/shots are frequent), so the clock ticks on even
+          // through a goalless, status-quiet spell.
+          if (typeof ev.minute === 'number' && ev.minute >= clkBaseMin - 0.05) { clkBaseMin = ev.minute; clkBaseMs = Date.now(); setClock(ev.minute, clkRunning); }
           if (k === 'danger') {
             // THE PRESSURE CORD'S REAL FUEL. The live wire sends danger/high-danger
             // as LEDGER events (~25 per 18s on BRA-NOR), not as spells — so route

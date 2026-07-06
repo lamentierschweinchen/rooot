@@ -375,6 +375,10 @@ function rememberForJoin(matchId: string, msg: ServerMsg | FeedMsg): void {
       if (msg.msg.type !== 'event') break; // amend/discard: the chalk-off rides the score, not a replay
       const snap = snapshotFor(matchId);
       const ev = msg.msg.ev;
+      // ledger events carry a real match minute (danger/shots are frequent) —
+      // advance the clock used to stamp buffered odds, so the belief CURVE gets
+      // real minutes even when status is quiet + there are no goals.
+      if (typeof ev.minute === 'number' && ev.minute >= (snap.lastMinute ?? 0)) snap.lastMinute = ev.minute;
       if (WOVEN_KINDS.has(ev.kind)) {
         snap.eventHistory.push(msg);
         if (snap.eventHistory.length > EVENT_HISTORY_MAX) snap.eventHistory.splice(0, snap.eventHistory.length - EVENT_HISTORY_MAX);
