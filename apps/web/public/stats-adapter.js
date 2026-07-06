@@ -27,6 +27,7 @@
   'use strict';
   var q = new URLSearchParams(location.search);
   var ON = location.pathname === '/' || location.pathname === '/live'
+    || location.pathname === '/count-live.html'
     || q.get('site') === '1' || q.get('loomfeed') === '1' || q.get('statsfeed') === '1';
   if (!ON) return;
   var matchId = q.get('match') || '18198205'; // POR–ESP default tonight
@@ -126,7 +127,13 @@
       if (possLast) { var dd = c - possLast.c; if (dd > 0 && dd < 120) possTime[possLast.side] += dd; }
       possLast = { side: sp.side, c: c };
       var tot = possTime.home + possTime.away;
-      if (tot > 0) {
+      // Honest gate: on a fresh mid-match join we only hold spells since join, so
+      // the first readings can be wildly one-sided (a false 100/0). Withhold the %
+      // until ~90s has accumulated AND both sides have had the ball — until then
+      // callers fall back to the (clearly relabelled) territory share. A correct
+      // full-match possession would need server-side accumulation; this keeps the
+      // live number honest in the meantime, never showing a split that didn't happen.
+      if (tot >= 90 && possTime.home > 0 && possTime.away > 0) {
         stats.home.possessionPct = Math.round(100 * possTime.home / tot);
         stats.away.possessionPct = 100 - stats.home.possessionPct;
       }

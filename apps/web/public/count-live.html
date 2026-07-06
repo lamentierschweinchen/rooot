@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>THE COUNT — live</title>
+<style>
+@font-face{font-family:'Anybody';src:url(plate/fonts/anybody.woff2) format('woff2');font-weight:400 700;font-display:swap}
+@font-face{font-family:'Anybody';src:url(plate/fonts/anybody900.woff2) format('woff2');font-weight:800 900;font-display:swap}
+:root{
+  --paper:#E6DBC2; --card:#F3ECDB; --ink:#1A1815; --sub:#8C8467; --line:#D3C6A6;
+  --gold:#C79A38; --verde:#2E6A4E;
+  --home:#2049AA; --away:#C8504D;   /* set live from the fixture */
+  --disp:'Anybody','Arial Black',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:var(--paper);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+.page{min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:24px;padding:22px 16px 60px;
+  background:radial-gradient(120% 50% at 12% -6%, rgba(46,106,78,.05), transparent 60%),
+    radial-gradient(120% 50% at 100% 106%, rgba(200,80,77,.05), transparent 60%), var(--paper);}
+
+/* live masthead */
+.top{width:100%;max-width:372px;display:flex;flex-direction:column;gap:3px;text-align:center}
+.top .status{font-family:var(--disp);font-weight:700;font-size:10px;letter-spacing:.24em;color:var(--sub);display:flex;gap:8px;justify-content:center;align-items:center}
+.top .status .dot{width:7px;height:7px;border-radius:50%;background:var(--away)}
+.top .status.live .dot{background:#C8202A;animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.top .line{display:flex;align-items:baseline;justify-content:center;gap:12px}
+.top .tri{font-family:var(--disp);font-weight:900;font-size:26px}
+.top .tri.h{color:var(--home)}.top .tri.a{color:var(--away)}
+.top .sc{font-family:var(--disp);font-weight:900;font-size:34px;letter-spacing:.02em}
+.top .min{font-family:var(--disp);font-weight:600;font-size:10px;letter-spacing:.18em;color:var(--sub)}
+
+.plate{position:relative;width:100%;max-width:372px;background:var(--card);color:var(--ink);box-shadow:0 12px 34px rgba(26,24,21,.13);
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='120' height='120' filter='url(%23n)' opacity='0.04'/></svg>");}
+.plate::before{content:"";position:absolute;inset:7px;border:1.5px solid var(--ink);pointer-events:none;z-index:3}
+.notch{position:absolute;width:14px;height:14px;background:var(--paper);border-radius:50%;z-index:4}
+.notch.tl{top:-7px;left:-7px}.notch.tr{top:-7px;right:-7px}.notch.bl{bottom:-7px;left:-7px}.notch.br{bottom:-7px;right:-7px}
+.hostband{display:flex;height:5px;margin:14px 14px 0}
+.hostband i{flex:1}.hostband .v{background:var(--verde)}.hostband .r{background:var(--away)}.hostband .a{background:var(--home)}.hostband .g{background:var(--gold)}
+.pm{display:flex;align-items:baseline;justify-content:space-between;padding:12px 20px 10px}
+.pm .pn{font-family:var(--disp);font-weight:900;font-size:19px;letter-spacing:.03em}
+.pm .ps{font-family:var(--disp);font-weight:600;font-size:9px;letter-spacing:.16em;color:var(--sub)}
+.art{position:relative;margin:0 16px}
+.art svg,.art img{display:block;width:100%;height:auto}
+.art::after{content:"";position:absolute;inset:0;pointer-events:none;mix-blend-mode:multiply;opacity:.3;background-size:130px;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='90' height='90'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='90' height='90' filter='url(%23g)' opacity='0.6'/></svg>");}
+.ov{position:absolute;inset:0;pointer-events:none;z-index:2}
+.ov .lab{position:absolute;font-family:var(--disp);font-weight:900;line-height:.85;color:var(--card);text-shadow:0 1px 2px rgba(26,24,21,.25)}
+/* possession territory poured over the generated pitch */
+.pitchart img{display:block;width:100%;height:auto}
+.pitchart .terr{position:absolute;left:0;width:100%;mix-blend-mode:multiply;transition:height .55s cubic-bezier(.23,1,.32,1)}
+.pitchart .terr.a{top:0;background:var(--away)}
+.pitchart .terr.h{bottom:0;background:var(--home)}
+
+.read{display:flex;justify-content:space-between;align-items:flex-end;padding:12px 20px 6px;gap:8px}
+.read .col{display:flex;flex-direction:column;gap:3px}
+.read .col.r{align-items:flex-end;text-align:right}
+.read .t{font-family:var(--disp);font-weight:800;font-size:11px;letter-spacing:.07em}
+.read .t.h{color:var(--home)}.read .t.a{color:var(--away)}
+.read .n{font-family:var(--disp);font-weight:900;font-size:34px;line-height:.9}
+.read .n.h{color:var(--home)}.read .n.a{color:var(--away)}
+.read .sub{font-family:var(--disp);font-weight:600;font-size:8px;letter-spacing:.11em;color:var(--sub)}
+
+/* goal shot-map overlay */
+.goalwrap{position:relative}
+@keyframes pop{0%{transform:translate(-50%,-50%) scale(0);opacity:0}62%{transform:translate(-50%,-50%) scale(1.18)}100%{transform:translate(-50%,-50%) scale(1);opacity:1}}
+#shots .dot{position:absolute;width:4.8%;height:0;padding-bottom:4.8%;border-radius:50%;transform:translate(-50%,-50%);animation:pop .38s cubic-bezier(.3,1.5,.5,1) both}
+#shots .dot.h{background:var(--home)}
+#shots .dot.a{background:var(--away)}
+#shots .dot.goal{box-shadow:0 0 0 2.5px var(--gold)}
+#shots .dot.saved{box-shadow:inset 0 0 0 2px #F3ECDB, 0 0 0 1px rgba(26,24,21,.18)}
+#shots .dot.miss{background:transparent}
+#shots .dot.miss.h{box-shadow:inset 0 0 0 2.5px var(--home)}
+#shots .dot.miss.a{box-shadow:inset 0 0 0 2.5px var(--away)}
+#shots .dot.block{box-shadow:0 0 0 2px #F3ECDB}
+#shots .dot.ww{width:3.6%;padding-bottom:3.6%;border-radius:1px;box-shadow:0 0 0 2px var(--gold)}
+.shotkey{display:flex;gap:11px;justify-content:center;padding:9px 16px 3px;flex-wrap:wrap}
+.shotkey span{display:flex;align-items:center;gap:5px;font-family:var(--disp);font-weight:600;font-size:7.5px;letter-spacing:.09em;color:var(--sub)}
+.shotkey i{width:11px;height:11px;border-radius:50%;background:#B9AC8A}
+.shotkey i.goal{background:transparent;box-shadow:0 0 0 2px var(--gold)}
+.shotkey i.saved{box-shadow:inset 0 0 0 2px #F3ECDB}
+.shotkey i.miss{background:transparent;box-shadow:inset 0 0 0 2px #B9AC8A}
+.shotkey i.block{box-shadow:0 0 0 2px #F3ECDB}
+.shottab{margin:2px 20px 4px;font-family:var(--disp)}
+.shottab .hd,.shottab .rw{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1fr;align-items:center}
+.shottab .hd span{font-weight:700;font-size:8px;letter-spacing:.08em;color:var(--sub);text-align:center;padding:1px 0}
+.shottab .hd span:first-child{text-align:left}
+.shottab .rw{border-top:1.5px solid var(--line);padding:6px 0}
+.shottab .rw span{font-weight:900;font-size:17px;text-align:center;line-height:1}
+.shottab .rw span:first-child{font-size:10px;font-weight:800;letter-spacing:.05em;text-align:left}
+.shottab .rw.h span{color:var(--home)}.shottab .rw.a span{color:var(--away)}
+
+.perf{height:0;border-top:2px dashed var(--line);margin:14px 16px 0;position:relative}
+.perf::before,.perf::after{content:"";position:absolute;top:-9px;width:16px;height:16px;background:var(--paper);border-radius:50%}
+.perf::before{left:-22px}.perf::after{right:-22px}
+.stub{display:flex;align-items:center;justify-content:space-between;padding:11px 20px 16px}
+.stub .adm{font-family:var(--disp);font-weight:900;font-size:10px;letter-spacing:.14em;color:var(--ink)}
+.stub .adm b{color:var(--sub);font-weight:600}
+.serial{font-family:var(--disp);font-weight:900;font-size:18px;letter-spacing:.1em;color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="top">
+    <div class="status" id="status"><span class="dot"></span><span id="statusTxt">CONNECTING…</span></div>
+    <div class="line"><span class="tri h" id="hTri">—</span><span class="sc" id="score">0–0</span><span class="tri a" id="aTri">—</span></div>
+    <div class="min" id="minute">—</div>
+  </div>
+
+  <!-- PITCH -->
+  <article class="plate">
+    <span class="notch tl"></span><span class="notch tr"></span><span class="notch bl"></span><span class="notch br"></span>
+    <div class="hostband"><i class="v"></i><i class="r"></i><i class="a"></i><i class="g"></i></div>
+    <header class="pm"><span class="pn">THE PITCH</span><span class="ps" id="pitchPs">POSSESSION · SHARE OF THE BALL</span></header>
+    <div class="art pitchart">
+      <img src="plate/gens/pitch.png" alt="pitch">
+      <div class="terr a" id="terrA"></div>
+      <div class="terr h" id="terrH"></div>
+      <div class="ov">
+        <div class="lab" id="paTri" style="top:8%;left:50%;transform:translateX(-50%);font-size:13px;letter-spacing:.1em">—</div>
+        <div class="lab" id="paPct" style="top:14%;left:50%;transform:translateX(-50%);font-size:42px">—</div>
+        <div class="lab" id="phTri" style="top:63%;left:50%;transform:translateX(-50%);font-size:13px;letter-spacing:.1em">—</div>
+        <div class="lab" id="phPct" style="top:69%;left:50%;transform:translateX(-50%);font-size:60px">—</div>
+      </div>
+    </div>
+    <div class="perf"></div>
+    <footer class="stub"><span class="adm">ADMIT ONE · <b id="stub1">LIVE</b></span><span class="serial">N°02</span></footer>
+  </article>
+
+  <!-- GOAL-MOUTH -->
+  <article class="plate">
+    <span class="notch tl"></span><span class="notch tr"></span><span class="notch bl"></span><span class="notch br"></span>
+    <div class="hostband"><i class="v"></i><i class="r"></i><i class="a"></i><i class="g"></i></div>
+    <header class="pm"><span class="pn">THE GOAL-MOUTH</span><span class="ps" id="goalSub">THE GOALS</span></header>
+    <div class="art">
+      <div class="goalwrap">
+        <img src="plate/gens/goal-empty.png" alt="goal">
+        <div id="shots"></div>
+      </div>
+    </div>
+    <div class="shotkey">
+      <span><i class="goal"></i>GOAL</span><span><i class="saved"></i>SAVED</span><span><i class="miss"></i>MISSED</span><span><i class="block"></i>BLOCKED</span>
+    </div>
+    <div class="shottab">
+      <div class="hd"><span></span><span>GOAL</span><span>SAVED</span><span>MISS</span><span>BLOCK</span></div>
+      <div class="rw h"><span id="ghName">HOME</span><span id="ghG">0</span><span id="ghS">0</span><span id="ghM">0</span><span id="ghB">0</span></div>
+      <div class="rw a"><span id="gaName">AWAY</span><span id="gaG">0</span><span id="gaS">0</span><span id="gaM">0</span><span id="gaB">0</span></div>
+    </div>
+    <div class="perf"></div>
+    <footer class="stub"><span class="adm">ADMIT ONE · <b id="stub2">LIVE</b></span><span class="serial">N°03</span></footer>
+  </article>
+
+</div>
+
+<script>
+(function(){
+  'use strict';
+  // team theme (public tournament data; mirrors the loom's FIXTURES)
+  var FIX={
+   '18175918':['ARG','ARGENTINA','#2049AA','CPV','CABO VERDE','#C8504D'],
+   '18179549':['COL','COLOMBIA','#E0A81C','GHA','GHANA','#1F7A46'],
+   '18185036':['CAN','CANADA','#C8202A','MAR','MOROCCO','#1E7A46'],
+   '18188721':['PAR','PARAGUAY','#B4232B','FRA','FRANCE','#1B3A8C'],
+   '18187298':['BRA','BRAZIL','#E9C21A','NOR','NORWAY','#BA0C2F'],
+   '18192996':['MEX','MEXICO','#0B7A43','ENG','ENGLAND','#31479B'],
+   '18198205':['POR','PORTUGAL','#1E7A44','ESP','SPAIN','#AA151B'],
+   '18193785':['USA','USA','#2A3B78','BEL','BELGIUM','#B4232B']
+  };
+  var q=new URLSearchParams(location.search);
+  var mid=q.get('match')||'18198205';
+  var fx=FIX[mid]||FIX['18175918'];
+  var HOME={tri:fx[0],name:fx[1],ink:fx[2]}, AWAY={tri:fx[3],name:fx[4],ink:fx[5]};
+
+  // ARG–CPV replay fallback (real recorded numbers) so the page is never blank
+  var FALLBACK={ minute:124, live:false,
+    home:{goals:3,shots:{onTarget:10,offTarget:2,blocked:5},corners:9,possessionPct:61},
+    away:{goals:2,shots:{onTarget:6,offTarget:5,blocked:4},corners:8,possessionPct:39} };
+
+  function el(id){return document.getElementById(id);}
+  // shot-map zones as % of the empty-net image: goal inside, saved at the line,
+  // missed above/around, blocked in front on the black ground, woodwork on the post.
+  var ZONE={ goal:{l:23,r:77,t:37,b:50}, saved:{l:21,r:79,t:54,b:61},
+             miss:{l:9,r:91,t:15,b:27}, block:{l:25,r:75,t:68,b:80} };
+  // Deterministic center-out slots per zone/side: each shot fills the next slot,
+  // so a growing count reads as a balanced pattern and existing marks never move.
+  var _slots={};
+  function makeSlots(z,side){
+    var l=side==='L'?z.l:(z.l+z.r)/2, r=side==='L'?(z.l+z.r)/2:z.r;
+    var w=r-l, midx=(l+r)/2, midy=(z.t+z.b)/2, hgt=z.b-z.t, rows=hgt>9?2:1, per=7, pts=[];
+    for(var ri=0;ri<rows;ri++)for(var ci=0;ci<per;ci++){
+      var x=l+w*((ci+0.5)/per), y=(rows===1)?midy:(z.t+hgt*((ri+0.5)/rows));
+      pts.push({x:x,y:y,d:Math.abs(x-midx)+ri*0.6});
+    }
+    pts.sort(function(a,b){return a.d-b.d;});
+    return pts;
+  }
+  function wwSlots(side){ var x=side==='L'?17.5:82.5, p=[]; for(var i=0;i<8;i++)p.push({x:x,y:37+i*2.9}); return p; }
+  function SLOTS(zone,side){ var k=zone+side; return _slots[k]||(_slots[k]=(zone==='ww')?wwSlots(side):makeSlots(ZONE[zone],side)); }
+  // incremental: only ADD new marks (they pop in) / remove extras — never redraw the set
+  var SHOT={};
+  function ensureDots(key,cls,n,slots){
+    var arr=SHOT[key]||(SHOT[key]=[]), wrap=el('shots');
+    while(arr.length<n){ var p=slots[Math.min(arr.length,slots.length-1)];
+      var d=document.createElement('div'); d.className='dot '+cls; d.style.left=p.x+'%'; d.style.top=p.y+'%';
+      wrap.appendChild(d); arr.push(d); }
+    while(arr.length>n){ var g=arr.pop(); if(g&&g.parentNode)g.parentNode.removeChild(g); }
+  }
+  function placeShots(h,a){
+    [['h',h,'L'],['a',a,'R']].forEach(function(T){
+      var tc=T[0], t=T[1]||{}, side=T[2], s=t.shots||{};
+      var g=t.goals||0, on=s.onTarget||0, off=s.offTarget||0, bl=s.blocked||0, ww=s.woodwork||0, saved=Math.max(0,on-g);
+      ensureDots(tc+'_goal','goal '+tc,g,SLOTS('goal',side));
+      ensureDots(tc+'_saved','saved '+tc,saved,SLOTS('saved',side));
+      ensureDots(tc+'_miss','miss '+tc,off,SLOTS('miss',side));
+      ensureDots(tc+'_block','block '+tc,bl,SLOTS('block',side));
+      ensureDots(tc+'_ww','ww '+tc,ww,SLOTS('ww',side));
+    });
+  }
+  function num(x){return (x==null)?'—':String(x);}
+
+  function render(s){
+    var live=!!(s && s.__live);
+    var h=s.home||{}, a=s.away||{};
+    var hs=h.shots||{}, as=a.shots||{};
+    var hg=h.goals||0, ag=a.goals||0;
+    var hp=(h.possessionPct!=null)?Math.round(h.possessionPct):null;
+    var ap=(a.possessionPct!=null)?Math.round(a.possessionPct):(hp!=null?100-hp:null);
+    if(hp==null&&ap!=null)hp=100-ap;
+    var pTag='POSSESSION · SHARE OF THE BALL';
+    if(hp==null){ // no possession% right now (e.g. half-time) — fall back to attacking territory, relabelled honestly
+      var ht=h.territory, at=a.territory;
+      if(ht!=null&&at!=null&&(ht+at)>0){ hp=Math.round(ht/(ht+at)*100); ap=100-hp; pTag='PRESSURE · SHARE OF TERRITORY'; }
+    }
+    if(el('pitchPs')) el('pitchPs').textContent=pTag;
+    var hOn=hs.onTarget||0, aOn=as.onTarget||0;
+    // theme
+    document.documentElement.style.setProperty('--home',HOME.ink);
+    document.documentElement.style.setProperty('--away',AWAY.ink);
+    el('hTri').textContent=HOME.tri; el('aTri').textContent=AWAY.tri;
+    el('score').textContent=hg+'–'+ag;
+    el('minute').textContent=(s.minute!=null)?(s.minute+"′"):'';
+    var stat=el('status'), txt=el('statusTxt');
+    stat.className='status'+(live?' live':''); txt.textContent=live?'LIVE':'REPLAY · ARG–CPV';
+    var stubT=live?(HOME.tri+'–'+AWAY.tri+' · LIVE'):'ARG–CPV · AET';
+    el('stub1').textContent=stubT; el('stub2').textContent=stubT;
+    // pitch
+    var apct=(ap!=null)?ap:50;
+    el('terrA').style.height=apct+'%'; el('terrH').style.height=(100-apct)+'%';
+    el('paTri').textContent=AWAY.tri; el('phTri').textContent=HOME.tri;
+    el('paPct').textContent=(ap!=null)?ap:'—'; el('phPct').textContent=(hp!=null)?hp:'—';
+    // goal-mouth shot-map
+    placeShots(h,a);
+    el('ghName').textContent=HOME.name; el('gaName').textContent=AWAY.name;
+    el('ghG').textContent=hg; el('ghS').textContent=Math.max(0,hOn-hg); el('ghM').textContent=hs.offTarget||0; el('ghB').textContent=hs.blocked||0;
+    el('gaG').textContent=ag; el('gaS').textContent=Math.max(0,aOn-ag); el('gaM').textContent=as.offTarget||0; el('gaB').textContent=as.blocked||0;
+  }
+
+  // subscribe to the coordinator's live stats interface; fall back to the replay
+  function tick(){
+    if(window.__stats && window.__stats.home){ var s=window.__stats; s.__live=true; render(s); }
+  }
+  if(window.__statsAdapter && window.__statsAdapter.onStats){
+    window.__statsAdapter.onStats(function(s){ s.__live=true; render(s); });
+  } else {
+    // adapter may load after us; poll briefly, else show the honest replay
+    var tries=0, iv=setInterval(function(){
+      tries++;
+      if(window.__stats && window.__stats.home){ clearInterval(iv); if(window.__statsAdapter&&window.__statsAdapter.onStats)window.__statsAdapter.onStats(function(s){s.__live=true;render(s);}); tick(); }
+      else if(tries>12){ clearInterval(iv); FALLBACK.__live=false; render(FALLBACK); }
+    },400);
+  }
+  // paint the fallback immediately so it's never blank, live overwrites within a tick
+  FALLBACK.__live=false; render(FALLBACK);
+})();
+</script>
+<!-- coordinator-lane live feed → window.__stats (opt-in ?loomfeed=1&match=<id>) -->
+<script src="/stats-adapter.js"></script>
+</body>
+</html>
