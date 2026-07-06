@@ -997,5 +997,16 @@ export function parseLedgerMessage(
     ev.detail = outcome;
     if (kind === 'penalty-kick') ev.headline = `Penalty — ${outcome}`;
   }
+  // injury carries side + player in DATA (its top-level Participant is absent):
+  // Data.Participant → side, Data.PlayerId → the injured player's name (same roster
+  // as scorers). The Outcome (OnPitch / NotReturning / OffPitch) stays on ev.raw.Data
+  // for the weave to read. (Coordinator, Jul 6 — for the injury thread.)
+  if (kind === 'injury') {
+    const iside = ledgerSide(msg.Data?.Participant, p1IsHome);
+    if (iside) ev.side = iside;
+    const ipid = (msg.Data as { PlayerId?: unknown } | undefined)?.PlayerId;
+    const iwho = roster && typeof ipid === 'number' ? roster.byPlayerId.get(ipid)?.name : undefined;
+    if (iwho) ev.detail = iwho;
+  }
   return { type: 'event', ev };
 }
