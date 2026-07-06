@@ -15,9 +15,10 @@
  *   • possession % — time-share of the possession-holder, from the possession-
  *     spell stream (safe/possession/attack/danger/high, tagged Participant).
  *   • offsides     — free_kick with FreeKickType==='Offside' (distinct events).
- *   • shots        — Data.Outcome enum (OnTarget/OffTarget/Blocked/Woodwork/…).
- * fouls stays null: non-offside free_kick is the STRONG hypothesis (realistic
- * counts) but TxODDS hasn't confirmed the mapping — we don't show it until they do.
+ *   • shots        — Data.Outcome enum (OnTarget/OffTarget/Blocked/Woodwork).
+ *   • fouls        — non-offside free_kick (TxODDS confirmed Jul 6: no separate
+ *                    foul signal; every non-Offside FreeKickType — Safe/Attack/
+ *                    Danger/HighDanger — is a foul). Legend fully resolved.
  *
  * Opt-in: ?statsfeed=1, or wherever the fan experience runs (/, /live,
  * ?loomfeed=1, ?site=1). Match via ?match=<id> (default = tonight's fixture).
@@ -41,7 +42,7 @@
       possessionPct: null, fouls: null, offsides: null };
   }
   var stats = { minute: null, home: emptySide(), away: emptySide(),
-    pending: ['fouls'] };  // possession % + offsides now derived; fouls pending TxODDS confirm
+    pending: [] };  // possession %, offsides + fouls all derived off the wire — legend fully resolved Jul 6
   var terr = { home: 0, away: 0 };  // weighted attacking pressure per side → territory
   var seen = {};                    // count-once dedup (corners/cards/goals/var/danger)
   var shotById = {};                // id → {side, oc} — upgradeable (outcome lands on the confirmed re-emit)
@@ -75,7 +76,13 @@
   function deriveFreeKicks() {
     stats.home.freeKicks = 0; stats.away.freeKicks = 0;
     stats.home.offsides = 0; stats.away.offsides = 0;   // 0 is honest once play is under way
-    for (var id in fkById) { var f = fkById[id], sd = sideOf(f.side); if (!sd) continue; sd.freeKicks++; if (f.type === 'offside') sd.offsides++; }
+    stats.home.fouls = 0; stats.away.fouls = 0;
+    for (var id in fkById) {
+      var f = fkById[id], sd = sideOf(f.side); if (!sd) continue;
+      sd.freeKicks++;
+      if (f.type === 'offside') sd.offsides++;
+      else if (f.type) sd.fouls++; // any non-Offside FreeKickType (Safe/Attack/Danger/HighDanger) == a foul (TxODDS confirmed Jul 6)
+    }
   }
 
   function onLedgerEvent(ev) {

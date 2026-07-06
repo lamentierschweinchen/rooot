@@ -45,11 +45,13 @@ for (const fn of process.argv.slice(2)) {
   const tot = possTime.home + possTime.away || 1;
   const off: any = { home: 0, away: 0 };
   const sh: any = { home: { total: 0, onTarget: 0, offTarget: 0, blocked: 0, woodwork: 0 }, away: { total: 0, onTarget: 0, offTarget: 0, blocked: 0, woodwork: 0 } };
-  for (const id in fkById) if (fkById[id].type === 'offside') off[fkById[id].side]++;
+  const fouls: any = { home: 0, away: 0 };
+  for (const id in fkById) { const f = fkById[id]; if (f.type === 'offside') off[f.side]++; else if (f.type) fouls[f.side]++; }
   for (const id in shotById) { const x = shotById[id]; sh[x.side].total++; if (x.oc) sh[x.side][x.oc]++; }
   console.log(`\n${fn.split('/').pop()}`);
   console.log(`  possession: home ${Math.round(100 * possTime.home / tot)}%  away ${Math.round(100 * possTime.away / tot)}%`);
   console.log(`  offsides:   home ${off.home}  away ${off.away}  (total ${off.home + off.away})`);
+  console.log(`  fouls:      home ${fouls.home}  away ${fouls.away}  (total ${fouls.home + fouls.away})`);
   console.log(`  shots home: ${JSON.stringify(sh.home)}`);
   console.log(`  shots away: ${JSON.stringify(sh.away)}`);
 }
