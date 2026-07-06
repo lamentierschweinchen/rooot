@@ -24,7 +24,7 @@
   // the self-contained demo — untouched.
   var SITE = location.pathname === '/' || location.pathname === '/live' || q.get('site') === '1';
   if (q.get('loomfeed') !== '1' && !SITE) return;
-  var matchId = q.get('match') || '18192996'; // MEX–ENG default (tonight's fixture)
+  var matchId = q.get('match') || '18198205'; // POR–ESP default (tonight's fixture)
   var wsBase = q.get('ws') || 'wss://rooot-stands.fly.dev/';
 
   function waitForLoom(cb) {
