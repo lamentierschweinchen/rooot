@@ -26,7 +26,7 @@
     || location.pathname === '/count-live.html' || location.pathname === '/stadium.html'
     || q.get('site') === '1' || q.get('loomfeed') === '1' || q.get('statsfeed') === '1';
   if (!ON) return;
-  var matchId = q.get('match') || '18193785'; // USA–BEL (Jul 7 hero fixture)
+  var matchId = q.get('match') || '18202701'; // ARG–EGY default (today's live hero, ingested). MUST match stadium's FIX default. TODO(P2): dynamic default so /stadium + /count auto-follow the live game.
   var wsBase = q.get('ws') || 'wss://rooot-stands.fly.dev/';
 
   // PRESS weights (match the loom) — for the TERRITORY proxy (danger-weighted).
