@@ -256,7 +256,7 @@ html,body{background:var(--paper);-webkit-font-smoothing:antialiased;text-render
    '18202783':['SUI','SWITZERLAND','#D52B1E','COL','COLOMBIA','#FCD116']
   };
   var q=new URLSearchParams(location.search);
-  var mid=q.get('match')||'18202701';   // ARG-EGY default (today's live hero, ingested) — match stats-adapter's default
+  var mid=q.get('match')||'18202783';   // SUI-COL default (live now) — match stats-adapter's default
   var fx=FIX[mid]||FIX['18175918'];
   // map a team's ink to the nearest generated emblem skin
   function skin(ink){
