@@ -59,6 +59,54 @@
     var report = { odds: 0, spell: 0, event: 0, goal: 0, chalked: 0, pressure: 0, score: '0-0' };
     window.__loomAdapter = { report: report, matchId: matchId };
 
+    // ── THE SHOOTOUT (StatusId 12) — its OWN mode, not cloth marks. When a match
+    // goes to penalties the loom BECOMES a board: two rows, alternating, a running
+    // tally, the winning kick. The wire sends each kick as `penalty_outcome`
+    // (→ ledger 'penalty-kick', side + Scored/Missed), re-emitted with the SAME Id
+    // (dedupe → update in place). We keep them in ARRIVAL order (both sides
+    // interleaved), derive the board, and decide the winner by the real rules.
+    // (owner, Jul 7: "now we're in penalties… we need a mode for it.")
+    var shoot = { active: false, order: [], home: [], away: [], tally: { home: 0, away: 0 }, firstUp: null, done: false, winner: null };
+    var shootAt = {}; // ledger id → index in shoot.order (dedupe the false→true re-emit)
+    function pushShoot() {
+      window.__loomShootout = shoot;
+      if (typeof L.shootout === 'function') { try { L.shootout(shoot); } catch (_) {} }
+    }
+    // standard shootout resolution: best-of-5, early stop when a lead can't be
+    // caught, then sudden death (decided only when BOTH have taken equal and differ).
+    function decideShootout(nh, na, th, ta) {
+      var STD = 5, remH = Math.max(0, STD - nh), remA = Math.max(0, STD - na);
+      if (nh < STD || na < STD) {
+        if (th > ta + remA) return { done: true, winner: 'home' };
+        if (ta > th + remH) return { done: true, winner: 'away' };
+        return { done: false, winner: null };
+      }
+      if (nh === na && th !== ta) return { done: true, winner: th > ta ? 'home' : 'away' };
+      return { done: false, winner: null };
+    }
+    function rebuildShoot() {
+      var h = [], a = [], th = 0, ta = 0;
+      for (var i = 0; i < shoot.order.length; i++) {
+        var kk = shoot.order[i];
+        if (kk.side === 'home') { h.push(kk); if (kk.scored) th++; }
+        else { a.push(kk); if (kk.scored) ta++; }
+      }
+      shoot.home = h; shoot.away = a; shoot.tally = { home: th, away: ta };
+      shoot.firstUp = shoot.order.length ? shoot.order[0].side : null;
+      var d = decideShootout(h.length, a.length, th, ta);
+      shoot.done = d.done; shoot.winner = d.winner;
+    }
+    function recordShootoutKick(ev) {
+      var sn = sideNum(ev.side); if (!sn) return;
+      var out = (ev.detail || '').toLowerCase();
+      var kick = { side: sn === 1 ? 'home' : 'away', scored: out.indexOf('scored') >= 0, outcome: ev.detail || null };
+      if (shootAt[ev.id] != null) shoot.order[shootAt[ev.id]] = kick; // re-emit → update in place
+      else { shootAt[ev.id] = shoot.order.length; shoot.order.push(kick); }
+      shoot.active = true;
+      rebuildShoot();
+      pushShoot();
+    }
+
     function setClock(mDec, running) {
       if (typeof mDec !== 'number' || !isFinite(mDec) || mDec < 0) return;
       if (!haveMinute && mDec > 0) return; // pre-anchor: never surface a minute > 0 (stays 0' / KICK-OFF)
@@ -115,6 +163,9 @@
         case 'status': {
           var ph = msg.ev && msg.ev.phase;
           if (ph === 'EXTRA_TIME' || ph === 'PENALTIES') etPhase = true;
+          // the whole surface shifts into the shootout board the moment pens begin —
+          // even before the first kick, so the empty board is there to fill.
+          if (ph === 'PENALTIES' && !shoot.active) { shoot.active = true; pushShoot(); }
           // respect the wire's OWN running flag — it freezes at the 45'/90' cap
           // and through half-time. Fall back to the phase only if raw is missing.
           var clk = msg.ev && msg.ev.raw && msg.ev.raw.Clock;
@@ -212,6 +263,13 @@
           // throw-ins are a stats-only signal (SET PIECES count) — NOT a loom beat.
           // ~74 a match would flood the tempo cord and swamp "how frantic". Drop here.
           if (k === 'throw-in') break;
+          // a shootout kick belongs to THE BOARD, not the cloth. StatusId 12 = pens;
+          // an in-play penalty (other statuses) reflects through the score path instead.
+          if (k === 'penalty-kick') {
+            var _psid = ev.raw && (ev.raw.StatusId != null ? ev.raw.StatusId : (ev.raw.Data && ev.raw.Data.StatusId));
+            if (_psid === 12) recordShootoutKick(ev);
+            break;
+          }
           // tempo: every DISCRETE match event (not possession chatter — that's
           // its own cord). Meaningful "how frantic" rail.
           L.tempo(mn);
