@@ -289,17 +289,30 @@ export function parseOddsMessage(
  * preferredName ("Behich, Aziz Eraltay"), rosterNumber, starter. This makes
  * scorer names a same-wire fact — no external enrichment, no extra license.
  */
+/** One starter — name + shirt number + the wire's position code (raw; a formation map is design's). */
+export interface StartingXIPlayer { name: string; number: string | null; positionId: number | null; captain: boolean; }
+
 export interface FixtureRoster {
   fixtureId: number;
   byPlayerId: Map<number, { name: string; number: string | null }>;
+  /** the announced starting elevens per side (starter===true), home/away resolved via the
+   * envelope's Participant ids + Participant1IsHome. null if the wire hasn't named them yet. */
+  lineup: { home: StartingXIPlayer[]; away: StartingXIPlayer[] } | null;
 }
 
 interface RawLineupsEnvelope {
   FixtureId?: number;
   Action?: string;
+  Participant1IsHome?: boolean;
+  Participant1Id?: number;
+  Participant2Id?: number;
   Lineups?: Array<{
+    normativeId?: number;
     lineups?: Array<{
       rosterNumber?: string;
+      positionId?: number;
+      starter?: boolean;
+      starred?: boolean;
       player?: { normativeId?: number; preferredName?: string };
     }>;
   }>;
@@ -315,6 +328,14 @@ export function parseLineups(raw: string): FixtureRoster | null {
   }
   if (msg.Action !== 'lineups' || typeof msg.FixtureId !== 'number') return null;
   const byPlayerId = new Map<number, { name: string; number: string | null }>();
+  // resolve each Lineups[] team to home/away: Participant1 is home iff Participant1IsHome
+  // (default true); a team is Participant1 when its normativeId === Participant1Id.
+  const p1IsHome = msg.Participant1IsHome !== false;
+  const xiFor = (team: NonNullable<RawLineupsEnvelope['Lineups']>[number]): StartingXIPlayer[] =>
+    (team.lineups ?? [])
+      .filter((e) => e.starter === true && typeof e.player?.preferredName === 'string' && e.player.preferredName)
+      .map((e) => ({ name: e.player!.preferredName as string, number: e.rosterNumber ?? null, positionId: typeof e.positionId === 'number' ? e.positionId : null, captain: e.starred === true }));
+  let home: StartingXIPlayer[] = [], away: StartingXIPlayer[] = [];
   for (const team of msg.Lineups ?? []) {
     for (const entry of team.lineups ?? []) {
       const id = entry.player?.normativeId;
@@ -323,9 +344,13 @@ export function parseLineups(raw: string): FixtureRoster | null {
         byPlayerId.set(id, { name, number: entry.rosterNumber ?? null });
       }
     }
+    const isP1 = team.normativeId === msg.Participant1Id;
+    const side = isP1 === p1IsHome ? 'home' : 'away'; // P1→home iff p1IsHome; P2→home iff !p1IsHome
+    if (side === 'home') home = xiFor(team); else away = xiFor(team);
   }
   if (byPlayerId.size === 0) return null;
-  return { fixtureId: msg.FixtureId, byPlayerId };
+  const lineup = home.length || away.length ? { home, away } : null;
+  return { fixtureId: msg.FixtureId, byPlayerId, lineup };
 }
 
 export function sniffParticipant1IsHome(raw: string): boolean | null {

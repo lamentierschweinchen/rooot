@@ -111,10 +111,15 @@ function dispatch(opts: StreamOptions, event: string, data: string, receivedAtMs
       if (!opts.fixtureIds.has(fixtureIdOf(tick.raw) ?? '')) return;
       opts.onFeedMsg({ type: 'odds', tick });
     } else {
-      // roster latch: lineups → both squads (scorer names, same wire)
+      // roster latch: lineups → both squads (scorer names, same wire) + the starting XI
       if (data.includes('"lineups"')) {
         const r = parseLineups(data);
-        if (r) rosterByFixture.set(String(r.fixtureId), r);
+        if (r) {
+          rosterByFixture.set(String(r.fixtureId), r);
+          if (r.lineup && opts.fixtureIds.has(String(r.fixtureId))) {
+            opts.onFeedMsg({ type: 'lineup', fixtureId: String(r.fixtureId), lineup: r.lineup });
+          }
+        }
       }
       // learn the side-truth before parsing — every scores envelope carries it
       if (data.includes('"Participant1IsHome"')) {

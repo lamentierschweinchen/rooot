@@ -118,7 +118,10 @@ export function startReplayIngest(opts: {
     try {
       if (!roster && line.data.includes('"lineups"')) {
         const r = parseLineups(line.data);
-        if (r && String(r.fixtureId) === opts.fixtureId) roster = r;
+        if (r && String(r.fixtureId) === opts.fixtureId) {
+          roster = r;
+          if (r.lineup) opts.onFeedMsg({ type: 'lineup', fixtureId: opts.fixtureId, lineup: r.lineup });
+        }
       }
       if (line.data.includes('"Participant1IsHome"')) {
         const p1h = sniffParticipant1IsHome(line.data);

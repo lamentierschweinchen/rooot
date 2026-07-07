@@ -13,6 +13,7 @@
 import type { Fixture, OddsTick, ScoreEvent, StatusEvent } from './match';
 import type { LedgerMsg } from './ledger';
 import type { Spell } from './texture';
+import type { StartingXIPlayer } from './normalize';
 
 export type FeedState = 'connected' | 'reconnecting' | 'replay' | 'lost';
 
@@ -28,4 +29,7 @@ export type FeedMsg =
    * has none of its own (unlike odds/score/status whose .raw does) — the
    * service routes to the room by it. */
   | { type: 'spell'; fixtureId: string; spell: Spell }
+  /** the announced starting elevens (from the `lineups` envelope) — home/away XI, so a
+   * card can show WHO is playing before a ball is kicked. Cached + replayed on join. */
+  | { type: 'lineup'; fixtureId: string; lineup: { home: StartingXIPlayer[]; away: StartingXIPlayer[] } }
   | { type: 'feedState'; state: FeedState };

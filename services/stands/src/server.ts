@@ -307,6 +307,7 @@ interface JoinSnapshot {
   score?: Extract<FeedMsg, { type: 'score' }>;
   status?: Extract<FeedMsg, { type: 'status' }>;
   fixtureInfo?: Extract<FeedMsg, { type: 'fixtureInfo' }>;
+  lineup?: Extract<FeedMsg, { type: 'lineup' }>;   // the starting XI — latest-wins, replayed on join
   /** The whole match, downsampled, so a JOIN weaves the full cloth — the belief
    * arc, every woven event, and the pressure shape — not one stretched-flat
    * point (owner caught the straight-line loom live, Jul 5). Odds carry no minute
@@ -383,6 +384,9 @@ function rememberForJoin(matchId: string, msg: ServerMsg | FeedMsg): void {
     case 'fixtureInfo':
       snapshotFor(matchId).fixtureInfo = msg;
       break;
+    case 'lineup':
+      snapshotFor(matchId).lineup = msg;
+      break;
     case 'ledger': {
       if (msg.msg.type !== 'event') break; // amend/discard: the chalk-off rides the score, not a replay
       const snap = snapshotFor(matchId);
@@ -424,6 +428,7 @@ function replaySnapshot(ws: WebSocket, matchId: string): void {
   const snap = joinSnapshots.get(matchId);
   if (!snap) return;
   if (snap.fixtureInfo) send(ws, snap.fixtureInfo);
+  if (snap.lineup) send(ws, snap.lineup);   // who's playing — instantly, before any event
   if (snap.feedState) send(ws, snap.feedState);
   if (snap.status) send(ws, snap.status);
   if (snap.score) send(ws, snap.score);

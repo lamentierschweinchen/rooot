@@ -45,7 +45,7 @@
       subs: { count: 0, moves: [] }, injuries: { count: 0, list: [] },
       penalties: { scored: 0, missed: 0, retake: 0, list: [] }, scorers: [], varReviews: 0 };
   }
-  var stats = { minute: null, home: emptySide(), away: emptySide(), var: [], pending: [] };
+  var stats = { minute: null, home: emptySide(), away: emptySide(), var: [], pending: [], lineups: null };
   var terr = { home: 0, away: 0 };  // weighted attacking pressure per side → territory
   var seen = {};                    // count-once dedup (corners/cards/danger)
   var shotById = {}, fkById = {};   // upgradeable side events (outcome/type lands on confirm)
@@ -216,6 +216,7 @@
         if (msg.msg && msg.msg.type === 'event') { onLedgerEvent(msg.msg.ev); recomputeTerritory(); emit(); }
         break;
       case 'spell': onPossession(msg.spell); emit(); break;
+      case 'lineup': if (msg.lineup) { stats.lineups = msg.lineup; emit(); } break;   // the starting XI, before a ball is kicked
       default: break;
     }
   }

@@ -11,6 +11,8 @@
  * served or faked. A family with no data yet shows null / empty, never a fake zero.
  */
 
+import type { StartingXIPlayer } from './normalize';
+
 /** outcome enums as the wire spells them (kept as strings — the source of truth). */
 export type ShotOutcome = 'OnTarget' | 'OffTarget' | 'Woodwork' | 'Blocked';
 export type InjuryOutcome = 'OnPitch' | 'NotReturning' | 'OffPitch';
@@ -73,6 +75,9 @@ export interface MatchStats {
   var: VarEntry[];
   /** plain-language list of anything still not decodable — empty now (legend resolved). */
   pending: readonly string[];
+  /** the announced starting elevens (from the `lineups` envelope) — WHO is playing, so a
+   * card can fill before kickoff. null until the wire names them. */
+  lineups: { home: StartingXIPlayer[]; away: StartingXIPlayer[] } | null;
 }
 
 /** A fresh, zeroed side. */
