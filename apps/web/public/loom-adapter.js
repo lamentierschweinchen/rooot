@@ -219,8 +219,19 @@
           }
           break;
         }
+        case 'fixtureInfo': {
+          // theme the loom from the WIRE (home/away tricodes + kit colours), so any
+          // fixture themes itself — loom-proto also themes from its own FIXTURES table
+          // (idempotent); woven-loom depends on this to leave the ARG/CPV demo default.
+          var fx = msg.fixture;
+          if (fx && typeof L.teams === 'function') {
+            var mkTeam = function (t) { return t ? { tri: t.code, name: t.name, primary: t.colors && t.colors[0], secondary: t.colors && t.colors[1] } : null; };
+            L.teams(mkTeam(fx.home), mkTeam(fx.away));
+          }
+          break;
+        }
         default:
-          break; // feedState / fixtureInfo — not a loom signal
+          break; // feedState — not a loom signal
       }
     }
 

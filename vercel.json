@@ -7,6 +7,6 @@
     { "source": "/", "destination": "/live", "permanent": false }
   ],
   "rewrites": [
-    { "source": "/live", "destination": "/loom-proto" }
+    { "source": "/live", "destination": "/woven-loom" }
   ]
 }
