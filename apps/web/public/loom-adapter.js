@@ -148,7 +148,11 @@
         case 'spell': {
           var sp = msg.spell;
           var sec = sp.clockSeconds;
-          if (typeof sec === 'number') syncClock(sec / 60, true, Date.now()); // possession = live play: anchor + run
+          // anchor the minute (+ haveMinute) off possession, but do NOT force running —
+          // the RUNNING state is the status's job (kickoff sets it, HALF_TIME clears it).
+          // Forcing it true here made the clock tick through half-time, because the join
+          // replay sends spells AFTER the HALF_TIME status and they re-enabled it (Jul 7).
+          if (typeof sec === 'number') syncClock(sec / 60, undefined, Date.now());
           var sn = sideNum(sp.side);
           if (sn) {
             var mDec = typeof sec === 'number' ? sec / 60 : minute;
