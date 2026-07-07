@@ -129,13 +129,12 @@ shots-by-outcome, corners, yellows all flow. These three just complete it.
    Design owns the visual — a stitched cross / "paused play" texture, named + side-coloured;
    `NotReturning` naturally pairs with the sub arrow. (Server-live on the next stands deploy.)
 
-8. **HYDRATION / COOLING BREAK — a blue water thread (owner idea) — BLOCKED ON DATA.** Concept:
-   during a cooling break the clock keeps running but play stops, so weave those dead minutes as
-   a blue water-coloured thread — same family as injury pauses / added time ("clock runs, ball
-   doesn't"). BUT there is **no cooling-break signal in the feed yet** (0 hits for hydration/
-   cooling/drinks across every recording; our samples were all night/clear matches, which don't
-   get them). Nearest signals are generic `suspend` (empty Data — fires for ANY stoppage, so
-   unreliable) and `weather` (`Conditions: [Covered/Night/Clear]`). **ACTION — TxODDS follow-up:**
-   is there a dedicated cooling/hydration-break action or status, or does it arrive as `suspend`?
-   Until confirmed this stays a design concept pending a data trigger — do **not** infer from
-   `suspend` alone (it would mislabel other stoppages, breaking "every dot means something").
+8. **HYDRATION / COOLING BREAK — a blue water thread (owner idea) — SIGNAL FOUND (Jul 7), ready to weave.**
+   Concept: during a cooling break the clock keeps running but play stops, so weave those dead
+   minutes as a blue water-coloured thread — same family as injury pauses / added time ("clock runs,
+   ball doesn't"). TxODDS confirmed the signal: it is **`Action = comment` with
+   `Data.Text = "Water-drinking break"`** (NOT a Stats key, NOT a dedicated action). Coordinator:
+   parse `comment` envelopes for that exact Data.Text → emit a break event (starts at the comment,
+   ends when play resumes / the next non-comment action) → adapter pushes it to the loom; design
+   weaves the blue thread over those minutes. Ready to wire on the next stands pass — do NOT fall
+   back to `suspend` (still fires for any stoppage; only the "Water-drinking break" comment is safe).
