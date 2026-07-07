@@ -207,11 +207,13 @@
             // caught this live on BRA-NOR: drawing every `possible` as VAR badly
             // over-reports reviews. Dropped; only a real `var` review marks the cloth.
           } else if (k === 'shot') {
-            L.event({ minute: mn, kind: 'shot', side: sideNum(ev.side), type: (ev.detail || '').toLowerCase() });
+            // pass the wire id: shots re-emit (unconfirmed → outcome), so the loom must
+            // REPLACE by id, not stack a second mark. Same for cards (empty → named).
+            L.event({ minute: mn, kind: 'shot', side: sideNum(ev.side), type: (ev.detail || '').toLowerCase(), id: ev.id });
           } else if (k === 'yellow-card' || k === 'red-card') {
-            L.event({ minute: mn, kind: 'card', side: sideNum(ev.side) });
+            L.event({ minute: mn, kind: 'card', side: sideNum(ev.side), type: k === 'red-card' ? 'red' : 'yellow', id: ev.id });
           } else if (k === 'corner') {
-            L.event({ minute: mn, kind: 'corner', side: sideNum(ev.side) });
+            L.event({ minute: mn, kind: 'corner', side: sideNum(ev.side), id: ev.id });
           } else if (k === 'var') {
             // ONE mark per REVIEW, not per envelope: a review re-fires with the
             // same id (OPEN → OPEN → Overturned) — dedupe so 2 reviews ≠ 6 marks.

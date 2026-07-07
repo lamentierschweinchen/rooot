@@ -101,7 +101,11 @@ body{background:var(--paper);font-family:var(--disp);color:var(--ink);-webkit-fo
     pressure:function(minute,side,w){ var m=Math.floor(minute); M.dgr[side][m]=(M.dgr[side][m]||0)+(w||1); dirty=true; },
     possession:function(minute,side){ var m=Math.floor(minute); M.poss[m]=M.poss[m]||[0,0]; M.poss[m][side-1]++; dirty=true; },
     tempo:function(){},
-    event:function(e){ var t=mapKind(e); if(!t)return; M.events.push({m:e.minute,s:e.side===1?'h':e.side===2?'a':null,t:t}); dirty=true; if(t==='goal')queueGool(e.minute,e.side); },
+    event:function(e){ var t=mapKind(e); if(!t)return; var id=e.id, sd=(e.side===1?'h':e.side===2?'a':null);
+      // REPLACE by wire id — shots/cards re-emit (unconfirmed→outcome, empty→named) and the
+      // join-replay resends them; without this each re-emit stacked a duplicate mark.
+      if(id){ for(var i=0;i<M.events.length;i++){ if(M.events[i].id===id){ M.events[i].t=t; M.events[i].m=e.minute; M.events[i].s=sd; dirty=true; return; } } }
+      M.events.push({m:e.minute,s:sd,t:t,id:id}); dirty=true; if(t==='goal')queueGool(e.minute,e.side); },
     score:function(a,c){ M.score=[a,c]; dirty=true; },
     teams:function(h,a){ if(h){ if(h.tri)M.hTri=h.tri; if(h.primary)HOME=h.primary; } if(a){ if(a.tri)M.aTri=a.tri; if(a.primary)AWAY=a.primary; } dirty=true; },
     phase:function(p){ M.et=!!(p&&(p.phase==='EXTRA_TIME'||p.phase==='PENALTIES')); if(M.et)M.dur=126; },

@@ -346,6 +346,7 @@ window.__loom={
     if(e.kind==='shot'&&!e.out){var d=(e.type||'').toLowerCase();  // OnTarget/OffTarget/Blocked/Woodwork → on/off/blocked/wood
       e.out=d.indexOf('wood')>=0?'wood':d.indexOf('off')>=0?'off':d.indexOf('block')>=0?'blocked':'on';}
     if(e.kind==='card'&&(e.type==='red-card'||e.type==='red'))e.col='r';   // if the wire ever passes the colour
+    if(e.id){for(var _ei=0;_ei<LIVE.events.length;_ei++){if(LIVE.events[_ei].id===e.id){LIVE.events[_ei]=e;return;}}}   // shots/cards re-emit (+join-replay resends) — REPLACE by id, don't stack a duplicate
     LIVE.events.push(e);
     if(e.kind==='goal'){if(e.side&&!LIVE.on)LIVE.score[e.side-1]++;if(!e.quiet)st.erupt={on:true,t0:performance.now(),side:e.side,et:e.et};} // LIVE score is authoritative via L.score; only REPLAY builds it by weaving. Live-weaving used to double-count (0-2 ghost, Jul 7). e.quiet = JOIN replay: weave, don't re-fire GOOOOL
     if(e.kind==='card'&&e.col==='r'){NARROWM=e.m;NARROWS=e.side||1;}
