@@ -175,6 +175,11 @@
           var m = msg.msg;
           if (m.type !== 'event') break; // amend/discard: no loom mark today
           var ev = m.ev, k = ev.kind, mn = typeof ev.minute === 'number' ? ev.minute : minute;
+          // PLACEMENT minute — the loom lays each mark at the SECOND it fired (its fraction
+          // of the minute → position across the side's band). ev.minute is FLOORED (for the
+          // clock), so read the decimal off the raw Clock.Seconds; fall back to the floored mn.
+          var _secs = ev.raw && ev.raw.Clock && ev.raw.Clock.Seconds;
+          var mPos = (typeof _secs === 'number' && _secs >= 0) ? _secs / 60 : mn;
           // every ledger event carries a real match minute — advance the clock
           // base off it (danger/shots are frequent), so the clock ticks on even
           // through a goalless, status-quiet spell.
@@ -199,7 +204,7 @@
             if (ev.confirmed && !firedGoals[ev.id]) {
               firedGoals[ev.id] = true;
               var gs = sideNum(ev.side);
-              L.event({ minute: mn, kind: 'goal', side: gs, type: goalType(ev.goalKind), et: etPhase, quiet: !!msg._replay });
+              L.event({ minute: mPos, kind: 'goal', side: gs, type: goalType(ev.goalKind), et: etPhase, quiet: !!msg._replay });
               report.goal++;
               if (gs) wove[gs]++; // track woven goals for chalk-off reconciliation
               // truth-align: the goal event auto-increments; the row carries the
@@ -217,15 +222,22 @@
           } else if (k === 'shot') {
             // pass the wire id: shots re-emit (unconfirmed → outcome), so the loom must
             // REPLACE by id, not stack a second mark. Same for cards (empty → named).
-            L.event({ minute: mn, kind: 'shot', side: sideNum(ev.side), type: (ev.detail || '').toLowerCase(), id: ev.id });
+            L.event({ minute: mPos, kind: 'shot', side: sideNum(ev.side), type: (ev.detail || '').toLowerCase(), id: ev.id });
           } else if (k === 'yellow-card' || k === 'red-card') {
-            L.event({ minute: mn, kind: 'card', side: sideNum(ev.side), type: k === 'red-card' ? 'red' : 'yellow', id: ev.id });
+            L.event({ minute: mPos, kind: 'card', side: sideNum(ev.side), type: k === 'red-card' ? 'red' : 'yellow', id: ev.id });
           } else if (k === 'corner') {
-            L.event({ minute: mn, kind: 'corner', side: sideNum(ev.side), id: ev.id });
+            L.event({ minute: mPos, kind: 'corner', side: sideNum(ev.side), id: ev.id });
+          } else if (k === 'substitution') {
+            L.event({ minute: mPos, kind: 'sub', side: sideNum(ev.side), id: ev.id });
+          } else if (k === 'injury') {
+            L.event({ minute: mPos, kind: 'injury', side: sideNum(ev.side), id: ev.id });
+          } else if (k === 'free-kick') {
+            // fouls + offsides woven where they land — detail carries the FreeKickType
+            L.event({ minute: mPos, kind: 'freekick', side: sideNum(ev.side), type: (ev.detail || '').toLowerCase(), id: ev.id });
           } else if (k === 'var') {
             // ONE mark per REVIEW, not per envelope: a review re-fires with the
             // same id (OPEN → OPEN → Overturned) — dedupe so 2 reviews ≠ 6 marks.
-            if (!firedVars[ev.id]) { firedVars[ev.id] = true; L.event({ minute: mn, kind: 'var', detail: ev.detail }); }
+            if (!firedVars[ev.id]) { firedVars[ev.id] = true; L.event({ minute: mPos, kind: 'var', detail: ev.detail }); }
           }
           break;
         }

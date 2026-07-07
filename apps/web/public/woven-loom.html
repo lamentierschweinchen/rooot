@@ -115,8 +115,11 @@ body{background:var(--paper);font-family:var(--disp);color:var(--ink);-webkit-fo
   function mapKind(e){ var k=e.kind, det=(e.type||e.detail||'').toString().toLowerCase();
     if(k==='goal')return 'goal';
     if(k==='shot')return det.indexOf('block')>=0?'block':det.indexOf('wood')>=0?'wood':det.indexOf('off')>=0?'miss':'save';
-    if(k==='card')return 'yc';
+    if(k==='card')return det.indexOf('red')>=0?'rc':'yc';
     if(k==='corner')return 'corner';
+    if(k==='sub')return 'sub';
+    if(k==='injury')return 'injury';
+    if(k==='freekick')return det.indexOf('offside')>=0?'offside':'freekick';
     if(k==='var')return 'var';
     return null; }
 
