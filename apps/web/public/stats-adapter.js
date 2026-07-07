@@ -127,6 +127,10 @@
     var k = ev.kind, side = ev.side, id = ev.id, d = (ev.detail || '').toLowerCase();
     var D = (ev.raw && ev.raw.Data) || {};              // the raw envelope's Data (Type/Outcome/…)
     var mn = (typeof ev.minute === 'number') ? ev.minute : stats.minute;
+    // keep the stadium minute live through play (shots/danger are frequent), but NEVER
+    // from warmup/standby tunnel chatter pre-kickoff — that would fabricate a minute the
+    // same way the loom's phantom did. Monotonic so out-of-order re-emits can't rewind it.
+    if (typeof ev.minute === 'number' && k !== 'warmup' && (stats.minute == null || ev.minute >= stats.minute)) stats.minute = ev.minute;
 
     // MATCH-LEVEL: VAR (the wire gives no side)
     if (k === 'var') {

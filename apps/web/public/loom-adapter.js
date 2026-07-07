@@ -46,6 +46,10 @@
     L.live();
 
     var minute = 0;            // current match minute (decimal), the live edge
+    var haveMinute = false;    // true once the wire ANCHORS a real match minute. Gates the
+                               // clock so nothing displays or ticks pre-kickoff — kills the
+                               // phantom where a phase-only status started the tick from base 0
+                               // and the 2.5' stall-cap froze it at "2'" while 0-0 (Jul 7).
     var etPhase = false;       // true once EXTRA_TIME/PENALTIES — full 1X2 is dead
     var firedGoals = {};       // ledger goal id → true (fire the weave ONCE)
     var firedVars = {};        // VAR review id → true — ONE mark per review, not per envelope
@@ -55,6 +59,7 @@
 
     function setClock(mDec, running) {
       if (typeof mDec !== 'number' || !isFinite(mDec) || mDec < 0) return;
+      if (!haveMinute && mDec > 0) return; // pre-anchor: never surface a minute > 0 (stays 0' / KICK-OFF)
       if (mDec >= minute) { minute = mDec; L.clock(mDec, !!running); }
     }
 
@@ -76,13 +81,14 @@
     function syncClock(matchMinute, running, atMs) {
       if (running !== undefined && running !== null) clkRunning = !!running;
       if (typeof matchMinute === 'number' && isFinite(matchMinute) && matchMinute >= clkBaseMin - 0.05) {
+        haveMinute = true;       // a real wire minute — the clock may now run
         clkBaseMin = matchMinute;
         clkBaseMs = atMs || Date.now();
         setClock(matchMinute, clkRunning);
       }
     }
     var clkTimer = setInterval(function () {
-      if (!clkRunning) return;
+      if (!clkRunning || !haveMinute) return; // never tick from an un-anchored base (the phantom "2")
       setClock(Math.min(clkBaseMin + (Date.now() - clkBaseMs) / 60000, clkBaseMin + CLK_STALL_CAP), true);
     }, 1000);
     if (clkTimer && clkTimer.unref) clkTimer.unref();
@@ -138,7 +144,7 @@
         case 'spell': {
           var sp = msg.spell;
           var sec = sp.clockSeconds;
-          if (typeof sec === 'number') setClock(sec / 60, true);
+          if (typeof sec === 'number') syncClock(sec / 60, true, Date.now()); // possession = live play: anchor + run
           var sn = sideNum(sp.side);
           if (sn) {
             var mDec = typeof sec === 'number' ? sec / 60 : minute;
@@ -164,7 +170,7 @@
           // every ledger event carries a real match minute — advance the clock
           // base off it (danger/shots are frequent), so the clock ticks on even
           // through a goalless, status-quiet spell.
-          if (typeof ev.minute === 'number' && ev.minute >= clkBaseMin - 0.05) { clkBaseMin = ev.minute; clkBaseMs = Date.now(); setClock(ev.minute, clkRunning); }
+          if (k !== 'warmup' && typeof ev.minute === 'number' && ev.minute >= clkBaseMin - 0.05) { haveMinute = true; clkBaseMin = ev.minute; clkBaseMs = Date.now(); setClock(ev.minute, clkRunning); } // warmup/standby is pre-kickoff tunnel chatter — it must NOT anchor the clock
           if (k === 'danger') {
             // THE PRESSURE CORD'S REAL FUEL. The live wire sends danger/high-danger
             // as LEDGER events (~25 per 18s on BRA-NOR), not as spells — so route
