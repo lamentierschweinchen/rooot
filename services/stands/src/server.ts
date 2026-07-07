@@ -313,10 +313,14 @@ interface JoinSnapshot {
    * of their own, so each kept tick is stamped with the match minute it landed at. */
   oddsHistory: Array<Extract<FeedMsg, { type: 'odds' }>>;
   eventHistory: Array<Extract<FeedMsg, { type: 'ledger' }>>;
+  /** EVERY danger ledger event (not downsampled) — the stadium's attack/high-danger
+   * counts must be exact on join, so the count can't be thinned like the loom's curve. */
   pressureHistory: Array<Extract<FeedMsg, { type: 'ledger' }>>;
+  /** EVERY possession spell — possession% + territory reconstruct exactly on join
+   * (the client rebuilds the time-share from the full spell sequence). */
+  spellHistory: Array<Extract<FeedMsg, { type: 'spell' }>>;
   lastOddsMs?: number;
   lastMinute?: number;
-  lastDangerMs?: { home: number; away: number };
 }
 const ODDS_HISTORY_MAX = 400;
 const ODDS_HISTORY_GAP_MS = 12000; // ~1 belief point / 12s of wire time → a smooth curve
@@ -324,8 +328,8 @@ const ODDS_HISTORY_GAP_MS = 12000; // ~1 belief point / 12s of wire time → a s
 // so a socket that joins at 70' still accumulates COMPLETE stats — not since-connect. A full
 // 90'+ET match is ~500 event messages; 1200 leaves generous headroom before the oldest evict.
 const EVENT_HISTORY_MAX = 1200;
-const PRESSURE_HISTORY_MAX = 350;
-const DANGER_HISTORY_GAP_MS = 4000; // ~1 pressure point per side per 4s → the cord's shape, no flood
+const PRESSURE_HISTORY_MAX = 700; // ALL danger events (not thinned) — attack/high-danger counts exact on join
+const SPELL_HISTORY_MAX = 1600;   // ALL possession spells — possession% + territory exact on join
 // loom-woven marks…
 const WOVEN_KINDS = new Set(['goal', 'yellow-card', 'red-card', 'var', 'shot', 'corner', 'possible', 'penalty-kick']);
 // …plus the stats-only families the stadium/count tally but the loom doesn't weave. Without
@@ -338,7 +342,7 @@ const lastFeedState = new Map<string, Extract<FeedMsg, { type: 'feedState' }>>()
 function snapshotFor(matchId: string): JoinSnapshot {
   let snap = joinSnapshots.get(matchId);
   if (!snap) {
-    snap = { oddsHistory: [], eventHistory: [], pressureHistory: [] };
+    snap = { oddsHistory: [], eventHistory: [], pressureHistory: [], spellHistory: [] };
     joinSnapshots.set(matchId, snap);
   }
   return snap;
@@ -391,15 +395,19 @@ function rememberForJoin(matchId: string, msg: ServerMsg | FeedMsg): void {
         snap.eventHistory.push(msg);
         if (snap.eventHistory.length > EVENT_HISTORY_MAX) snap.eventHistory.splice(0, snap.eventHistory.length - EVENT_HISTORY_MAX);
       } else if (ev.kind === 'danger') {
-        // downsample danger per side into a pressure curve for the cord's history.
-        const side = ev.side === 'away' ? 'away' : 'home';
-        if (!snap.lastDangerMs) snap.lastDangerMs = { home: 0, away: 0 };
-        if (ev.tMs - snap.lastDangerMs[side] >= DANGER_HISTORY_GAP_MS) {
-          snap.lastDangerMs[side] = ev.tMs;
-          snap.pressureHistory.push(msg);
-          if (snap.pressureHistory.length > PRESSURE_HISTORY_MAX) snap.pressureHistory.splice(0, snap.pressureHistory.length - PRESSURE_HISTORY_MAX);
-        }
+        // KEEP EVERY danger event — the stadium's attack/high-danger COUNT must be exact
+        // on join (can't be thinned like a curve; the loom handles the full rate live anyway).
+        snap.pressureHistory.push(msg);
+        if (snap.pressureHistory.length > PRESSURE_HISTORY_MAX) snap.pressureHistory.splice(0, snap.pressureHistory.length - PRESSURE_HISTORY_MAX);
       }
+      break;
+    }
+    case 'spell': {
+      // EVERY possession spell — the client rebuilds possession% + territory from the full
+      // sequence on join. Not thinned: a downsample would skew the time-share and PRESS sums.
+      const snap = snapshotFor(matchId);
+      snap.spellHistory.push(msg);
+      if (snap.spellHistory.length > SPELL_HISTORY_MAX) snap.spellHistory.splice(0, snap.spellHistory.length - SPELL_HISTORY_MAX);
       break;
     }
     default:
@@ -423,7 +431,8 @@ function replaySnapshot(ws: WebSocket, matchId: string): void {
   // belief arc + the pressure shape + every event. Events/pressure go out marked
   // `_replay` so the loom weaves historical goals WITHOUT re-firing their GOOOOL.
   for (const o of snap.oddsHistory) send(ws, o);
-  for (const p of snap.pressureHistory) sendReplay(ws, p);
+  for (const s of snap.spellHistory) sendReplay(ws, s);   // full possession sequence → exact possession% + territory
+  for (const p of snap.pressureHistory) sendReplay(ws, p); // every danger → exact attack/high-danger counts
   for (const e of snap.eventHistory) sendReplay(ws, e);
   if (snap.odds) send(ws, snap.odds);
   // a mid-window joiner sees the open drama immediately, so they can still react.
