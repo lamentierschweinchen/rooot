@@ -34,7 +34,7 @@
 
   function emptySide() {
     return { shots: { total: 0, onTarget: 0, offTarget: 0, blocked: 0, woodwork: 0 },
-      corners: 0, freeKicks: 0, cards: { yellow: 0, red: 0 }, goals: 0,
+      corners: 0, freeKicks: 0, throwIns: 0, cards: { yellow: 0, red: 0, list: [] }, goals: 0,
       attacks: { danger: 0, highDanger: 0 }, territory: 0.5,
       possessionPct: null, fouls: null, offsides: null,
       subs: { count: 0, moves: [] }, injuries: { count: 0, list: [] },
@@ -45,6 +45,7 @@
   var seen = {};                    // count-once dedup (corners/cards/danger)
   var shotById = {}, fkById = {};   // upgradeable side events (outcome/type lands on confirm)
   var subById = {}, injuryById = {}, penById = {}, scorerById = {};
+  var cardById = {}, throwById = {};  // cards upgrade (name lands late); throws dedup by id
   var varList = [], varSeen = {}, lastVarType = null; // match-level VAR (no side): pair each decision with the preceding open's type
   var possLast = null;              // {side, c} — last possession-holder + clock second
   var possTime = { home: 0, away: 0 };
@@ -105,6 +106,21 @@
     stats.home.scorers = []; stats.away.scorers = [];
     for (var id in scorerById) { var g = scorerById[id], sd = sideOf(g.side); if (!sd) continue; sd.scorers.push({ name: g.name, type: g.type, minute: g.minute }); }
   }
+  // cards re-emit (empty → PlayerId) under a stable id — recount + rebuild the who/when list
+  // from the id-map so a late name upgrades in place (never double-counts a re-emit).
+  function deriveCards() {
+    stats.home.cards = { yellow: 0, red: 0, list: [] }; stats.away.cards = { yellow: 0, red: 0, list: [] };
+    for (var id in cardById) { var c = cardById[id], sd = sideOf(c.side); if (!sd) continue;
+      if (c.type === 'Red') sd.cards.red++; else sd.cards.yellow++;
+      sd.cards.list.push({ player: c.player, type: c.type, minute: c.minute }); }
+    stats.home.cards.list.sort(byMinute); stats.away.cards.list.sort(byMinute);
+  }
+  // throw_in re-emits (empty → ThrowInType) under a stable id — count DISTINCT ids per side.
+  function deriveThrows() {
+    stats.home.throwIns = 0; stats.away.throwIns = 0;
+    for (var id in throwById) { var sd = sideOf(throwById[id]); if (sd) sd.throwIns++; }
+  }
+  function byMinute(x, y) { return (x.minute == null ? 1e9 : x.minute) - (y.minute == null ? 1e9 : y.minute); }
   // (VAR aggregation is inline in onLedgerEvent's 'var' case — open + decision can share an id.)
 
   function onLedgerEvent(ev) {
@@ -128,14 +144,17 @@
     if (k === 'substitution') { if (side && id) { var pr = (ev.detail || '').split('|'); subById[id] = { side: side, inName: pr[0] || null, outName: pr[1] || null, minute: mn }; deriveSubs(); } return; }
     if (k === 'injury') { if (side && id) { injuryById[id] = { side: side, player: ev.detail || null, outcome: D.Outcome || null, minute: mn }; deriveInjuries(); } return; }
     if (k === 'penalty-kick') { if (side && id) { penById[id] = { side: side, outcome: (ev.detail || D.Outcome || null), minute: mn }; derivePens(); } return; }
+    // cards: keyed by id so the late name-carrying re-emit upgrades in place; keep a name
+    // already resolved if a later empty re-emit arrives (empty ≠ erase). Never count-once.
+    if (k === 'yellow-card' || k === 'red-card') { if (side && id) { var pc = cardById[id]; cardById[id] = { side: side, type: (k === 'red-card' ? 'Red' : 'Yellow'), player: (ev.detail || (pc && pc.player) || null), minute: mn }; deriveCards(); } return; }
+    if (k === 'throw-in') { if (side && id) { throwById[id] = side; deriveThrows(); } return; }
 
     // count-once + scorer
     var sd = sideOf(side); if (!sd) return;
     if (id && seen[id] && k !== 'goal') return;
     switch (k) {
       case 'corner': if (id) seen[id] = true; sd.corners++; break;
-      case 'yellow-card': if (id) seen[id] = true; sd.cards.yellow++; break;
-      case 'red-card': if (id) seen[id] = true; sd.cards.red++; break;
+      // cards + throw-ins are handled id-keyed above (they re-emit; the name lands late)
       case 'goal': // the SCORE number is the authoritative 'score' message; here we keep the scorer + type
         if (side && id && ev.confirmed) { scorerById[id] = { side: side, name: ev.detail || null, type: ev.goalKind || null, minute: mn }; deriveScorers(); }
         break;

@@ -31,6 +31,7 @@ export type LedgerKind =
   | 'possible' // the held breath — Data:{Goal|Corner|Penalty:true} pre-confirmation
   | 'shot' // Outcome arrives via action_amend (e.g. OffTarget → "Woodwork")
   | 'corner'
+  | 'throw-in' // stats-only signal (SET PIECES throw count); re-emits empty→ThrowInType, dedup by id
   | 'free-kick'
   | 'yellow-card' // observed live (AUS–EGY ET)
   | 'red-card' // symmetric mapping; not yet observed

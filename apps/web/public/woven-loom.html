@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>THE LOOM — woven from a real match</title>
+<style>
+@font-face{font-family:'Anybody';src:url(plate/fonts/anybody.woff2) format('woff2');font-weight:400 700;font-display:swap}
+@font-face{font-family:'Anybody';src:url(plate/fonts/anybody900.woff2) format('woff2');font-weight:800 900;font-display:swap}
+:root{--paper:#E6DBC2;--card:#F3ECDB;--ink:#1A1815;--sub:#8C8467;--gold:#C79A38;--cloth:#EAE1C8;--disp:'Anybody','Arial Black',sans-serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--paper);font-family:var(--disp);color:var(--ink);padding:22px 12px 50px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:420px;margin:0 auto}
+.mast{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:3px}
+.mast .sc{font-weight:900;font-size:23px;white-space:nowrap}.mast .sc .h{color:#2049AA}.mast .sc .a{color:#C8504D}
+.mast .rp{text-align:right;padding-left:10px;line-height:1.35}
+.mast .rp{font-weight:700;font-size:9px;letter-spacing:.18em;color:var(--sub)}
+.sub{font-weight:600;font-size:9px;letter-spacing:.14em;color:var(--sub);margin-bottom:14px}
+.loom{background:var(--card);border:1.5px solid var(--ink);box-shadow:0 12px 34px rgba(26,24,21,.13)}
+.loom svg{display:block;width:100%;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:16px;padding:12px 14px;background:var(--card);border:1.5px solid var(--ink)}
+.legend .it{display:flex;align-items:center;gap:6px;font-weight:700;font-size:8px;letter-spacing:.1em;color:var(--sub)}
+.legend .it svg{width:22px;height:22px;display:block}
+.note{font-weight:600;font-size:9px;letter-spacing:.04em;color:var(--sub);line-height:1.6;margin-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="mast"><span class="sc"><b class="h" id="hT">ARG</b> <span id="sc">3–2</span> <b class="a" id="aT">CPV</b></span><span class="rp">AET · 03 JUL 2026</span></div>
+  <div class="sub">THE LOOM — ONE MATCH, WOVEN FROM THE WIRE · MARKET IS THE GROUND · PLAY IS THE CORDS · EVENTS ARE STITCHED</div>
+  <div class="loom" id="loom"></div>
+  <div class="legend" id="legend"></div>
+  <div class="note">The ground is the market's live belief, woven three ways — <b>blue</b> ARG-win, <b>red</b> CPV-win, and the <b>oat</b> band between them the draw: it swells as the tie tightens past 90′, then closes when ARG win it in extra time. Threaded down the middle, the play itself: the <b>dark cord</b> is possession, the <b>amber cord</b> is danger (who's actually threatening). Every stitched mark is a real event off the wire — ARG events in the left third, CPV in the right, each landing where in the minute it fired (early-minute to the left, late to the right). The sprayed ball is a free kick. Market, play and moments — three honest layers, one keepsake.</div>
+</div>
+
+<script src="plate/arg-cpv-data.js"></script>
+<script>
+(function(){
+  var M=window.MATCH; if(!M){document.getElementById('loom').innerHTML='<p style=padding:20px>no match data</p>';return;}
+  var HOME=M.home.ink, AWAY=M.away.ink, N=13;
+  var COL={1:null,2:'#1A1815',3:'#C79A38',4:'#E5B431',5:'#C8504D',6:'#2E6A4E',7:'#F3ECDB',8:'#2049AA'}; // 1=team(inject)
+  var d=function(x,y){return Math.hypot(x-6,y-6);};
+  function S(rows,map){var g=[];for(var y=0;y<rows.length;y++){g[y]=[];for(var x=0;x<rows[y].length;x++)g[y][x]=map[rows[y][x]]||0;}return g;}
+  function F(fn){var g=[];for(var y=0;y<N;y++){g[y]=[];for(var x=0;x<N;x++)g[y][x]=fn(x,y)||0;}return g;}
+  var GRID={
+    goal:F(function(x,y){var r=d(x,y);if(r>6)return 0;if(r>4.5)return 2;return 1;}),                 // black rim, team fill
+    save:S(['.X.X.X.X.....','.X.X.X.X.....','.XXXXXXXX....','XXXXXXXXX....','XXXXXXXXX....','XXXXXXXXX....','.XXXXXXXX....','.XXXXXXXX....','.XXXXXXXX....','.########....','.########....','.............','.............'],{X:1,'#':2}),
+    block:F(function(x,y){if(x<1||x>11||y<2||y>10)return 0;if(y%3===2)return 0;var row=Math.floor((y-3)/3),off=(row%2)?3:0;if((x+off)%6===0)return 0;return 1;}),
+    miss:F(function(x,y){var r=d(x,y);return (r<=6&&r>=4.2)?1:0;}),
+    freekick:S(['.............','.cc..cc..cc..','.............','.....222.....','....2bbb2....','....2bbb2....','....2bbb2....','.....222.....','.............','.............','.............','.............','.............'],{b:1,'2':2,c:3}),
+    corner:S(['..#..........','..#XX........','..#XXXX......','..#XXXXXX....','..#XXXX......','..#XX........','..#..........','..#..........','..#..........','..#..........','..#..........','..#..........','.............'],{X:1,'#':2}),
+    offside:S(['.#########...','.#YYYYRRRR#..','.#YYYYRRRR#..','.#YYYYRRRR#..','.#RRRRYYYY#..','.#RRRRYYYY#..','.#RRRRYYYY#..','.#########...','.#...........','.#...........','.#...........','.#...........','.#...........'],{Y:4,R:5,'#':2}),
+    sub:S(['.....o.......','....ooo......','...ooooo.....','..ooooooo....','.....o.......','.....o.......','.............','.....r.......','.....r.......','..rrrrrrr....','...rrrrr.....','....rrr......','.....r.......'],{o:6,r:5}),
+    injury:F(function(x,y){return (((x>=5&&x<=7)||(y>=5&&y<=7))&&Math.abs(x-6)<=5&&Math.abs(y-6)<=5)?5:0;}),
+    yc:F(function(x,y){return (x>=4&&x<=8&&y>=1&&y<=11)?4:0;}),
+    rc:F(function(x,y){return (x>=4&&x<=8&&y>=1&&y<=11)?5:0;}),
+    var:F(function(x,y){if(x>=2&&x<=10&&y>=3&&y<=9){if(x===2||x===10||y===3||y===9)return 2;if(Math.abs(x-6)<=1&&Math.abs(y-6)<=1)return 3;return 0;}return 0;}),
+    wood:F(function(x,y){if(y>=2&&y<=3&&x>=2&&x<=10)return 2;if((x>=2&&x<=3||x>=9&&x<=10)&&y>=2&&y<=9)return 2;return 0;}),
+    shot:F(function(x,y){return d(x,y)<=2?1:0;})
+  };
+  // woven glyph → stitches, centred at (cx,cy), stitch size s, team colour
+  function glyph(type,cx,cy,s,team){
+    var g=GRID[type];if(!g)return '';var half=N*s/2,out='';
+    for(var y=0;y<N;y++)for(var x=0;x<N;x++){var v=g[y][x];if(!v)continue;var c=(v===1)?team:COL[v];if(!c)continue;
+      var X=cx-half+x*s,Y=cy-half+y*s,m=Math.max(.6,s*.15),w=Math.max(1,s*.32);
+      out+='<g stroke-linecap="round"><line x1="'+(X+m)+'" y1="'+(Y+m)+'" x2="'+(X+s-m)+'" y2="'+(Y+s-m)+'" stroke="#00000026" stroke-width="'+(w+.7)+'"/><line x1="'+(X+s-m)+'" y1="'+(Y+m)+'" x2="'+(X+m)+'" y2="'+(Y+s-m)+'" stroke="#00000026" stroke-width="'+(w+.7)+'"/>';
+      out+='<line x1="'+(X+m)+'" y1="'+(Y+m)+'" x2="'+(X+s-m)+'" y2="'+(Y+s-m)+'" stroke="'+c+'" stroke-width="'+w+'"/><line x1="'+(X+s-m)+'" y1="'+(Y+m)+'" x2="'+(X+m)+'" y2="'+(Y+s-m)+'" stroke="'+c+'" stroke-width="'+w+'"/></g>';
+    }
+    return out;
+  }
+
+  // ---------- layout ----------
+  var DUR=M.durationMin||123, DRAW='#D0C29E';
+  var W=340, H=1050, top=52, botpad=30, ch=H-top-botpad;
+  var gx0=30, grW=W-gx0-12;                       // belief ground: x0 & width
+  function ty(m){return top+ch*(m/DUR);}          // minute → y
+  function gx(p){return gx0+grW*(p/100);}         // percent across ground → x
+  function interp(arr,m,k){ if(m<=arr[0][0])return arr[0][k]; var L=arr.length; if(m>=arr[L-1][0])return arr[L-1][k];
+    for(var i=1;i<L;i++){if(arr[i][0]>=m){var a=arr[i-1],b=arr[i],t=(m-a[0])/((b[0]-a[0])||1);return a[k]+(b[k]-a[k])*t;}} return arr[L-1][k]; }
+  var NS=72, sm=[];                                // uniform belief samples down the timeline
+  for(var i=0;i<=NS;i++){var mm=DUR*i/NS; sm.push([mm,interp(M.belief,mm,1),interp(M.belief,mm,2),interp(M.belief,mm,3)]);}
+  (function(){var o=sm.map(function(r){return r.slice();}),w=2;   // gentle smoothing → boundaries flow like cloth, not a seismograph
+    for(var i=0;i<sm.length;i++)for(var k=1;k<=3;k++){var s=0,c=0;for(var j=Math.max(0,i-w);j<=Math.min(sm.length-1,i+w);j++){s+=sm[j][k];c++;}o[i][k]=s/c;}
+    sm=o;})();
+
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">';
+  svg+='<defs><pattern id="weave" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill="none"/><path d="M0 3 L3 0 M3 6 L6 3" stroke="#00000016" stroke-width="1"/><path d="M0 3 L3 6 M3 0 L6 3" stroke="#ffffff1e" stroke-width="1"/></pattern></defs>';
+  svg+='<rect width="'+W+'" height="'+H+'" fill="#EAE1C8"/>';
+
+  // ---------- 3-way belief ground: HOME(blue) | DRAW(oat) | AWAY(red) ----------
+  // right boundary of a band, as a polygon from the left edge
+  function band(rf){var p='M '+gx0.toFixed(1)+' '+ty(0).toFixed(1);
+    for(var i=0;i<=NS;i++)p+=' L '+gx(rf(sm[i])).toFixed(1)+' '+ty(sm[i][0]).toFixed(1);
+    p+=' L '+gx0.toFixed(1)+' '+ty(DUR).toFixed(1)+' Z'; return p;}
+  svg+='<rect x="'+gx0+'" y="'+top+'" width="'+grW+'" height="'+ch+'" fill="'+AWAY+'" opacity="0.9"/>';   // away base (red) on the right
+  svg+='<path d="'+band(function(s){return s[1]+s[2];})+'" fill="'+DRAW+'"/>';                             // home+draw region = oat
+  svg+='<path d="'+band(function(s){return s[1];})+'" fill="'+HOME+'" opacity="0.92"/>';                   // home region = blue
+  svg+='<rect x="'+gx0+'" y="'+top+'" width="'+grW+'" height="'+ch+'" fill="url(#weave)"/>';
+  for(var wx=gx0+3;wx<gx0+grW;wx+=5){svg+='<rect x="'+wx+'" y="'+top+'" width="1.3" height="'+ch+'" fill="#00000008"/>';}  // warp
+  // the two gold tide-edges (home|draw and draw|away boundaries)
+  function edge(rf){var p='M '+gx(rf(sm[0])).toFixed(1)+' '+ty(sm[0][0]).toFixed(1);
+    for(var i=1;i<=NS;i++)p+=' L '+gx(rf(sm[i])).toFixed(1)+' '+ty(sm[i][0]).toFixed(1); return p;}
+  svg+='<path d="'+edge(function(s){return s[1];})+'" fill="none" stroke="#C79A38" stroke-width="1.4" opacity="0.7"/>';
+  svg+='<path d="'+edge(function(s){return s[1]+s[2];})+'" fill="none" stroke="#C79A38" stroke-width="1.1" opacity="0.5"/>';
+
+  // ---------- minute rails ----------
+  [0,15,30,45,60,75,90,105,120].forEach(function(mn){if(mn>DUR+3)return;var y=ty(mn);
+    svg+='<line x1="'+(gx0-6)+'" y1="'+y+'" x2="'+gx0+'" y2="'+y+'" stroke="#1A1815" stroke-width="1.4"/>';
+    svg+='<text x="'+(gx0-9)+'" y="'+(y+3)+'" text-anchor="end" font-family="Anybody" font-weight="700" font-size="8" fill="#8C8467">'+mn+"'</text>";});
+
+  // ---------- the two cords (PLAY, distinct from the market ground): possession + danger ----------
+  // home-share 0..1 → x, swaying through the centre third — bolder now, the two snakes to watch live
+  function cord(arr){var p='';for(var i=0;i<arr.length;i++){var x=gx(50+(0.5-arr[i][1])*42),y=ty(arr[i][0]);p+=(i?' L ':'M ')+x.toFixed(1)+' '+y.toFixed(1);}return p;}
+  svg+='<path d="'+cord(M.poss)+'" fill="none" stroke="#2E2A21" stroke-width="2.7" stroke-linejoin="round" stroke-linecap="round" opacity="0.85"/>';        // possession = solid dark cord
+  svg+='<path d="'+cord(M.danger)+'" fill="none" stroke="#D2731F" stroke-width="2.7" stroke-dasharray="0.6 3.4" stroke-linejoin="round" stroke-linecap="round" opacity="1"/>';  // danger = hot amber, beaded
+
+  // ---------- events: each side owns 40% of the width (centre 20% left to the cords); x = where in the minute it fired ----------
+  var SW=grW*0.40, MIDW=grW*0.20;
+  var ZONE={h:[gx0,gx0+SW], a:[gx0+SW+MIDW,gx0+grW], 'null':[gx0+SW,gx0+SW+MIDW]};
+  function gs(t){return t==='goal'?2.2:(t==='freekick'?1.2:1.5);}   // glyph stitch size (goal biggest, free-kick smallest)
+  var placed=[];
+  M.events.slice().sort(function(p,q){return (p.m-q.m)||((p.t==='goal'?0:1)-(q.t==='goal'?0:1));}).forEach(function(ev){
+    var side=ev.s||'null', s=gs(ev.t), r=N*s/2+2.4, Z=ZONE[side], zL=Z[0]+r+1, zR=Z[1]-r-1, zW=Math.max(1,zR-zL);
+    var frac=ev.m-Math.floor(ev.m), x=zL+frac*zW, y=ty(ev.m);       // frac = position within the minute
+    for(var it=0;it<200;it++){
+      var hit=null;
+      for(var k=0;k<placed.length;k++){var p=placed[k]; if(p.side!==side)continue;
+        if(Math.abs(x-p.x)<r+p.r+1.5 && Math.abs(y-p.y)<r+p.r+1.5){hit=p;break;}}
+      if(!hit)break;
+      if(Math.abs(y-hit.y) < r*0.7){                                // truly same row → slide beside it (double-sub sits next to its pair)
+        var dir=(x>=hit.x)?1:-1, nx=hit.x+dir*(r+hit.r+1.5);
+        if(nx>=zL && nx<=zR){x=nx;continue;} }
+      y=hit.y+(r+hit.r+1.5);                                        // else drop just below the collider (guaranteed progress)
+    }
+    placed.push({x:x,y:y,r:r,side:side,t:ev.t});
+  });
+  placed.forEach(function(P){
+    var team=(P.side==='h')?HOME:(P.side==='a')?AWAY:'#8C8467', big=(P.t==='goal');
+    svg+='<rect x="'+(P.x-P.r).toFixed(1)+'" y="'+(P.y-P.r).toFixed(1)+'" width="'+(P.r*2).toFixed(1)+'" height="'+(P.r*2).toFixed(1)+'" rx="3" fill="#F3ECDB" opacity="0.92"/>';
+    if(big)svg+='<rect x="'+(P.x-P.r).toFixed(1)+'" y="'+(P.y-P.r).toFixed(1)+'" width="'+(P.r*2).toFixed(1)+'" height="'+(P.r*2).toFixed(1)+'" rx="3" fill="none" stroke="#C79A38" stroke-width="1.5"/>';
+    svg+=glyph(P.t,P.x,P.y,gs(P.t),team);
+  });
+
+  // fringe top & bottom
+  for(var fr=gx0;fr<gx0+grW;fr+=6){svg+='<line x1="'+fr+'" y1="'+(top-14)+'" x2="'+(fr+1)+'" y2="'+top+'" stroke="#C9BC9A" stroke-width="2"/><line x1="'+fr+'" y1="'+(H-24)+'" x2="'+(fr+1)+'" y2="'+(H-10)+'" stroke="#C9BC9A" stroke-width="2"/>';}
+  svg+='</svg>';
+  document.getElementById('loom').innerHTML=svg;
+  document.getElementById('hT').textContent=M.home.tri;document.getElementById('aT').textContent=M.away.tri;
+  document.getElementById('sc').textContent=M.score[0]+'–'+M.score[1];
+
+  // legend — marks + the two ground layers
+  var LG=[['goal','GOAL'],['save','SAVE'],['block','BLOCK'],['miss','MISS'],['corner','CORNER'],['freekick','FREE KICK'],['offside','OFFSIDE'],['yc','CARD'],['sub','SUB'],['injury','INJURY'],['var','VAR']];
+  var marks=LG.map(function(l){return '<span class="it"><svg viewBox="0 0 '+(N*3)+' '+(N*3)+'">'+glyph(l[0],N*1.5,N*1.5,3,'#2049AA')+'</svg>'+l[1]+'</span>';}).join('');
+  marks+='<span class="it"><svg viewBox="0 0 26 12"><line x1="2" y1="6" x2="24" y2="6" stroke="#2E2A21" stroke-width="3" stroke-linecap="round"/></svg>POSSESSION</span>';
+  marks+='<span class="it"><svg viewBox="0 0 26 12"><line x1="2" y1="6" x2="24" y2="6" stroke="#D2731F" stroke-width="3" stroke-dasharray="0.6 3.6" stroke-linecap="round"/></svg>DANGER</span>';
+  document.getElementById('legend').innerHTML=marks;
+})();
+</script>
+</body>
+</html>

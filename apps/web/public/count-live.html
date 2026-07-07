@@ -265,8 +265,8 @@ html,body{background:var(--paper);-webkit-font-smoothing:antialiased;text-render
     for(var k in A){var a=A[k],d=Math.pow(a[0]-c[0],2)+Math.pow(a[1]-c[1],2)+Math.pow(a[2]-c[2],2); if(d<bd){bd=d;best=k;}}
     return best;
   }
-  var GLV={green:'glove-verde',red:'glove-cpv',blue:'glove-arg'};
-  function mkTeam(tri,name,ink){ var sk=skin(ink); return {tri:tri,name:name,ink:ink,glove:'plate/gens/'+GLV[sk]+'.png',wall:'plate/gens/wall-'+sk+'.png'}; }
+  // save = the new schematic keeper glove, universal (side of the net says whose). Wall stays team-coloured.
+  function mkTeam(tri,name,ink){ var sk=skin(ink); return {tri:tri,name:name,ink:ink,glove:'plate/gens/glove-new.png',wall:'plate/gens/wall-'+sk+'.png'}; }
   var HOME=mkTeam(fx[0],fx[1],fx[2]), AWAY=mkTeam(fx[3],fx[4],fx[5]);
 
   // ARG–CPV replay fallback (real recorded numbers) so the page is never blank

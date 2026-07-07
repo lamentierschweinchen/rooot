@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>THE EVENTS — stark, and woven at size</title>
+<style>
+@font-face{font-family:'Anybody';src:url(fonts/anybody.woff2) format('woff2');font-weight:400 700;font-display:swap}
+@font-face{font-family:'Anybody';src:url(fonts/anybody900.woff2) format('woff2');font-weight:800 900;font-display:swap}
+:root{--paper:#E6DBC2;--card:#F3ECDB;--ink:#1A1815;--sub:#8C8467;--line:#D3C6A6;--azul:#2049AA;--rojo:#C8504D;--verde:#2E6A4E;--gold:#C79A38;--yellow:#E5B431;--cloth:#E7DEC5;--disp:'Anybody','Arial Black',sans-serif;}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--paper);font-family:var(--disp);color:var(--ink);padding:26px 14px 60px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:440px;margin:0 auto}
+h1{font-weight:900;font-size:21px;letter-spacing:.02em}
+.sub{font-weight:600;font-size:9px;letter-spacing:.15em;color:var(--sub);margin:2px 0 18px}
+.hostband{display:flex;height:5px;margin:0 0 22px}
+.hostband i{flex:1}.hostband .v{background:var(--verde)}.hostband .r{background:var(--rojo)}.hostband .a{background:var(--azul)}.hostband .g{background:var(--gold)}
+h2{font-weight:900;font-size:12px;letter-spacing:.14em;margin:26px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.mk{background:var(--card);border:1.5px solid var(--ink);padding:10px;display:flex;align-items:center;gap:10px}
+.mk .nm{font-weight:900;font-size:9.5px;letter-spacing:.1em;flex:1}
+.mk .nm small{display:block;font-weight:600;font-size:7.5px;letter-spacing:.06em;color:var(--sub);margin-top:2px}
+.mk .print,.mk .woven{width:40px;height:40px;flex:none}
+.mk svg{width:100%;height:100%;display:block}
+.striplab{font-weight:600;font-size:8px;letter-spacing:.1em;color:var(--sub);margin:4px 0 6px}
+.strip{background:var(--card);border:1.5px solid var(--ink);padding:0;overflow-x:auto}
+.strip svg{display:block}
+.note{font-weight:600;font-size:9px;letter-spacing:.04em;color:var(--sub);line-height:1.6;margin-top:14px}
+.two{display:flex;gap:8px}.two>div{flex:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>THE EVENTS</h1>
+  <div class="sub">STARK ENOUGH TO READ AT A GLANCE — AND ON THE LOOM AT SIZE</div>
+  <div class="hostband"><i class="v"></i><i class="r"></i><i class="a"></i><i class="g"></i></div>
+
+  <h2>THE GOAL — WHICH READS HARDEST?</h2>
+  <div class="grid" id="goals"></div>
+
+  <h2>THE EVENT SET</h2>
+  <div class="grid" id="events"></div>
+
+  <h2>WOVEN INTO THE LOOM · TRUE SIZE</h2>
+  <div class="striplab">A MATCH, STITCHED LEFT-TO-RIGHT — SEE HOW THEY READ AT REAL STITCH SIZE</div>
+  <div class="strip" id="strip"></div>
+  <div class="two" style="margin-top:8px">
+    <div><div class="striplab">BIGGER STITCH</div><div class="strip" id="stripBig"></div></div>
+  </div>
+
+  <div class="note">Rule: one unmistakable mark per event — solid for what happened, hollow for what didn't. A goal is a struck disc, not a detailed ball; the save is a caught hand; the block a wall; the frame a bracket. Detail dies woven — these are built to survive ~13 stitches. Gold is kept for the goal (the exceptional).</div>
+</div>
+
+<script>
+(function(){
+  var C={0:null,1:'#2049AA',2:'#1A1815',3:'#C79A38',4:'#E5B431',5:'#C8504D',6:'#2E6A4E',7:'#F3ECDB'};
+  var N=13;
+  function fromStr(rows,map){var g=[];for(var y=0;y<rows.length;y++){g[y]=[];for(var x=0;x<rows[y].length;x++){var ch=rows[y][x];g[y][x]=map[ch]||0;}}return g;}
+  function fromFn(fn){var g=[];for(var y=0;y<N;y++){g[y]=[];for(var x=0;x<N;x++)g[y][x]=fn(x,y)||0;}return g;}
+  var d=function(x,y){return Math.hypot(x-6,y-6);};
+  // --- glyphs (code: 1 primary/tint set per-glyph, 2 ink, 3 gold) ---
+  var GRID={
+    goalDisc:fromFn(function(x,y){var r=d(x,y);if(r>6)return 0;if(r>4.8)return 3;return 1;}),   // struck ball, gold rim
+    goalStar:fromStr(['......X......','......X......','.....XXX.....','....XXXXX....','XXXXXXXXXXXXX','.XXXXXXXXXXX.','..XXXXXXXXX..','...XXXXXXX...','...XXXXXXX...','..XXXX.XXXX..','..XXX...XXX..','.XX.......XX.','.X.........X.'],{X:3}),
+    save:fromStr(['.X.X.X.X.....','.X.X.X.X.....','.XXXXXXXX....','XXXXXXXXX....','XXXXXXXXX....','XXXXXXXXX....','.XXXXXXXX....','.XXXXXXXX....','.XXXXXXXX....','.########....','.########....','.............','.............'],{X:1,'#':2}),
+    block:fromFn(function(x,y){if(x<1||x>11||y<2||y>10)return 0;if(y%3===2)return 0;var row=Math.floor((y-3)/3),off=(row%2)?3:0;if((x+off)%6===0)return 0;return 5;}),
+    miss:fromFn(function(x,y){var r=d(x,y);return (r<=6&&r>=4.2)?1:0;}),
+    corner:fromFn(function(x,y){if((x===2&&y>=2&&y<=8)||(y===2&&x>=2&&x<=8))return 6;var r=Math.hypot(x-9,y-9);if(r>4.2&&r<5.6&&x>=2&&y>=2)return 6;return 0;}),
+    woodwork:fromFn(function(x,y){if(y>=2&&y<=3&&x>=2&&x<=10)return 2;if((x>=2&&x<=3)&&y>=2&&y<=9)return 2;if((x>=9&&x<=10)&&y>=2&&y<=9)return 2;return 0;}),
+    card:fromFn(function(x,y){return (x>=4&&x<=8&&y>=1&&y<=11)?4:0;}),
+    offside:fromStr(['#XXXX........','#XXXXXX......','#XXXXXXXX....','#XXXXXX......','#XXXX........','#...........','#...........','#...........','#...........','#...........','#...........','#...........','#...........'],{X:5,'#':2}),
+    sub:fromStr(['.....X.......','....XXX......','...XXXXX.....','..XXXXXXX....','.....X.......','.....X.......','.............','.....R.......','.....R.......','..RRRRRRR....','...RRRRR.....','....RRR......','.....R.......'],{X:6,R:5}),
+    injury:fromFn(function(x,y){return (((x>=5&&x<=7)||(y>=5&&y<=7))&&(Math.abs(x-6)<=5&&Math.abs(y-6)<=5))?5:0;}),
+    varr:fromFn(function(x,y){if(x>=2&&x<=10&&y>=3&&y<=9){if(x===2||x===10||y===3||y===9)return 2;if(Math.abs(x-6)<=1&&Math.abs(y-6)<=1)return 2;return 0;}return 0;})
+  };
+  var META={goalDisc:['GOAL','struck disc · gold rim'],goalStar:['GOAL','the star · celebratory'],
+    save:['SAVE','the caught hand'],block:['BLOCK','the wall'],miss:['MISS','the ball, wide'],
+    corner:['CORNER','the flag & arc'],woodwork:['WOODWORK','the frame'],card:['CARD','booking'],
+    offside:['OFFSIDE','the raised flag'],sub:['SUB','on / off'],injury:['INJURY','the cross'],varr:['VAR','the screen']};
+
+  // clean stark PRINT vectors
+  function printSVG(name){
+    var az='#2049AA',ro='#C8504D',ve='#2E6A4E',go='#C79A38',ye='#E5B431',ink='#1A1815';
+    switch(name){
+      case 'goalDisc':return '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5" fill="'+az+'" stroke="'+go+'" stroke-width="2.4"/></svg>';
+      case 'goalStar':return '<svg viewBox="0 0 24 24"><path d="M12 1.5l3 6.6 7.2.7-5.4 4.8 1.6 7-6.4-3.7-6.4 3.7 1.6-7L1.8 8.8 9 8.1z" fill="'+go+'" stroke="'+ink+'" stroke-width="1.1"/></svg>';
+      case 'save':return '<svg viewBox="0 0 24 24"><rect x="6" y="8" width="12" height="11" rx="2.5" fill="'+az+'" stroke="'+ink+'" stroke-width="1.5"/><path d="M8 8V4.5M11 8V3.5M14 8V3.5M17 8V4.5" stroke="'+az+'" stroke-width="3" stroke-linecap="round"/><path d="M8 8V4.5M11 8V3.5M14 8V3.5M17 8V4.5" stroke="'+ink+'" stroke-width="1.1"/><path d="M6 12 L3.2 10.4 Q1.8 12.4 3.4 13.8 L6 15.4" fill="'+az+'" stroke="'+ink+'" stroke-width="1.4"/><rect x="6" y="17.5" width="12" height="2.4" fill="'+ink+'"/></svg>';
+      case 'block':return '<svg viewBox="0 0 24 24"><g stroke="'+ink+'" stroke-width="1.5" fill="'+ro+'"><rect x="3" y="5" width="8" height="4"/><rect x="12" y="5" width="9" height="4"/><rect x="3" y="10" width="5" height="4"/><rect x="9" y="10" width="8" height="4"/><rect x="18" y="10" width="3" height="4"/><rect x="3" y="15" width="8" height="4"/><rect x="12" y="15" width="9" height="4"/></g></svg>';
+      case 'miss':return '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="'+az+'" stroke-width="2.6"/></svg>';
+      case 'corner':return '<svg viewBox="0 0 24 24"><path d="M4 21 L4 12 A8 8 0 0 1 12 4 L21 4" fill="none" stroke="'+ve+'" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      case 'woodwork':return '<svg viewBox="0 0 24 24"><path d="M4 20 L4 5 L20 5 L20 20" fill="none" stroke="'+ink+'" stroke-width="3.2" stroke-linejoin="round"/></svg>';
+      case 'card':return '<svg viewBox="0 0 24 24"><rect x="7" y="3" width="10" height="18" rx="1.5" fill="'+ye+'" stroke="'+ink+'" stroke-width="1.6"/></svg>';
+      case 'offside':return '<svg viewBox="0 0 24 24"><line x1="6" y1="2" x2="6" y2="22" stroke="'+ink+'" stroke-width="2.4"/><path d="M6 3 L18 6 L6 11 Z" fill="'+ro+'" stroke="'+ink+'" stroke-width="1.1"/></svg>';
+      case 'sub':return '<svg viewBox="0 0 24 24"><path d="M8 10 L8 5 L5.5 5 L9 1.5 L12.5 5 L10 5 L10 10 Z" fill="'+ve+'"/><path d="M14 14 L14 19 L16.5 19 L13 22.5 L9.5 19 L12 19 L12 14 Z" fill="'+ro+'"/></svg>';
+      case 'injury':return '<svg viewBox="0 0 24 24"><path d="M10 3 h4 v5 h5 v4 h-5 v5 h-4 v-5 h-5 v-4 h5 z" fill="'+ro+'" stroke="'+ink+'" stroke-width="1.1"/></svg>';
+      case 'varr':return '<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="1.5" fill="none" stroke="'+ink+'" stroke-width="2.2"/><rect x="10.5" y="10.5" width="3" height="3" fill="'+ink+'"/></svg>';
+    }
+    return '';
+  }
+  function wovenSVG(grid,cell){
+    var s=cell,pad=2,W=N*s+pad*2,out='<svg viewBox="0 0 '+W+' '+W+'" width="'+W+'" height="'+W+'">';
+    out+='<rect width="'+W+'" height="'+W+'" fill="var(--cloth)"/>';
+    out+='<g stroke="#0000000d" stroke-width="1">';
+    for(var i=0;i<=N;i++)out+='<line x1="'+(pad+i*s)+'" y1="'+pad+'" x2="'+(pad+i*s)+'" y2="'+(pad+N*s)+'"/><line x1="'+pad+'" y1="'+(pad+i*s)+'" x2="'+(pad+N*s)+'" y2="'+(pad+i*s)+'"/>';
+    out+='</g>';
+    for(var y=0;y<N;y++)for(var x=0;x<N;x++){var v=grid[y]&&grid[y][x];if(!v)continue;var c=C[v],cx=pad+x*s,cy=pad+y*s,m=Math.max(.8,s*.16),sw=Math.max(1.1,s*.26);
+      out+='<g stroke-linecap="round"><line x1="'+(cx+m)+'" y1="'+(cy+m)+'" x2="'+(cx+s-m)+'" y2="'+(cy+s-m)+'" stroke="#00000028" stroke-width="'+(sw+.9)+'"/><line x1="'+(cx+s-m)+'" y1="'+(cy+m)+'" x2="'+(cx+m)+'" y2="'+(cy+s-m)+'" stroke="#00000028" stroke-width="'+(sw+.9)+'"/>';
+      out+='<line x1="'+(cx+m)+'" y1="'+(cy+m)+'" x2="'+(cx+s-m)+'" y2="'+(cy+s-m)+'" stroke="'+c+'" stroke-width="'+sw+'"/><line x1="'+(cx+s-m)+'" y1="'+(cy+m)+'" x2="'+(cx+m)+'" y2="'+(cy+s-m)+'" stroke="'+c+'" stroke-width="'+sw+'"/></g>';
+    }
+    return out+'</svg>';
+  }
+  function card(name){return '<div class="mk"><span class="print">'+printSVG(name)+'</span><span class="woven">'+wovenSVG(GRID[name],3)+'</span><span class="nm">'+META[name][0]+'<small>'+META[name][1]+'</small></span></div>';}
+  document.getElementById('goals').innerHTML=card('goalDisc')+card('goalStar');
+  document.getElementById('events').innerHTML=['save','block','miss','corner','woodwork','card','offside','sub','injury','varr'].map(card).join('');
+
+  // --- the loom strip: a match, woven left-to-right ---
+  function strip(cell){
+    var seq=[['06',"miss"],['14',"corner"],['22',"save"],['28',"block"],['37',"goalDisc"],['45',"card"],['52',"woodwork"],['61',"save"],['66',"sub"],['70',"offside"],['74',"injury"],['79',"varr"],['84',"miss"],['90',"goalStar"]];
+    var s=cell,pad=6,gap=cell*N+18,W=pad*2+seq.length*gap,H=N*s+pad*2+16;
+    var out='<svg viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'">';
+    out+='<rect width="'+W+'" height="'+H+'" fill="var(--cloth)"/>';
+    // warp threads (faint, alternating team tint)
+    out+='<g>';for(var i=0;i<W;i+=4){var t=(Math.floor(i/40)%2)?'#2049AA10':'#C8504D10';out+='<rect x="'+i+'" y="0" width="2" height="'+H+'" fill="'+t+'"/>';}out+='</g>';
+    seq.forEach(function(ev,i){var gx=pad+i*gap+9;
+      // glyph
+      var gv=wovenSVG(GRID[ev[1]],s).replace('<svg','<svg x="'+gx+'" y="'+pad+'"');
+      // strip out inner cloth bg of the glyph so the strip cloth shows continuous
+      gv=gv.replace(/<rect width="[^"]*" height="[^"]*" fill="var\(--cloth\)"\/>/,'');
+      out+=gv;
+      out+='<text x="'+(gx+N*s/2+1)+'" y="'+(H-4)+'" text-anchor="middle" font-family="Anybody" font-weight="700" font-size="8" fill="#8C8467">'+ev[0]+"'</text>";
+    });
+    return out+'</svg>';
+  }
+  document.getElementById('strip').innerHTML=strip(4);
+  document.getElementById('stripBig').innerHTML=strip(7);
+})();
+</script>
+</body>
+</html>

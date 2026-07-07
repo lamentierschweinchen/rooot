@@ -814,6 +814,7 @@ const LEDGER_ACTION_KIND: Record<string, LedgerKind> = {
   possible: 'possible',
   shot: 'shot',
   corner: 'corner',
+  throw_in: 'throw-in',
   free_kick: 'free-kick',
   yellow_card: 'yellow-card',
   red_card: 'red-card',
@@ -834,6 +835,7 @@ const LEDGER_HEADLINE: Record<LedgerKind, string> = {
   possible: 'Checking…',
   shot: 'Shot',
   corner: 'Corner',
+  'throw-in': 'Throw-in',
   'free-kick': 'Free kick',
   'yellow-card': 'Yellow card',
   'red-card': 'Red card',
@@ -1025,6 +1027,15 @@ export function parseLedgerMessage(
     const inN = roster && typeof sd?.PlayerInId === 'number' ? roster.byPlayerId.get(sd.PlayerInId)?.name : undefined;
     const outN = roster && typeof sd?.PlayerOutId === 'number' ? roster.byPlayerId.get(sd.PlayerOutId)?.name : undefined;
     if (inN || outN) ev.detail = (inN ?? '') + '|' + (outN ?? '');
+  }
+  // cards name in DATA: the FIRST emission is empty, a later re-emit (same wire Id)
+  // carries Data.PlayerId → the booked player's name (same roster as scorers/injuries).
+  // side is already set from the top-level Participant; only the name lands late. The
+  // stats adapter keys by id and keeps the name once it arrives (empty re-emit ≠ erase).
+  if (kind === 'yellow-card' || kind === 'red-card') {
+    const cpid = (msg.Data as { PlayerId?: unknown } | undefined)?.PlayerId;
+    const cwho = roster && typeof cpid === 'number' ? roster.byPlayerId.get(cpid)?.name : undefined;
+    if (cwho) ev.detail = cwho;
   }
   return { type: 'event', ev };
 }

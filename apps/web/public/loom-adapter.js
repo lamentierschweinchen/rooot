@@ -174,6 +174,9 @@
             if (dsd) { L.pressure(mn, dsd, (ev.detail || '').toLowerCase().indexOf('high') >= 0 ? 2 : 1.5); report.pressure++; }
             break;
           }
+          // throw-ins are a stats-only signal (SET PIECES count) — NOT a loom beat.
+          // ~74 a match would flood the tempo cord and swamp "how frantic". Drop here.
+          if (k === 'throw-in') break;
           // tempo: every DISCRETE match event (not possession chatter — that's
           // its own cord). Meaningful "how frantic" rail.
           L.tempo(mn);

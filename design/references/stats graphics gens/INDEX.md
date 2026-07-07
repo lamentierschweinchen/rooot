@@ -25,6 +25,22 @@ Convention going forward: **raw drop → root → I sort here → clean copy →
 | Pitch | `pitch/` | `pitch-triptych` → left third | `plate/gens/pitch.png` |
 | (goal w/ balls) | `goal/goal-balls-*` | — | superseded by empty net |
 
+## NEW — the new-family art (owner batch, Jul 7) — all keyed transparent
+
+| Item | Folder | Socketed as | For |
+|---|---|---|---|
+| **Neutral stadium** (tan bowls, BOTH goals) | `stadium/stadium-neutral` | `plate/gens/stadium-neutral.png` | stat-center — tint bowls per team; both goals drawn |
+| Referee's ledger (yellow+red cards) | `book/ledger` | `plate/gens/book-ledger.png` | THE BOOK instrument |
+| Whistle | `book/whistle` | `plate/gens/whistle.png` | THE BOOK emblem |
+| Dugout (6 seats) | `bench/dugout` | `plate/gens/dugout.png` | THE BENCH instrument |
+| Substitution board (↑green/↓red) | `bench/subboard` | `plate/gens/subboard.png` | sub mark |
+| Stretcher (blue cross) | `bench/stretcher` | `plate/gens/stretcher.png` | injury mark |
+| Shootout goal (3×2 zones + spot) | `penalties/shootout-goal` | `plate/gens/pens-goal.png` | PENALTIES instrument |
+| **Team balls ×16** (ARG…USA) | `balls/` | _pending_ | per-team goal ball (replaces the SVG glyph) |
+
+Also filed for other lanes: `references/reactions/` (crowd emojis — anger/fire/pray/…, for THE STANDS),
+`references/relics/` (embroidered pennant / rosette / shield — relics + loom).
+
 ## Drawn by hand (no generation — schematic SVG glyphs)
 Corner mark (in THE ARC), goal ball, missed, woodwork, yellow/red cards, VAR.
 

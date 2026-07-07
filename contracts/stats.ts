@@ -31,6 +31,8 @@ export interface SubMove { inName: string | null; outName: string | null; minute
 export interface InjuryEntry { player: string | null; outcome: InjuryOutcome | null; minute: number | null; }
 export interface PenaltyEntry { taker: string | null; outcome: PenaltyOutcome; minute: number | null; }
 export interface ScorerEntry { name: string | null; type: GoalType | null; minute: number | null; }
+/** one booking — player names arrive on a late re-emit; null until then (or on a wire that omits it). */
+export interface BookingEntry { player: string | null; type: 'Yellow' | 'Red'; minute: number | null; }
 /** match-level (VAR carries no side on the wire) — lives on MatchStats, not per side. */
 export interface VarEntry { type: VarType | null; outcome: VarOutcome | null; minute: number | null; }
 
@@ -38,7 +40,10 @@ export interface SideStats {
   shots: ShotStats;
   corners: number;
   freeKicks: number;
-  cards: { yellow: number; red: number };
+  /** throw-ins won by this side (SET PIECES row). Count of distinct throw_in ids. */
+  throwIns: number;
+  /** counts + who/when (list names via the roster, once the late re-emit carries PlayerId). */
+  cards: { yellow: number; red: number; list: BookingEntry[] };
   goals: number; // authoritative (Score.Total) — correct on any join
   /** danger + high-danger spells — the pressure/momentum the wire gives. */
   attacks: { danger: number; highDanger: number };
@@ -76,7 +81,8 @@ export function emptySideStats(): SideStats {
     shots: { total: 0, onTarget: 0, offTarget: 0, blocked: 0, woodwork: 0 },
     corners: 0,
     freeKicks: 0,
-    cards: { yellow: 0, red: 0 },
+    throwIns: 0,
+    cards: { yellow: 0, red: 0, list: [] },
     goals: 0,
     attacks: { danger: 0, highDanger: 0 },
     territory: 0.5,

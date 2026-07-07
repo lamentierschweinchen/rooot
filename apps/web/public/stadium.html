@@ -24,26 +24,29 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
 .mast .st .dot{width:6px;height:6px;border-radius:50%;background:#C8202A;animation:pulse 1.4s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
-/* the macro pitch fills the screen */
+/* the real stadium fills the screen */
 .ground{position:absolute;inset:0;transition:transform .5s cubic-bezier(.6,0,.2,1),opacity .4s}
 .ground.dimmed{transform:scale(1.06);opacity:.25;filter:saturate(.6)}
-.pitch{position:absolute;inset:0}
-.pitch svg{width:100%;height:100%;display:block}
-.terr{position:absolute;left:0;width:100%;mix-blend-mode:multiply;transition:height .6s cubic-bezier(.23,1,.32,1)}
-.terr.a{top:0;background:var(--away)}.terr.h{bottom:0;background:var(--home)}
-.possnum{position:absolute;left:50%;transform:translateX(-50%);font-weight:900;color:var(--card);text-shadow:0 1px 3px rgba(26,24,21,.3)}
-#pA{top:32%;font-size:34px}#pH{top:68%;font-size:46px}
-.plab{position:absolute;left:50%;transform:translateX(-50%);font-weight:800;font-size:11px;letter-spacing:.14em;color:var(--card)}
-#lA{top:27%}#lH{top:63%}
+.stadwrap{position:absolute;top:48%;left:0;right:0;transform:translateY(-50%)}
+.stadwrap .stad{width:100%;display:block}
+.pnum{position:absolute;transform:translate(-50%,-50%);font-weight:900;color:var(--card);z-index:2;text-shadow:0 1px 5px rgba(26,24,21,.65),0 0 2px rgba(26,24,21,.55)}
+.pnum.a{left:49.8%;top:38%;font-size:25px}.pnum.h{left:49.8%;top:63%;font-size:25px}
+.board{position:absolute;left:50%;top:12.1%;transform:translate(-50%,-50%);z-index:3;font-weight:900;font-size:18px;letter-spacing:.03em;color:#F3ECDB;pointer-events:none;text-shadow:0 1px 2px #000}
 
-/* interactive hotspots */
-.hot{position:absolute;transform:translate(-50%,-50%);z-index:3;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;-webkit-tap-highlight-color:transparent}
-.hot .ring{position:relative;width:64px;height:64px;border-radius:50%;border:2.5px solid var(--card);display:flex;align-items:center;justify-content:center;background:rgba(26,24,21,.16)}
+/* interactive hotspots on the stadium */
+.hot{position:absolute;transform:translate(-50%,-50%);z-index:4;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;-webkit-tap-highlight-color:transparent}
+.hot .ring{position:relative;width:48px;height:48px;border-radius:50%;border:2.5px solid var(--card);display:flex;align-items:center;justify-content:center;background:rgba(26,24,21,.34)}
 .hot .ring::after{content:"";position:absolute;inset:-2.5px;border-radius:50%;border:2.5px solid var(--gold);animation:halo 2s ease-out infinite;opacity:0}
 @keyframes halo{0%{transform:scale(1);opacity:.9}100%{transform:scale(1.7);opacity:0}}
-.hot .n{font-weight:900;font-size:26px;color:var(--card);line-height:1}
-.hot .cap{font-weight:800;font-size:9px;letter-spacing:.12em;color:var(--card);text-shadow:0 1px 2px rgba(26,24,21,.5);background:rgba(26,24,21,.35);padding:3px 7px;border-radius:2px}
-.hot.corners .ring{width:52px;height:52px}
+.hot .n{font-weight:900;font-size:20px;color:var(--card);line-height:1}
+.hot .ic{font-size:19px;color:var(--card);line-height:1}
+.hot .cap{font-weight:800;font-size:8px;letter-spacing:.1em;color:var(--card);text-shadow:0 1px 2px rgba(26,24,21,.6);background:rgba(26,24,21,.5);padding:2px 6px;border-radius:2px;white-space:nowrap}
+.hot.sm .ring{width:40px;height:40px}
+.hot.xs .ring{width:30px;height:30px}.hot.xs .cap{font-size:8px}
+.hot.soon .ring{border-style:dashed;background:rgba(26,24,21,.24)}
+.hot.soon .ring::after{border-color:var(--card);animation-duration:2.6s}
+.toast{position:absolute;bottom:70px;left:50%;transform:translateX(-50%) translateY(10px);z-index:11;font-weight:800;font-size:10px;letter-spacing:.13em;color:var(--ink);background:var(--card);padding:9px 16px;border-radius:3px;box-shadow:0 6px 18px rgba(26,24,21,.2);opacity:0;transition:opacity .25s,transform .25s;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .tiphint{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);z-index:5;font-weight:700;font-size:9px;letter-spacing:.16em;color:var(--sub);background:var(--card);padding:7px 14px;border-radius:2px;box-shadow:0 4px 14px rgba(26,24,21,.15)}
 
 /* detail sheet — zooms out of the tapped place */
@@ -51,6 +54,13 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
   transition:transform .52s cubic-bezier(.5,0,.2,1),opacity .34s;pointer-events:none;overflow-y:auto;
   background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='120' height='120' filter='url(%23n)' opacity='0.04'/></svg>");}
 .sheet.open{opacity:1;transform:scale(1);pointer-events:auto}
+.cardnav{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);z-index:14;display:none;align-items:center;gap:14px;padding:7px 10px;background:var(--card);border:1.5px solid var(--ink);border-radius:30px;box-shadow:0 6px 20px rgba(26,24,21,.22)}
+.cardnav.on{display:flex}
+.cn{width:30px;height:30px;border-radius:50%;border:none;background:var(--ink);color:var(--card);font-family:var(--disp);font-weight:900;font-size:16px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.cnlbl{font-size:8px;font-weight:800;letter-spacing:.09em;color:var(--sub);max-width:66px;text-align:center;line-height:1.05;text-transform:uppercase}
+.cndots{display:flex;gap:7px}
+.cndots i{width:7px;height:7px;border-radius:50%;background:var(--sub);opacity:.4;cursor:pointer;transition:opacity .2s,background .2s}
+.cndots i.on{opacity:1;background:var(--ink);transform:scale(1.15)}
 .sheet .sh-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 8px}
 .sheet .sh-head .t{font-weight:900;font-size:20px;letter-spacing:.02em}
 .sheet .sh-head .t small{display:block;font-weight:600;font-size:9px;letter-spacing:.16em;color:var(--sub)}
@@ -78,6 +88,45 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
 .cband.h{top:40%}.cband.a{top:53%}
 .cmark{width:23px;height:23px;animation:popc .4s cubic-bezier(.3,1.5,.5,1) both}
 .cmark svg{width:100%;height:100%;display:block}.cmark.h svg path{stroke:var(--home)}.cmark.a svg path{stroke:var(--away)}
+/* detail: SET PIECES — corners + free-kicks + throw-ins */
+.splabel{display:flex;align-items:center;justify-content:space-between;margin:13px 16px 2px;font-weight:800;font-size:9px;letter-spacing:.14em;color:var(--sub)}
+.splabel .t{font-size:13px;font-weight:900;letter-spacing:.02em}.splabel .t.h{color:var(--home)}.splabel .t.a{color:var(--away)}
+.spgrid{margin:0 16px}
+.sprow{display:flex;align-items:center;padding:9px 0;border-top:1px solid rgba(26,24,21,.1)}
+.spn{font-weight:900;font-size:21px;width:54px;text-align:center;flex-shrink:0}
+.spn.h{color:var(--home)}.spn.a{color:var(--away)}
+.spmid{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:800;font-size:10px;letter-spacing:.11em;color:var(--sub)}
+.spmid svg{width:19px;height:19px;flex-shrink:0}
+.spmid img{width:27px;height:27px;object-fit:contain;flex-shrink:0}
+/* detail: THE BOOK — bookings stamped down the ledger pages */
+.bpage{position:absolute;top:0;bottom:0;width:34%}
+.bpage.h{left:8%}.bpage.a{right:11.5%}
+@keyframes bfade{from{opacity:0;transform:translateY(-50%) scale(.9)}to{opacity:1;transform:translateY(-50%) scale(1)}}
+.bentry{position:absolute;left:7%;right:7%;display:flex;align-items:center;gap:5px;transform:translateY(-50%);animation:bfade .34s ease both}
+.bentry .chip{width:10px;height:14px;border-radius:2px;flex-shrink:0;box-shadow:0 1px 1.5px rgba(26,24,21,.35)}
+.bentry .chip.y{background:#E5B431}.bentry .chip.r{background:#C8504D}
+.bentry .bn{font-weight:800;font-size:9px;letter-spacing:.01em;color:#1A1815;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bentry .bmn{margin-left:auto;font-weight:800;font-size:8.5px;color:var(--sub);flex-shrink:0}
+.varstrip{min-height:14px;margin:11px 16px 0;font-weight:800;font-size:9px;letter-spacing:.07em;color:var(--sub);display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.varstrip b{color:var(--ink);letter-spacing:.14em}
+.varstrip .vchip{padding:2px 8px;border:1.4px solid var(--sub);border-radius:20px}
+.varstrip .vchip.over{border-color:var(--away);color:var(--away)}
+/* detail: THE BENCH — subs + injuries, listed under the dugout */
+.benchgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 16px 0}
+.bcol-h{font-weight:900;font-size:13px;letter-spacing:.02em;margin-bottom:7px}.bcol-h.h{color:var(--home)}.bcol-h.a{color:var(--away)}
+.brow{display:flex;align-items:center;gap:7px;margin-bottom:8px}
+.brow img{width:19px;height:19px;object-fit:contain;flex-shrink:0}
+.brow .bx{font-weight:800;font-size:9.5px;line-height:1.28;letter-spacing:.02em;color:var(--ink)}
+.brow .bx .in{color:var(--verde)}.brow .bx .out{color:var(--sub)}
+.brow .bmin{margin-left:auto;font-weight:800;font-size:9px;color:var(--sub)}
+.brow.inj .bx{color:var(--away)}
+.brow.none{color:var(--sub);font-size:9px;font-weight:700;letter-spacing:.1em}
+/* detail: PENALTIES — attempts placed in the shootout grid */
+#pens{position:absolute;inset:0}
+.pmark{position:absolute;width:11%;transform:translate(-50%,-50%);animation:pop .42s cubic-bezier(.3,1.5,.5,1) both;filter:drop-shadow(0 1px 2px rgba(26,24,21,.3))}
+.pmark svg{width:100%;display:block}
+.pmark.ms{width:9.2%}
+.pmark.h{color:var(--home)}.pmark.a{color:var(--away)}
 .sh-read{display:flex;justify-content:space-between;padding:12px 20px 24px}
 .sh-read .col{display:flex;flex-direction:column;gap:2px}.sh-read .col.r{align-items:flex-end}
 .sh-read .t{font-weight:800;font-size:11px;letter-spacing:.07em}.sh-read .t.h{color:var(--home)}.sh-read .t.a{color:var(--away)}
@@ -93,34 +142,25 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     <span class="st"><span class="dot"></span><span id="mSt">LIVE</span> · <span id="mMin">—</span></span>
   </div>
 
-  <!-- THE GROUND: the macro pitch, tendencies visible, places tappable -->
+  <!-- THE GROUND: the real stadium, tendencies visible, places tappable -->
   <div class="ground" id="ground">
-    <div class="pitch">
-      <svg viewBox="0 0 300 560" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-        <rect x="0" y="0" width="300" height="560" fill="var(--card)"/>
-        <g fill="none" stroke="#B7A98700" stroke-width="0"></g>
-        <g fill="none" stroke="#1A1815" stroke-width="2" opacity=".85">
-          <rect x="16" y="16" width="268" height="528"/>
-          <line x1="16" y1="280" x2="284" y2="280"/><circle cx="150" cy="280" r="46"/><circle cx="150" cy="280" r="3" fill="#1A1815"/>
-          <rect x="80" y="16" width="140" height="66"/><rect x="118" y="16" width="64" height="26"/><circle cx="150" cy="66" r="3" fill="#1A1815"/>
-          <rect x="80" y="478" width="140" height="66"/><rect x="118" y="518" width="64" height="26"/><circle cx="150" cy="494" r="3" fill="#1A1815"/>
-          <path d="M16 30 A14 14 0 0 1 30 16"/><path d="M270 16 A14 14 0 0 1 284 30"/>
-          <path d="M16 530 A14 14 0 0 0 30 544"/><path d="M284 530 A14 14 0 0 0 270 544"/>
-        </g>
-      </svg>
+    <div class="stadwrap" id="stadwrap">
+      <canvas class="stad" id="stadcanvas" width="760" height="1079"></canvas>
+      <div class="board" id="board">0–0</div>
+      <div class="pnum a" id="pA">—</div><div class="pnum h" id="pH">—</div>
+      <div class="hot goal" data-place="goal" style="left:49.8%;top:23%"><div class="ring"><span class="n" id="hGA">0</span></div><span class="cap" id="capA">GOAL</span></div>
+      <div class="hot goal" data-place="goal" style="left:49.8%;top:78%"><div class="ring"><span class="n" id="hGH">0</span></div><span class="cap" id="capH">GOAL</span></div>
+      <div class="hot sm" data-place="arc" style="left:33%;top:25%"><div class="ring"><span class="n" id="hC">0</span></div><span class="cap">SET PIECES</span></div>
+      <div class="hot sm soon" data-place="control" style="left:62%;top:58%"><div class="ring"><span class="ic">◑</span></div><span class="cap">CONTROL</span></div>
+      <div class="hot xs" data-place="pens" style="left:49.8%;top:69.5%"><div class="ring"><span class="ic">•</span></div><span class="cap">PENS</span></div>
+      <div class="hot sm" data-place="book" style="left:49.8%;top:50.5%"><div class="ring"><span class="ic">▤</span></div><span class="cap">THE BOOK</span></div>
+      <div class="hot sm" data-place="bench" style="left:79%;top:50%"><div class="ring"><span class="ic">⇅</span></div><span class="cap">THE BENCH</span></div>
+      <div class="hot sm soon" data-place="stands" style="left:12%;top:85%"><div class="ring"><span class="ic">◍</span></div><span class="cap">THE STANDS</span></div>
     </div>
-    <div class="terr a" id="terrA" style="height:50%"></div>
-    <div class="terr h" id="terrH" style="height:50%"></div>
-    <div class="plab" id="lA">ESP</div><div class="possnum" id="pA">—</div>
-    <div class="plab" id="lH">POR</div><div class="possnum" id="pH">—</div>
-
-    <!-- hotspots: places you can open -->
-    <div class="hot goal" data-place="goal" style="left:50%;top:15%"><div class="ring"><span class="n" id="hGA">0</span></div><span class="cap" id="capA">ESP GOAL · SHOTS</span></div>
-    <div class="hot goal" data-place="goal" style="left:50%;top:85%"><div class="ring"><span class="n" id="hGH">0</span></div><span class="cap" id="capH">POR GOAL · SHOTS</span></div>
-    <div class="hot corners" data-place="arc" style="left:14%;top:47%"><div class="ring"><span class="n" id="hC" style="font-size:19px">0</span></div><span class="cap">CORNERS</span></div>
   </div>
 
   <div class="tiphint" id="tip">TAP A GLOWING PLACE TO GO IN</div>
+  <div class="toast" id="toast"></div>
 
   <!-- DETAIL: THE GOAL-MOUTH -->
   <section class="sheet" id="sheet-goal">
@@ -133,18 +173,64 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     </div>
   </section>
 
-  <!-- DETAIL: THE ARC -->
+  <!-- DETAIL: SET PIECES (the dead ball) -->
   <section class="sheet" id="sheet-arc">
-    <div class="sh-head"><span class="t">THE ARC<small>CORNERS · WON AT THE FLAG</small></span><button class="close" data-close>✕</button></div>
+    <div class="sh-head"><span class="t">SET PIECES<small>THE DEAD BALL</small></span><button class="close" data-close>✕</button></div>
     <div class="hostband"><i class="v"></i><i class="r"></i><i class="a"></i><i class="g"></i></div>
-    <div class="art"><div style="position:relative"><img src="plate/gens/arc.png" alt="corner"><div id="corners"><div class="cband h" id="corH"></div><div class="cband a" id="corA"></div></div></div></div>
-    <div class="sh-read">
-      <div class="col"><span class="t h" id="cHn">POR</span><span class="n h" id="cH">0</span><span class="sub">CORNERS</span></div>
-      <div class="col r"><span class="t a" id="cAn">ESP</span><span class="n a" id="cA">0</span><span class="sub">CORNERS</span></div>
+    <div class="art"><div style="position:relative"><img src="plate/gens/arc.png" alt="set pieces"><div id="corners"><div class="cband h" id="corH"></div><div class="cband a" id="corA"></div></div></div></div>
+    <div class="splabel"><span class="t h" id="cHn">POR</span><span>SET PIECES WON</span><span class="t a" id="cAn">ESP</span></div>
+    <div class="spgrid">
+      <div class="sprow"><span class="spn h" id="spCh">0</span><span class="spmid"><svg viewBox="0 0 24 24" fill="none"><line x1="6" y1="22" x2="6" y2="3" stroke="#8C8467" stroke-width="2"/><path d="M6 3.5 L17 7 L6 10.5 Z" fill="#8C8467"/></svg>CORNERS</span><span class="spn a" id="spCa">0</span></div>
+      <div class="sprow"><span class="spn h" id="spFh">0</span><span class="spmid"><img src="plate/gens/freekick.png" alt="">FREE KICKS</span><span class="spn a" id="spFa">0</span></div>
+      <div class="sprow"><span class="spn h" id="spTh">—</span><span class="spmid"><img src="plate/gens/throwin.png" alt="">THROW-INS</span><span class="spn a" id="spTa">—</span></div>
     </div>
   </section>
+
+  <!-- DETAIL: THE BOOK -->
+  <section class="sheet" id="sheet-book">
+    <div class="sh-head"><span class="t">THE BOOK<small>THE REFEREE'S RECORD</small></span><button class="close" data-close>✕</button></div>
+    <div class="hostband"><i class="v"></i><i class="r"></i><i class="a"></i><i class="g"></i></div>
+    <div class="art"><div style="position:relative"><img src="plate/gens/book-ledger.png" alt="the book"><div class="bpage h" id="bookH"></div><div class="bpage a" id="bookA"></div></div></div>
+    <div class="varstrip" id="varStrip"></div>
+    <div class="sh-read">
+      <div class="col"><span class="t h" id="bkHn">POR</span><span class="n h" id="bkHc">0·0</span><span class="sub" id="bkHs">0 OFF · 0 FOULS</span></div>
+      <div class="col r"><span class="t a" id="bkAn">ESP</span><span class="n a" id="bkAc">0·0</span><span class="sub" id="bkAs">0 OFF · 0 FOULS</span></div>
+    </div>
+  </section>
+
+  <!-- DETAIL: THE BENCH -->
+  <section class="sheet" id="sheet-bench">
+    <div class="sh-head"><span class="t">THE BENCH<small>WHO CAME &amp; WENT</small></span><button class="close" data-close>✕</button></div>
+    <div class="hostband"><i class="v"></i><i class="r"></i><i class="a"></i><i class="g"></i></div>
+    <div class="art"><img src="plate/gens/dugout.png" alt="the bench"></div>
+    <div class="benchgrid">
+      <div class="bcol"><div class="bcol-h h" id="bnHn">POR</div><div id="benchH"></div></div>
+      <div class="bcol"><div class="bcol-h a" id="bnAn">ESP</div><div id="benchA"></div></div>
+    </div>
+  </section>
+
+  <!-- DETAIL: PENALTIES -->
+  <section class="sheet" id="sheet-pens">
+    <div class="sh-head"><span class="t">PENALTIES<small>FROM THE SPOT</small></span><button class="close" data-close>✕</button></div>
+    <div class="hostband"><i class="v"></i><i class="r"></i><i class="a"></i><i class="g"></i></div>
+    <div class="art"><div style="position:relative"><img src="plate/gens/pens-goal.png" alt="penalties"><div id="pens"></div></div></div>
+    <div class="sh-read">
+      <div class="col"><span class="t h" id="pnHn">POR</span><span class="n h" id="pnHv">0</span><span class="sub" id="pnHs">SCORED · 0 MISSED</span></div>
+      <div class="col r"><span class="t a" id="pnAn">ESP</span><span class="n a" id="pnAv">0</span><span class="sub" id="pnAs">SCORED · 0 MISSED</span></div>
+    </div>
+  </section>
+
+  <!-- move between stat cards without exiting -->
+  <div class="cardnav" id="cardnav">
+    <button class="cn" id="cnPrev" aria-label="previous card">‹</button>
+    <span class="cnlbl" id="cnPrevLbl"></span>
+    <div class="cndots" id="cnDots"></div>
+    <span class="cnlbl" id="cnNextLbl"></span>
+    <button class="cn" id="cnNext" aria-label="next card">›</button>
+  </div>
 </div>
 
+<script src="plate/gens/stadium-data.js"></script>
 <script>
 (function(){
   'use strict';
@@ -155,15 +241,72 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
    '18193785':['USA','USA','#2A3B78','BEL','BELGIUM','#B4232B'],
    '18202701':['ARG','ARGENTINA','#75AADB','EGY','EGYPT','#CE1126'],
    '18202783':['SUI','SWITZERLAND','#D52B1E','COL','COLOMBIA','#FCD116']};
+  // secondary (change-strip) colours — so two same-primary teams never read as one
+  var SEC={ARG:'#EDE9DE',CPV:'#12388C',BRA:'#1E8C4C',NOR:'#00205B',MEX:'#C8102E',ENG:'#EDE9DE',POR:'#DA020E',ESP:'#F1BF00',USA:'#B4232B',BEL:'#F2C14E',EGY:'#111111',SUI:'#EDE9DE',COL:'#003893'};
   var q=new URLSearchParams(location.search), mid=q.get('match')||'18193785', fx=FIX[mid]||FIX['18193785'];
   function el(id){return document.getElementById(id);}
+  function rgba(hex,a){return 'rgba('+parseInt(hex.slice(1,3),16)+','+parseInt(hex.slice(3,5),16)+','+parseInt(hex.slice(5,7),16)+','+a+')';}
   function skin(ink){var A={green:[30,122,68],red:[170,21,27],blue:[32,73,170]},c=[parseInt(ink.slice(1,3),16),parseInt(ink.slice(3,5),16),parseInt(ink.slice(5,7),16)],b='blue',bd=1e15;for(var k in A){var a=A[k],d=Math.pow(a[0]-c[0],2)+Math.pow(a[1]-c[1],2)+Math.pow(a[2]-c[2],2);if(d<bd){bd=d;b=k;}}return b;}
-  var GLV={green:'glove-verde',red:'glove-cpv',blue:'glove-arg'};
-  function mk(tri,name,ink){var s=skin(ink);return{tri:tri,name:name,ink:ink,glove:'plate/gens/'+GLV[s]+'.png',wall:'plate/gens/wall-'+s+'.png'};}
+  // save mark is universal — a save is a save; the side it lands on tells you whose. Wall stays team-coloured (it's that team's barrier).
+  function mk(tri,name,ink){var s=skin(ink);return{tri:tri,name:name,ink:ink,glove:'plate/gens/glove-new.png',wall:'plate/gens/wall-'+s+'.png'};}
   var HOME=mk(fx[0],fx[1],fx[2]), AWAY=mk(fx[3],fx[4],fx[5]);
   document.documentElement.style.setProperty('--home',HOME.ink);
   document.documentElement.style.setProperty('--away',AWAY.ink);
-  var FALLBACK={minute:124,__live:false,home:{goals:3,shots:{onTarget:10,offTarget:2,blocked:5,woodwork:0},corners:9,possessionPct:61,territory:.55},away:{goals:2,shots:{onTarget:6,offTarget:5,blocked:4,woodwork:0},corners:8,possessionPct:39,territory:.45}};
+
+  // ---- paint the stadium: recolour the stands to the two teams, and split the pitch by possession ----
+  var repaintPitch=null, lastHp=50;   // set once the canvas is painted; render() calls it with the live possession share
+  (function paintStadium(){
+    var cv=document.getElementById('stadcanvas'); if(!cv||!cv.getContext)return;
+    function h2r(h){return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];}
+    function r2h(r,g,b){r/=255;g/=255;b/=255;var mx=Math.max(r,g,b),mn=Math.min(r,g,b),h=0,s=0,l=(mx+mn)/2,d=mx-mn;
+      if(d){s=l>.5?d/(2-mx-mn):d/(mx+mn);h=mx===r?((g-b)/d+(g<b?6:0)):mx===g?((b-r)/d+2):((r-g)/d+4);h*=60;}return [h,s,l];}
+    function h2rgb(h,s,l){h/=360;function f(p,q,t){if(t<0)t++;if(t>1)t--;if(t<1/6)return p+(q-p)*6*t;if(t<1/2)return q;if(t<2/3)return p+(q-p)*(2/3-t)*6;return p;}
+      var q=l<.5?l*(1+s):l+s-l*s,p=2*l-q;return [Math.round(f(p,q,h+1/3)*255),Math.round(f(p,q,h)*255),Math.round(f(p,q,h-1/3)*255)];}
+    function sec(tri){return SEC[tri]||'#EDE9DE';}
+    var homeH=r2h.apply(null,h2r(HOME.ink)), awayH=r2h.apply(null,h2r(AWAY.ink));
+    var homeS=r2h.apply(null,h2r(sec(HOME.tri))), awayS=r2h.apply(null,h2r(sec(AWAY.tri)));
+    var img=new Image();
+    img.onload=function(){
+      cv.width=img.naturalWidth;cv.height=img.naturalHeight;
+      var ctx=cv.getContext('2d');ctx.drawImage(img,0,0);
+      var d;try{d=ctx.getImageData(0,0,cv.width,cv.height);}catch(e){return;}
+      var D=d.data,W=cv.width,Hh=cv.height;
+      // --- neutral tan bowls + track → team colours: top half → away, bottom half → home (keep luminance so the seating shading survives) ---
+      var midY=Hh*0.5;
+      for(var i=0;i<D.length;i+=4){ if(D[i+3]<40)continue;
+        var r=D[i],g=D[i+1],b=D[i+2],l=r2h(r,g,b)[2];
+        if(r>g-4 && r>b+16 && l>0.16 && l<0.72 && !(g>r+10&&g>b+6)){   // tan seating only — cream paper bg/track (lighter) and green pitch excluded
+          var yy=(i>>2)/W, tt=(yy<midY)?awayH:homeH, o=h2rgb(tt[0],Math.min(1,tt[1]*0.9),l);
+          D[i]=o[0];D[i+1]=o[1];D[i+2]=o[2];
+        }
+      }
+      // --- pitch mask: only green pixels inside the pitch rect ---
+      var rx0=Math.round(W*0.267),rx1=Math.round(W*0.734),ry0=Math.round(Hh*0.216),ry1=Math.round(Hh*0.795),mask=[];
+      for(var y=ry0;y<ry1;y++)for(var x=rx0;x<rx1;x++){var i2=(y*W+x)*4,r=D[i2],g=D[i2+1],b=D[i2+2];
+        if(g>r+10&&g>b+8&&g>45&&g<170){mask.push(i2);mask.push(y);mask.push(Math.round(r2h(r,g,b)[2]*1000));}}
+      // the pitch becomes the two team colours, split at possession `frac` (home from the bottom), keeping the grass luminance so lines/texture survive
+      repaintPitch=function(frac){
+        var splitY=ry0+(ry1-ry0)*(1-frac);
+        for(var k=0;k<mask.length;k+=3){var idx=mask[k],yy=mask[k+1],ll=mask[k+2]/1000,tt=(yy>=splitY)?homeH:awayH,o=h2rgb(tt[0],Math.min(1,tt[1]*0.92),Math.min(0.64,ll*0.5+0.42));D[idx]=o[0];D[idx+1]=o[1];D[idx+2]=o[2];}
+        ctx.putImageData(d,0,0);
+        ctx.fillStyle='#C79A38';ctx.fillRect(rx0,splitY-1.6,rx1-rx0,3.2);   // gold seam at the divide
+      };
+      repaintPitch(lastHp/100);
+    };
+    img.src=window.STADIUM_IMG||'plate/gens/stadium-neutral-tall.png';   // inline data-URI → recolour works even on file:// (no canvas taint)
+  })();
+  var FALLBACK={minute:124,__live:false,
+    home:{goals:3,shots:{onTarget:10,offTarget:2,blocked:5,woodwork:0},corners:9,possessionPct:61,territory:.57,attacks:{danger:23,highDanger:9},
+      cards:{yellow:2,red:0,list:[{player:'FERNÁNDEZ',type:'Yellow',minute:38},{player:'PAREDES',type:'Yellow',minute:78}]},offsides:2,fouls:10,freeKicks:13,throwIns:19,
+      subs:{count:3,moves:[{inName:'ÁLVAREZ',outName:'MARTÍNEZ',minute:64},{inName:'PAREDES',outName:'DE PAUL',minute:71},{inName:'DYBALA',outName:'DI MARÍA',minute:88}]},
+      injuries:{count:1,list:[{player:'ROMERO',outcome:'OnPitch',minute:53}]},
+      penalties:{scored:1,missed:0,retake:0,list:[{taker:'MESSI',outcome:'Scored',minute:120}]}},
+    away:{goals:2,shots:{onTarget:6,offTarget:5,blocked:4,woodwork:0},corners:8,possessionPct:39,territory:.43,attacks:{danger:16,highDanger:5},
+      cards:{yellow:1,red:1,list:[{player:'MENDES',type:'Yellow',minute:52},{player:'TAVARES',type:'Red',minute:88}]},offsides:3,fouls:16,freeKicks:9,throwIns:14,
+      subs:{count:2,moves:[{inName:'ANDRADE',outName:'TAVARES',minute:70},{inName:'LOPES',outName:'MENDES',minute:82}]},
+      injuries:{count:0,list:[]},
+      penalties:{scored:0,missed:1,retake:0,list:[{taker:'SEMEDO',outcome:'Missed',minute:120}]}},
+    var:[{type:'Goal',outcome:'Stands',minute:92},{type:'Penalty',outcome:'Overturned',minute:74}]};
 
   // ---- shared mark language ----
   var SHOT={};
@@ -183,6 +326,31 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     ensureMarks(wrap,tc+'_ww',ww,SLOTS('ww',side),function(){return dotEl('ww '+tc);});});}
   function cornerMark(side){var d=document.createElement('div');d.className='cmark '+side;d.innerHTML='<svg viewBox="0 0 24 24"><path d="M4 21 L4 12 A8 8 0 0 1 12 4 L21 4" fill="none" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';return d;}
   function ensureC(id,side,n){var w=el(id);if(!w)return;var c=w.children.length;while(c<n){w.appendChild(cornerMark(side));c++;}while(c>n){w.removeChild(w.lastChild);c--;}}
+  // THE BOOK — write each booking (card chip · player · minute) on a ruled line of the team's page
+  function fillBook(page,team){ if(!page)return; page.innerHTML=''; var c=team.cards||{},list=(c.list||[]).slice(),i;
+    if(!list.length){ for(i=0;i<(c.red||0);i++)list.push({type:'Red'}); for(i=0;i<(c.yellow||0);i++)list.push({type:'Yellow'}); }  // fallback: counts only, no names yet
+    list.sort(function(x,y){return (x.minute||0)-(y.minute||0);});
+    var lines=[24,33.2,42.4,51.6,60.8,70,79.2];
+    list.slice(0,7).forEach(function(bk,k){ var r=document.createElement('div');r.className='bentry';r.style.top=lines[k]+'%';
+      r.innerHTML='<span class="chip '+(bk.type==='Red'?'r':'y')+'"></span><span class="bn">'+(bk.player||'—')+'</span><span class="bmn">'+(bk.minute!=null?bk.minute+"′":'')+'</span>';
+      page.appendChild(r); }); }
+  // THE BENCH — list a team's subs (in/out names) then injuries under the dugout
+  function fillBench(col,team){ if(!col)return; col.innerHTML='';
+    var subs=(team.subs&&team.subs.moves)||[], injs=(team.injuries&&team.injuries.list)||[];
+    subs.forEach(function(m){ var r=document.createElement('div');r.className='brow';
+      r.innerHTML='<img src="plate/gens/subboard.png" alt=""><span class="bx"><span class="in">▲ '+(m.inName||'—')+'</span><br><span class="out">▼ '+(m.outName||'—')+'</span></span><span class="bmin">'+(m.minute!=null?m.minute+"′":'')+'</span>'; col.appendChild(r); });
+    injs.forEach(function(x){ var r=document.createElement('div');r.className='brow inj';
+      r.innerHTML='<img src="plate/gens/stretcher.png" alt=""><span class="bx">'+(x.player||'—')+'</span><span class="bmin">'+(x.minute!=null?x.minute+"′":'')+'</span>'; col.appendChild(r); });
+    if(!subs.length&&!injs.length)col.innerHTML='<div class="brow none">NONE YET</div>'; }
+  // PENALTIES — place each attempt (both teams shoot at this one grid): scored = team ball, missed = team ring + X
+  function fillPens(box,h,a){ if(!box)return; box.innerHTML=''; var pens=[];
+    ((h.penalties&&h.penalties.list)||[]).forEach(function(p){pens.push({s:'h',sc:p.outcome==='Scored'});});
+    ((a.penalties&&a.penalties.list)||[]).forEach(function(p){pens.push({s:'a',sc:p.outcome==='Scored'});});
+    var zones=[[26,31],[50,30],[74,31],[26,53],[50,54],[74,53]];
+    pens.slice(0,6).forEach(function(p,i){var z=zones[i],d=document.createElement('div');
+      d.className='pmark '+(p.sc?'':'ms ')+p.s; d.style.left=z[0]+'%'; d.style.top=z[1]+'%';
+      d.innerHTML=p.sc?'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor" stroke="#1A1815" stroke-width="1.6"/></svg>':'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="3"/><path d="M7.5 7.5 L16.5 16.5 M16.5 7.5 L7.5 16.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
+      box.appendChild(d);}); }
 
   // ---- render ----
   function render(s){
@@ -191,33 +359,74 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     var ap=100-hp;
     el('mHT').textContent=HOME.tri;el('mAT').textContent=AWAY.tri;el('mSc').textContent=hg+'–'+ag;
     el('mSt').textContent=live?'LIVE':'REPLAY';el('mMin').textContent=(s.minute!=null?s.minute+'′':'');
-    // macro pitch heat
-    el('terrA').style.height=ap+'%';el('terrH').style.height=hp+'%';
-    el('lA').textContent=AWAY.tri;el('lH').textContent=HOME.tri;el('pA').textContent=ap;el('pH').textContent=hp;
+    // possession on the pitch
+    el('pA').textContent=(ap!=null?ap:'—');el('pH').textContent=(hp!=null?hp:'—');
+    // scoreboard
+    el('board').textContent=hg+'–'+ag;
+    // the pitch itself becomes the two team colours (canvas recolour), split at possession — home from the bottom
+    lastHp=hp; if(repaintPitch)repaintPitch(hp/100);
     // hotspot counts (tendencies)
     el('hGA').textContent=(hs.onTarget||0)+(hs.offTarget||0)+(hs.blocked||0); // home shooting the away (top) goal
     el('hGH').textContent=(as.onTarget||0)+(as.offTarget||0)+(as.blocked||0);
-    el('capA').textContent=AWAY.tri+' GOAL · SHOTS';el('capH').textContent=HOME.tri+' GOAL · SHOTS';
-    el('hC').textContent=(h.corners||0)+(a.corners||0);
+    el('capA').textContent=AWAY.tri+' GOAL';el('capH').textContent=HOME.tri+' GOAL';
+    el('hC').textContent=(h.corners||0)+(a.corners||0)+(h.freeKicks||0)+(a.freeKicks||0);
     // detail: goal-mouth
     placeShots(h,a);
     el('gH').textContent=HOME.name;el('gA').textContent=AWAY.name;
     el('gHG').textContent=hg;el('gAG').textContent=ag;
     el('gHS').textContent='GOALS · '+(hs.onTarget||0)+' ON TARGET';el('gAS').textContent='GOALS · '+(as.onTarget||0)+' ON TARGET';
-    // detail: arc
+    // detail: SET PIECES — corner marks on the hero + the dead-ball breakdown
     ensureC('corH','h',h.corners||0);ensureC('corA','a',a.corners||0);
-    el('cHn').textContent=HOME.tri;el('cAn').textContent=AWAY.tri;el('cH').textContent=h.corners||0;el('cA').textContent=a.corners||0;
+    el('cHn').textContent=HOME.tri;el('cAn').textContent=AWAY.tri;
+    el('spCh').textContent=h.corners||0;el('spCa').textContent=a.corners||0;
+    el('spFh').textContent=(h.freeKicks!=null?h.freeKicks:0);el('spFa').textContent=(a.freeKicks!=null?a.freeKicks:0);
+    el('spTh').textContent=(h.throwIns!=null?h.throwIns:'—');el('spTa').textContent=(a.throwIns!=null?a.throwIns:'—');
+    // detail: THE BOOK — bookings on the ledger, offsides/fouls tallied, match-level VAR strip
+    fillBook(el('bookH'),h); fillBook(el('bookA'),a);
+    el('bkHn').textContent=HOME.tri;el('bkAn').textContent=AWAY.tri;
+    el('bkHc').textContent=((h.cards&&h.cards.yellow)||0)+'·'+((h.cards&&h.cards.red)||0);
+    el('bkAc').textContent=((a.cards&&a.cards.yellow)||0)+'·'+((a.cards&&a.cards.red)||0);
+    el('bkHs').textContent=(h.offsides||0)+' OFF · '+(h.fouls||0)+' FOULS';
+    el('bkAs').textContent=(a.offsides||0)+' OFF · '+(a.fouls||0)+' FOULS';
+    var vs=el('varStrip'),vv=s.var||[];
+    vs.innerHTML=vv.length?('<b>VAR</b>'+vv.map(function(x){return '<span class="vchip'+(x.outcome==='Overturned'?' over':'')+'">'+x.type+' · '+String(x.outcome).toUpperCase()+'</span>';}).join('')):'';
+    // detail: THE BENCH — subs + injuries
+    fillBench(el('benchH'),h); fillBench(el('benchA'),a);
+    el('bnHn').textContent=HOME.tri;el('bnAn').textContent=AWAY.tri;
+    // detail: PENALTIES — shootout grid
+    fillPens(el('pens'),h,a);
+    var ph=h.penalties||{},pa=a.penalties||{};
+    el('pnHn').textContent=HOME.tri;el('pnAn').textContent=AWAY.tri;
+    el('pnHv').textContent=ph.scored||0;el('pnAv').textContent=pa.scored||0;
+    el('pnHs').textContent='SCORED · '+(ph.missed||0)+' MISSED';el('pnAs').textContent='SCORED · '+(pa.missed||0)+' MISSED';
   }
 
-  // ---- zoom interaction ----
-  var openSheet=null;
-  function open(place,origin){
-    var sh=el('sheet-'+place); if(!sh)return;
-    sh.style.transformOrigin=origin;
-    sh.classList.add('open'); el('ground').classList.add('dimmed'); el('tip').style.display='none';
-    openSheet=sh;
+  // ---- zoom interaction + inter-card nav ----
+  var openSheet=null, toastT=null;
+  var CARDS=[['goal','GOAL-MOUTH'],['arc','SET PIECES'],['book','THE BOOK'],['bench','THE BENCH'],['pens','PENALTIES']];   // built detail cards, in order (grows as families land)
+  function toast(msg){var t=el('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove('show');},1800);}
+  var SOON={book:'THE BOOK',bench:'THE BENCH',stands:'THE STANDS',control:'CONTROL'};
+  function syncNav(place){
+    var nav=el('cardnav'), dots=el('cnDots');
+    if(CARDS.length<2){nav.classList.remove('on');return;}
+    nav.classList.add('on');
+    var i=0; CARDS.forEach(function(c,k){if(c[0]===place)i=k;});
+    el('cnPrevLbl').textContent=CARDS[(i-1+CARDS.length)%CARDS.length][1];
+    el('cnNextLbl').textContent=CARDS[(i+1)%CARDS.length][1];
+    dots.innerHTML=CARDS.map(function(c){return '<i data-go="'+c[0]+'" title="'+c[1]+'"'+(c[0]===place?' class="on"':'')+'></i>';}).join('');
   }
-  function close(){ if(openSheet){openSheet.classList.remove('open');openSheet=null;} el('ground').classList.remove('dimmed'); }
+  function open(place,origin){
+    var sh=el('sheet-'+place);
+    if(!sh){ toast((SOON[place]||place.toUpperCase())+' · NEXT'); return; }
+    if(openSheet && openSheet!==sh){ openSheet.style.transformOrigin='50% 50%'; openSheet.classList.remove('open'); }
+    sh.style.transformOrigin=origin||'50% 50%';
+    sh.classList.add('open'); el('ground').classList.add('dimmed'); el('tip').style.display='none';
+    openSheet=sh; syncNav(place);
+  }
+  function close(){ if(openSheet){openSheet.classList.remove('open');openSheet=null;} el('ground').classList.remove('dimmed'); el('cardnav').classList.remove('on'); }
+  function nav(dir){ if(!openSheet)return; var cur=openSheet.id.replace('sheet-',''),i=0;
+    CARDS.forEach(function(c,k){if(c[0]===cur)i=k;});
+    var t=CARDS[(i+dir+CARDS.length)%CARDS.length][0]; open(t,'50% 50%'); }
   document.querySelectorAll('.hot').forEach(function(hot){
     hot.addEventListener('click',function(){
       var r=hot.getBoundingClientRect(), w=document.querySelector('.wrap').getBoundingClientRect();
@@ -226,6 +435,17 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     });
   });
   document.querySelectorAll('[data-close]').forEach(function(b){b.addEventListener('click',close);});
+  el('cnPrev').addEventListener('click',function(){nav(-1);});
+  el('cnNext').addEventListener('click',function(){nav(1);});
+  el('cnDots').addEventListener('click',function(e){var g=e.target.getAttribute('data-go');if(g)open(g,'50% 50%');});
+  // swipe between cards
+  var tsx=0,tsy=0;
+  document.querySelectorAll('.sheet').forEach(function(sh){
+    sh.addEventListener('touchstart',function(e){tsx=e.changedTouches[0].clientX;tsy=e.changedTouches[0].clientY;},{passive:true});
+    sh.addEventListener('touchend',function(e){var dx=e.changedTouches[0].clientX-tsx,dy=e.changedTouches[0].clientY-tsy;
+      if(Math.abs(dx)>55 && Math.abs(dx)>Math.abs(dy)*1.6){nav(dx<0?1:-1);}},{passive:true});
+  });
+  document.addEventListener('keydown',function(e){if(!openSheet)return;if(e.key==='ArrowRight')nav(1);else if(e.key==='ArrowLeft')nav(-1);else if(e.key==='Escape')close();});
 
   // ---- feed ----
   render(FALLBACK);
