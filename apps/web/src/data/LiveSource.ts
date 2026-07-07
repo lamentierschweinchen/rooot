@@ -170,6 +170,10 @@ export class LiveSource implements MatchDataSource {
       case 'feedState':
         this.cb.onFeedState?.(msg.state);
         return;
+      case 'lineup':
+        // the starting XI is consumed by the stats surface (window.__stats.lineups),
+        // not the loom's match model — nothing to forward through MatchCallbacks.
+        return;
       default: {
         // exhaustiveness guard — a new FeedMsg variant should be a compile
         // error here, not a silent drop, since this file only changes when
