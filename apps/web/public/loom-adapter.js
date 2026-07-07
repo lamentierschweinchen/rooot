@@ -130,9 +130,13 @@
         }
         case 'odds': {
           var t = msg.tick;
-          // only the full-match 1X2 feeds the belief; when it settles at the 90'
-          // level the wire switches to period 'et' → we stop (loom greys). Honest.
-          if (t.period === 'et' || etPhase) break;
+          // The full-match 1X2 keeps pricing the WINNER through EXTRA TIME — verified in the
+          // ARG-CPV capture: it stays period 'full' for all 625 ticks across the whole match
+          // (H~0.91 on the 92' ET goal → draw-heavy ~0.55 at 105' headed to pens → 0.94 on the
+          // 111' winner). Do NOT cut the belief once ET starts — that flat-lined the cord and
+          // the owner flagged the "beige after 90'" as a bug. Only skip a distinct 'et'-period
+          // market if the wire ever sends one (it doesn't on the 1X2 we parse). (Jul 7 refix.)
+          if (t.period === 'et') break;
           // a JOIN replay stamps the historical minute onto the tick (live ticks
           // carry none) — use it so the belief CURVE lands at its real minutes;
           // live ticks fall back to the running clock.
