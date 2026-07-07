@@ -22,8 +22,13 @@
 (function () {
   'use strict';
   var q = new URLSearchParams(location.search);
-  var ON = location.pathname === '/' || location.pathname === '/live'
-    || location.pathname === '/count-live.html' || location.pathname === '/stadium.html'
+  // NB: production serves clean URLs (cleanUrls) — the path is '/stadium', not
+  // '/stadium.html'. Match by substring so BOTH the clean route and the .html file
+  // (preview / direct open) activate the adapter. Exact '.html' checks silently
+  // failed on prod → stadium + count-live showed the fallback, never live (Jul 7).
+  var p = location.pathname;
+  var ON = p === '/' || p === '/live'
+    || p.indexOf('/count-live') >= 0 || p.indexOf('/count') >= 0 || p.indexOf('/stadium') >= 0
     || q.get('site') === '1' || q.get('loomfeed') === '1' || q.get('statsfeed') === '1';
   if (!ON) return;
   var matchId = q.get('match') || '18202701'; // ARG–EGY default (today's live hero, ingested). MUST match stadium's FIX default. TODO(P2): dynamic default so /stadium + /count auto-follow the live game.
