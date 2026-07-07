@@ -320,10 +320,18 @@ interface JoinSnapshot {
 }
 const ODDS_HISTORY_MAX = 400;
 const ODDS_HISTORY_GAP_MS = 12000; // ~1 belief point / 12s of wire time → a smooth curve
-const EVENT_HISTORY_MAX = 180; // woven marks (goals/cards/VAR/shots/corners) — sparse; keep the lot
+// keep the WHOLE match of discrete events (re-emissions included; the client dedupes by id),
+// so a socket that joins at 70' still accumulates COMPLETE stats — not since-connect. A full
+// 90'+ET match is ~500 event messages; 1200 leaves generous headroom before the oldest evict.
+const EVENT_HISTORY_MAX = 1200;
 const PRESSURE_HISTORY_MAX = 350;
 const DANGER_HISTORY_GAP_MS = 4000; // ~1 pressure point per side per 4s → the cord's shape, no flood
+// loom-woven marks…
 const WOVEN_KINDS = new Set(['goal', 'yellow-card', 'red-card', 'var', 'shot', 'corner', 'possible', 'penalty-kick']);
+// …plus the stats-only families the stadium/count tally but the loom doesn't weave. Without
+// these on the join replay, a late joiner's subs/injuries/throw-ins/fouls/offsides stay empty
+// (the "incomplete data" owner caught, Jul 7). free-kick carries fouls + offsides.
+const STAT_KINDS = new Set(['substitution', 'injury', 'throw-in', 'free-kick']);
 const joinSnapshots = new Map<string, JoinSnapshot>();
 const lastFeedState = new Map<string, Extract<FeedMsg, { type: 'feedState' }>>();
 
@@ -379,7 +387,7 @@ function rememberForJoin(matchId: string, msg: ServerMsg | FeedMsg): void {
       // advance the clock used to stamp buffered odds, so the belief CURVE gets
       // real minutes even when status is quiet + there are no goals.
       if (typeof ev.minute === 'number' && ev.minute >= (snap.lastMinute ?? 0)) snap.lastMinute = ev.minute;
-      if (WOVEN_KINDS.has(ev.kind)) {
+      if (WOVEN_KINDS.has(ev.kind) || STAT_KINDS.has(ev.kind)) {
         snap.eventHistory.push(msg);
         if (snap.eventHistory.length > EVENT_HISTORY_MAX) snap.eventHistory.splice(0, snap.eventHistory.length - EVENT_HISTORY_MAX);
       } else if (ev.kind === 'danger') {
