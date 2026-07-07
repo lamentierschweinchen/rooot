@@ -53,6 +53,8 @@
     var etPhase = false;       // true once EXTRA_TIME/PENALTIES — full 1X2 is dead
     var firedGoals = {};       // ledger goal id → true (fire the weave ONCE)
     var firedVars = {};        // VAR review id → true — ONE mark per review, not per envelope
+    var pendingFK = [];        // free kicks held, awaiting a danger for the same side (see below)
+    var FK_DANGER_WINDOW = 25; // match-seconds a free kick has to produce a threat to count
     var wove = { 1: 0, 2: 0 }; // goals actually woven per side — for chalk-off reconciliation
     var report = { odds: 0, spell: 0, event: 0, goal: 0, chalked: 0, pressure: 0, score: '0-0' };
     window.__loomAdapter = { report: report, matchId: matchId };
@@ -190,7 +192,21 @@
             // them to the cord here, or it sits dead at centre (owner caught this
             // live). Not tempo: a danger spell isn't a discrete beat.
             var dsd = sideNum(ev.side);
-            if (dsd) { L.pressure(mn, dsd, (ev.detail || '').toLowerCase().indexOf('high') >= 0 ? 2 : 1.5); report.pressure++; }
+            if (dsd) {
+              L.pressure(mn, dsd, (ev.detail || '').toLowerCase().indexOf('high') >= 0 ? 2 : 1.5); report.pressure++;
+              // did a recent free kick LEAD TO this danger? weave the newest matching one,
+              // placed where the FREE KICK happened. (FreeKickType is mostly empty on the wire,
+              // so we detect "led to danger" by a same-side danger within the window, not a flag.)
+              if (typeof _secs === 'number') {
+                for (var _fi = pendingFK.length - 1; _fi >= 0; _fi--) {
+                  var _fk = pendingFK[_fi];
+                  if (_fk.side === dsd && _secs - _fk.secs >= 0 && _secs - _fk.secs <= FK_DANGER_WINDOW) {
+                    L.event({ minute: _fk.mPos, kind: 'freekick', side: dsd, id: _fk.id });
+                    pendingFK.splice(_fi, 1); break;
+                  }
+                }
+              }
+            }
             break;
           }
           // throw-ins are a stats-only signal (SET PIECES count) — NOT a loom beat.
@@ -232,8 +248,16 @@
           } else if (k === 'injury') {
             L.event({ minute: mPos, kind: 'injury', side: sideNum(ev.side), id: ev.id });
           } else if (k === 'free-kick') {
-            // fouls + offsides woven where they land — detail carries the FreeKickType
-            L.event({ minute: mPos, kind: 'freekick', side: sideNum(ev.side), type: (ev.detail || '').toLowerCase(), id: ev.id });
+            var fkt = (ev.detail || '').toLowerCase();
+            if (fkt.indexOf('offside') >= 0) {
+              // offside is its own event — weave it directly, where it happened.
+              L.event({ minute: mPos, kind: 'freekick', side: sideNum(ev.side), type: 'offside', id: ev.id });
+            } else {
+              // a foul → HOLD it; the danger branch weaves it only if it LED TO DANGER.
+              // Routine midfield fouls that go nowhere never weave (they'd flood the cloth).
+              var _fs = sideNum(ev.side);
+              if (_fs && typeof _secs === 'number') { pendingFK.push({ side: _fs, secs: _secs, mPos: mPos, id: ev.id }); if (pendingFK.length > 40) pendingFK.shift(); }
+            }
           } else if (k === 'var') {
             // ONE mark per REVIEW, not per envelope: a review re-fires with the
             // same id (OPEN → OPEN → Overturned) — dedupe so 2 reviews ≠ 6 marks.
