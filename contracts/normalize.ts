@@ -966,10 +966,17 @@ export function parseLedgerMessage(
   };
   if (kind === 'goal') {
     ev.confirmed = msg.Confirmed === true;
+    // A team on ZERO goals has its Total.Goals field OMITTED by the wire (not sent
+    // as 0). Requiring BOTH to be numbers dropped ev.score whenever a side was on 0
+    // — which skipped the goal path's L.score + chalk-off reconcile and let the loom's
+    // goal-weave increment stand uncorrected (the POR-ESP 0-2 ghost, Jul 7). A present
+    // Score block's missing Goals means 0.
     const p1 = msg.Score?.Participant1?.Total?.Goals;
     const p2 = msg.Score?.Participant2?.Total?.Goals;
-    if (typeof p1 === 'number' && typeof p2 === 'number') {
-      ev.score = p1IsHome ? { home: p1, away: p2 } : { home: p2, away: p1 };
+    if (typeof p1 === 'number' || typeof p2 === 'number') {
+      const h = typeof p1 === 'number' ? p1 : 0;
+      const a = typeof p2 === 'number' ? p2 : 0;
+      ev.score = p1IsHome ? { home: h, away: a } : { home: a, away: h };
     }
     // GoalType (Shot|Head|Own) → goalKind, so the loom sews the RIGHT patch
     // (design's "GOAL — BY TYPE": shot-starburst vs header vs own-goal mark).

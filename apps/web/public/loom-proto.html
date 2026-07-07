@@ -284,7 +284,7 @@ EVENTS.push({m:89.12,kind:'var',m1:89.42});
 let NARROWM=null,NARROWS=1;  // red card → the cloth weaves narrower (none in this replay; live-ready)
 const GOALS=EVENTS.filter(e=>e.kind==='goal');
 function scoreAt(t){if(LIVE.on)return LIVE.score.slice();let a=0,c=0;GOALS.forEach(g=>{if(g.m<=t){if(g.side===1)a++;else c++;}});return[a,c];}
-function phaseAt(t){ if(t<=0)return'KICK-OFF';if(t<45)return'1ST HALF';if(t<45.5)return'HALF-TIME';if(t<=90)return'2ND HALF';if(t<105)return'EXTRA TIME 1';if(t<120)return'EXTRA TIME 2';return'FULL TIME';}
+function phaseAt(t){ if(t<=0)return'KICK-OFF';if(t<45)return'1ST HALF';if(t<45.5)return'HALF-TIME';if(t<=90)return'2ND HALF';if(t<105)return(LIVE.on&&!LIVE.et)?('90+'+Math.max(1,Math.round(t-90))):'EXTRA TIME 1';if(t<120)return'EXTRA TIME 2';return'FULL TIME';} // live: 90+N added time is NOT extra time — only the feed's ET phase flips LIVE.et (Jul 7 fix)
 
 const C={cream:'#EFE7D3',ink:'#1A1815',grey:'#B7AD95',gold:'#D6A33B',poppy:'#C8504D',warm:'#D98C86',ultra:'#2049AA',sky:'#3E8CBC',yellow:'#E5B431',dead:'#C6BCA4'};
 function fA(g,s,w){g.font=(w||900)+' '+s+"px 'Anybody','Arial Black',sans-serif";}
@@ -347,10 +347,11 @@ window.__loom={
       e.out=d.indexOf('wood')>=0?'wood':d.indexOf('off')>=0?'off':d.indexOf('block')>=0?'blocked':'on';}
     if(e.kind==='card'&&(e.type==='red-card'||e.type==='red'))e.col='r';   // if the wire ever passes the colour
     LIVE.events.push(e);
-    if(e.kind==='goal'){if(e.side)LIVE.score[e.side-1]++;if(!e.quiet)st.erupt={on:true,t0:performance.now(),side:e.side,et:e.et};} // e.quiet = a JOIN replay: weave the goal, don't re-fire GOOOOL
+    if(e.kind==='goal'){if(e.side&&!LIVE.on)LIVE.score[e.side-1]++;if(!e.quiet)st.erupt={on:true,t0:performance.now(),side:e.side,et:e.et};} // LIVE score is authoritative via L.score; only REPLAY builds it by weaving. Live-weaving used to double-count (0-2 ghost, Jul 7). e.quiet = JOIN replay: weave, don't re-fire GOOOOL
     if(e.kind==='card'&&e.col==='r'){NARROWM=e.m;NARROWS=e.side||1;}
   },
   clock:function(minute,running){LIVE.clock=minute;if(minute>=st.t)st.t=minute;LIVE.anchor={m:minute,w:performance.now(),run:running!==false};},
+  phase:function(p){LIVE.et=!!(p&&(p.phase==='EXTRA_TIME'||p.phase==='PENALTIES'));}, // the adapter pushes the feed's phase; phaseAt reads LIVE.et so 90+N added time isn't mislabelled EXTRA TIME (Jul 7)
   score:function(a,c){LIVE.score=[a,c];},
   chalkOff:function(side){ // VAR/offside: strike the most recent standing goal on this side. The wire already corrected the score; this un-weaves the visual. (coordinator wire — design may restyle the "NO GOAL" mark)
     for(var i=LIVE.events.length-1;i>=0;i--){var e=LIVE.events[i];if(e.kind==='goal'&&!e.chalked&&(!side||e.side===side)){e.chalked=true;break;}}
