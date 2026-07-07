@@ -14,6 +14,8 @@ export const FIXTURE_INFO: Record<string, Fx> = {
   '18192996': { home: C('MEX', 'Mexico', '#006847', '#CE1126'), away: C('ENG', 'England', '#FFFFFF', '#CF081F'), competition: 'World Cup', dateISO: '2026-07-06' },
   '18198205': { home: C('POR', 'Portugal', '#006600', '#FF0000'), away: C('ESP', 'Spain', '#AA151B', '#F1BF00'), competition: 'World Cup', dateISO: '2026-07-06' },
   '18193785': { home: C('USA', 'United States', '#3C3B6E', '#B22234'), away: C('BEL', 'Belgium', '#000000', '#FDDA24'), competition: 'World Cup', dateISO: '2026-07-07' },
+  '18202701': { home: C('ARG', 'Argentina', '#75AADB', '#F6B40E'), away: C('EGY', 'Egypt', '#CE1126', '#1A1A18'), competition: 'World Cup', dateISO: '2026-07-07' },
+  '18202783': { home: C('SUI', 'Switzerland', '#D52B1E', '#FFFFFF'), away: C('COL', 'Colombia', '#FCD116', '#003893'), competition: 'World Cup', dateISO: '2026-07-07' },
 };
 
 export function fixtureInfo(matchId: string): Fx | null {
