@@ -1015,5 +1015,16 @@ export function parseLedgerMessage(
     const iwho = roster && typeof ipid === 'number' ? roster.byPlayerId.get(ipid)?.name : undefined;
     if (iwho) ev.detail = iwho;
   }
+  if (kind === 'substitution') {
+    // subs carry side + both players in DATA (top-level Participant is absent):
+    // Data.Participant -> side; PlayerInId/PlayerOutId -> names via the roster.
+    // detail packs "in|out" — the stats adapter splits it for the moves list.
+    const sside = ledgerSide(msg.Data?.Participant, p1IsHome);
+    if (sside) ev.side = sside;
+    const sd = msg.Data as { PlayerInId?: unknown; PlayerOutId?: unknown } | undefined;
+    const inN = roster && typeof sd?.PlayerInId === 'number' ? roster.byPlayerId.get(sd.PlayerInId)?.name : undefined;
+    const outN = roster && typeof sd?.PlayerOutId === 'number' ? roster.byPlayerId.get(sd.PlayerOutId)?.name : undefined;
+    if (inN || outN) ev.detail = (inN ?? '') + '|' + (outN ?? '');
+  }
   return { type: 'event', ev };
 }

@@ -1,15 +1,23 @@
 /**
  * ROOOT stats seam — a live per-side MATCH STATS aggregate DERIVED from the wire
  * event stream (contracts/ledger.ts + texture.ts). FROZEN: coordinator only.
+ * Design reads window.__stats against this shape (see design/BRIEF-STATS.md).
  *
- * Everything here is REAL, off the wire: shots (by outcome), corners, cards,
- * goals, VAR reviews, free-kicks, and danger/high-danger pressure. TERRITORY is
- * an honest PROXY — the share of attacking pressure per side — clearly NOT true
- * ball-possession. The pre-computed stats that need the TxODDS ScoreStatKey
- * legend (the opaque `Stats` block) — true possession %, fouls, offsides — are
- * `null` (pending), NEVER synthesized. When the legend lands they fill in;
- * until then the UI shows them as awaiting, honestly.
+ * Everything here is REAL, off the wire. The ScoreStatKey legend is fully resolved
+ * (Jul 7): possession/shots/offsides/fouls are score EVENTS, not the numeric `Stats`
+ * block. possession % is a COMPUTED time-share (gated — withheld until trustworthy,
+ * never a false 100/0); territory is an honest attacking-pressure PROXY, not ball
+ * possession. Counts are counts — every rate is derived from them client-side, never
+ * served or faked. A family with no data yet shows null / empty, never a fake zero.
  */
+
+/** outcome enums as the wire spells them (kept as strings — the source of truth). */
+export type ShotOutcome = 'OnTarget' | 'OffTarget' | 'Woodwork' | 'Blocked';
+export type InjuryOutcome = 'OnPitch' | 'NotReturning' | 'OffPitch';
+export type PenaltyOutcome = 'Scored' | 'Missed' | 'Retake';
+export type GoalType = 'Shot' | 'Head' | 'Own';
+export type VarType = 'Goal' | 'Penalty' | 'RedCard' | 'SecondYellowCard' | 'CornerKick' | 'MistakenIdentity' | 'Other';
+export type VarOutcome = 'Stands' | 'Overturned';
 
 export interface ShotStats {
   total: number;
@@ -19,30 +27,46 @@ export interface ShotStats {
   woodwork: number;
 }
 
+export interface SubMove { inName: string | null; outName: string | null; minute: number | null; }
+export interface InjuryEntry { player: string | null; outcome: InjuryOutcome | null; minute: number | null; }
+export interface PenaltyEntry { taker: string | null; outcome: PenaltyOutcome; minute: number | null; }
+export interface ScorerEntry { name: string | null; type: GoalType | null; minute: number | null; }
+/** match-level (VAR carries no side on the wire) — lives on MatchStats, not per side. */
+export interface VarEntry { type: VarType | null; outcome: VarOutcome | null; minute: number | null; }
+
 export interface SideStats {
   shots: ShotStats;
   corners: number;
   freeKicks: number;
   cards: { yellow: number; red: number };
-  goals: number;
-  varReviews: number;
-  /** danger + high-danger spells — the pressure/momentum the wire DOES give. */
+  goals: number; // authoritative (Score.Total) — correct on any join
+  /** danger + high-danger spells — the pressure/momentum the wire gives. */
   attacks: { danger: number; highDanger: number };
-  /** 0..1 — this side's share of attacking pressure. An honest TERRITORY proxy,
-   * NOT ball possession. 0.5 when nothing's happened yet. */
+  /** 0..1 — this side's share of attacking pressure. Honest TERRITORY proxy, NOT
+   * ball possession. 0.5 when nothing's happened yet. */
   territory: number;
-  /** pending the ScoreStatKey legend — null, never faked. */
+  /** computed time-share of the possession stream; null until trustworthy (gated). */
   possessionPct: number | null;
+  /** non-offside free_kick / offside free_kick — resolved off the wire. */
   fouls: number | null;
   offsides: number | null;
+  /** the "families" — counts + named lists (names via the lineups roster). */
+  subs: { count: number; moves: SubMove[] };
+  injuries: { count: number; list: InjuryEntry[] };
+  penalties: { scored: number; missed: number; retake: number; list: PenaltyEntry[] };
+  scorers: ScorerEntry[];
+  /** DEPRECATED — VAR is match-level (see MatchStats.var). Kept for legacy pages:
+   * home carries the total review count, away is 0, so (home+away) = the total. */
+  varReviews: number;
 }
 
 export interface MatchStats {
   minute: number | null;
   home: SideStats;
   away: SideStats;
-  /** plain-language list of what still needs the legend — the honesty surface
-   * the stats panel renders as "awaiting TxODDS stat catalog". */
+  /** MATCH-LEVEL — VAR reviews carry no side on the wire (type + outcome, paired). */
+  var: VarEntry[];
+  /** plain-language list of anything still not decodable — empty now (legend resolved). */
   pending: readonly string[];
 }
 
@@ -54,13 +78,18 @@ export function emptySideStats(): SideStats {
     freeKicks: 0,
     cards: { yellow: 0, red: 0 },
     goals: 0,
-    varReviews: 0,
     attacks: { danger: 0, highDanger: 0 },
     territory: 0.5,
     possessionPct: null,
     fouls: null,
     offsides: null,
+    subs: { count: 0, moves: [] },
+    injuries: { count: 0, list: [] },
+    penalties: { scored: 0, missed: 0, retake: 0, list: [] },
+    scorers: [],
+    varReviews: 0,
   };
 }
 
-export const STATS_PENDING_LEGEND: readonly string[] = ['possession %', 'fouls', 'offsides'];
+/** legend fully resolved — nothing pending. */
+export const STATS_PENDING_LEGEND: readonly string[] = [];

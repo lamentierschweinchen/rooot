@@ -2,26 +2,22 @@
  * ROOOT — STATS ADAPTER (coordinator lane: wire → window.__stats).
  *
  * Derives a live per-side MATCH STATS aggregate from the same stands WebSocket
- * feed the loom rides (contracts/stats.ts is the schema). Design reads
- * window.__stats and subscribes via window.__statsAdapter.onStats(cb).
+ * feed the loom rides (contracts/stats.ts is the schema; design/BRIEF-STATS.md is
+ * the brief). Design reads window.__stats and subscribes via
+ * window.__statsAdapter.onStats(cb).
  *
- * Honesty: everything here is REAL off the wire — shots (by outcome), corners,
- * cards, goals, VAR, free-kicks, danger/high-danger pressure, and a TERRITORY
- * proxy (share of attacking pressure, NOT ball possession).
+ * Honesty: everything is REAL off the wire. Counts are counts — every rate is
+ * derived from them (never served/faked). possession % is a computed time-share,
+ * gated (withheld until trustworthy). territory is an attacking-pressure PROXY.
  *
- * LEGEND UNBLOCKED (TxODDS, 2026-07-06): possession %, offsides and shot-by-
- * outcome are now REAL, verified against four recorded matches (backtested via
- * scripts/backtest-stats.ts through the same parser):
- *   • possession % — time-share of the possession-holder, from the possession-
- *     spell stream (safe/possession/attack/danger/high, tagged Participant).
- *   • offsides     — free_kick with FreeKickType==='Offside' (distinct events).
- *   • shots        — Data.Outcome enum (OnTarget/OffTarget/Blocked/Woodwork).
- *   • fouls        — non-offside free_kick (TxODDS confirmed Jul 6: no separate
- *                    foul signal; every non-Offside FreeKickType — Safe/Attack/
- *                    Danger/HighDanger — is a foul). Legend fully resolved.
+ * Legend fully resolved (Jul 6): possession/shots/offsides/fouls are score EVENTS,
+ * not the numeric Stats block. Families (Jul 7): shots-by-outcome · corners · cards
+ * · fouls · offsides · possession % · territory · danger · subs · injuries ·
+ * penalties · scorer+type (per side, named via the wire roster) · a MATCH-LEVEL var
+ * block (VAR carries no side). Names come from the server's lineups roster.
  *
  * Opt-in: ?statsfeed=1, or wherever the fan experience runs (/, /live,
- * ?loomfeed=1, ?site=1). Match via ?match=<id> (default = tonight's fixture).
+ * /count-live.html, /stadium.html, ?loomfeed=1, ?site=1). Match via ?match=<id>.
  */
 (function () {
   'use strict';
@@ -38,17 +34,19 @@
 
   function emptySide() {
     return { shots: { total: 0, onTarget: 0, offTarget: 0, blocked: 0, woodwork: 0 },
-      corners: 0, freeKicks: 0, cards: { yellow: 0, red: 0 }, goals: 0, varReviews: 0,
+      corners: 0, freeKicks: 0, cards: { yellow: 0, red: 0 }, goals: 0,
       attacks: { danger: 0, highDanger: 0 }, territory: 0.5,
-      possessionPct: null, fouls: null, offsides: null };
+      possessionPct: null, fouls: null, offsides: null,
+      subs: { count: 0, moves: [] }, injuries: { count: 0, list: [] },
+      penalties: { scored: 0, missed: 0, retake: 0, list: [] }, scorers: [], varReviews: 0 };
   }
-  var stats = { minute: null, home: emptySide(), away: emptySide(),
-    pending: [] };  // possession %, offsides + fouls all derived off the wire — legend fully resolved Jul 6
+  var stats = { minute: null, home: emptySide(), away: emptySide(), var: [], pending: [] };
   var terr = { home: 0, away: 0 };  // weighted attacking pressure per side → territory
-  var seen = {};                    // count-once dedup (corners/cards/goals/var/danger)
-  var shotById = {};                // id → {side, oc} — upgradeable (outcome lands on the confirmed re-emit)
-  var fkById = {};                  // id → {side, type} — upgradeable (FreeKickType lands on confirm)
-  var possLast = null;              // {side, c} — the last possession-holder + its clock second
+  var seen = {};                    // count-once dedup (corners/cards/danger)
+  var shotById = {}, fkById = {};   // upgradeable side events (outcome/type lands on confirm)
+  var subById = {}, injuryById = {}, penById = {}, scorerById = {};
+  var varList = [], varSeen = {}, lastVarType = null; // match-level VAR (no side): pair each decision with the preceding open's type
+  var possLast = null;              // {side, c} — last possession-holder + clock second
   var possTime = { home: 0, away: 0 };
   var cbs = [];
   window.__stats = stats;
@@ -57,17 +55,17 @@
 
   function sideOf(s) { return s === 'home' ? stats.home : s === 'away' ? stats.away : null; }
 
-  // shot Data.Outcome (lowercased) → the bucket; null while still unconfirmed (empty Data).
+  // shot Data.Outcome (lowercased) → the bucket; null while still unconfirmed.
   function shotBucket(d) {
     if (d === 'ontarget' || d === 'scored') return 'onTarget';
     if (d === 'offtarget' || d === 'missed') return 'offTarget';
     if (d === 'blocked') return 'blocked';
     if (d === 'woodwork' || d.indexOf('post') >= 0 || d.indexOf('bar') >= 0) return 'woodwork';
-    return null; // unconfirmed — counted in total, not yet bucketed
+    return null;
   }
 
-  // shots + free-kicks re-emit (unconfirmed → confirmed); recount from the id-maps
-  // so the confirmed outcome/type replaces the placeholder rather than double-counting.
+  // Events re-emit (unconfirmed → confirmed); each family recounts from its id-map
+  // so the confirmed detail replaces the placeholder rather than double-counting.
   function deriveShots() {
     var h = stats.home.shots, a = stats.away.shots;
     h.total = 0; h.onTarget = 0; h.offTarget = 0; h.blocked = 0; h.woodwork = 0;
@@ -76,30 +74,71 @@
   }
   function deriveFreeKicks() {
     stats.home.freeKicks = 0; stats.away.freeKicks = 0;
-    stats.home.offsides = 0; stats.away.offsides = 0;   // 0 is honest once play is under way
+    stats.home.offsides = 0; stats.away.offsides = 0;
     stats.home.fouls = 0; stats.away.fouls = 0;
     for (var id in fkById) {
       var f = fkById[id], sd = sideOf(f.side); if (!sd) continue;
       sd.freeKicks++;
       if (f.type === 'offside') sd.offsides++;
-      else if (f.type) sd.fouls++; // any non-Offside FreeKickType (Safe/Attack/Danger/HighDanger) == a foul (TxODDS confirmed Jul 6)
+      else if (f.type) sd.fouls++; // any non-Offside FreeKickType == a foul (TxODDS Jul 6)
     }
   }
+  function deriveSubs() {
+    stats.home.subs = { count: 0, moves: [] }; stats.away.subs = { count: 0, moves: [] };
+    for (var id in subById) { var s = subById[id], sd = sideOf(s.side); if (!sd) continue; sd.subs.count++; sd.subs.moves.push({ inName: s.inName, outName: s.outName, minute: s.minute }); }
+  }
+  function deriveInjuries() {
+    stats.home.injuries = { count: 0, list: [] }; stats.away.injuries = { count: 0, list: [] };
+    for (var id in injuryById) { var x = injuryById[id], sd = sideOf(x.side); if (!sd) continue; sd.injuries.count++; sd.injuries.list.push({ player: x.player, outcome: x.outcome, minute: x.minute }); }
+  }
+  function derivePens() {
+    stats.home.penalties = { scored: 0, missed: 0, retake: 0, list: [] };
+    stats.away.penalties = { scored: 0, missed: 0, retake: 0, list: [] };
+    for (var id in penById) { var p = penById[id], sd = sideOf(p.side); if (!sd) continue;
+      var o = (p.outcome || '').toLowerCase();
+      if (o.indexOf('scored') >= 0) sd.penalties.scored++;
+      else if (o.indexOf('miss') >= 0) sd.penalties.missed++;
+      else if (o.indexOf('retake') >= 0) sd.penalties.retake++;
+      sd.penalties.list.push({ taker: p.taker || null, outcome: p.outcome || null, minute: p.minute }); }
+  }
+  function deriveScorers() {
+    stats.home.scorers = []; stats.away.scorers = [];
+    for (var id in scorerById) { var g = scorerById[id], sd = sideOf(g.side); if (!sd) continue; sd.scorers.push({ name: g.name, type: g.type, minute: g.minute }); }
+  }
+  // (VAR aggregation is inline in onLedgerEvent's 'var' case — open + decision can share an id.)
 
   function onLedgerEvent(ev) {
     var k = ev.kind, side = ev.side, id = ev.id, d = (ev.detail || '').toLowerCase();
-    // upgradeable events keyed by id — the confirmed re-emit carries the outcome/type
+    var D = (ev.raw && ev.raw.Data) || {};              // the raw envelope's Data (Type/Outcome/…)
+    var mn = (typeof ev.minute === 'number') ? ev.minute : stats.minute;
+
+    // MATCH-LEVEL: VAR (the wire gives no side)
+    if (k === 'var') {
+      // match-level (no side). 'var' opens with Data.Type; 'var_end' decides with
+      // Data.Outcome (Stands/Overturned). Open + decision can share an id, so pair by
+      // proximity: hold the open's type, attach it to the next decision. Dedup decisions by id.
+      if (D.Outcome) { if (id && !varSeen[id]) { varSeen[id] = true; varList.push({ type: lastVarType, outcome: D.Outcome, minute: mn }); lastVarType = null; } }
+      else if (D.Type) { lastVarType = D.Type; }
+      stats.var = varList; stats.home.varReviews = varList.length; stats.away.varReviews = 0;
+      return;
+    }
+    // upgradeable side events keyed by id — the confirmed re-emit upgrades in place
     if (k === 'shot') { if (side && id) { shotById[id] = { side: side, oc: shotBucket(d) }; deriveShots(); } return; }
     if (k === 'free-kick') { if (side && id) { fkById[id] = { side: side, type: d }; deriveFreeKicks(); } return; }
-    // count-once events
+    if (k === 'substitution') { if (side && id) { var pr = (ev.detail || '').split('|'); subById[id] = { side: side, inName: pr[0] || null, outName: pr[1] || null, minute: mn }; deriveSubs(); } return; }
+    if (k === 'injury') { if (side && id) { injuryById[id] = { side: side, player: ev.detail || null, outcome: D.Outcome || null, minute: mn }; deriveInjuries(); } return; }
+    if (k === 'penalty-kick') { if (side && id) { penById[id] = { side: side, outcome: (ev.detail || D.Outcome || null), minute: mn }; derivePens(); } return; }
+
+    // count-once + scorer
     var sd = sideOf(side); if (!sd) return;
     if (id && seen[id] && k !== 'goal') return;
     switch (k) {
       case 'corner': if (id) seen[id] = true; sd.corners++; break;
       case 'yellow-card': if (id) seen[id] = true; sd.cards.yellow++; break;
       case 'red-card': if (id) seen[id] = true; sd.cards.red++; break;
-      case 'var': if (id && !seen['V' + id]) { seen['V' + id] = true; sd.varReviews++; } break;
-      case 'goal': break; // goals come from the authoritative 'score' message (onFeed), not ledger-counted — avoids the late-join under-count
+      case 'goal': // the SCORE number is the authoritative 'score' message; here we keep the scorer + type
+        if (side && id && ev.confirmed) { scorerById[id] = { side: side, name: ev.detail || null, type: ev.goalKind || null, minute: mn }; deriveScorers(); }
+        break;
       case 'danger': {
         if (id) seen[id] = true;
         var high = d.indexOf('high') >= 0;
@@ -116,9 +155,8 @@
     if (tot > 0) { stats.home.territory = terr.home / tot; stats.away.territory = terr.away / tot; }
   }
 
-  // possession % = time-share of the possession-holder, integrated over the match
-  // clock. Every possession phase counts (the side has the ball); danger/high also
-  // feed the territory proxy, unchanged. Gaps/half-resets (>120s or negative) skipped.
+  // possession % = time-share of the possession-holder over the match clock, honestly
+  // gated (see comment) so a fresh join never shows a false 100/0.
   function onPossession(sp) {
     if (!sp || !sp.side) return;
     if (PRESS[sp.kind] != null) terr[sp.side] += PRESS[sp.kind];
@@ -127,12 +165,6 @@
       if (possLast) { var dd = c - possLast.c; if (dd > 0 && dd < 120) possTime[possLast.side] += dd; }
       possLast = { side: sp.side, c: c };
       var tot = possTime.home + possTime.away;
-      // Honest gate: on a fresh mid-match join we only hold spells since join, so
-      // the first readings can be wildly one-sided (a false 100/0). Withhold the %
-      // until ~90s has accumulated AND both sides have had the ball — until then
-      // callers fall back to the (clearly relabelled) territory share. A correct
-      // full-match possession would need server-side accumulation; this keeps the
-      // live number honest in the meantime, never showing a split that didn't happen.
       if (tot >= 90 && possTime.home > 0 && possTime.away > 0) {
         stats.home.possessionPct = Math.round(100 * possTime.home / tot);
         stats.away.possessionPct = 100 - stats.home.possessionPct;
@@ -147,8 +179,7 @@
       case 'score':
         if (msg.ev) {
           if (typeof msg.ev.minute === 'number') stats.minute = msg.ev.minute;
-          // authoritative score (Score.Total.Goals) — correct on ANY join; the ledger
-          // goal-count under-counts on a late join. The headline number, always true.
+          // authoritative score (Score.Total.Goals) — correct on ANY join.
           if (typeof msg.ev.home === 'number') stats.home.goals = msg.ev.home;
           if (typeof msg.ev.away === 'number') stats.away.goals = msg.ev.away;
         }
