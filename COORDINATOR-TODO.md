@@ -8,6 +8,10 @@ North star: `design/experiments/thesis-jul6.src.html` — "lose the match, win t
 Loom (woven-loom) + stadium + count all live, airtight-on-join, themed, event-dedup
 fixed, HT-freeze + ET-belief fixed. Server records both streams (locally). All five
 fixture defaults on today's game. `__stats` carries every computable family + the XI.
+**Jul 7 shipped:** free kicks weave only when they LED TO DANGER (correlation, not the
+mostly-empty FreeKickType); **THE SHOOTOUT MODE** — the loom becomes a penalty board on
+StatusId 12 (`window.__loomShootout`, verified vs the real SUI–COL 4–3; join-replay
+already covers penalty-kick so it's airtight). Design briefed to elevate the board.
 
 ---
 ## P0 — now / next

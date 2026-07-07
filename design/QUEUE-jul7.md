@@ -3,6 +3,24 @@
 *From the coordinator. Owner asked what to queue while the game plays. Each below has its
 data live on the wire already — these are RENDER tasks, not data tasks.*
 
+## SHIPPED · THE SHOOTOUT MODE — a first pass is LIVE, elevate it
+Owner (Jul 7): *"now we're in penalties. i'm not really sure we have a mode for it. but we
+need one if we don't."* → built + deployed. When a match goes to pens the loom frame BECOMES
+a board (`L.shootout(state)` in woven-loom.html — a minimal wired version I stood up so it's
+not vaporware). **Your canvas now — make the drama land.**
+- **Data — live now:** `window.__loomShootout` (also passed to `L.shootout(st)` each kick):
+  `{ active, order:[{side:'home'|'away',scored:bool}], home:[…], away:[…],
+  tally:{home,away}, firstUp:'home'|'away', done, winner }`. Order is chronological,
+  interleaved; home/away are each side's kicks in sequence. Verified against the real
+  SUI–COL shootout (SUI won 4–3; winner resolves only on the final kick).
+- **What's there:** two rows of stitched knots (filled = scored, hollow = missed), a running
+  tally, the winner in gold. Themed (HOME/AWAY, paper/ink/gold). Deliberately plain.
+- **Elevate:** the held breath before a deciding kick; motion as each knot lands; make the
+  dots feel WOVEN (cross-stitch, like the cloth) not CSS circles; the winner reveal; graceful
+  overflow past 5 (sudden death). Maybe the finished cloth sits behind the board as the
+  climax. (A "SUI to kick next" tension needs `penalty_shootout_team` widened into the feed —
+  ping me and I'll wire it; it's a server change so I've held it.)
+
 ## P0 · THE STARTING XI — the owner's flagged "big miss"
 WHO is playing, shown **before a ball is kicked** — owner's placement: **by THE BENCH**
 (it gives that card something to hold pre-kickoff, before subs/injuries exist).
