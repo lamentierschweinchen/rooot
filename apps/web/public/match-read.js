@@ -38,13 +38,25 @@
     };
   }
 
+  // the match minute rides whichever event carries it — score.minute is often null on the
+  // wire, but status + ledger events carry a real liveMinute. Pull it from any of them.
+  function msgMinute(msg) {
+    if (msg.type === 'score' && msg.ev && typeof msg.ev.minute === 'number') return msg.ev.minute;
+    if (msg.type === 'status' && msg.ev && typeof msg.ev.minute === 'number') return msg.ev.minute;
+    if (msg.type === 'ledger' && msg.msg && msg.msg.ev && typeof msg.msg.ev.minute === 'number') return msg.msg.ev.minute;
+    return null;
+  }
+
   // pure fold: the same FeedMsg union crowd-sim.js ingests (contracts/feed.ts)
   function reduceMatch(state, msg) {
     var s = state || initialState();
     if (!msg || !msg.type) return s;
+    // advance the clock monotonically off any minute-bearing event, BEFORE the type handlers —
+    // so an odds tick's marketSeries point (and clock.min) reads the latest real minute, not 0.
+    var mm = msgMinute(msg);
+    if (mm !== null && mm > s.clock.min) s = Object.assign({}, s, { clock: Object.assign({}, s.clock, { min: mm }) });
     if (msg.type === 'score' && msg.ev) {
-      var clock = (typeof msg.ev.minute === 'number') ? Object.assign({}, s.clock, { min: msg.ev.minute }) : s.clock;
-      return Object.assign({}, s, { score: { home: msg.ev.home, away: msg.ev.away }, clock: clock });
+      return Object.assign({}, s, { score: { home: msg.ev.home, away: msg.ev.away } });
     } else if (msg.type === 'status' && msg.ev) {
       var phase = msg.ev.phase || s.clock.phase;
       var running = phase === 'FIRST_HALF' || phase === 'SECOND_HALF' || phase === 'EXTRA_TIME';

@@ -66,3 +66,11 @@ console.log(
   'done=',
   matchState.done,
 );
+
+// the minute must advance: this recording's score events are minute:null, but status + ledger
+// events carry a real liveMinute. Before the fix, clock.min (and every marketSeries point's min,
+// the odds chart's x-axis) sat at ~0 the whole match.
+assert.ok(matchState.clock.min >= 90, 'match-read clock.min advances to a real match minute (got ' + matchState.clock.min + ' — was ~0 before the minute fix)');
+const seriesMins = matchState.marketSeries.map((p) => p.min);
+assert.ok(Math.max(...seriesMins) >= 90, 'the odds marketSeries carries real minutes for the chart x-axis (max min ' + Math.max(...seriesMins) + ')');
+console.log('OK minute advances — clock.min=', matchState.clock.min, '| marketSeries min', Math.min(...seriesMins), '→', Math.max(...seriesMins));

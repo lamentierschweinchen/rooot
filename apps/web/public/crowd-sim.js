@@ -47,7 +47,13 @@
     };
     function ingest(msg) {
       if (!msg || !msg.type) return;
-      if (msg.type === 'score' && msg.ev) { st.home = msg.ev.home; st.away = msg.ev.away; if (typeof msg.ev.minute === 'number') st.minute = msg.ev.minute; }
+      // advance the match minute off whichever event carries it — score.minute is often null
+      // on the wire; status + ledger carry a real liveMinute (used by moments + the demo clock).
+      var _mm = (msg.type === 'status' && msg.ev && typeof msg.ev.minute === 'number') ? msg.ev.minute
+              : (msg.type === 'ledger' && msg.msg && msg.msg.ev && typeof msg.msg.ev.minute === 'number') ? msg.msg.ev.minute
+              : (msg.type === 'score' && msg.ev && typeof msg.ev.minute === 'number') ? msg.ev.minute : null;
+      if (_mm !== null && _mm > st.minute) st.minute = _mm;
+      if (msg.type === 'score' && msg.ev) { st.home = msg.ev.home; st.away = msg.ev.away; }
       else if (msg.type === 'status' && msg.ev) {
         st.phase = msg.ev.phase || st.phase;
         if (msg.ev.phase === 'FULL_TIME' || msg.ev.phase === 'PENALTIES') {
