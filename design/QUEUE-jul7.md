@@ -59,3 +59,13 @@ WHO is playing, shown **before a ball is kicked** — owner's placement: **by TH
 
 Ping the coordinator for any signal you want shaped differently — all of the above is wired
 and waiting.
+
+## COORDINATOR BUILD IN FLIGHT (Jul 8) — the full demo (mock crowd + loop)
+Executing `docs/superpowers/plans/2026-07-08-full-demo-playable-loop.md`. The logic lives in
+NEW files — `crowd-sim.js` (a drop-in `stands-adapter` replacement: simulated `__stands`),
+`match-read.js` (`__match` read-model), `demo.js` (the `?demo=1` orchestrator) — so Tasks 1–5
+touch ZERO surface files. Later tasks need surgical seams in terrace/ground/gate:
+terrace reads `window.__match` (score/clock) + subscribes to `window.__stands`; ground threads
+`match`/`ws` into its iframes + reads `__stands`; gate reads `__match.market` + calls
+`__stands.root/predict`. You have those files open right now — ping when they're at a resting
+point (or expose a small input hook per surface) and I'll wire against them then, not over you.
