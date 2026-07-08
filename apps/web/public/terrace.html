@@ -16,152 +16,158 @@
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;font-family:var(--disp);color:var(--ink);overflow:hidden}
-.wrap{position:relative;width:100%;max-width:440px;height:100vh;margin:0 auto;background:var(--paper);display:flex;flex-direction:column;
-  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='120' height='120' filter='url(%23n)' opacity='0.05'/></svg>");}
+.wrap{position:relative;width:100%;max-width:440px;height:100vh;margin:0 auto;background:var(--ink);display:flex;flex-direction:column}
 
-/* masthead */
-.mast{display:flex;align-items:center;justify-content:space-between;padding:9px 15px;border-bottom:1.5px solid var(--line);z-index:5}
-.mast .sc{font-weight:900;font-size:17px;letter-spacing:.02em}
-.mast .sc .h{color:var(--you)}.mast .sc .a{color:var(--them)}
-.mast .cl{font-weight:800;font-size:12px;letter-spacing:.06em;color:var(--ink)}
-.mast .rp{display:flex;align-items:center;gap:5px;font-weight:800;font-size:7.5px;letter-spacing:.16em;color:var(--sub)}
-.mast .rp .d{width:6px;height:6px;border-radius:50%;background:var(--you);animation:pulse 1.3s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+/* ===== an END is a committed colour FIELD — a terrace of real people ===== */
+.end{position:relative;flex:1;overflow:hidden}
+.end.them{--fld:var(--them);--fldink:#1A1815}
+.end.you{--fld:var(--you);--fldink:#F3ECDB;flex:1.16;cursor:pointer;-webkit-tap-highlight-color:transparent}
+/* the field glows brighter as the end roars (the roar IS the field, no gauge) */
+.end::after{content:"";position:absolute;left:0;right:0;height:78%;pointer-events:none;
+  background:radial-gradient(120% 100% at 50% var(--gy), var(--fld), transparent 72%);opacity:calc(var(--r,0)*.62);transition:opacity .22s;z-index:2}
+.end.them::after{top:0;--gy:0%}
+.end.you::after{bottom:0;--gy:100%}
+.end.surge{animation:surge .5s ease-out}
+@keyframes surge{0%{filter:brightness(1)}30%{filter:brightness(1.14)}100%{filter:brightness(1)}}
 
-/* reading-the-game strip — light XP + fan-team calls landed */
-.reads{display:flex;align-items:center;gap:8px;padding:5px 15px;background:var(--paper);border-bottom:1px solid var(--line);font-weight:800;font-size:8px;letter-spacing:.11em;color:var(--sub);z-index:5}
-.reads b{font-size:9px;font-weight:900}.reads b.h{color:var(--you)}.reads b.a{color:var(--them)}
-.reads i{font-style:normal}
-.reads .xp{margin-left:auto;color:var(--gold)}
+/* the tifo — one tile per rooted fan; density = the real count, brightness = the roar */
+.tifo{position:absolute;inset:0;display:grid;grid-template-columns:repeat(22,1fr);gap:1.5px;padding:5px;align-content:start;z-index:1}
+.tile{width:100%;padding-bottom:100%;border-radius:1px;background:var(--fld);opacity:.18;transition:opacity .16s}
+.tile.lit{opacity:.5}
+.tile.flash{opacity:1 !important;box-shadow:0 0 6px var(--fld)}
+.tile.you{opacity:1 !important;background:var(--card);box-shadow:0 0 0 2px var(--fld),0 0 9px var(--fld);z-index:3;border-radius:2px}
 
-/* mini-prediction — CALM register, Bauhaus dress: bold flat geometry, hard-offset shadow */
-.pred{position:absolute;top:56px;left:12px;right:12px;background:var(--card);border:2.5px solid var(--ink);box-shadow:6px 6px 0 var(--ink);
-  z-index:12;padding:0;opacity:0;transform:translateY(-12px);pointer-events:none;transition:opacity .28s,transform .28s;overflow:hidden}
-.pred.on{opacity:1;transform:none;pointer-events:auto}
-.pred .ph{display:flex;align-items:center;justify-content:space-between;background:var(--ink);color:var(--card);padding:7px 12px}
-.pred .pl{font-weight:800;font-size:8.5px;letter-spacing:.13em;color:var(--card)}
-.pred .px{border:none;background:none;font-family:var(--disp);font-weight:900;font-size:18px;line-height:.6;color:var(--card);cursor:pointer}
-.pstripe{display:flex;height:5px}
-.pstripe i{flex:1}.pstripe i:nth-child(1){background:var(--you)}.pstripe i:nth-child(2){background:var(--them)}.pstripe i:nth-child(3){background:var(--gold)}
-.pbody{position:relative;padding:12px 13px 13px;z-index:1}
-.pred .pq{font-weight:900;font-size:17px;letter-spacing:0;line-height:1.03;margin-bottom:11px}
-.popts{display:flex;gap:8px}
-.popt{flex:1;padding:11px 6px;text-align:center;background:var(--card);border:2.5px solid var(--ink);font-family:var(--disp);font-weight:900;font-size:14px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .12s,color .12s}
-.popt:active{transform:translate(1px,1px)}
-.popt.on{background:var(--ink);color:var(--card)}
-.popt.win{background:var(--verde);color:var(--card);border-color:var(--ink)}
-.popt.lose{opacity:.32}
-.pmkt{font-weight:800;font-size:8px;letter-spacing:.05em;color:var(--gold);margin-top:10px}
-.pbar{height:6px;background:var(--paper);border:2px solid var(--ink);margin-top:10px;overflow:hidden}
-.pfill{height:100%;width:100%;background:var(--gold)}
-.pres{font-weight:900;font-size:11px;letter-spacing:.02em;margin-top:9px}
-.pres.win{color:var(--verde)}.pres.lose{color:var(--you)}
-
-/* an end (their = top, yours = bottom) */
-.end{position:relative;flex:1;display:flex;flex-direction:column;justify-content:space-between;gap:6px;padding:12px 15px;overflow:hidden}
-.end.them{background:linear-gradient(180deg,rgba(232,177,10,.10),transparent 70%)}
-.end.you{background:linear-gradient(0deg,rgba(213,43,30,.12),transparent 72%);cursor:pointer;-webkit-tap-highlight-color:transparent;flex:1.2;justify-content:flex-start;padding-bottom:34px}
-.endhd{display:flex;align-items:baseline;justify-content:space-between}
-.endhd .nm{font-weight:800;font-size:9px;letter-spacing:.15em}
-.end.them .nm{color:var(--them)}.end.you .nm{color:var(--you)}
-.endhd .ct{font-weight:700;font-size:8px;letter-spacing:.06em;color:var(--sub)}
-.faith{display:none;font-weight:800;font-size:7px;letter-spacing:.09em;color:var(--ink);background:rgba(232,177,10,.32);padding:2px 6px;border-radius:2px;margin-left:7px;vertical-align:middle}
+/* the end's header floats over the crowd (a scrim keeps it legible) */
+.ehdr{position:absolute;left:0;right:0;z-index:4;display:flex;align-items:baseline;justify-content:space-between;padding:9px 14px 16px;
+  font-weight:800;font-size:9px;letter-spacing:.14em}
+.end.them .ehdr{top:0;padding-left:44px;background:linear-gradient(180deg,var(--paper) 8%,rgba(230,219,194,.55) 55%,transparent)}
+.end.you .ehdr{bottom:0;padding:16px 14px 12px;background:linear-gradient(0deg,var(--paper) 6%,rgba(230,219,194,.5) 52%,transparent);align-items:flex-end}
+.ehdr .nm{color:var(--ink)}
+.end.them .ehdr .nm b{color:#9a7508}.end.you .ehdr .nm b{color:var(--you)}
+.ehdr .rt{text-align:right;color:var(--sub);font-size:8px;letter-spacing:.06em;line-height:1.5}
+.ehdr .rt .ct{color:var(--ink);font-weight:900;font-size:10px}
+.ehdr .xp{color:var(--gold)}
+.faith{display:none;font-weight:900;font-size:7px;letter-spacing:.08em;color:var(--ink);background:var(--gold);padding:2px 6px;border-radius:2px;margin-left:6px}
 .faith.on{display:inline-block}
 
-/* the mosaic — one tile per N fans (sample) */
-.tiles{display:grid;grid-template-columns:repeat(16,1fr);gap:3px}
-.end.you .tiles{grid-template-columns:repeat(16,1fr)}
-.tile{width:100%;padding-bottom:100%;border-radius:1px;transition:opacity .18s,background .18s}
-.end.them .tile{background:var(--them)}
-.end.you .tile{background:var(--you)}
-.tile.flash{opacity:1 !important;box-shadow:0 0 5px currentColor}
-
-/* roar meter */
-.roar{display:flex;align-items:center;gap:8px}
-.roar .rl{font-weight:800;font-size:7.5px;letter-spacing:.13em;color:var(--sub);white-space:nowrap;min-width:38px}
-.roar .bar{position:relative;flex:1;height:9px;background:var(--card);border:1.5px solid var(--line);overflow:hidden}
-.roar .fill{position:absolute;top:0;bottom:0;left:0;width:0}
-.end.them .roar .fill{background:var(--them)}
-.end.you .roar .fill{background:var(--you)}
-.roar .rv{font-weight:800;font-size:8px;letter-spacing:.04em;color:var(--sub);white-space:nowrap;min-width:44px;text-align:right}
-
 /* their mood chip (when they react) */
-.mood{position:absolute;top:32px;left:15px;font-weight:800;font-size:8px;letter-spacing:.12em;color:var(--ink);background:var(--them);
-  padding:3px 9px;border-radius:2px;opacity:0;transform:translateY(-3px);transition:opacity .3s,transform .3s;z-index:3}
+.mood{position:absolute;top:34px;left:14px;z-index:5;font-weight:800;font-size:8px;letter-spacing:.1em;color:var(--ink);background:var(--them);
+  padding:3px 9px;border-radius:2px;opacity:0;transform:translateY(-3px);transition:opacity .3s,transform .3s}
 .mood.on{opacity:1;transform:none}
-/* reaction emblems (socketed pop-art marks) */
-.pk.feel{display:flex;flex-direction:column;align-items:center;gap:1px;padding:3px 3px;background:none;border:1.5px solid transparent;border-radius:3px}
-.pk.feel img{width:34px;height:34px;object-fit:contain;display:block}
-.pk.feel span{font-weight:800;font-size:6.5px;letter-spacing:.02em;color:var(--sub)}
-.pk.feel.on{background:var(--card);border-color:var(--ink)}
-.pk.feel.on span{color:var(--ink)}
-.split .se{width:22px;height:22px;object-fit:contain;flex:none}
 
-/* centre moment strip */
-.mid{position:relative;flex:none;min-height:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
-  padding:10px 15px;border-top:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink);background:var(--card);z-index:4}
-.mid .tug{position:absolute;top:0;left:50%;width:0;height:3px;background:var(--sub);transform:translateX(-50%);transition:width .15s,background .15s}
-.crowdcall{text-align:center;transition:opacity .3s;padding:0 8px}
-.crowdcall .cclbl{font-weight:800;font-size:8px;letter-spacing:.18em;color:var(--sub)}
-.crowdcall .ccmkt{font-weight:700;font-size:8px;letter-spacing:.04em;color:var(--gold)}
-.ccscore{display:flex;align-items:baseline;justify-content:center;gap:8px;margin:3px 0}
-.ccscore b{font-weight:900;font-size:22px}.ccscore b.h{color:var(--you)}.ccscore b.a{color:var(--them)}
-.ccscore .ccd{font-weight:700;color:var(--sub);font-size:15px}
-.ccaff{font-weight:700;font-size:8px;letter-spacing:.04em;color:var(--sub)}
+/* ===== the halfway seam — the match happening between the two terraces ===== */
+.mid{position:relative;flex:none;z-index:6;background:var(--card);border-top:2px solid var(--ink);border-bottom:2px solid var(--ink);
+  padding:8px 14px;min-height:92px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  box-shadow:0 0 20px rgba(26,24,21,.28)}
+.matchbar{display:flex;align-items:baseline;gap:9px;font-weight:900;font-size:15px;letter-spacing:.02em}
+.matchbar .h{color:var(--you)}.matchbar .a{color:var(--them)}
+.matchbar .cl{font-size:9px;font-weight:800;letter-spacing:.1em;color:var(--sub)}
+.matchbar .rp{display:inline-flex;align-items:center;gap:4px;font-size:7px;font-weight:800;letter-spacing:.14em;color:var(--sub)}
+.matchbar .rp .d{width:5px;height:5px;border-radius:50%;background:var(--you);animation:pulse 1.3s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+/* the consensus — the scoreline the crowd holds up, BESIDE the market (never blended) */
+.crowdcall{text-align:center;transition:opacity .3s}
+.crowdcall .cclbl{font-weight:800;font-size:7.5px;letter-spacing:.16em;color:var(--sub)}
+.crowdcall .ccmkt{font-weight:700;font-size:7.5px;letter-spacing:.03em;color:var(--gold)}
+.ccscore{display:flex;align-items:baseline;justify-content:center;gap:7px;margin:1px 0}
+.ccscore b{font-weight:900;font-size:20px}.ccscore b.h{color:var(--you)}.ccscore b.a{color:var(--them)}
+.ccscore .ccd{font-weight:700;color:var(--sub);font-size:13px}
+.ccaff{font-weight:700;font-size:7.5px;letter-spacing:.03em;color:var(--sub)}
 .ccaff b{color:var(--ink);font-weight:800}
-.moment{text-align:center;opacity:0;transform:scale(.9);transition:opacity .25s,transform .25s}
-.moment.on{opacity:1;transform:none}
-.moment .big{font-weight:900;font-size:26px;letter-spacing:.02em;line-height:1}
-.moment .min{font-weight:800;font-size:9px;letter-spacing:.14em;color:var(--sub);margin-top:3px}
+.moment{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:var(--card);gap:2px}
+.moment.on{display:flex}
+.moment .big{font-weight:900;font-size:25px;letter-spacing:.02em;line-height:1}
+.moment .min{font-weight:800;font-size:9px;letter-spacing:.14em;color:var(--sub);margin-top:2px}
 .moment.goal .big{color:var(--gold)}
-/* the split reveal */
-.split{width:100%;display:none;flex-direction:column;gap:5px;margin-top:2px}
+/* the split reveal — where each end landed */
+.split{position:absolute;inset:0;display:none;flex-direction:column;gap:5px;justify-content:center;padding:9px 14px;background:var(--card)}
 .split.on{display:flex}
 .split .sr{display:flex;align-items:center;gap:8px}
-.split .sn{font-weight:800;font-size:8px;letter-spacing:.1em;min-width:64px}
+.split .se{width:22px;height:22px;object-fit:contain;flex:none}
+.split .sn{font-weight:800;font-size:8px;letter-spacing:.1em;min-width:62px}
 .split .sr.h .sn{color:var(--you)}.split .sr.a .sn{color:var(--them)}
 .split .sb{position:relative;flex:1;height:16px;background:var(--paper);border:1.5px solid var(--ink);overflow:hidden}
-.split .sf{position:absolute;top:0;bottom:0;left:0;display:flex;align-items:center;padding-left:7px;font-weight:800;font-size:8px;letter-spacing:.08em;color:var(--card);white-space:nowrap}
+.split .sf{position:absolute;top:0;bottom:0;left:0;display:flex;align-items:center;padding-left:7px;font-weight:800;font-size:8px;letter-spacing:.07em;color:var(--card);white-space:nowrap}
 .split .sr.h .sf{background:var(--you)}.split .sr.a .sf{background:var(--them);color:var(--ink)}
-.split .sc2{font-weight:700;font-size:7.5px;color:var(--sub);white-space:nowrap;min-width:60px}
+.split .sc2{font-weight:700;font-size:7.5px;color:var(--sub);white-space:nowrap;min-width:58px;text-align:right}
 
-/* your reaction picker */
-.picker{position:absolute;left:0;right:0;bottom:0;padding:8px 12px 11px;background:rgba(243,236,219,.97);border-top:1.5px solid var(--ink);
-  display:none;flex-direction:column;align-items:center;gap:7px;z-index:7;box-shadow:0 -6px 16px rgba(26,24,21,.13)}
+/* mini-prediction pop-up (optional, dismissible) — light, Bauhaus dress */
+.pred{position:absolute;top:8px;left:12px;right:12px;background:var(--card);border:2.5px solid var(--ink);box-shadow:6px 6px 0 var(--ink);
+  z-index:14;opacity:0;transform:translateY(-12px);pointer-events:none;transition:opacity .28s,transform .28s;overflow:hidden}
+.pred.on{opacity:1;transform:none;pointer-events:auto}
+.pred .ph{display:flex;align-items:center;justify-content:space-between;background:var(--ink);color:var(--card);padding:6px 12px}
+.pred .pl{font-weight:800;font-size:8px;letter-spacing:.12em;color:var(--card)}
+.pred .px{border:none;background:none;font-family:var(--disp);font-weight:900;font-size:17px;line-height:.6;color:var(--card);cursor:pointer}
+.pstripe{display:flex;height:5px}
+.pstripe i{flex:1}.pstripe i:nth-child(1){background:var(--you)}.pstripe i:nth-child(2){background:var(--them)}.pstripe i:nth-child(3){background:var(--gold)}
+.pbody{padding:11px 13px 12px}
+.pred .pq{font-weight:900;font-size:16px;line-height:1.03;margin-bottom:10px}
+.popts{display:flex;gap:8px}
+.popt{flex:1;padding:10px 6px;text-align:center;background:var(--card);border:2.5px solid var(--ink);font-family:var(--disp);font-weight:900;font-size:14px;cursor:pointer;transition:background .12s,color .12s}
+.popt:active{transform:translate(1px,1px)}
+.popt.on{background:var(--ink);color:var(--card)}
+.popt.win{background:var(--verde);color:var(--card)}
+.popt.lose{opacity:.32}
+.pmkt{font-weight:800;font-size:8px;letter-spacing:.04em;color:var(--gold);margin-top:9px}
+.pbar{height:5px;background:var(--paper);border:2px solid var(--ink);margin-top:9px;overflow:hidden}
+.pfill{height:100%;width:100%;background:var(--gold)}
+.pres{font-weight:900;font-size:11px;margin-top:8px}
+.pres.win{color:var(--verde)}.pres.lose{color:var(--you)}
+
+/* your reaction picker — a tray on your end */
+.picker{position:absolute;left:0;right:0;bottom:0;padding:8px 12px 10px;background:rgba(243,236,219,.97);border-top:1.5px solid var(--ink);
+  display:none;flex-direction:column;align-items:center;gap:6px;z-index:9;box-shadow:0 -6px 16px rgba(26,24,21,.16)}
 .picker.on{display:flex}
-.picker .pt{font-weight:800;font-size:8px;letter-spacing:.16em;color:var(--sub)}
+.picker .pt{font-weight:800;font-size:8px;letter-spacing:.15em;color:var(--sub)}
 .picker .pks{display:flex;flex-wrap:wrap;gap:5px;justify-content:center}
-.pk{font-family:var(--disp);font-weight:800;font-size:9.5px;letter-spacing:.07em;color:var(--ink);background:var(--card);
+.pk{font-family:var(--disp);font-weight:800;font-size:9.5px;letter-spacing:.06em;color:var(--ink);background:var(--card);
   border:1.5px solid var(--ink);padding:6px 10px;border-radius:2px;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .pk:active{transform:translateY(1px)}
 .pk.on{background:var(--you);color:var(--card)}
 .pk.verd{padding:8px 18px;font-size:11px}
+.pk.feel{display:flex;flex-direction:column;align-items:center;gap:1px;padding:3px 4px;background:none;border:1.5px solid transparent}
+.pk.feel img{width:34px;height:34px;object-fit:contain;display:block}
+.pk.feel span{font-weight:800;font-size:6.5px;letter-spacing:.02em;color:var(--sub)}
+.pk.feel.on{background:var(--card);border-color:var(--ink)}
+.pk.feel.on span{color:var(--ink)}
 
-.taphint{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);font-weight:800;font-size:8px;letter-spacing:.18em;color:var(--sub);pointer-events:none;transition:opacity .3s}
+.taphint{position:absolute;left:50%;bottom:52px;transform:translateX(-50%);z-index:5;font-weight:800;font-size:8px;letter-spacing:.16em;color:var(--fldink);opacity:.7;pointer-events:none;transition:opacity .3s}
 /* pop-art (Lichtenstein) cheer/goal burst */
-.burst{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%) scale(.5);width:210px;opacity:0;pointer-events:none;z-index:8}
+.burst{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%) scale(.5);width:210px;opacity:0;pointer-events:none;z-index:8}
 .burst svg{width:100%;display:block;overflow:visible}
 .burst.pop{animation:burstpop 1s cubic-bezier(.2,1.5,.35,1) forwards}
 @keyframes burstpop{0%{opacity:0;transform:translate(-50%,-50%) scale(.4) rotate(-9deg)}22%{opacity:1;transform:translate(-50%,-50%) scale(1.14) rotate(4deg)}62%{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(-2deg)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.03) rotate(-2deg)}}
 
+/* ===== FULL TIME — your stand settles into the keepsake (the stand IS the trophy) ===== */
+.keepsake{position:absolute;inset:0;z-index:20;background:rgba(26,24,21,.62);display:flex;align-items:center;justify-content:center;padding:22px;
+  opacity:0;pointer-events:none;transition:opacity .6s}
+.keepsake.on{opacity:1;pointer-events:auto}
+.scarf{position:relative;width:100%;max-width:330px;background:var(--card);border:2.5px solid var(--ink);box-shadow:0 18px 46px rgba(0,0,0,.4);
+  transform:translateY(16px) scale(.96);transition:transform .6s cubic-bezier(.2,1,.3,1)}
+.keepsake.on .scarf{transform:none}
+.scarf .band{display:flex;height:8px}
+.scarf .band i{flex:1}.scarf .band .h{background:var(--you)}.scarf .band .a{background:var(--them)}.scarf .band .g{background:var(--gold)}
+.scarf .sk-tifo{display:grid;grid-template-columns:repeat(26,1fr);gap:1.5px;padding:12px;background:var(--paper)}
+.scarf .sk-tifo span{width:100%;padding-bottom:100%;border-radius:1px;background:var(--you)}
+.scarf .sk-body{padding:14px 16px 16px;text-align:center}
+.scarf .sk-ft{font-weight:900;font-size:12px;letter-spacing:.18em;color:var(--gold)}
+.scarf .sk-sc{font-weight:900;font-size:24px;letter-spacing:.02em;margin:2px 0 6px}
+.scarf .sk-sc .h{color:var(--you)}.scarf .sk-sc .a{color:var(--them)}
+.scarf .sk-line{font-weight:800;font-size:8.5px;letter-spacing:.06em;color:var(--ink)}
+.scarf .sk-call{margin-top:7px;font-weight:800;font-size:8px;letter-spacing:.04em;color:var(--sub)}
+.scarf .sk-call b{color:var(--you)}
+.scarf .sk-line b{color:var(--gold)}
+.scarf .sk-prov{margin-top:11px;padding-top:9px;border-top:1px solid var(--line);display:flex;justify-content:space-between;font-weight:700;font-size:6.6px;letter-spacing:.06em;color:var(--sub)}
+.scarf .sk-keep{margin-top:12px;width:100%;padding:11px;background:var(--ink);color:var(--card);border:none;font-family:var(--disp);font-weight:900;font-size:11px;letter-spacing:.12em;cursor:pointer}
+
 /* honesty footer */
-.foot{flex:none;padding:5px 15px;text-align:center;font-weight:700;font-size:7px;letter-spacing:.13em;color:var(--sub);background:var(--paper);border-top:1px solid var(--line)}
+.foot{flex:none;padding:5px 14px;text-align:center;font-weight:700;font-size:7px;letter-spacing:.11em;color:var(--sub);background:var(--paper);border-top:1px solid var(--line);z-index:6}
+.backg{position:absolute;top:7px;left:9px;z-index:20;width:26px;height:26px;border-radius:50%;border:1.5px solid var(--ink);background:rgba(243,236,219,.94);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px;line-height:1;color:var(--ink);text-decoration:none;-webkit-tap-highlight-color:transparent}
 </style>
 </head>
 <body>
 <div class="wrap" id="wrap">
-  <div class="mast">
-    <div class="sc"><span class="h">SUI</span> <span id="scH">0</span>–<span id="scA">0</span> <span class="a">COL</span></div>
-    <div class="cl" id="clock">0'</div>
-    <div class="rp"><span class="d"></span> REPLAY</div>
-  </div>
-
-  <!-- reading-the-game strip -->
-  <div class="reads" id="reads">
-    <span>READING THE GAME</span>
-    <b class="h">SUI <i id="rH">0</i></b><span>·</span><b class="a">COL <i id="rA">0</i></b>
-    <span class="xp">YOUR XP <i id="xp">0</i></span>
-  </div>
+  <a class="backg" href="ground.html" aria-label="back to the ground">‹</a>
 
   <!-- mini-prediction pop-up (optional, dismissible) -->
   <div class="pred" id="pred">
@@ -176,17 +182,18 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
     </div>
   </div>
 
-  <!-- their end -->
-  <div class="end them">
-    <div class="endhd"><span><span class="nm">COLOMBIA · THEIR END</span><span class="faith" id="faithThem">◆ STILL SINGING</span></span><span class="ct" id="ctThem">14,100 here</span></div>
-    <div class="tiles" id="tilesThem"></div>
+  <!-- their end (top field) -->
+  <div class="end them" id="endThem">
+    <div class="tifo" id="tilesThem"></div>
+    <div class="ehdr"><span class="nm"><b>COLOMBIA</b> · THEIR END<span class="faith" id="faithThem">◆ STILL SINGING</span></span>
+      <span class="rt"><span class="ct" id="ctThem">14,100</span> here</span></div>
     <div class="mood" id="moodThem">—</div>
-    <div class="roar"><span class="rl">CHEER</span><div class="bar"><div class="fill" id="roarThem"></div></div><span class="rv" id="roarThemV">quiet</span></div>
   </div>
 
-  <!-- centre moment -->
-  <div class="mid">
-    <div class="tug" id="tug"></div>
+  <!-- the halfway seam — the match between the terraces -->
+  <div class="mid" id="mid">
+    <div class="matchbar"><span class="h">SUI</span> <span id="scH">0</span>–<span id="scA">0</span> <span class="a">COL</span>
+      <span class="cl" id="clock">0'</span><span class="rp"><span class="d"></span>REPLAY</span></div>
     <div class="crowdcall" id="crowdcall">
       <div><span class="cclbl">THE CROWD CALLS</span> <span class="ccmkt">· vs market SUI 44·28·28</span></div>
       <div class="ccscore"><b class="h">SUI 2.1</b><span class="ccd">–</span><b class="a">1.8 COL</b></div>
@@ -199,11 +206,11 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
     </div>
   </div>
 
-  <!-- your end -->
+  <!-- your end (bottom field, foreground) -->
   <div class="end you" id="youEnd">
-    <div class="endhd"><span><span class="nm">SWITZERLAND · YOUR END</span><span class="faith" id="faithYou">◆ STILL SINGING</span></span><span class="ct" id="ctYou">you + 8,203</span></div>
-    <div class="tiles" id="tilesYou"></div>
-    <div class="roar"><span class="rl">YOUR CHEER</span><div class="bar"><div class="fill" id="roarYou"></div></div><span class="rv" id="roarYouV">quiet</span></div>
+    <div class="tifo" id="tilesYou"></div>
+    <div class="ehdr"><span class="nm"><b>SWITZERLAND</b> · YOUR END<span class="faith" id="faithYou">◆ STILL SINGING</span></span>
+      <span class="rt">you + <span class="ct" id="ctYou">8,203</span> · <span class="xp">XP <span id="xp">0</span></span> · <span id="rH">0</span>–<span id="rA">0</span></span></div>
     <div class="burst" id="burst" aria-hidden="true">
       <svg viewBox="0 0 220 176">
         <defs><pattern id="bday" width="9" height="9" patternUnits="userSpaceOnUse"><circle cx="2.6" cy="2.6" r="2" fill="rgba(26,24,21,.22)"/></pattern></defs>
@@ -214,6 +221,22 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
     </div>
     <div class="taphint" id="taphint">TAP ANYWHERE TO CHEER</div>
     <div class="picker" id="picker"></div>
+  </div>
+
+  <!-- full-time keepsake: the stand settles into the scarf -->
+  <div class="keepsake" id="keepsake">
+    <div class="scarf">
+      <div class="band"><i class="h"></i><i class="a"></i><i class="g"></i></div>
+      <div class="sk-tifo" id="skTifo"></div>
+      <div class="sk-body">
+        <div class="sk-ft">FULL TIME</div>
+        <div class="sk-sc"><span class="h">SUI</span> <span id="skH">0</span>–<span id="skA">0</span> <span class="a">COL</span></div>
+        <div class="sk-line" id="skLine">YOU STOOD IN <b>THE SWISS END</b></div>
+        <div class="sk-call" id="skCall" style="display:none"></div>
+        <div class="sk-prov"><span>YOUR STAND · WOVEN FROM REAL COUNTS</span><span>Nº —</span></div>
+        <button class="sk-keep" id="skKeep">THE STAND IS YOURS — KEEP IT</button>
+      </div>
+    </div>
   </div>
 
   <div class="foot">crowd figures are sample — they wire to live counts · events replayed from a recorded match</div>
@@ -258,25 +281,43 @@ var PREDS=[
 ];
 
 var el=function(id){return document.getElementById(id);};
+var PASS=null; try{ PASS=JSON.parse(localStorage.getItem('rooot.pass')||'null'); }catch(e){}   // the fan's pass from the door (side + call + conviction)
 var M={t:0,score:[0,0],rY:0,rT:0,run:true,lastMs:0,fired:{},await:null,dur:92,xp:0,reads:{h:0,a:0},pred:null,predShown:{},predResolved:{}};
 var SPEED=1.3; // match-minutes per second (slowed so events + calls are catchable)
 
-// build mosaics
-function mosaic(node,n){var h='';for(var i=0;i<n;i++)h+='<span class="tile" style="opacity:.3"></span>';node.innerHTML=h;}
-mosaic(el('tilesThem'),80); mosaic(el('tilesYou'),128);
+// ---- the tifo: build the seats (density = count, brightness = roar) ----
+// one tile per rooted fan-bucket; sample fills most seats, a near-empty end would show a thin front row.
+function mosaic(node,seats,litPct,youIdx){var h='';
+  for(var i=0;i<seats;i++){
+    var g=(0.70+0.30*(((i*61+i*i*7)%17)/17));            // per-tile grain — a wall of people, not a flat grid
+    var lit=(i===youIdx)||(((i*73+i*i*17)%100)<litPct);  // scattered empty seats; density = the real count
+    var cls='tile'+(lit?' lit':'')+(i===youIdx?' you':'');
+    h+='<span class="'+cls+'" data-g="'+g.toFixed(2)+'"></span>';
+  }
+  node.innerHTML=h;
+}
+// sample seating: a near-full house (real wiring maps counts.home/away → lit %)
+mosaic(el('tilesThem'),352,95,-1);
+mosaic(el('tilesYou'),396,96,47);        // tile 47 (a front-row seat) is YOU
 var tilesYou=el('tilesYou').children, tilesThem=el('tilesThem').children;
 
-function paintTiles(list,r,floor){var base=Math.max(floor||0.28,0.28+0.62*r);for(var i=0;i<list.length;i++){if(!list[i].classList.contains('flash'))list[i].style.opacity=base;}}
-function ripple(list,k){for(var j=0;j<k;j++){var t=list[(Math.floor((M.t*7+j*13))%list.length)];if(t){t.classList.add('flash');(function(t){setTimeout(function(){t.classList.remove('flash');},220);})(t);}}}
+// the field brightens with the roar; each lit tile keeps its grain, the YOU tile stays bright
+function paintTiles(list,r,floor){var base=Math.max(floor||0.55,0.55+0.38*r);
+  for(var i=0;i<list.length;i++){var t=list[i];
+    if(t.classList.contains('you')||t.classList.contains('flash'))continue;
+    if(t.classList.contains('lit'))t.style.opacity=(base*(+t.dataset.g||1)).toFixed(3);
+  }
+}
+function ripple(list,k){for(var j=0;j<k;j++){var t=list[(Math.floor((M.t*7+j*13))%list.length)];if(t&&t.classList.contains('lit')){t.classList.add('flash');(function(t){setTimeout(function(){t.classList.remove('flash');},220);})(t);}}}
 function roarWord(r){return r>.8?'DEAFENING':r>.55?'LOUD':r>.3?'rising':r>.12?'murmur':'quiet';}
 // pop-art (Lichtenstein) cheer/goal burst
 function burstPath(cx,cy,R,r,n){var d='',a;for(var i=0;i<n*2;i++){var rad=(i%2?r:R);a=Math.PI*i/n-Math.PI/2;d+=(i?'L':'M')+(cx+rad*Math.cos(a)).toFixed(1)+' '+(cy+rad*Math.sin(a)).toFixed(1)+' ';}return d+'Z';}
 (function(){var d=burstPath(110,90,94,61,13); el('burstShape').setAttribute('d',d); el('burstDots').setAttribute('d',d);})();
 function popBurst(txt){var b=el('burst');if(!b)return; el('burstText').textContent=txt; el('burstText').setAttribute('font-size', txt.length>6?28:34); M.lastBurst=performance.now(); b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');}
 
-// your tap = roar
-function tap(){M.rY=Math.min(1,M.rY+0.16);ripple(tilesYou,5);el('youEnd').style.transition='transform .05s';}
-el('youEnd').addEventListener('pointerdown',function(e){ if(e.target.closest('.pk'))return; tap(); });
+// your tap = roar (your end surges — the field, not a gauge)
+function tap(){M.rY=Math.min(1,M.rY+0.16);ripple(tilesYou,6);var e=el('youEnd');e.classList.remove('surge');void e.offsetWidth;e.classList.add('surge');}
+el('youEnd').addEventListener('pointerdown',function(e){ if(e.target.closest('.pk')||e.target.closest('.sk-keep'))return; tap(); });
 
 // picker
 function showPicker(verdictPair){
@@ -312,7 +353,6 @@ function pick(label,isV){
 function reveal(ctx,mine,isV){
   var s=el('split');
   if(isV){
-    // the call polarises by end; your pick is highlighted (or your dissent noted)
     var hc=ctx.home||'PENALTY', ac=ctx.away||'NEVER', withEnd=(mine===hc);
     setSR('h',hc,80, withEnd?'you + 6,730':'6,730 · you said '+mine);
     setSR('a',ac,74,'9,900 of their end');
@@ -362,7 +402,7 @@ function dismissPred(){ el('pred').classList.remove('on'); if(M.pred)M.pred.done
 function showCheckpoint(){
   M.pred={i:'ck',done:true,called:null};
   el('predL').textContent='● CHECKPOINT — YOUR CALL STANDS';
-  el('predQ').textContent='HALF-TIME — YOUR CALL: SUI 2–1';   // sample: wires from the door's locked call
+  el('predQ').textContent='HALF-TIME — YOUR CALL: '+(PASS&&PASS.call?('SUI '+PASS.call.h+'–'+PASS.call.a):'SUI 2–1');   // the door's locked call
   var mk=el('predMkt'); mk.style.display='block'; mk.textContent='the game so far: SUI '+M.score[0]+'–'+M.score[1]+' COL';
   var rs=el('predRes'); rs.textContent=''; rs.className='pres';
   el('predBar').style.transition='none'; el('predBar').style.width='0%';
@@ -378,21 +418,35 @@ function showCheckpoint(){
 }
 el('predX').onclick=dismissPred;
 
+// full time = the keepsake: your end's terrace settles into the scarf
+function showKeepsake(){
+  var sk=el('skTifo'); if(sk && !sk.childElementCount){ var h=''; for(var i=0;i<156;i++){ h+='<span></span>'; } sk.innerHTML=h; }
+  el('skH').textContent=M.score[0]; el('skA').textContent=M.score[1];
+  var won=M.score[0]>M.score[1], drew=M.score[0]===M.score[1];
+  el('skLine').innerHTML='YOU STOOD IN <b>THE SWISS END</b>'+(won?' · AND IT SANG':(drew?' · TILL THE LAST':' · AND SANG ANYWAY'));
+  var sc=el('skCall');
+  if(PASS && PASS.call){ var hit=(PASS.call.h===M.score[0]&&PASS.call.a===M.score[1]);
+    sc.innerHTML='YOU CALLED <b>SUI '+PASS.call.h+'–'+PASS.call.a+' COL</b> · '+(hit?'✓ CALLED IT':'THE GAME HAD OTHER IDEAS'); sc.style.display='block';
+  } else { sc.style.display='none'; }
+  setTimeout(function(){ el('keepsake').classList.add('on'); },900);
+}
+el('skKeep').onclick=function(){ el('keepsake').classList.remove('on'); };
+
 // fire an event
 function fire(ev){
   el('crowdcall').style.opacity='0';
   var big=el('momentBig'),min=el('momentMin'),mo=el('moment');
   mo.className='moment on'; min.textContent=ev.t+"'";
-  var emo={chance:1,goal:1,card:1}, verd={pen:1,var:1};
+  var emo={chance:1,goal:1,card:1};
   if(ev.k=='goal'){ if(ev.side=='h')M.score[0]++;else M.score[1]++; el('scH').textContent=M.score[0];el('scA').textContent=M.score[1];
-    big.textContent='GOOOOAL'; mo.classList.add('goal'); (ev.side=='h'?(M.rY=1):(M.rT=1)); ripple(ev.side=='h'?tilesYou:tilesThem,10); if(ev.side=='h')popBurst('GOOOOAL!'); }
+    big.textContent='GOOOOAL'; mo.classList.add('goal'); (ev.side=='h'?(M.rY=1):(M.rT=1)); ripple(ev.side=='h'?tilesYou:tilesThem,12); if(ev.side=='h')popBurst('GOOOOAL!'); }
   else if(ev.k=='chance'){ big.textContent='CHANCE!'; (ev.side=='h'?(M.rY=Math.max(M.rY,.7)):(M.rT=Math.max(M.rT,.7))); }
   else if(ev.k=='card'){ big.textContent='YELLOW'; }
   else if(ev.k=='pen'){ big.textContent='PENALTY?'; }
   else if(ev.k=='var'){ big.textContent='VAR CHECK'; }
   else if(ev.k=='kick'){ big.textContent='KICK-OFF'; }
   else if(ev.k=='half'){ big.textContent='HALF-TIME'; setTimeout(showCheckpoint,700); }
-  else if(ev.k=='whistle'){ big.textContent='FULL-TIME'; }
+  else if(ev.k=='whistle'){ big.textContent='FULL-TIME'; showKeepsake(); }
   // their mood (sample) for reacting events
   var r=REACT[ev.k+'-'+ev.side];
   if(r){ var md=el('moodThem'); md.textContent='THEIR END: '+r.them[0]; md.classList.add('on'); setTimeout(function(){md.classList.remove('on');},4200); }
@@ -411,7 +465,6 @@ function step(now){
     // decay / simulate roar
     M.rY=Math.max(0,M.rY-dt*0.28);
     if(M.rY>0.5 && (now-(M.lastBurst||0))>1500){ popBurst('ROOOT!'); }
-    // their roar: gentle baseline + noise, decays from surges
     M.rT=Math.max(0.05+0.05*Math.sin(M.t*0.7), M.rT-dt*0.30);
     // fire due events
     for(var i=0;i<EVENTS.length;i++){ if(!M.fired[i] && M.t>=EVENTS[i].t){ M.fired[i]=true; fire(EVENTS[i]); } }
@@ -421,25 +474,23 @@ function step(now){
       if(!M.predResolved[pi] && M.t>=pp.resolveT){ M.predResolved[pi]=true; resolvePred(pi); }
     }
   }
-  // render
+  // render — the ends surge as they roar; the field is the meter
   el('clock').textContent=Math.floor(M.t)+"'";
-  el('roarYou').style.width=(M.rY*100)+'%'; el('roarThem').style.width=(M.rT*100)+'%';
-  el('roarYouV').textContent=roarWord(M.rY); el('roarThemV').textContent=roarWord(M.rT);
-  var hb=M.score[0]<M.score[1], ab=M.score[1]<M.score[0];  // which end is behind → faith
-  paintTiles(tilesYou,M.rY, hb?0.46:0.28); paintTiles(tilesThem,M.rT, ab?0.46:0.28);
+  el('youEnd').style.setProperty('--r',M.rY.toFixed(3));
+  el('endThem').style.setProperty('--r',M.rT.toFixed(3));
+  var hb=M.score[0]<M.score[1], ab=M.score[1]<M.score[0];   // which end is behind → faith (dignity, no multiplier)
+  paintTiles(tilesYou,M.rY, hb?0.66:0.55); paintTiles(tilesThem,M.rT, ab?0.66:0.55);
   el('faithYou').classList.toggle('on',hb); el('faithThem').classList.toggle('on',ab);
-  // tug leans to the louder end
-  var tug=el('tug'); var d=M.rY-M.rT; tug.style.width=Math.abs(d)*60+'%';
-  tug.style.background=d>0?'var(--you)':'var(--them)';
   if(M.t>=M.dur&&!M.fired.done){M.fired.done=true;}
   requestAnimationFrame(step);
 }
 requestAnimationFrame(function(t){M.lastMs=t;step(t);});
 
-// verification helper: jump the replay clock
+// verification helpers: jump the replay clock, force a roar / prediction
 window.__jump=function(min){ M.t=min-0.1; for(var i=0;i<EVENTS.length;i++){ if(EVENTS[i].t<min-0.1)M.fired[i]=true; else M.fired[i]=false; } };
-window.__roar=function(n){for(var i=0;i<(n||6);i++)tap();};
+window.__roar=function(n){for(var i=0;i<(n||8);i++)tap();};
 window.__pred=function(i){i=i||0;showPred(PREDS[i],i);};
+window.__ft=function(){ M.score=[3,2]; el('scH').textContent=3; el('scA').textContent=2; showKeepsake(); };
 </script>
 </body>
 </html>

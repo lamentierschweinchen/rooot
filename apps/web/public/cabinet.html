@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>YOUR CABINET — what you kept</title>
+<style>
+@font-face{font-family:'Anybody';src:url(plate/fonts/anybody.woff2) format('woff2');font-weight:400 700;font-display:swap}
+@font-face{font-family:'Anybody';src:url(plate/fonts/anybody900.woff2) format('woff2');font-weight:800 900;font-display:swap}
+:root{
+  --paper:#E6DBC2; --card:#F3ECDB; --ink:#1A1815; --sub:#8C8467; --line:#D3C6A6;
+  --gold:#C79A38; --verde:#2E6A4E; --oat:#D0C29E;
+  --disp:'Anybody','Arial Black',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;font-family:var(--disp);color:var(--ink)}
+.wrap{position:relative;width:100%;max-width:440px;min-height:100vh;margin:0 auto;background:var(--paper);padding:0 0 30px;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='120' height='120' filter='url(%23n)' opacity='0.05'/></svg>");}
+
+/* masthead */
+.mast{padding:20px 18px 12px}
+.mast .k{font-weight:700;font-size:8px;letter-spacing:.22em;color:var(--sub)}
+.backg{display:inline-block;font-weight:800;font-size:8px;letter-spacing:.1em;color:var(--sub);text-decoration:none;margin-bottom:9px;-webkit-tap-highlight-color:transparent}
+.mast h1{font-weight:900;font-size:30px;letter-spacing:.01em;line-height:.95;margin-top:3px}
+.mast .sub{font-weight:700;font-size:9px;letter-spacing:.06em;color:var(--sub);margin-top:5px}
+.hostband{display:flex;height:5px;margin:12px 18px 0}
+.hostband i{flex:1}.hostband .v{background:var(--verde)}.hostband .r{background:#D52B1E}.hostband .a{background:#E8B10A}.hostband .g{background:var(--gold)}
+
+/* identity + record */
+.who{display:flex;align-items:center;gap:12px;margin:16px 18px 0;padding:12px 14px;background:var(--card);border:1.5px solid var(--ink)}
+.who .crest{width:42px;height:42px;flex:none;border:2px solid var(--ink);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px;background:var(--paper)}
+.who .crest .sp{display:flex;flex-direction:column;width:100%;height:100%}
+.who .crest .sp i{flex:1}
+.who .nm{font-weight:900;font-size:16px;letter-spacing:.02em}
+.who .af{font-weight:700;font-size:8px;letter-spacing:.08em;color:var(--sub);margin-top:2px}
+.record{display:flex;margin:12px 18px 0;border:1.5px solid var(--ink);background:var(--card)}
+.record .st{flex:1;padding:9px 4px;text-align:center;border-right:1px solid var(--line)}
+.record .st:last-child{border-right:none}
+.record .st b{display:block;font-weight:900;font-size:20px;line-height:1}
+.record .st .l{font-weight:700;font-size:6.5px;letter-spacing:.11em;color:var(--sub);margin-top:3px}
+.record .st.gold b{color:var(--gold)}
+
+/* section label */
+.sec{display:flex;align-items:center;gap:10px;margin:26px 18px 12px}
+.sec .t{font-weight:900;font-size:11px;letter-spacing:.2em}
+.sec .c{font-weight:700;font-size:8px;letter-spacing:.1em;color:var(--sub)}
+.sec::after{content:"";flex:1;height:1.5px;background:var(--ink)}
+
+/* THE SCARVES — a rack of kept match-scarves */
+.rack{padding:0 18px}
+.keep{margin-bottom:20px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .12s}
+.keep:active{transform:translateY(1px)}
+.scarf{display:flex;align-items:stretch;height:60px;box-shadow:4px 4px 0 rgba(26,24,21,.18);border:2px solid var(--ink)}
+.scarf .fr{width:8px;flex:none;background-image:repeating-linear-gradient(180deg,var(--ink) 0 4px,transparent 4px 9px)}
+.scarf .half{flex:1;position:relative;display:flex;align-items:center;justify-content:center}
+.scarf .half.h{background:var(--h)}.scarf .half.a{background:var(--a)}
+.scarf .half::before{content:"";position:absolute;inset:0;background-image:repeating-linear-gradient(180deg,rgba(255,255,255,.11) 0 2px,rgba(26,24,21,.08) 2px 5px)}
+.scarf .tri{position:relative;font-weight:900;font-size:17px;letter-spacing:.04em}
+.scarf .half.h .tri{color:var(--hink)}.scarf .half.a .tri{color:var(--aink)}
+.scarf .cart{flex:none;width:96px;background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;border-left:2px solid var(--ink);border-right:2px solid var(--ink)}
+.scarf .cart .sc{font-weight:900;font-size:22px;line-height:1}
+.scarf .cart .cp{font-weight:700;font-size:6.5px;letter-spacing:.12em;color:var(--sub);margin-top:1px}
+.hall{display:flex;justify-content:space-between;align-items:baseline;margin-top:6px;padding:0 2px;font-weight:700;font-size:7.5px;letter-spacing:.05em;color:var(--sub)}
+.hall .call b{color:var(--ink)}
+.hall .hit{color:var(--verde);font-weight:900}
+.hall .miss{color:var(--sub)}
+.hall .no{color:var(--gold);font-weight:800}
+
+/* THE PINS — moment tokens */
+.pins{display:flex;flex-wrap:wrap;gap:14px;padding:0 18px}
+.pin{width:66px;text-align:center}
+.pin .disc{width:56px;height:56px;margin:0 auto;border-radius:50%;border:2.5px solid var(--ink);background:var(--card);display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:2px 2px 0 rgba(26,24,21,.18)}
+.pin.gold .disc{background:var(--gold)}
+.pin.locked .disc{background:var(--paper);border-style:dashed;opacity:.5}
+.pin .pl{font-weight:800;font-size:6.5px;letter-spacing:.05em;color:var(--sub);margin-top:5px;line-height:1.15}
+
+/* footer */
+.foot{margin:26px 18px 0;padding-top:12px;border-top:1px solid var(--line);text-align:center;font-weight:700;font-size:7.5px;letter-spacing:.09em;color:var(--sub);line-height:1.5}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="mast">
+    <a class="backg" href="ground.html">‹ THE GROUND</a>
+    <div class="k">ROOOT · YOURS, FOREVER</div>
+    <h1>YOUR CABINET</h1>
+    <div class="sub">what you kept — every match you were there for</div>
+  </div>
+  <div class="hostband"><i class="v"></i><i class="r"></i><i class="a"></i><i class="g"></i></div>
+
+  <div class="who">
+    <div class="crest"><span class="sp"><i style="background:#D52B1E"></i><i style="background:#E8B10A"></i></span></div>
+    <div><div class="nm" id="who">lukas</div><div class="af">ROOTED FOR 🇨🇭 · 🇦🇷 · SINCE '26</div></div>
+  </div>
+  <div class="record">
+    <div class="st"><b>12</b><span class="l">MATCHES LIVED</span></div>
+    <div class="st"><b>34</b><span class="l">CALLS MADE</span></div>
+    <div class="st gold"><b>21</b><span class="l">NAILED</span></div>
+    <div class="st"><b>ARG</b><span class="l">LOUDEST NIGHT</span></div>
+  </div>
+
+  <div class="sec"><span class="t">THE SCARVES</span><span class="c">tap to unroll the cloth</span></div>
+  <div class="rack" id="rack"></div>
+
+  <div class="sec"><span class="t">THE PINS</span><span class="c">moments you were there for</span></div>
+  <div class="pins" id="pins"></div>
+
+  <div class="foot">your cabinet fills as you live matches · each scarf is the match woven from the real feed<br>provenance sits on-chain — yours to keep, worthless to flip · sample shown until wired</div>
+</div>
+
+<script>
+var el=function(id){return document.getElementById(id);};
+// sample kept matches — each wires to a real relic (the woven cloth) + your tx-signed call
+var SCARVES=[
+  {h:'ARG',a:'CPV',hc:'#2049AA',ac:'#C8504D',hi:'#F3ECDB',ai:'#F3ECDB',sc:'3–2',comp:'WORLD CUP',date:"08 JUL '26",call:'ARG 3–2',res:'hit',no:'014'},
+  {h:'SUI',a:'COL',hc:'#D52B1E',ac:'#E8B10A',hi:'#F3ECDB',ai:'#1A1815',sc:'1–1',comp:'GROUP F',date:"04 JUL '26",call:'SUI 2–1',res:'miss',no:'009'},
+  {h:'BRA',a:'NOR',hc:'#F7D117',ac:'#BA0C2F',hi:'#1A1815',ai:'#F3ECDB',sc:'0–1',comp:'GROUP C',date:"01 JUL '26",call:'the upset',res:'hit',no:'003'}
+];
+function resTag(r){ return r==='hit'?'<span class="hit">✓ CALLED IT</span>':r==='miss'?'<span class="miss">✗ didn’t fall</span>':'<span class="no">— neutral</span>'; }
+el('rack').innerHTML=SCARVES.map(function(s){
+  return '<div class="keep" data-match="'+s.h+'-'+s.a+'">'+
+    '<div class="scarf" style="--h:'+s.hc+';--a:'+s.ac+';--hink:'+s.hi+';--aink:'+s.ai+'">'+
+      '<span class="fr"></span>'+
+      '<div class="half h"><span class="tri">'+s.h+'</span></div>'+
+      '<div class="cart"><span class="sc">'+s.sc+'</span><span class="cp">'+s.comp+'</span></div>'+
+      '<div class="half a"><span class="tri">'+s.a+'</span></div>'+
+      '<span class="fr"></span>'+
+    '</div>'+
+    '<div class="hall"><span class="call">'+s.date+' · you called <b>'+s.call+'</b> '+resTag(s.res)+'</span><span>Nº '+s.no+'</span></div>'+
+  '</div>';
+}).join('');
+// tap a scarf → unroll the full woven cloth (the keepsake)
+[].forEach.call(document.querySelectorAll('.keep'),function(k){ k.onclick=function(){ location.href='woven-loom.html?keepsake=1'; }; });
+
+// sample pins — moments (locked ones are yet to be earned)
+var PINS=[
+  {e:'🧣',l:'FIRST ROOT',gold:false},
+  {e:'🎯',l:'CALLED THE UPSET',gold:true},
+  {e:'◆',l:'STILL SINGING',gold:false},
+  {e:'🔥',l:'A NIGHT AT 100dB',gold:false},
+  {e:'',l:'HAT-TRICK — LOCKED',locked:true}
+];
+el('pins').innerHTML=PINS.map(function(p){
+  return '<div class="pin'+(p.gold?' gold':'')+(p.locked?' locked':'')+'"><div class="disc">'+(p.e||'')+'</div><div class="pl">'+p.l+'</div></div>';
+}).join('');
+</script>
+</body>
+</html>

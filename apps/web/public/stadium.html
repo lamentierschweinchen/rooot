@@ -40,6 +40,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
 @keyframes halo{0%{transform:scale(1);opacity:.9}100%{transform:scale(1.7);opacity:0}}
 .hot .n{font-weight:900;font-size:20px;color:var(--card);line-height:1}
 .hot .ic{font-size:19px;color:var(--card);line-height:1}
+.hot .ring .wic{width:31px;height:31px;object-fit:contain;filter:brightness(0) invert(1);opacity:.94}   /* whistle = THE BOOK's mark, keyed to a cream silhouette to match the glyph hotspots */
 .hot .cap{display:none}   /* owner: the spots on the pitch self-explain — show, don't tell (Jul 7). Symbol + position + count carry it. */
 .hot.sm .ring{width:40px;height:40px}
 .hot.xs .ring{width:30px;height:30px}.hot.xs .cap{font-size:8px}
@@ -71,6 +72,10 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
 /* detail: goal-mouth shot-map (same language as the plate) */
 .art{position:relative;margin:0 16px}
 .art img{display:block;width:100%;height:auto}
+/* CONTROL threat-pitch lifted into the plate register — textured paper, double ink frame */
+#ctrlViz{position:relative;background:var(--card);border:2.5px solid var(--ink);padding:13px 9px 11px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='120' height='120' filter='url(%23n)' opacity='0.05'/></svg>")}
+#ctrlViz::after{content:"";position:absolute;inset:5px;border:1.4px solid var(--ink);pointer-events:none}
+#ctrlViz svg{position:relative;z-index:1}
 #shots{position:absolute;inset:0}
 @keyframes pop{0%{transform:translate(-50%,-50%) scale(0);opacity:0}62%{transform:translate(-50%,-50%) scale(1.18)}100%{transform:translate(-50%,-50%) scale(1);opacity:1}}
 #shots .dot{position:absolute;width:4.8%;height:0;padding-bottom:4.8%;border-radius:50%;transform:translate(-50%,-50%);animation:pop .38s cubic-bezier(.3,1.5,.5,1) both}
@@ -92,6 +97,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
 .splabel{display:flex;align-items:center;justify-content:space-between;margin:13px 16px 2px;font-weight:800;font-size:9px;letter-spacing:.14em;color:var(--sub)}
 .splabel .t{font-size:13px;font-weight:900;letter-spacing:.02em}.splabel .t.h{color:var(--home)}.splabel .t.a{color:var(--away)}
 .spgrid{margin:0 16px}
+#goalGrid{padding-bottom:74px}   /* clear the floating card-nav so the last outcome row is readable */
 .sprow{display:flex;align-items:center;padding:9px 0;border-top:1px solid rgba(26,24,21,.1)}
 .spn{font-weight:900;font-size:21px;width:54px;text-align:center;flex-shrink:0}
 .spn.h{color:var(--home)}.spn.a{color:var(--away)}
@@ -114,6 +120,19 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
 /* detail: THE BENCH — subs + injuries, listed under the dugout */
 .benchgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 16px 0}
 .bcol-h{font-weight:900;font-size:13px;letter-spacing:.02em;margin-bottom:7px}.bcol-h.h{color:var(--home)}.bcol-h.a{color:var(--away)}
+/* THE TEAM SHEET — the starting XI, two elevens as a printed team-sheet */
+.teamsheet{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:8px 18px 0}
+.tscol{min-width:0}
+.xilist{list-style:none}
+.xrow{display:flex;align-items:baseline;gap:8px;padding:3.5px 0;border-bottom:1px solid var(--line)}
+.xrow .xnum{flex:none;width:20px;text-align:right;font-weight:900;font-size:12px;font-variant-numeric:tabular-nums}
+.xrow .xnum.h{color:var(--home)}.xrow .xnum.a{color:var(--away)}
+.xrow .xname{flex:1;min-width:0;font-weight:700;font-size:11px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.xrow .cap{flex:none;align-self:center;font-weight:900;font-size:7.5px;color:var(--gold);border:1.3px solid var(--gold);border-radius:50%;width:14px;height:14px;display:flex;align-items:center;justify-content:center}
+.xnone{list-style:none;font-weight:700;font-size:9px;letter-spacing:.1em;color:var(--sub);padding:10px 0}
+.benchsplit{display:flex;align-items:center;gap:10px;margin:18px 18px 10px}
+.benchsplit span{font-weight:800;font-size:8.5px;letter-spacing:.16em;color:var(--sub);white-space:nowrap}
+.benchsplit::before,.benchsplit::after{content:"";flex:1;height:1px;background:var(--line)}
 .brow{display:flex;align-items:center;gap:7px;margin-bottom:8px}
 .brow img{width:19px;height:19px;object-fit:contain;flex-shrink:0}
 .brow .bx{font-weight:800;font-size:9.5px;line-height:1.28;letter-spacing:.02em;color:var(--ink)}
@@ -121,6 +140,10 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
 .brow .bmin{margin-left:auto;font-weight:800;font-size:9px;color:var(--sub)}
 .brow.inj .bx{color:var(--away)}
 .brow.none{color:var(--sub);font-size:9px;font-weight:700;letter-spacing:.1em}
+.brow.hurt{margin-bottom:2px}.brow.hurt .bx{color:var(--gold);font-weight:900;font-size:8px;letter-spacing:.09em}
+.brow.fromInj{margin-left:15px;margin-bottom:10px}
+#sheet-bench .dugbg{position:absolute;left:0;right:0;bottom:0;width:100%;opacity:.13;pointer-events:none;z-index:0}
+#sheet-bench>*:not(.dugbg){position:relative;z-index:1}
 /* detail: PENALTIES — attempts placed in the shootout grid */
 #pens{position:absolute;inset:0}
 .pmark{position:absolute;width:11%;transform:translate(-50%,-50%);animation:pop .42s cubic-bezier(.3,1.5,.5,1) both;filter:drop-shadow(0 1px 2px rgba(26,24,21,.3))}
@@ -153,7 +176,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
       <div class="hot sm" data-place="arc" style="left:33%;top:25%"><div class="ring"><span class="n" id="hC">0</span></div><span class="cap">SET PIECES</span></div>
       <div class="hot sm" data-place="control" style="left:62%;top:58%"><div class="ring"><span class="ic">◑</span></div><span class="cap">CONTROL</span></div>
       <div class="hot xs" data-place="pens" style="left:49.8%;top:69.5%"><div class="ring"><span class="ic">•</span></div><span class="cap">PENS</span></div>
-      <div class="hot sm" data-place="book" style="left:49.8%;top:50.5%"><div class="ring"><span class="ic">▤</span></div><span class="cap">THE BOOK</span></div>
+      <div class="hot sm" data-place="book" style="left:49.8%;top:50.5%"><div class="ring"><img class="wic" src="plate/gens/whistle.png" alt=""></div><span class="cap">THE BOOK</span></div>
       <div class="hot sm" data-place="bench" style="left:79%;top:50%"><div class="ring"><span class="ic">⇅</span></div><span class="cap">THE BENCH</span></div>
       <div class="hot sm soon" data-place="stands" style="left:12%;top:85%"><div class="ring"><span class="ic">◍</span></div><span class="cap">THE STANDS</span></div>
     </div>
@@ -167,10 +190,8 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     <div class="sh-head"><span class="t">THE GOAL-MOUTH<small>SHOTS · IN OR HELD</small></span><button class="close" data-close>✕</button></div>
     <div class="hostband"><i class="v"></i><i class="r"></i><i class="a"></i><i class="g"></i></div>
     <div class="art"><div style="position:relative"><img src="plate/gens/goal-empty.png" alt="goal"><div id="shots"></div></div></div>
-    <div class="sh-read">
-      <div class="col"><span class="t h" id="gH">POR</span><span class="n h" id="gHG">0</span><span class="sub" id="gHS">GOALS · 0 ON TARGET</span></div>
-      <div class="col r"><span class="t a" id="gA">ESP</span><span class="n a" id="gAG">0</span><span class="sub" id="gAS">GOALS · 0 ON TARGET</span></div>
-    </div>
+    <div class="splabel"><span class="t h" id="gH">SUI</span><span>THE SHOTS</span><span class="t a" id="gA">COL</span></div>
+    <div class="spgrid" id="goalGrid"></div>
   </section>
 
   <!-- DETAIL: CONTROL (the pitch body — possession · territory · danger) -->
@@ -217,14 +238,21 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     </div>
   </section>
 
-  <!-- DETAIL: THE BENCH -->
+  <!-- DETAIL: THE TEAM SHEET — the starting XI (held by the bench pre-kickoff), then who came off it -->
   <section class="sheet" id="sheet-bench">
-    <div class="sh-head"><span class="t">THE BENCH<small>WHO CAME &amp; WENT</small></span><button class="close" data-close>✕</button></div>
+    <img class="dugbg" src="plate/gens/dugout.png" alt="" aria-hidden="true">
+    <div class="sh-head"><span class="t">THE TEAM SHEET<small>THE STARTING XI</small></span><button class="close" data-close>✕</button></div>
     <div class="hostband"><i class="v"></i><i class="r"></i><i class="a"></i><i class="g"></i></div>
-    <div class="art"><img src="plate/gens/dugout.png" alt="the bench"></div>
-    <div class="benchgrid">
-      <div class="bcol"><div class="bcol-h h" id="bnHn">POR</div><div id="benchH"></div></div>
-      <div class="bcol"><div class="bcol-h a" id="bnAn">ESP</div><div id="benchA"></div></div>
+    <div class="teamsheet">
+      <div class="tscol"><div class="bcol-h h" id="xiHn">—</div><ol class="xilist" id="xiH"></ol></div>
+      <div class="tscol"><div class="bcol-h a" id="xiAn">—</div><ol class="xilist" id="xiA"></ol></div>
+    </div>
+    <div id="benchSec">
+      <div class="benchsplit"><span>OFF THE BENCH</span></div>
+      <div class="benchgrid">
+        <div class="bcol"><div id="benchH"></div></div>
+        <div class="bcol"><div id="benchA"></div></div>
+      </div>
     </div>
   </section>
 
@@ -345,6 +373,18 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     ensureMarks(wrap,tc+'_ms',off,SLOTS('miss',side),function(){return dotEl('miss '+tc);});
     ensureMarks(wrap,tc+'_bl',bl,SLOTS('block',side),function(){return embEl('wall '+tc,tm.wall);});
     ensureMarks(wrap,tc+'_ww',ww,SLOTS('ww',side),function(){return dotEl('ww '+tc);});});}
+  // THE GOAL-MOUTH breakdown — the shot outcomes as symbol · count (the register), beside the shot-map hero
+  function goalBreak(h,a){ var box=el('goalGrid'); if(!box)return;
+    var hs=h.shots||{},as=a.shots||{},hg=h.goals||0,ag=a.goals||0;
+    var BALL='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6" fill="#1A1815"/><polygon points="12,8 15,10.3 13.8,13.8 10.2,13.8 9,10.3" fill="#F3ECDB"/></svg>';
+    var GLOVE='<img src="plate/gens/glove-new.png" alt="">';
+    var OFF='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.6" fill="none" stroke="#8C8467" stroke-width="3"/></svg>';
+    var BLK='<svg viewBox="0 0 24 24"><rect x="4.5" y="4.5" width="15" height="15" rx="2" fill="none" stroke="#1A1815" stroke-width="2.6"/><line x1="4.5" y1="12" x2="19.5" y2="12" stroke="#1A1815" stroke-width="1.8"/><line x1="12" y1="4.5" x2="12" y2="19.5" stroke="#1A1815" stroke-width="1.8"/></svg>';
+    var WW='<svg viewBox="0 0 24 24"><path d="M6 21 V4 H18" fill="none" stroke="#C79A38" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    var rows=[['GOALS',hg,ag,BALL],['SAVED',Math.max(0,(hs.onTarget||0)-hg),Math.max(0,(as.onTarget||0)-ag),GLOVE],['OFF TARGET',hs.offTarget||0,as.offTarget||0,OFF],['BLOCKED',hs.blocked||0,as.blocked||0,BLK]];
+    if(((hs.woodwork||0)+(as.woodwork||0))>0)rows.push(['WOODWORK',hs.woodwork||0,as.woodwork||0,WW]);
+    box.innerHTML=rows.map(function(r){return '<div class="sprow"><span class="spn h">'+r[1]+'</span><span class="spmid">'+r[3]+r[0]+'</span><span class="spn a">'+r[2]+'</span></div>';}).join('');
+  }
   function cornerMark(side){var d=document.createElement('div');d.className='cmark '+side;d.innerHTML='<svg viewBox="0 0 24 24"><path d="M4 21 L4 12 A8 8 0 0 1 12 4 L21 4" fill="none" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';return d;}
   function ensureC(id,side,n){var w=el(id);if(!w)return;var c=w.children.length;while(c<n){w.appendChild(cornerMark(side));c++;}while(c>n){w.removeChild(w.lastChild);c--;}}
   // THE BOOK — write each booking (card chip · player · minute) on a ruled line of the team's page
@@ -355,14 +395,30 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     list.slice(0,7).forEach(function(bk,k){ var r=document.createElement('div');r.className='bentry';r.style.top=lines[k]+'%';
       r.innerHTML='<span class="chip '+(bk.type==='Red'?'r':'y')+'"></span><span class="bn">'+(bk.player||'—')+'</span><span class="bmn">'+(bk.minute!=null?bk.minute+"′":'')+'</span>';
       page.appendChild(r); }); }
+  // THE TEAM SHEET — a side's starting XI (number · name, captain marked). null until the wire names them.
+  function fmtName(n){ if(!n)return '—'; var c=n.indexOf(','); return c>=0?(n.slice(c+1).trim()+' '+n.slice(0,c).trim()):n; }
+  function fillXI(ol,arr,cls){ if(!ol)return; ol.innerHTML='';
+    if(!arr||!arr.length){ ol.innerHTML='<li class="xnone">TEAM SHEET NOT IN YET</li>'; return; }
+    arr.forEach(function(p){ var li=document.createElement('li'); li.className='xrow';
+      li.innerHTML='<span class="xnum '+cls+'">'+(p.number!=null&&p.number!==''?p.number:'·')+'</span><span class="xname">'+fmtName(p.name)+'</span>'+(p.captain?'<span class="cap">C</span>':'');
+      ol.appendChild(li); }); }
   // THE BENCH — list a team's subs (in/out names) then injuries under the dugout
   function fillBench(col,team){ if(!col)return; col.innerHTML='';
     var subs=(team.subs&&team.subs.moves)||[], injs=(team.injuries&&team.injuries.list)||[];
-    subs.forEach(function(m){ var r=document.createElement('div');r.className='brow';
-      r.innerHTML='<img src="plate/gens/subboard.png" alt=""><span class="bx"><span class="in">▲ '+(m.inName||'—')+'</span><br><span class="out">▼ '+(m.outName||'—')+'</span></span><span class="bmin">'+(m.minute!=null?m.minute+"′":'')+'</span>'; col.appendChild(r); });
-    injs.forEach(function(x){ var r=document.createElement('div');r.className='brow inj';
-      r.innerHTML='<img src="plate/gens/stretcher.png" alt=""><span class="bx">'+(x.player||'—')+'</span><span class="bmin">'+(x.minute!=null?x.minute+"′":'')+'</span>'; col.appendChild(r); });
-    if(!subs.length&&!injs.length)col.innerHTML='<div class="brow none">NONE YET</div>'; }
+    // an injury only surfaces if it FORCED a change — pair it to the sub it caused; a knock played through (OnPitch) or one with no sub is dropped
+    function forcedBy(m){ for(var i=0;i<injs.length;i++){ var x=injs[i];
+      var left=(x.outcome==='OffPitch'||x.outcome==='NotReturning');
+      var samePlayer=(x.player&&m.outName&&String(x.player).toLowerCase()===String(m.outName).toLowerCase());
+      var near=(x.minute!=null&&m.minute!=null&&x.minute<=m.minute+1&&x.minute>=m.minute-4);
+      if(left&&(samePlayer||near))return x;
+    } return null; }
+    subs.forEach(function(m){ var inj=forcedBy(m);
+      if(inj){ var ir=document.createElement('div');ir.className='brow hurt';
+        ir.innerHTML='<img src="plate/gens/stretcher.png" alt=""><span class="bx">INJURY · '+fmtName(m.outName)+'</span><span class="bmin">'+(inj.minute!=null?inj.minute+"′":'')+'</span>'; col.appendChild(ir); }
+      var r=document.createElement('div');r.className='brow'+(inj?' fromInj':'');
+      r.innerHTML='<img src="plate/gens/subboard.png" alt=""><span class="bx"><span class="in">▲ '+fmtName(m.inName)+'</span><br><span class="out">▼ '+fmtName(m.outName)+'</span></span><span class="bmin">'+(m.minute!=null?m.minute+"′":'')+'</span>'; col.appendChild(r);
+    });
+    if(!subs.length)col.innerHTML='<div class="brow none">NONE YET</div>'; }
   // PENALTIES — place each attempt (both teams shoot at this one grid): scored = team ball, missed = team ring + X
   function fillPens(box,h,a){ if(!box)return; box.innerHTML=''; var pens=[];
     ((h.penalties&&h.penalties.list)||[]).forEach(function(p){pens.push({s:'h',sc:p.outcome==='Scored'});});
@@ -383,10 +439,12 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     var HC=(cs.getPropertyValue('--home')||'').trim()||'#2049AA', AC=(cs.getPropertyValue('--away')||'').trim()||'#C8504D';
     var L='stroke="#1A1815" stroke-width="1.5" fill="none"';
     function grad(id,c){return '<radialGradient id="'+id+'"><stop offset="0" stop-color="'+c+'" stop-opacity=".82"/><stop offset=".55" stop-color="'+c+'" stop-opacity=".3"/><stop offset="1" stop-color="'+c+'" stop-opacity="0"/></radialGradient>';}
-    function bloom(cy,dg,hi,c,id){var r=Math.max(15,17+dg*1.5),cr=Math.max(4,5+hi*1.5);return '<circle cx="100" cy="'+cy+'" r="'+r.toFixed(0)+'" fill="url(#'+id+')"/><circle cx="100" cy="'+cy+'" r="'+cr.toFixed(0)+'" fill="'+c+'" opacity=".92"/>';}
+    function bloom(cy,dg,hi,c,id){ if(dg<=0&&hi<=0)return '';   // no danger → no bloom (honest-empty shows nothing, not fake threat)
+      var r=dg>0?(12+dg*1.4):0, cr=hi>0?(4+hi*1.4):0;
+      return (r>0?'<circle cx="100" cy="'+cy+'" r="'+r.toFixed(0)+'" fill="url(#'+id+')"/>':'')+(cr>0?'<circle cx="100" cy="'+cy+'" r="'+cr.toFixed(0)+'" fill="'+c+'" opacity=".92"/>':''); }
     box.innerHTML='<svg viewBox="0 0 200 286" style="width:100%;max-width:184px;display:block;margin:0 auto">'+
       '<defs>'+grad('bh',HC)+grad('ba',AC)+'</defs>'+
-      '<rect x="6" y="6" width="188" height="274" fill="#EFE7D2" stroke="#1A1815" stroke-width="2"/>'+
+      '<rect x="6" y="6" width="188" height="274" fill="#E9DFC6"/>'+
       bloom(48,hd,hh,HC,'bh')+bloom(238,ad,ah,AC,'ba')+
       '<line x1="6" y1="143" x2="194" y2="143" '+L+'/><circle cx="100" cy="143" r="24" '+L+'/>'+
       '<rect x="66" y="6" width="68" height="30" '+L+'/><rect x="66" y="250" width="68" height="30" '+L+'/>'+
@@ -411,11 +469,10 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     el('hGH').textContent=(as.onTarget||0)+(as.offTarget||0)+(as.blocked||0);
     el('capA').textContent=AWAY.tri+' GOAL';el('capH').textContent=HOME.tri+' GOAL';
     el('hC').textContent=(h.corners||0)+(a.corners||0)+(h.freeKicks||0)+(a.freeKicks||0);
-    // detail: goal-mouth
+    // detail: goal-mouth — the shot-map hero + the symbol · count register
     placeShots(h,a);
-    el('gH').textContent=HOME.name;el('gA').textContent=AWAY.name;
-    el('gHG').textContent=hg;el('gAG').textContent=ag;
-    el('gHS').textContent='GOALS · '+(hs.onTarget||0)+' ON TARGET';el('gAS').textContent='GOALS · '+(as.onTarget||0)+' ON TARGET';
+    el('gH').textContent=HOME.tri;el('gA').textContent=AWAY.tri;
+    goalBreak(h,a);
     // detail: SET PIECES — corner marks on the hero + the dead-ball breakdown
     ensureC('corH','h',h.corners||0);ensureC('corA','a',a.corners||0);
     el('cHn').textContent=HOME.tri;el('cAn').textContent=AWAY.tri;
@@ -431,9 +488,13 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     el('bkAs').textContent=(a.offsides||0)+' OFF · '+(a.fouls||0)+' FOULS';
     var vs=el('varStrip'),vv=s.var||[];
     vs.innerHTML=vv.length?('<b>VAR</b>'+vv.map(function(x){return '<span class="vchip'+(x.outcome==='Overturned'?' over':'')+'">'+x.type+' · '+String(x.outcome).toUpperCase()+'</span>';}).join('')):'';
-    // detail: THE BENCH — subs + injuries
+    // detail: THE TEAM SHEET — the starting XI (held by the bench pre-kickoff), then who came off it
+    var lu=s.lineups||{};
+    fillXI(el('xiH'),lu.home,'h'); fillXI(el('xiA'),lu.away,'a');
+    el('xiHn').textContent=HOME.tri;el('xiAn').textContent=AWAY.tri;
     fillBench(el('benchH'),h); fillBench(el('benchA'),a);
-    el('bnHn').textContent=HOME.tri;el('bnAn').textContent=AWAY.tri;
+    var hasSubs=(((h.subs&&h.subs.moves)||[]).length+((a.subs&&a.subs.moves)||[]).length)>0;   // injuries alone don't open the bench — only the subs they force
+    el('benchSec').style.display=hasSubs?'block':'none';
     // detail: PENALTIES — shootout grid
     fillPens(el('pens'),h,a);
     var ph=h.penalties||{},pa=a.penalties||{};
@@ -442,16 +503,18 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     el('pnHs').textContent='SCORED · '+(ph.missed||0)+' MISSED';el('pnAs').textContent='SCORED · '+(pa.missed||0)+' MISSED';
     // detail: CONTROL — possession split + dangerous attacks
     el('ctrlHn').textContent=HOME.tri;el('ctrlAn').textContent=AWAY.tri;el('ctrlHn2').textContent=HOME.tri;el('ctrlAn2').textContent=AWAY.tri;
-    el('ctrlHp').textContent=hp;el('ctrlAp').textContent=ap;
+    var pK=(h.possessionPct!=null||h.territory!=null);  // don't fake a 50/50 when possession is unknown
+    el('ctrlHp').textContent=pK?hp:'—';el('ctrlAp').textContent=pK?ap:'—';
     var had=h.attacks||{},aad=a.attacks||{};
     el('ctrlHd').textContent=(had.danger||0);el('ctrlAd').textContent=(aad.danger||0);
     el('ctrlHh').textContent=(had.highDanger||0);el('ctrlAh').textContent=(aad.highDanger||0);
     ctrlViz(h,a);
   }
+  window.__render=render;   // dev hook — re-render with injected __stats (verification only; no data shipped)
 
   // ---- zoom interaction + inter-card nav ----
   var openSheet=null, toastT=null;
-  var CARDS=[['goal','GOAL-MOUTH'],['arc','SET PIECES'],['control','CONTROL'],['book','THE BOOK'],['bench','THE BENCH'],['pens','PENALTIES']];   // built detail cards, in order (grows as families land)
+  var CARDS=[['goal','GOAL-MOUTH'],['arc','SET PIECES'],['control','CONTROL'],['book','THE BOOK'],['bench','TEAM SHEET'],['pens','PENALTIES']];   // built detail cards, in order (grows as families land)
   function toast(msg){var t=el('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove('show');},1800);}
   var SOON={stands:'THE STANDS'};   // only truly-unbuilt places left (book/bench/control now have sheets)
   function syncNav(place){

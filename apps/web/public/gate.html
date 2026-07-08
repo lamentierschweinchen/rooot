@@ -134,7 +134,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
     </div>
 
     <div class="mkt">
-      <div class="mkthd"><span class="ml">THE MARKET READS</span><span class="mr">PRE-MATCH · DE-VIGGED</span></div>
+      <div class="mkthd"><span class="ml">THE MARKET READS</span><span class="mr">SAMPLE · WIRES TO LIVE</span></div>
       <!-- sample proportions — wires from the live de-vigged odds feed -->
       <div class="mbar"><i class="h" style="flex:44">SUI 44</i><i class="d" style="flex:28">X 28</i><i class="a" style="flex:28">COL 28</i></div>
     </div>
@@ -181,7 +181,10 @@ function paintScore(){ [].forEach.call(score.querySelectorAll('.scn'),function(n
 });
 go.onclick=function(){
   if(!go.classList.contains('ready'))return;
+  // your pass — persisted, then read by the terrace checkpoint + woven into the keepsakes
+  try{ localStorage.setItem('rooot.pass', JSON.stringify({side:side, call:sco, conv:conv, ts:Date.now()})); }catch(e){}
   go.innerHTML='SEE YOU INSIDE<small>◆ YOU CALLED SUI '+sco.h+'–'+sco.a+' COL</small>';
+  setTimeout(function(){ location.href='ground.html?from=gate'; }, 950);   // the tunnel — walk into the ground (the hub)
 };
 </script>
 </body>

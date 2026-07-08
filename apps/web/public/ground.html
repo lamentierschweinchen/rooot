@@ -24,9 +24,13 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .tab{padding:5px 11px;font-family:var(--disp);font-weight:800;font-size:8.5px;letter-spacing:.1em;background:var(--card);color:var(--sub);cursor:pointer;border:none;-webkit-tap-highlight-color:transparent}
 .tab+.tab{border-left:1.5px solid var(--ink)}
 .tab.on{background:var(--ink);color:var(--card)}
+.mright{display:flex;align-items:center;gap:8px}
+.cabbtn{width:30px;height:26px;flex:none;border:1.5px solid var(--ink);background:var(--card);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--ink);text-decoration:none;-webkit-tap-highlight-color:transparent}
+.cabbtn:active{background:var(--ink);color:var(--card)}
 
 /* their end — thin band across the top (the far stand) */
-.them{display:flex;align-items:center;gap:9px;padding:5px 13px;background:linear-gradient(180deg,rgba(200,80,77,.14),transparent)}
+.them{display:flex;align-items:center;gap:9px;padding:5px 13px;background:linear-gradient(180deg,rgba(200,80,77,.14),transparent);text-decoration:none;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.them .enter{font-weight:800;font-size:7.5px;letter-spacing:.1em;color:var(--them);border:1.2px solid var(--them);padding:2px 7px;border-radius:2px;white-space:nowrap}
 .them .nm{font-weight:800;font-size:8px;letter-spacing:.12em;color:var(--them);white-space:nowrap}
 .them .mini{display:flex;gap:2px;flex:1;overflow:hidden}
 .them .mini i{width:7px;height:7px;background:var(--them);opacity:.45;flex:none}
@@ -52,23 +56,28 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .cburst{position:absolute;left:50%;top:8px;transform:translateX(-50%) scale(.6);font-weight:900;font-size:26px;color:var(--you);opacity:0;pointer-events:none}
 .cburst.pop{animation:cb .9s cubic-bezier(.2,1.5,.35,1) forwards}
 @keyframes cb{0%{opacity:0;transform:translateX(-50%) scale(.5)}30%{opacity:.9;transform:translateX(-50%) scale(1.1)}100%{opacity:0;transform:translateX(-50%) scale(1)}}
+.spec{flex:none;text-align:center;padding:4px 8px;font-weight:800;font-size:7px;letter-spacing:.13em;color:var(--sub);background:var(--paper);border-top:1.5px solid var(--ink)}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="cmast">
-    <span class="sc"><span class="h" id="hT">ARG</span> <span id="sc">3–2</span> <span class="a" id="aT">CPV</span></span>
-    <div class="tabs" id="tabs">
-      <button class="tab on" data-lens="loom">LOOM</button>
-      <button class="tab" data-lens="stadium">STADIUM</button>
+    <span class="sc"><span class="h" id="hT">ARG</span> <span id="sc">v</span> <span class="a" id="aT">CPV</span></span>
+    <div class="mright">
+      <div class="tabs" id="tabs">
+        <button class="tab on" data-lens="loom">LOOM</button>
+        <button class="tab" data-lens="stadium">STADIUM</button>
+      </div>
+      <a class="cabbtn" href="cabinet.html" title="your cabinet" aria-label="your cabinet">◈</a>
     </div>
   </div>
 
-  <div class="them">
+  <a class="them" id="themBand" href="terrace.html">
     <span class="nm">CPV · THEIR END</span>
     <div class="mini" id="miniThem"></div>
     <span class="ct">14,100</span>
-  </div>
+    <span class="enter">⤢ ENTER</span>
+  </a>
 
   <div class="center" id="center">
     <iframe id="lens" title="centre view" src="woven-loom.html?embed=1"></iframe>
@@ -81,6 +90,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
     <div class="cheerbar"><span class="cl">YOUR CHEER</span><div class="bar"><div class="fill" id="cheerFill"></div></div><span class="cv" id="cheerV">quiet</span></div>
     <div class="taphint">TAP HERE TO CHEER · THE CROWD STAYS WHILE YOU TURN THE DIAL</div>
   </div>
+  <div class="spec">SPECIMEN · SAMPLE CROWD + SCORES · WIRES TO ONE LIVE SOURCE</div>
 </div>
 <script>
 var LENS={loom:'woven-loom.html?embed=1', stadium:'stadium.html?embed=1&match=argcpv'};
