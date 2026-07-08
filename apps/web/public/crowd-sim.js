@@ -13,14 +13,36 @@
       belief: { home: 0.5, away: 0.5 },     // each camp's hope for ITS team
       roar: { home: 0, away: 0 }, moments: [], consensus: null
     };
+    function clamp01(x) { return x < 0 ? 0 : x > 1 ? 1 : x; }
+    function sideOf(msg) { var s = msg.msg && msg.msg.ev && msg.msg.ev.side; return s === 'home' ? 'home' : s === 'away' ? 'away' : null; }
+    function impulse(side, mag) { if (!side) return; var other = side === 'home' ? 'away' : 'home';
+      st.belief[side] = clamp01(st.belief[side] + mag * T.reactivity); st.belief[other] = clamp01(st.belief[other] - mag * 0.5 * T.reactivity); }
+    function marketFor(side) { return side === 'home' ? st.market.home : st.market.away; }
+    function biasedTarget(side) { return clamp01(marketFor(side) + T.homeBias); }   // hope sits above the market
+    st.tick = function () {
+      ['home', 'away'].forEach(function (side) {
+        st.roar[side] = st.roar[side] * T.roarDecay;                       // decay (Task 3 adds spikes)
+        st.belief[side] += (biasedTarget(side) - st.belief[side]) * T.regression;   // drift toward hopeful baseline
+      });
+      // consensus: crowd's predicted scoreline = current score + expected-more from belief (kept simple)
+      st.consensus = {
+        all: [Math.round((st.home + st.belief.home) * 10) / 10, Math.round((st.away + st.belief.away) * 10) / 10],
+        market: [st.market.home, st.market.draw, st.market.away]
+      };
+    };
     function ingest(msg) {
       if (!msg || !msg.type) return;
       if (msg.type === 'score' && msg.ev) { st.home = msg.ev.home; st.away = msg.ev.away; if (typeof msg.ev.minute === 'number') st.minute = msg.ev.minute; }
       else if (msg.type === 'status' && msg.ev) { st.phase = msg.ev.phase || st.phase; }
       else if (msg.type === 'odds' && msg.tick) { st.market = { home: msg.tick.pHome, draw: msg.tick.pDraw, away: msg.tick.pAway }; }
-      // ledger events (goal/shot/danger) handled in Task 2/3
+      else if (msg.type === 'ledger' && msg.msg && msg.msg.type === 'event') {
+        var k = msg.msg.ev.kind, sd = sideOf(msg);
+        if (k === 'danger') impulse(sd, 0.015);
+        else if (k === 'shot') impulse(sd, 0.03);
+        else if (k === 'goal' && msg.msg.ev.confirmed) impulse(sd, 0.12);
+      }
     }
-    function tick() { /* decay etc. in Task 3 */ }
+    function tick() { st.tick(); }
     function snapshot() {
       return {
         rooted: { home: T.homeSize, away: T.awaySize },

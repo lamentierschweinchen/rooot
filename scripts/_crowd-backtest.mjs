@@ -31,3 +31,11 @@ const s = m.snapshot();
 assert.ok(s && s.rooted && typeof s.rooted.home === 'number', 'snapshot has rooted counts');
 assert.ok(s.roar && typeof s.roar.home === 'number', 'snapshot has roar');
 console.log('OK skeleton snapshot', JSON.stringify(s));
+
+import { toFeed } from './_tofeed.mjs';
+const feed = toFeed('fixtures/sui-col-scores-20260707.jsonl');
+const M = createModel();
+let maxGap = 0;
+for (const msg of feed) { M.ingest(msg); M.tick(); const s = M._st; maxGap = Math.max(maxGap, Math.abs(s.belief.home - s.market.home)); }
+assert.ok(maxGap > 0.05, 'crowd belief diverges from market by >0.05 somewhere (got ' + maxGap.toFixed(3) + ')');
+console.log('OK divergence maxGap=', maxGap.toFixed(3));
