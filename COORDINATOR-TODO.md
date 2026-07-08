@@ -20,6 +20,16 @@ OPEN: free kicks kept ON but owner leans redundant — one flag flips. Legend ne
 NOTED: `/live` default is still the finished SUI-COL (18202783) while other games go live —
 the stale-default (#11); proper fix needs the /fixtures endpoint (a server change, best done
 between matches so it doesn't clear live join-snapshots).
+**Jul 8 — landed design's night session** (`7b4ae2e`, deployed, unrouted): THE GATE
+(`/gate`), THE STANDS (`/terrace`), THE GROUND composite (`/ground` — crowd frames a tabbed
+loom/stadium), + the **CONTROL card** (stadium G1 gap — verified live on my `__stats`
+attacks.danger/possessionPct). Loom got an embed mode. Wiring still owed (my lane), in order:
+1. **gate + terrace/composite scoreline + market → `__loom`** (real match data, no cold-start).
+2. **composite embeds → live match** — thread `match`/`ws`/`loomfeed` into the iframes; gated
+   on #11 (else it shows the dead default, worse than the demo).
+3. **crowd frame → `__stands`** — COLD-START: no real crowd yet, so sample beats empty until
+   there is one; also gated on design's 3 open Qs (mini-preds? gamification? crescendo?).
+4. **gate lock → `__stands`/on-chain** = THE GATE (#12).
 
 ---
 ## P0 — now / next
