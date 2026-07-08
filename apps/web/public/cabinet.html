@@ -40,6 +40,14 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .record .st .l{font-weight:700;font-size:6.5px;letter-spacing:.11em;color:var(--sub);margin-top:3px}
 .record .st.gold b{color:var(--gold)}
 
+/* NEXT UP — the forward loop: your next fixture → its gate */
+.next{display:flex;align-items:center;gap:12px;margin:0 18px;padding:13px 15px;background:var(--ink);color:var(--card);text-decoration:none;box-shadow:4px 4px 0 rgba(26,24,21,.2);-webkit-tap-highlight-color:transparent}
+.next:active{transform:translateY(1px)}
+.next .fx{font-weight:900;font-size:18px;letter-spacing:.02em}
+.next .fx .v{color:var(--sub);font-size:12px;margin:0 5px;font-weight:800}
+.next .meta{font-weight:700;font-size:8px;letter-spacing:.09em;color:var(--gold);margin-top:3px}
+.next .go{margin-left:auto;font-weight:900;font-size:22px;color:var(--card)}
+
 /* section label */
 .sec{display:flex;align-items:center;gap:10px;margin:26px 18px 12px}
 .sec .t{font-weight:900;font-size:11px;letter-spacing:.2em}
@@ -99,6 +107,9 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
     <div class="st"><b>ARG</b><span class="l">LOUDEST NIGHT</span></div>
   </div>
 
+  <div class="sec"><span class="t">NEXT UP</span><span class="c">the season continues</span></div>
+  <a class="next" id="nextFix" href="gate.html"><div><div class="fx" id="nextFx">SPA<span class="v">v</span>BEL</div><div class="meta" id="nextMeta">SAT 20:00 · YOU'RE SPAIN</div></div><span class="go">→</span></a>
+
   <div class="sec"><span class="t">THE SCARVES</span><span class="c">tap to unroll the cloth</span></div>
   <div class="rack" id="rack"></div>
 
@@ -110,6 +121,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 
 <script>
 var el=function(id){return document.getElementById(id);};
+var DEMO=/[?&]demo=1/.test(location.search), Q=DEMO?'?demo=1':'';
 // sample kept matches — each wires to a real relic (the woven cloth) + your tx-signed call
 var SCARVES=[
   {h:'ARG',a:'CPV',hc:'#2049AA',ac:'#C8504D',hi:'#F3ECDB',ai:'#F3ECDB',sc:'3–2',comp:'WORLD CUP',date:"08 JUL '26",call:'ARG 3–2',res:'hit',no:'014'},
@@ -130,7 +142,9 @@ el('rack').innerHTML=SCARVES.map(function(s){
   '</div>';
 }).join('');
 // tap a scarf → unroll the full woven cloth (the keepsake)
-[].forEach.call(document.querySelectorAll('.keep'),function(k){ k.onclick=function(){ location.href='woven-loom.html?keepsake=1'; }; });
+[].forEach.call(document.querySelectorAll('.keep'),function(k){ k.onclick=function(){ location.href='woven-loom.html?keepsake=1'+(DEMO?'&demo=1':''); }; });   // unroll the cloth (carry demo)
+el('nextFix').setAttribute('href','gate.html'+Q);   // forward loop → the next gate (carry demo)
+var _bg=document.querySelector('.backg'); if(_bg)_bg.setAttribute('href','ground.html'+Q);   // keep the walkthrough in demo mode
 
 // sample pins — moments (locked ones are yet to be earned)
 var PINS=[
