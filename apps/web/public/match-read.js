@@ -7,15 +7,20 @@
  * clock, and the pre-match market instead of tracking the feed themselves.
  *
  * The fold is pure (reduceMatch(state, msg) -> new state) and Node-testable —
- * see scripts/_matchread-test.mjs. The browser glue below is thin: it opens
- * the same feed WebSocket the other adapters use, folds every message through
- * reduceMatch, and republishes window.__match + fires `on(fn)` subscribers.
+ * see scripts/_matchread-test.mjs and scripts/_bake-test.mjs. The browser glue
+ * below is thin: connectFeed() opens either the live feed WebSocket (a real
+ * ?ws) or the baked serverless player (?demo=1, no ?ws — see demo-feed.js),
+ * folds every message through reduceMatch, and republishes window.__match +
+ * fires `on(fn)` subscribers. connectFeed is intentionally duplicated in
+ * crowd-sim.js (~10 lines) rather than shared — not worth a new file.
  *
- * Opt-in: ?demo=1 or ?matchread=1. Match via ?match=<id>, feed via ?ws=<wsBase>
- * (mirrors crowd-sim.js's gate + defaults — a later task may extract a shared
- * connectFeed(url,onMsg); for now this duplicates that ~8-line connect block).
+ * Opt-in: ?demo=1 or ?matchread=1. Match via ?match=<id>; ?ws=<wsBase> picks
+ * the live WebSocket transport (mirrors crowd-sim.js's gate); no ?ws under
+ * ?demo=1 plays the baked apps/web/public/plate/demo-suicol.js recording.
  *
  * Honesty: market is the feed's real de-vigged triple, never synthesized.
+ * marketSeries accumulates one { min, home, draw, away } point per odds
+ * update — the later odds-chart card's data source.
  */
 (function (root) {
   'use strict';
@@ -25,6 +30,9 @@
       score: { home: 0, away: 0 },
       clock: { min: 0, phase: 'PRE', running: false },
       market: { home: 0.34, draw: 0.33, away: 0.33 },
+      // one { min, home, draw, away } point per odds update — feeds a later odds-chart
+      // card. Appended, never mutated in place (reduceMatch stays a pure fold).
+      marketSeries: [],
       teams: { home: null, away: null },
       done: false
     };
@@ -43,7 +51,9 @@
       var done = s.done || phase === 'FULL_TIME' || phase === 'PENALTIES';
       return Object.assign({}, s, { clock: Object.assign({}, s.clock, { phase: phase, running: running }), done: done });
     } else if (msg.type === 'odds' && msg.tick) {
-      return Object.assign({}, s, { market: { home: msg.tick.pHome, draw: msg.tick.pDraw, away: msg.tick.pAway } });
+      var market = { home: msg.tick.pHome, draw: msg.tick.pDraw, away: msg.tick.pAway };
+      var point = { min: s.clock.min, home: market.home, draw: market.draw, away: market.away };
+      return Object.assign({}, s, { market: market, marketSeries: s.marketSeries.concat([point]) });
     } else if (msg.type === 'fixtureInfo' && msg.fixture) {
       var mkTeam = function (t) { return t ? { tri: t.code, name: t.name } : null; };
       return Object.assign({}, s, { teams: { home: mkTeam(msg.fixture.home), away: mkTeam(msg.fixture.away) } });
@@ -58,27 +68,36 @@
   var q = new URLSearchParams(location.search);
   if (q.get('demo') !== '1' && q.get('matchread') !== '1') return;   // demo-only
   var matchId = q.get('match') || '18202783';
-  var wsBase = q.get('ws') || 'wss://rooot-stands.fly.dev/';
+  var wsBase = q.get('ws'); // explicit only — connectFeed() decides WS vs. baked from its presence
   var state = initialState();
   var subs = [];
-  function snapshot() { return { score: state.score, clock: state.clock, market: state.market, teams: state.teams, done: state.done }; }
+  function snapshot() { return { score: state.score, clock: state.clock, market: state.market, marketSeries: state.marketSeries, teams: state.teams, done: state.done }; }
   function fire() { for (var i = 0; i < subs.length; i++) try { subs[i](snapshot()); } catch (e) {} }
   function publish() {
     var s = snapshot();
     window.__match.score = s.score; window.__match.clock = s.clock; window.__match.market = s.market;
-    window.__match.teams = s.teams; window.__match.done = s.done;
+    window.__match.marketSeries = s.marketSeries; window.__match.teams = s.teams; window.__match.done = s.done;
     fire();
   }
   window.__match = {
-    score: state.score, clock: state.clock, market: state.market, teams: state.teams, done: state.done,
+    score: state.score, clock: state.clock, market: state.market, marketSeries: state.marketSeries,
+    teams: state.teams, done: state.done,
     on: function (fn) { subs.push(fn); fn(snapshot()); }
   };
-  // feed: reuse the WS the other adapters use
-  var url = wsBase + (wsBase.indexOf('?') >= 0 ? '&' : '?') + 'matchId=' + encodeURIComponent(matchId);
-  (function connect() {
-    var ws; try { ws = new WebSocket(url); } catch (e) { setTimeout(connect, 1000); return; }
-    ws.onmessage = function (e) { var m; try { m = JSON.parse(e.data); } catch (_) { return; } try { state = reduceMatch(state, m); publish(); } catch (err) {} };
-    ws.onclose = function () { setTimeout(connect, 1000); };
-    ws.onerror = function () { try { ws.close(); } catch (_) {} };
-  })();
+  // feed: a real ?ws -> the live WebSocket (unchanged behavior); else, under
+  // ?demo=1 with no ?ws, the baked serverless player (see demo-feed.js).
+  function connectFeed(matchId, wsBase, onMsg) {
+    if (wsBase) {
+      var url = wsBase + (wsBase.indexOf('?') >= 0 ? '&' : '?') + 'matchId=' + encodeURIComponent(matchId);
+      (function connect() {
+        var ws; try { ws = new WebSocket(url); } catch (e) { setTimeout(connect, 1000); return; }
+        ws.onmessage = function (e) { var m; try { m = JSON.parse(e.data); } catch (_) { return; } try { onMsg(m); } catch (err) {} };
+        ws.onclose = function () { setTimeout(connect, 1000); };
+        ws.onerror = function () { try { ws.close(); } catch (_) {} };
+      })();
+    } else if (q.get('demo') === '1' && root.__demoFeed) {
+      root.__demoFeed.start(onMsg);
+    }
+  }
+  connectFeed(matchId, wsBase, function (m) { try { state = reduceMatch(state, m); publish(); } catch (err) {} });
 })(typeof window !== 'undefined' ? window : this);

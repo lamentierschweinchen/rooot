@@ -88,7 +88,7 @@
   var q = new URLSearchParams(location.search);
   if (q.get('demo') !== '1' && q.get('crowdsim') !== '1') return;   // demo-only
   var matchId = q.get('match') || '18202783';
-  var wsBase = q.get('ws') || 'wss://rooot-stands.fly.dev/';
+  var wsBase = q.get('ws'); // explicit only — connectFeed() decides WS vs. baked from its presence
   var model = createModel();
   var cb = { state: [], consensus: [], verdict: [], moment: [], momentResult: [] };
   var me = 'sim-' + matchId, mySide = null, verdictFired = false;
@@ -112,13 +112,21 @@
     onMoment: function (fn) { cb.moment.push(fn); },
     onMomentResult: function (fn) { cb.momentResult.push(fn); }
   };
-  // feed: reuse the WS the other adapters use
-  var url = wsBase + (wsBase.indexOf('?') >= 0 ? '&' : '?') + 'matchId=' + encodeURIComponent(matchId);
-  (function connect() {
-    var ws; try { ws = new WebSocket(url); } catch (e) { setTimeout(connect, 1000); return; }
-    ws.onmessage = function (e) { var m; try { m = JSON.parse(e.data); } catch (_) { return; } try { model.ingest(m); publish(); } catch (err) {} };
-    ws.onclose = function () { setTimeout(connect, 1000); };
-    ws.onerror = function () { try { ws.close(); } catch (_) {} };
-  })();
+  // feed: a real ?ws -> the live WebSocket (unchanged behavior); else, under
+  // ?demo=1 with no ?ws, the baked serverless player (see demo-feed.js).
+  function connectFeed(matchId, wsBase, onMsg) {
+    if (wsBase) {
+      var url = wsBase + (wsBase.indexOf('?') >= 0 ? '&' : '?') + 'matchId=' + encodeURIComponent(matchId);
+      (function connect() {
+        var ws; try { ws = new WebSocket(url); } catch (e) { setTimeout(connect, 1000); return; }
+        ws.onmessage = function (e) { var m; try { m = JSON.parse(e.data); } catch (_) { return; } try { onMsg(m); } catch (err) {} };
+        ws.onclose = function () { setTimeout(connect, 1000); };
+        ws.onerror = function () { try { ws.close(); } catch (_) {} };
+      })();
+    } else if (q.get('demo') === '1' && root.__demoFeed) {
+      root.__demoFeed.start(onMsg);
+    }
+  }
+  connectFeed(matchId, wsBase, function (m) { try { model.ingest(m); publish(); } catch (err) {} });
   setInterval(function () { model.tick(); publish(); }, 500);
 })(typeof window !== 'undefined' ? window : this);

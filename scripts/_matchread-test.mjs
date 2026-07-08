@@ -86,4 +86,16 @@ s = reduceMatch(s, { type: 'odds' }); // odds without a tick payload
 assert.strictEqual(s, before, 'odds msg missing tick is a no-op');
 console.log('OK unknown/malformed messages are no-ops');
 
+// marketSeries accumulates one point per odds update (Task 9data — feeds a later
+// odds-chart card). Exactly one odds tick has landed so far (the "odds -> market" test
+// above) — confirm it appended a point, then confirm a second tick grows the series
+// without touching the first (reduceMatch stays a pure append, never an in-place mutate).
+assert.equal(s.marketSeries.length, 1, 'the one odds tick applied so far appended exactly one marketSeries point');
+const seriesBefore = s.marketSeries;
+s = reduceMatch(s, { type: 'odds', tick: { tMs: 0, minute: null, pHome: 0.6, pDraw: 0.22, pAway: 0.18, source: 'replay' } });
+assert.equal(s.marketSeries.length, 2, 'a second odds tick appends another point — the series grows');
+assert.strictEqual(s.marketSeries[0], seriesBefore[0], 'earlier marketSeries points are never mutated, only appended');
+assert.ok(Math.abs(s.marketSeries[1].home - 0.6) < 1e-9, 'the newest point carries the latest pHome');
+console.log('OK odds -> marketSeries grows (pure append, earlier points untouched)');
+
 console.log('OK match-read reduceMatch — final state', JSON.stringify(s));
