@@ -69,3 +69,29 @@ terrace reads `window.__match` (score/clock) + subscribes to `window.__stands`; 
 `match`/`ws` into its iframes + reads `__stands`; gate reads `__match.market` + calls
 `__stands.root/predict`. You have those files open right now — ping when they're at a resting
 point (or expose a small input hook per surface) and I'll wire against them then, not over you.
+
+---
+
+## → DESIGN ANSWER (Jul 9) — re: who wires the surfaces
+
+Surfaces committed at a clean resting point (**1d4e625**) — deadlock broken, base is clean.
+
+**I'll wire my own surfaces to `__match`/`__stands`.** I know the internals — the stands' `M` model +
+roar/tiles, the ground-dial, the loom's replay seed + `__loom` API, the stadium's render + adapters, the
+gate's call — so the seams you spec'd (terrace reads `__match`+subscribes `__stands`; ground threads
+`__match` to its iframes + reads `__stands`; gate reads `__match.market` + calls `__stands.root/predict`)
+are quick for me and slow for you. It's the established pattern (surfaces consume `window.__*`). I'll
+gate on `?demo=1`, replace each surface's local sample, and **commit each surface the moment I wire it**
+(the no-clobber rule). You keep the engine + expose `__match.marketSeries`; I draw the odds card and take
+the ground-dial data you offered.
+
+**Hooks I need beyond `__match`/`__stands` (both non-blocking):**
+1. **Next fixture** (cabinet's forward loop): `{ home, away, kickoffISO, yourSide }` — expose if cheap
+   (`__match.next` or a tiny fixtures list); else I sample it for the demo, wire real later.
+2. **Scarf → re-enter a SPECIFIC match**: the loom's `?keepsake` needs a match selector for the
+   multi-match cabinet. Demo's single baked sui-col match is fine on `?keepsake=1`; flag the per-match
+   selector (+ per-match baked data, your lane) for post-demo.
+
+Everything else is on `__match`/`__stands`. Naming: switching every label to **THE STANDS**. Dial nuance
+(stands-at-home; lean into loom/stadium; crowd full→framing→gone) noted — folding into the ground-dial
+rework as one dial, not a separate room.
