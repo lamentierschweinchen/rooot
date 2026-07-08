@@ -92,8 +92,13 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
   </div>
   <div class="spec">SPECIMEN · SAMPLE CROWD + SCORES · WIRES TO ONE LIVE SOURCE</div>
 </div>
+<!-- demo engine — ONLY under ?demo=1: baked recording → window.__match + window.__stands -->
+<script>if(/[?&]demo=1/.test(location.search))document.write('<scr'+'ipt src="plate/demo-suicol.js"></scr'+'ipt><scr'+'ipt src="demo-feed.js"></scr'+'ipt><scr'+'ipt src="match-read.js"></scr'+'ipt><scr'+'ipt src="crowd-sim.js"></scr'+'ipt>');</script>
 <script>
-var LENS={loom:'woven-loom.html?embed=1', stadium:'stadium.html?embed=1&match=argcpv'};
+var DEMO=/[?&]demo=1/.test(location.search);
+var LENS=DEMO
+  ? {loom:'woven-loom.html?embed=1&match=18202783&demo=1', stadium:'stadium.html?embed=1&match=18202783&demo=1'}
+  : {loom:'woven-loom.html?embed=1', stadium:'stadium.html?embed=1&match=argcpv'};
 var order=['loom','stadium'], cur=0;
 var tabs=document.getElementById('tabs'), lens=document.getElementById('lens'), center=document.getElementById('center');
 function setLens(name){ cur=order.indexOf(name); lens.src=LENS[name];
@@ -109,12 +114,26 @@ center.addEventListener('touchend',function(e){ var dx=e.changedTouches[0].clien
 var mt=document.getElementById('miniThem'); for(var i=0;i<14;i++)mt.insertAdjacentHTML('beforeend','<i></i>');
 // your cheer (tap → fills + decays; a ROOOT! burst at the peak)
 var cheer=0, lastMs=performance.now(), lastBurst=0;
-document.getElementById('youEnd').addEventListener('pointerdown',function(){ cheer=Math.min(1,cheer+0.19); });
+document.getElementById('youEnd').addEventListener('pointerdown',function(){ cheer=Math.min(1,cheer+0.19); if(DEMO&&window.__stands)window.__stands.cheer(); });
 function cw(r){return r>.8?'DEAFENING':r>.55?'LOUD':r>.3?'rising':r>.12?'murmur':'quiet';}
 function loop(now){ var dt=Math.min(.3,(now-lastMs)/1000); lastMs=now; cheer=Math.max(0,cheer-dt*0.3);
   document.getElementById('cheerFill').style.width=(cheer*100)+'%'; document.getElementById('cheerV').textContent=cw(cheer);
   if(cheer>0.55 && (now-lastBurst)>1600){ lastBurst=now; var b=document.getElementById('cburst'); b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }
   requestAnimationFrame(loop); }
+// ?demo=1 — the hub reads one truth: __match (score) + __stands (crowd); iframes + nav carry demo
+if(DEMO){
+  var byq=function(s){return document.querySelector(s);};
+  byq('.cabbtn').setAttribute('href','cabinet.html?demo=1');
+  document.getElementById('themBand').setAttribute('href','terrace.html?demo=1');
+  document.documentElement.style.setProperty('--you','#D52B1E'); document.documentElement.style.setProperty('--them','#E8B10A');
+  document.getElementById('hT').textContent='SUI'; document.getElementById('aT').textContent='COL';
+  byq('.you .nm').textContent='SUI · YOUR END'; byq('.them .nm').textContent='COL · THEIR END';
+  var rd=byq('.you .reads'); if(rd)rd.textContent='';
+  var sp=byq('.spec'); if(sp)sp.textContent='THE CROWD IS SIMULATED · THE MATCH IS A BAKED SUI–COL REPLAY';
+  lens.src=LENS.loom;   // reload the centre iframe with match + demo
+  if(window.__match)window.__match.on(function(m){ document.getElementById('sc').textContent=m.score.home+'–'+m.score.away; });
+  if(window.__stands){ window.__stands.root('home'); window.__stands.onState(function(s){ if(s.rooted)byq('.them .ct').textContent=(s.rooted.away||0).toLocaleString(); }); }
+}
 requestAnimationFrame(loop);
 </script>
 </body>
