@@ -142,8 +142,11 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
     <button class="go" id="go">TAKE YOUR PLACE<small>THE GROUND OPENS →</small></button>
   </div>
 </div>
+<!-- demo engine — ONLY under ?demo=1: baked recording → serverless feed → window.__match + window.__stands -->
+<script>if(/[?&]demo=1/.test(location.search))document.write('<scr'+'ipt src="plate/demo-suicol.js"></scr'+'ipt><scr'+'ipt src="demo-feed.js"></scr'+'ipt><scr'+'ipt src="match-read.js"></scr'+'ipt><scr'+'ipt src="crowd-sim.js"></scr'+'ipt>');</script>
 <script>
 var side=null, sco={h:0,a:0}, touched=false, conv=0;
+var DEMO=/[?&]demo=1/.test(location.search);
 var ends=document.getElementById('ends'), neutral=document.getElementById('neutral'),
     score=document.getElementById('score'), pips=document.getElementById('pips'),
     cl=document.getElementById('cl'), go=document.getElementById('go');
@@ -151,6 +154,16 @@ var CONVLBL={1:'A HUNCH',2:'A LEAN',3:'CONFIDENT',4:'CERTAIN'};
 var SIDECOL={h:'#D52B1E',a:'#E8B10A'};
 
 function ready(){ if(side && touched) go.classList.add('ready'); }
+
+// ?demo=1 — the market bar reads the real de-vigged 1X2 from window.__match (no longer sample)
+function paintMarket(m){ if(!m||!m.market)return; var mk=m.market, t=m.teams||{};
+  var h=Math.round(mk.home*100), d=Math.round(mk.draw*100), a=Math.round(mk.away*100);
+  var hn=(t.home&&t.home.tri)||'SUI', an=(t.away&&t.away.tri)||'COL';
+  var bar=document.querySelector('.mbar');
+  bar.innerHTML='<i class="h" style="flex:'+h+'">'+hn+' '+h+'</i><i class="d" style="flex:'+d+'">X '+d+'</i><i class="a" style="flex:'+a+'">'+an+' '+a+'</i>';
+  var mr=document.querySelector('.mr'); if(mr)mr.textContent='PRE-MATCH · DE-VIGGED';
+}
+if(DEMO&&window.__match){ paintMarket(window.__match); if(window.__match.on)window.__match.on(paintMarket); }
 
 [].forEach.call(ends.children,function(el){
   el.onclick=function(){
@@ -183,8 +196,9 @@ go.onclick=function(){
   if(!go.classList.contains('ready'))return;
   // your pass — persisted, then read by the terrace checkpoint + woven into the keepsakes
   try{ localStorage.setItem('rooot.pass', JSON.stringify({side:side, call:sco, conv:conv, ts:Date.now()})); }catch(e){}
+  if(DEMO&&window.__stands){ if(side&&side!=='n')window.__stands.root(side==='h'?'home':'away'); window.__stands.predict(sco.h,sco.a); }   // your seat + call into the live crowd
   go.innerHTML='SEE YOU INSIDE<small>◆ YOU CALLED SUI '+sco.h+'–'+sco.a+' COL</small>';
-  setTimeout(function(){ location.href='ground.html?from=gate'; }, 950);   // the tunnel — walk into the ground (the hub)
+  setTimeout(function(){ location.href='ground.html?from=gate'+(DEMO?'&demo=1':''); }, 950);   // the tunnel — walk into the ground (carry ?demo=1)
 };
 </script>
 </body>
