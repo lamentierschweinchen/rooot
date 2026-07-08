@@ -46,3 +46,11 @@ assert.ok(marketMoved, 'the feed carries real odds so the market moves (else div
 assert.ok(maxB - minB > 0.1, 'belief MOVES over the replay — a no-op model leaves it flat at 0.5 (range ' + (maxB - minB).toFixed(3) + ')');
 assert.ok(maxGap > 0.05, 'crowd diverges from the moving market (maxGap ' + maxGap.toFixed(3) + ')');
 console.log('OK divergence beliefRange=', (maxB - minB).toFixed(3), 'maxGap=', maxGap.toFixed(3));
+
+const G = createModel();
+G.ingest({ type: 'score', ev: { home: 1, away: 0, minute: 10 } });
+G.ingest({ type: 'ledger', msg: { type: 'event', ev: { kind: 'goal', side: 'home', confirmed: true } } });
+G.tick();
+assert.ok(G.snapshot().roar.home > 0.3, 'goal spikes home roar (got ' + G.snapshot().roar.home.toFixed(2) + ')');
+assert.equal(G.snapshot().faithSide, 'away', 'trailing end keeps faith');
+console.log('OK roar+faith');

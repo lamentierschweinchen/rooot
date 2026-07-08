@@ -11,7 +11,7 @@
       home: 0, away: 0, minute: 0, phase: 'PRE', done: false,
       market: { home: 0.34, draw: 0.33, away: 0.33 },
       belief: { home: 0.5, away: 0.5 },     // each camp's hope for ITS team
-      roar: { home: 0, away: 0 }, moments: [], consensus: null
+      roar: { home: 0, away: 0 }, faithSide: null, crescendo: false, moments: [], consensus: null
     };
     function clamp01(x) { return x < 0 ? 0 : x > 1 ? 1 : x; }
     function sideOf(msg) { var s = msg.msg && msg.msg.ev && msg.msg.ev.side; return s === 'home' ? 'home' : s === 'away' ? 'away' : null; }
@@ -22,9 +22,11 @@
     function round1(x) { return Math.round(x * 10) / 10; }
     st.tick = function () {
       ['home', 'away'].forEach(function (side) {
-        st.roar[side] = st.roar[side] * T.roarDecay;                       // decay (Task 3 adds spikes)
+        st.roar[side] = st.roar[side] * T.roarDecay;                       // decay toward zero; ingest() adds spikes on attacking events
         st.belief[side] += (biasedTarget(side) - st.belief[side]) * T.regression;   // drift toward hopeful baseline
       });
+      st.faithSide = st.home < st.away ? 'home' : st.away < st.home ? 'away' : null;   // the trailing end keeps faith
+      st.crescendo = (st.roar.home > T.crescendo) || (st.roar.away > T.crescendo);
       // consensus: crowd's predicted scoreline = current score + expected-more from belief (kept simple)
       // byRoot: each partisan camp's own hopeful scoreline, leaning toward its own team via T.homeBias
       st.consensus = {
@@ -43,9 +45,9 @@
       else if (msg.type === 'odds' && msg.tick) { st.market = { home: msg.tick.pHome, draw: msg.tick.pDraw, away: msg.tick.pAway }; }
       else if (msg.type === 'ledger' && msg.msg && msg.msg.type === 'event') {
         var k = msg.msg.ev.kind, sd = sideOf(msg);
-        if (k === 'danger') impulse(sd, 0.015);
-        else if (k === 'shot') impulse(sd, 0.03);
-        else if (k === 'goal' && msg.msg.ev.confirmed) impulse(sd, 0.12);
+        if (k === 'danger') { impulse(sd, 0.015); if (sd) st.roar[sd] = Math.min(1, st.roar[sd] + 0.12); }
+        else if (k === 'shot') { impulse(sd, 0.03); if (sd) st.roar[sd] = Math.min(1, st.roar[sd] + 0.25); }
+        else if (k === 'goal' && msg.msg.ev.confirmed) { impulse(sd, 0.12); if (sd) st.roar[sd] = Math.min(1, st.roar[sd] + 0.7); }
       }
     }
     function tick() { st.tick(); }
@@ -53,7 +55,7 @@
       return {
         rooted: { home: T.homeSize, away: T.awaySize },
         roar: { home: st.roar.home, away: st.roar.away },
-        faithSide: null, connected: true,
+        faithSide: st.faithSide, crescendo: st.crescendo, connected: true,
         consensus: st.consensus, moments: st.moments.slice()
       };
     }
