@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>THE TERRACE — cheer & react (replay)</title>
+<style>
+@font-face{font-family:'Anybody';src:url(plate/fonts/anybody.woff2) format('woff2');font-weight:400 700;font-display:swap}
+@font-face{font-family:'Anybody';src:url(plate/fonts/anybody900.woff2) format('woff2');font-weight:800 900;font-display:swap}
+:root{
+  --paper:#E6DBC2; --card:#F3ECDB; --ink:#1A1815; --sub:#8C8467; --line:#D3C6A6;
+  --gold:#C79A38; --verde:#2E6A4E; --oat:#D0C29E;
+  --you:#D52B1E;    /* SUI — your end */
+  --them:#E8B10A;   /* COL — their end */
+  --disp:'Anybody','Arial Black',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;font-family:var(--disp);color:var(--ink);overflow:hidden}
+.wrap{position:relative;width:100%;max-width:440px;height:100vh;margin:0 auto;background:var(--paper);display:flex;flex-direction:column;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='120' height='120' filter='url(%23n)' opacity='0.05'/></svg>");}
+
+/* masthead */
+.mast{display:flex;align-items:center;justify-content:space-between;padding:9px 15px;border-bottom:1.5px solid var(--line);z-index:5}
+.mast .sc{font-weight:900;font-size:17px;letter-spacing:.02em}
+.mast .sc .h{color:var(--you)}.mast .sc .a{color:var(--them)}
+.mast .cl{font-weight:800;font-size:12px;letter-spacing:.06em;color:var(--ink)}
+.mast .rp{display:flex;align-items:center;gap:5px;font-weight:800;font-size:7.5px;letter-spacing:.16em;color:var(--sub)}
+.mast .rp .d{width:6px;height:6px;border-radius:50%;background:var(--you);animation:pulse 1.3s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* reading-the-game strip — light XP + fan-team calls landed */
+.reads{display:flex;align-items:center;gap:8px;padding:5px 15px;background:var(--paper);border-bottom:1px solid var(--line);font-weight:800;font-size:8px;letter-spacing:.11em;color:var(--sub);z-index:5}
+.reads b{font-size:9px;font-weight:900}.reads b.h{color:var(--you)}.reads b.a{color:var(--them)}
+.reads i{font-style:normal}
+.reads .xp{margin-left:auto;color:var(--gold)}
+
+/* mini-prediction — CALM register, Bauhaus dress: bold flat geometry, hard-offset shadow */
+.pred{position:absolute;top:56px;left:12px;right:12px;background:var(--card);border:2.5px solid var(--ink);box-shadow:6px 6px 0 var(--ink);
+  z-index:12;padding:0;opacity:0;transform:translateY(-12px);pointer-events:none;transition:opacity .28s,transform .28s;overflow:hidden}
+.pred.on{opacity:1;transform:none;pointer-events:auto}
+.pred .ph{display:flex;align-items:center;justify-content:space-between;background:var(--ink);color:var(--card);padding:7px 12px}
+.pred .pl{font-weight:800;font-size:8.5px;letter-spacing:.13em;color:var(--card)}
+.pred .px{border:none;background:none;font-family:var(--disp);font-weight:900;font-size:18px;line-height:.6;color:var(--card);cursor:pointer}
+.pstripe{display:flex;height:5px}
+.pstripe i{flex:1}.pstripe i:nth-child(1){background:var(--you)}.pstripe i:nth-child(2){background:var(--them)}.pstripe i:nth-child(3){background:var(--gold)}
+.pbody{position:relative;padding:12px 13px 13px;z-index:1}
+.pred .pq{font-weight:900;font-size:17px;letter-spacing:0;line-height:1.03;margin-bottom:11px}
+.popts{display:flex;gap:8px}
+.popt{flex:1;padding:11px 6px;text-align:center;background:var(--card);border:2.5px solid var(--ink);font-family:var(--disp);font-weight:900;font-size:14px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .12s,color .12s}
+.popt:active{transform:translate(1px,1px)}
+.popt.on{background:var(--ink);color:var(--card)}
+.popt.win{background:var(--verde);color:var(--card);border-color:var(--ink)}
+.popt.lose{opacity:.32}
+.pmkt{font-weight:800;font-size:8px;letter-spacing:.05em;color:var(--gold);margin-top:10px}
+.pbar{height:6px;background:var(--paper);border:2px solid var(--ink);margin-top:10px;overflow:hidden}
+.pfill{height:100%;width:100%;background:var(--gold)}
+.pres{font-weight:900;font-size:11px;letter-spacing:.02em;margin-top:9px}
+.pres.win{color:var(--verde)}.pres.lose{color:var(--you)}
+
+/* an end (their = top, yours = bottom) */
+.end{position:relative;flex:1;display:flex;flex-direction:column;justify-content:space-between;gap:6px;padding:12px 15px;overflow:hidden}
+.end.them{background:linear-gradient(180deg,rgba(232,177,10,.10),transparent 70%)}
+.end.you{background:linear-gradient(0deg,rgba(213,43,30,.12),transparent 72%);cursor:pointer;-webkit-tap-highlight-color:transparent;flex:1.2;justify-content:flex-start;padding-bottom:34px}
+.endhd{display:flex;align-items:baseline;justify-content:space-between}
+.endhd .nm{font-weight:800;font-size:9px;letter-spacing:.15em}
+.end.them .nm{color:var(--them)}.end.you .nm{color:var(--you)}
+.endhd .ct{font-weight:700;font-size:8px;letter-spacing:.06em;color:var(--sub)}
+.faith{display:none;font-weight:800;font-size:7px;letter-spacing:.09em;color:var(--ink);background:rgba(232,177,10,.32);padding:2px 6px;border-radius:2px;margin-left:7px;vertical-align:middle}
+.faith.on{display:inline-block}
+
+/* the mosaic — one tile per N fans (sample) */
+.tiles{display:grid;grid-template-columns:repeat(16,1fr);gap:3px}
+.end.you .tiles{grid-template-columns:repeat(16,1fr)}
+.tile{width:100%;padding-bottom:100%;border-radius:1px;transition:opacity .18s,background .18s}
+.end.them .tile{background:var(--them)}
+.end.you .tile{background:var(--you)}
+.tile.flash{opacity:1 !important;box-shadow:0 0 5px currentColor}
+
+/* roar meter */
+.roar{display:flex;align-items:center;gap:8px}
+.roar .rl{font-weight:800;font-size:7.5px;letter-spacing:.13em;color:var(--sub);white-space:nowrap;min-width:38px}
+.roar .bar{position:relative;flex:1;height:9px;background:var(--card);border:1.5px solid var(--line);overflow:hidden}
+.roar .fill{position:absolute;top:0;bottom:0;left:0;width:0}
+.end.them .roar .fill{background:var(--them)}
+.end.you .roar .fill{background:var(--you)}
+.roar .rv{font-weight:800;font-size:8px;letter-spacing:.04em;color:var(--sub);white-space:nowrap;min-width:44px;text-align:right}
+
+/* their mood chip (when they react) */
+.mood{position:absolute;top:32px;left:15px;font-weight:800;font-size:8px;letter-spacing:.12em;color:var(--ink);background:var(--them);
+  padding:3px 9px;border-radius:2px;opacity:0;transform:translateY(-3px);transition:opacity .3s,transform .3s;z-index:3}
+.mood.on{opacity:1;transform:none}
+/* reaction emblems (socketed pop-art marks) */
+.pk.feel{display:flex;flex-direction:column;align-items:center;gap:1px;padding:3px 3px;background:none;border:1.5px solid transparent;border-radius:3px}
+.pk.feel img{width:34px;height:34px;object-fit:contain;display:block}
+.pk.feel span{font-weight:800;font-size:6.5px;letter-spacing:.02em;color:var(--sub)}
+.pk.feel.on{background:var(--card);border-color:var(--ink)}
+.pk.feel.on span{color:var(--ink)}
+.split .se{width:22px;height:22px;object-fit:contain;flex:none}
+
+/* centre moment strip */
+.mid{position:relative;flex:none;min-height:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  padding:10px 15px;border-top:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink);background:var(--card);z-index:4}
+.mid .tug{position:absolute;top:0;left:50%;width:0;height:3px;background:var(--sub);transform:translateX(-50%);transition:width .15s,background .15s}
+.crowdcall{text-align:center;transition:opacity .3s;padding:0 8px}
+.crowdcall .cclbl{font-weight:800;font-size:8px;letter-spacing:.18em;color:var(--sub)}
+.crowdcall .ccmkt{font-weight:700;font-size:8px;letter-spacing:.04em;color:var(--gold)}
+.ccscore{display:flex;align-items:baseline;justify-content:center;gap:8px;margin:3px 0}
+.ccscore b{font-weight:900;font-size:22px}.ccscore b.h{color:var(--you)}.ccscore b.a{color:var(--them)}
+.ccscore .ccd{font-weight:700;color:var(--sub);font-size:15px}
+.ccaff{font-weight:700;font-size:8px;letter-spacing:.04em;color:var(--sub)}
+.ccaff b{color:var(--ink);font-weight:800}
+.moment{text-align:center;opacity:0;transform:scale(.9);transition:opacity .25s,transform .25s}
+.moment.on{opacity:1;transform:none}
+.moment .big{font-weight:900;font-size:26px;letter-spacing:.02em;line-height:1}
+.moment .min{font-weight:800;font-size:9px;letter-spacing:.14em;color:var(--sub);margin-top:3px}
+.moment.goal .big{color:var(--gold)}
+/* the split reveal */
+.split{width:100%;display:none;flex-direction:column;gap:5px;margin-top:2px}
+.split.on{display:flex}
+.split .sr{display:flex;align-items:center;gap:8px}
+.split .sn{font-weight:800;font-size:8px;letter-spacing:.1em;min-width:64px}
+.split .sr.h .sn{color:var(--you)}.split .sr.a .sn{color:var(--them)}
+.split .sb{position:relative;flex:1;height:16px;background:var(--paper);border:1.5px solid var(--ink);overflow:hidden}
+.split .sf{position:absolute;top:0;bottom:0;left:0;display:flex;align-items:center;padding-left:7px;font-weight:800;font-size:8px;letter-spacing:.08em;color:var(--card);white-space:nowrap}
+.split .sr.h .sf{background:var(--you)}.split .sr.a .sf{background:var(--them);color:var(--ink)}
+.split .sc2{font-weight:700;font-size:7.5px;color:var(--sub);white-space:nowrap;min-width:60px}
+
+/* your reaction picker */
+.picker{position:absolute;left:0;right:0;bottom:0;padding:8px 12px 11px;background:rgba(243,236,219,.97);border-top:1.5px solid var(--ink);
+  display:none;flex-direction:column;align-items:center;gap:7px;z-index:7;box-shadow:0 -6px 16px rgba(26,24,21,.13)}
+.picker.on{display:flex}
+.picker .pt{font-weight:800;font-size:8px;letter-spacing:.16em;color:var(--sub)}
+.picker .pks{display:flex;flex-wrap:wrap;gap:5px;justify-content:center}
+.pk{font-family:var(--disp);font-weight:800;font-size:9.5px;letter-spacing:.07em;color:var(--ink);background:var(--card);
+  border:1.5px solid var(--ink);padding:6px 10px;border-radius:2px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.pk:active{transform:translateY(1px)}
+.pk.on{background:var(--you);color:var(--card)}
+.pk.verd{padding:8px 18px;font-size:11px}
+
+.taphint{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);font-weight:800;font-size:8px;letter-spacing:.18em;color:var(--sub);pointer-events:none;transition:opacity .3s}
+/* pop-art (Lichtenstein) cheer/goal burst */
+.burst{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%) scale(.5);width:210px;opacity:0;pointer-events:none;z-index:8}
+.burst svg{width:100%;display:block;overflow:visible}
+.burst.pop{animation:burstpop 1s cubic-bezier(.2,1.5,.35,1) forwards}
+@keyframes burstpop{0%{opacity:0;transform:translate(-50%,-50%) scale(.4) rotate(-9deg)}22%{opacity:1;transform:translate(-50%,-50%) scale(1.14) rotate(4deg)}62%{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(-2deg)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.03) rotate(-2deg)}}
+
+/* honesty footer */
+.foot{flex:none;padding:5px 15px;text-align:center;font-weight:700;font-size:7px;letter-spacing:.13em;color:var(--sub);background:var(--paper);border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+<div class="wrap" id="wrap">
+  <div class="mast">
+    <div class="sc"><span class="h">SUI</span> <span id="scH">0</span>–<span id="scA">0</span> <span class="a">COL</span></div>
+    <div class="cl" id="clock">0'</div>
+    <div class="rp"><span class="d"></span> REPLAY</div>
+  </div>
+
+  <!-- reading-the-game strip -->
+  <div class="reads" id="reads">
+    <span>READING THE GAME</span>
+    <b class="h">SUI <i id="rH">0</i></b><span>·</span><b class="a">COL <i id="rA">0</i></b>
+    <span class="xp">YOUR XP <i id="xp">0</i></span>
+  </div>
+
+  <!-- mini-prediction pop-up (optional, dismissible) -->
+  <div class="pred" id="pred">
+    <div class="ph"><span class="pl" id="predL">● QUICK CALL — NO STAKE</span><button class="px" id="predX">×</button></div>
+    <div class="pstripe"><i></i><i></i><i></i></div>
+    <div class="pbody">
+      <div class="pq" id="predQ">NEXT CORNER?</div>
+      <div class="popts" id="predOpts"></div>
+      <div class="pmkt" id="predMkt"></div>
+      <div class="pbar"><div class="pfill" id="predBar"></div></div>
+      <div class="pres" id="predRes"></div>
+    </div>
+  </div>
+
+  <!-- their end -->
+  <div class="end them">
+    <div class="endhd"><span><span class="nm">COLOMBIA · THEIR END</span><span class="faith" id="faithThem">◆ STILL SINGING</span></span><span class="ct" id="ctThem">14,100 here</span></div>
+    <div class="tiles" id="tilesThem"></div>
+    <div class="mood" id="moodThem">—</div>
+    <div class="roar"><span class="rl">CHEER</span><div class="bar"><div class="fill" id="roarThem"></div></div><span class="rv" id="roarThemV">quiet</span></div>
+  </div>
+
+  <!-- centre moment -->
+  <div class="mid">
+    <div class="tug" id="tug"></div>
+    <div class="crowdcall" id="crowdcall">
+      <div><span class="cclbl">THE CROWD CALLS</span> <span class="ccmkt">· vs market SUI 44·28·28</span></div>
+      <div class="ccscore"><b class="h">SUI 2.1</b><span class="ccd">–</span><b class="a">1.8 COL</b></div>
+      <div class="ccaff">your end <b>2.4–1.4</b> · their end <b>1.5–2.1</b></div>
+    </div>
+    <div class="moment" id="moment"><div class="big" id="momentBig">GOAL</div><div class="min" id="momentMin">23'</div></div>
+    <div class="split" id="split">
+      <div class="sr h"><img class="se" id="splitHe" alt=""><span class="sn" id="splitHn">YOUR END</span><div class="sb"><div class="sf" id="splitHf" style="width:60%">JOY</div></div><span class="sc2" id="splitHc">6,900</span></div>
+      <div class="sr a"><img class="se" id="splitAe" alt=""><span class="sn" id="splitAn">THEIR END</span><div class="sb"><div class="sf" id="splitAf" style="width:78%">HEARTBREAK</div></div><span class="sc2" id="splitAc">11,200</span></div>
+    </div>
+  </div>
+
+  <!-- your end -->
+  <div class="end you" id="youEnd">
+    <div class="endhd"><span><span class="nm">SWITZERLAND · YOUR END</span><span class="faith" id="faithYou">◆ STILL SINGING</span></span><span class="ct" id="ctYou">you + 8,203</span></div>
+    <div class="tiles" id="tilesYou"></div>
+    <div class="roar"><span class="rl">YOUR CHEER</span><div class="bar"><div class="fill" id="roarYou"></div></div><span class="rv" id="roarYouV">quiet</span></div>
+    <div class="burst" id="burst" aria-hidden="true">
+      <svg viewBox="0 0 220 176">
+        <defs><pattern id="bday" width="9" height="9" patternUnits="userSpaceOnUse"><circle cx="2.6" cy="2.6" r="2" fill="rgba(26,24,21,.22)"/></pattern></defs>
+        <path id="burstShape" d="" fill="var(--you)" stroke="#1A1815" stroke-width="4.5" stroke-linejoin="round"/>
+        <path id="burstDots" d="" fill="url(#bday)"/>
+        <text id="burstText" x="110" y="100" text-anchor="middle" font-family="'Anybody','Arial Black',sans-serif" font-weight="900" font-size="34" fill="#1A1815" transform="rotate(-6 110 90)">ROOOT!</text>
+      </svg>
+    </div>
+    <div class="taphint" id="taphint">TAP ANYWHERE TO CHEER</div>
+    <div class="picker" id="picker"></div>
+  </div>
+
+  <div class="foot">crowd figures are sample — they wire to live counts · events replayed from a recorded match</div>
+</div>
+
+<script>
+var FEELINGS=[
+  {k:'JOY',img:'plate/gens/react/joy.png'},
+  {k:'HOPE',img:'plate/gens/react/hope.png'},
+  {k:'ANGER',img:'plate/gens/react/anger.png'},
+  {k:'HEARTBREAK',img:'plate/gens/react/heartbreak.png'},
+  {k:'PRIDE',img:'plate/gens/react/pride.png'},
+  {k:'RELIEF',img:'plate/gens/react/relief.png'}
+];   // socketed pop-art reaction emblems (NERVES/DISBELIEF trimmed)
+var FEELIMG={}; FEELINGS.forEach(function(f){FEELIMG[f.k]=f.img;});
+// scripted match timeline (match-minutes). k: kind, side: h(ome=you)/a(way=them)
+var EVENTS=[
+  {t:2,k:'kick'},
+  {t:11,k:'chance',side:'h'},
+  {t:19,k:'goal',side:'h'},
+  {t:31,k:'card',side:'a'},
+  {t:38,k:'pen',side:'h'},
+  {t:45,k:'half'},
+  {t:54,k:'chance',side:'a'},
+  {t:61,k:'goal',side:'a'},
+  {t:74,k:'var',side:'a'},
+  {t:86,k:'chance',side:'h'},
+  {t:90,k:'whistle'}
+];
+// how each end tends to feel per event (sample dominant), + a sample share/count
+var REACT={
+  'chance-h':{you:['HOPE',52,4300],them:['HOPE',44,6200]},
+  'chance-a':{you:['HOPE',58,4800],them:['PRIDE',49,6900]},
+  'goal-h':{you:['JOY',71,5850],them:['HEARTBREAK',80,11300]},
+  'goal-a':{you:['HEARTBREAK',74,6100],them:['JOY',77,10900]},
+  'card-a':{you:['RELIEF',46,3800],them:['ANGER',68,9600]}
+};
+// mini-predictions — optional, resolve against the replay, earn light XP + fan-team reads
+var PREDS=[
+  {popT:24, resolveT:29, q:'WHO WINS THE NEXT CORNER?', opts:['SUI','COL'], correct:'SUI'},
+  {popT:37, resolveT:41.5, q:'WILL HE SCORE THE PEN?', opts:['SCORES','MISSES'], correct:'SCORES', mkt:'the market: 76% scored'}
+];
+
+var el=function(id){return document.getElementById(id);};
+var M={t:0,score:[0,0],rY:0,rT:0,run:true,lastMs:0,fired:{},await:null,dur:92,xp:0,reads:{h:0,a:0},pred:null,predShown:{},predResolved:{}};
+var SPEED=1.3; // match-minutes per second (slowed so events + calls are catchable)
+
+// build mosaics
+function mosaic(node,n){var h='';for(var i=0;i<n;i++)h+='<span class="tile" style="opacity:.3"></span>';node.innerHTML=h;}
+mosaic(el('tilesThem'),80); mosaic(el('tilesYou'),128);
+var tilesYou=el('tilesYou').children, tilesThem=el('tilesThem').children;
+
+function paintTiles(list,r,floor){var base=Math.max(floor||0.28,0.28+0.62*r);for(var i=0;i<list.length;i++){if(!list[i].classList.contains('flash'))list[i].style.opacity=base;}}
+function ripple(list,k){for(var j=0;j<k;j++){var t=list[(Math.floor((M.t*7+j*13))%list.length)];if(t){t.classList.add('flash');(function(t){setTimeout(function(){t.classList.remove('flash');},220);})(t);}}}
+function roarWord(r){return r>.8?'DEAFENING':r>.55?'LOUD':r>.3?'rising':r>.12?'murmur':'quiet';}
+// pop-art (Lichtenstein) cheer/goal burst
+function burstPath(cx,cy,R,r,n){var d='',a;for(var i=0;i<n*2;i++){var rad=(i%2?r:R);a=Math.PI*i/n-Math.PI/2;d+=(i?'L':'M')+(cx+rad*Math.cos(a)).toFixed(1)+' '+(cy+rad*Math.sin(a)).toFixed(1)+' ';}return d+'Z';}
+(function(){var d=burstPath(110,90,94,61,13); el('burstShape').setAttribute('d',d); el('burstDots').setAttribute('d',d);})();
+function popBurst(txt){var b=el('burst');if(!b)return; el('burstText').textContent=txt; el('burstText').setAttribute('font-size', txt.length>6?28:34); M.lastBurst=performance.now(); b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');}
+
+// your tap = roar
+function tap(){M.rY=Math.min(1,M.rY+0.16);ripple(tilesYou,5);el('youEnd').style.transition='transform .05s';}
+el('youEnd').addEventListener('pointerdown',function(e){ if(e.target.closest('.pk'))return; tap(); });
+
+// picker
+function showPicker(verdictPair){
+  var p=el('picker');p.innerHTML='';M.await.picked=false;
+  el('taphint').style.opacity='0';
+  var isV=Array.isArray(verdictPair);
+  var title=document.createElement('div');title.className='pt';title.textContent=isV?((M.await&&M.await.q)||'YOUR CALL'):'HOW DID THAT FEEL?';
+  var pks=document.createElement('div');pks.className='pks';
+  if(isV){
+    verdictPair.forEach(function(f){
+      var b=document.createElement('div');b.className='pk verd';b.textContent=f;
+      b.onclick=function(ev){ev.stopPropagation();pick(f,true);};
+      pks.appendChild(b);
+    });
+  } else {
+    FEELINGS.forEach(function(f){
+      var b=document.createElement('div');b.className='pk feel';
+      b.innerHTML='<img src="'+f.img+'" alt="'+f.k+'"><span>'+f.k+'</span>';
+      b.onclick=function(ev){ev.stopPropagation();pick(f.k,false);};
+      pks.appendChild(b);
+    });
+  }
+  p.appendChild(title);p.appendChild(pks);p.classList.add('on');
+}
+function pick(label,isV){
+  var p=el('picker');
+  [].forEach.call(p.querySelectorAll('.pk'),function(c){c.classList.toggle('on',c.textContent===label);});
+  M.await.picked=true;M.await.mine=label;
+  var ctx=M.await;
+  setTimeout(function(){ p.classList.remove('on');reveal(ctx,label,isV);el('taphint').style.opacity=''; if(M.await===ctx)M.await=null; },560);
+}
+
+function reveal(ctx,mine,isV){
+  var s=el('split');
+  if(isV){
+    // the call polarises by end; your pick is highlighted (or your dissent noted)
+    var hc=ctx.home||'PENALTY', ac=ctx.away||'NEVER', withEnd=(mine===hc);
+    setSR('h',hc,80, withEnd?'you + 6,730':'6,730 · you said '+mine);
+    setSR('a',ac,74,'9,900 of their end');
+  } else {
+    var ev=ctx.ev, r=REACT[ev.k+'-'+ev.side]; if(!r){return;}
+    setSR('h',mine||r.you[0],r.you[1],'you + '+(r.you[2]).toLocaleString());
+    setSR('a',r.them[0],r.them[1],(r.them[2]).toLocaleString());
+  }
+  el('moment').classList.remove('on'); s.classList.add('on');
+  setTimeout(function(){ s.classList.remove('on'); el('crowdcall').style.opacity='1'; },5200);
+}
+function setSR(side,label,share,count){
+  el('split'+(side=='h'?'Hf':'Af')).textContent=label;
+  el('split'+(side=='h'?'Hf':'Af')).style.width=Math.max(28,share)+'%';
+  el('split'+(side=='h'?'Hc':'Ac')).textContent=count;
+  var im=el('split'+(side=='h'?'He':'Ae')); if(im){ if(FEELIMG[label]){im.src=FEELIMG[label];im.style.display='';}else{im.style.display='none';} }
+}
+
+// mini-prediction: pop, call, resolve against the replay
+function showPred(p,i){
+  M.pred={def:p,i:i,called:null,done:false};
+  el('predL').textContent='● QUICK CALL — NO STAKE';
+  el('predQ').textContent=p.q;
+  var mk=el('predMkt'); mk.textContent=p.mkt||''; mk.style.display=p.mkt?'block':'none';
+  var rs=el('predRes'); rs.textContent=''; rs.className='pres';
+  var opts=el('predOpts'); opts.innerHTML='';
+  p.opts.forEach(function(o){ var b=document.createElement('div');b.className='popt';b.textContent=o;b.onclick=function(){callPred(o);};opts.appendChild(b); });
+  el('pred').classList.add('on');
+  var bar=el('predBar'); bar.style.transition='none'; bar.style.width='100%';
+  setTimeout(function(){ if(!M.frz){ bar.style.transition='width '+((p.resolveT-p.popT)/SPEED)+'s linear'; bar.style.width='0%'; } },40);
+}
+function callPred(o){ if(!M.pred||M.pred.done)return; M.pred.called=o;
+  [].forEach.call(el('predOpts').children,function(c){c.classList.toggle('on',c.textContent===o);}); }
+function resolvePred(i){
+  if(!M.pred||M.pred.i!==i||M.pred.done)return; var p=M.pred.def; M.pred.done=true;
+  [].forEach.call(el('predOpts').children,function(c){ c.classList.remove('on'); c.classList.add(c.textContent===p.correct?'win':'lose'); });
+  var right=(M.pred.called===p.correct), rs=el('predRes');
+  if(M.pred.called){ rs.className='pres '+(right?'win':'lose');
+    rs.textContent=right?('✓ '+p.correct+' — you called it  ·  +10 XP'):('✗ '+p.correct+' took it — next time'); }
+  else { rs.className='pres'; rs.textContent=p.correct+' — you sat this one out'; }
+  if(right){ M.xp+=10; el('xp').textContent=M.xp; M.reads.h++; el('rH').textContent=M.reads.h; }
+  else { M.reads.a++; el('rA').textContent=M.reads.a; }
+  setTimeout(function(){ el('pred').classList.remove('on'); if(M.pred&&M.pred.i===i)M.pred=null; },3600);
+}
+function dismissPred(){ el('pred').classList.remove('on'); if(M.pred)M.pred.done=true; M.pred=null; }
+// checkpoint: re-call your scoreline at the natural breaks (half-time here; OT/pens same pattern)
+function showCheckpoint(){
+  M.pred={i:'ck',done:true,called:null};
+  el('predL').textContent='● CHECKPOINT — YOUR CALL STANDS';
+  el('predQ').textContent='HALF-TIME — YOUR CALL: SUI 2–1';   // sample: wires from the door's locked call
+  var mk=el('predMkt'); mk.style.display='block'; mk.textContent='the game so far: SUI '+M.score[0]+'–'+M.score[1]+' COL';
+  var rs=el('predRes'); rs.textContent=''; rs.className='pres';
+  el('predBar').style.transition='none'; el('predBar').style.width='0%';
+  var opts=el('predOpts'); opts.innerHTML='';
+  [['KEEP IT',1],['CHANGE',0]].forEach(function(pair){
+    var b=document.createElement('div');b.className='popt';b.textContent=pair[0];
+    b.onclick=function(){ [].forEach.call(opts.children,function(c){c.classList.remove('on','win','lose');}); b.classList.add('win');
+      rs.className='pres win'; rs.textContent=pair[1]?'✓ call locked for the second half':'adjust your call in the pass →';
+      setTimeout(function(){ el('pred').classList.remove('on'); if(M.pred&&M.pred.i==='ck')M.pred=null; },1900); };
+    opts.appendChild(b);
+  });
+  el('pred').classList.add('on');
+}
+el('predX').onclick=dismissPred;
+
+// fire an event
+function fire(ev){
+  el('crowdcall').style.opacity='0';
+  var big=el('momentBig'),min=el('momentMin'),mo=el('moment');
+  mo.className='moment on'; min.textContent=ev.t+"'";
+  var emo={chance:1,goal:1,card:1}, verd={pen:1,var:1};
+  if(ev.k=='goal'){ if(ev.side=='h')M.score[0]++;else M.score[1]++; el('scH').textContent=M.score[0];el('scA').textContent=M.score[1];
+    big.textContent='GOOOOAL'; mo.classList.add('goal'); (ev.side=='h'?(M.rY=1):(M.rT=1)); ripple(ev.side=='h'?tilesYou:tilesThem,10); if(ev.side=='h')popBurst('GOOOOAL!'); }
+  else if(ev.k=='chance'){ big.textContent='CHANCE!'; (ev.side=='h'?(M.rY=Math.max(M.rY,.7)):(M.rT=Math.max(M.rT,.7))); }
+  else if(ev.k=='card'){ big.textContent='YELLOW'; }
+  else if(ev.k=='pen'){ big.textContent='PENALTY?'; }
+  else if(ev.k=='var'){ big.textContent='VAR CHECK'; }
+  else if(ev.k=='kick'){ big.textContent='KICK-OFF'; }
+  else if(ev.k=='half'){ big.textContent='HALF-TIME'; setTimeout(showCheckpoint,700); }
+  else if(ev.k=='whistle'){ big.textContent='FULL-TIME'; }
+  // their mood (sample) for reacting events
+  var r=REACT[ev.k+'-'+ev.side];
+  if(r){ var md=el('moodThem'); md.textContent='THEIR END: '+r.them[0]; md.classList.add('on'); setTimeout(function(){md.classList.remove('on');},4200); }
+  // gate a reaction
+  if(emo[ev.k]&&ev.side){ M.await={ev:ev}; showPicker(null); }
+  else if(ev.k=='pen'){ M.await={ev:ev,home:'PENALTY',away:'NEVER',q:'WAS IT A PENALTY?'}; showPicker(['PENALTY','NEVER']); }
+  else if(ev.k=='var'){ M.await={ev:ev,home:'NO GOAL',away:'GOAL',q:'DID IT COUNT?'}; showPicker(['GOAL','NO GOAL']); }
+  // clear the moment label after a bit (unless a split takes over)
+  setTimeout(function(){ if(!el('split').classList.contains('on') && !(M.await&&!M.await.picked)){ mo.classList.remove('on'); el('crowdcall').style.opacity='1'; } },3400);
+}
+
+function step(now){
+  var dt=Math.min(0.3,(now-M.lastMs)/1000); M.lastMs=now;
+  if(!M.frz){
+    if(M.run){ M.t=Math.min(M.dur, M.t + dt*SPEED); }
+    // decay / simulate roar
+    M.rY=Math.max(0,M.rY-dt*0.28);
+    if(M.rY>0.5 && (now-(M.lastBurst||0))>1500){ popBurst('ROOOT!'); }
+    // their roar: gentle baseline + noise, decays from surges
+    M.rT=Math.max(0.05+0.05*Math.sin(M.t*0.7), M.rT-dt*0.30);
+    // fire due events
+    for(var i=0;i<EVENTS.length;i++){ if(!M.fired[i] && M.t>=EVENTS[i].t){ M.fired[i]=true; fire(EVENTS[i]); } }
+    // mini-predictions (optional, windowed)
+    for(var pi=0;pi<PREDS.length;pi++){ var pp=PREDS[pi];
+      if(!M.predShown[pi] && M.t>=pp.popT){ M.predShown[pi]=true; showPred(pp,pi); }
+      if(!M.predResolved[pi] && M.t>=pp.resolveT){ M.predResolved[pi]=true; resolvePred(pi); }
+    }
+  }
+  // render
+  el('clock').textContent=Math.floor(M.t)+"'";
+  el('roarYou').style.width=(M.rY*100)+'%'; el('roarThem').style.width=(M.rT*100)+'%';
+  el('roarYouV').textContent=roarWord(M.rY); el('roarThemV').textContent=roarWord(M.rT);
+  var hb=M.score[0]<M.score[1], ab=M.score[1]<M.score[0];  // which end is behind → faith
+  paintTiles(tilesYou,M.rY, hb?0.46:0.28); paintTiles(tilesThem,M.rT, ab?0.46:0.28);
+  el('faithYou').classList.toggle('on',hb); el('faithThem').classList.toggle('on',ab);
+  // tug leans to the louder end
+  var tug=el('tug'); var d=M.rY-M.rT; tug.style.width=Math.abs(d)*60+'%';
+  tug.style.background=d>0?'var(--you)':'var(--them)';
+  if(M.t>=M.dur&&!M.fired.done){M.fired.done=true;}
+  requestAnimationFrame(step);
+}
+requestAnimationFrame(function(t){M.lastMs=t;step(t);});
+
+// verification helper: jump the replay clock
+window.__jump=function(min){ M.t=min-0.1; for(var i=0;i<EVENTS.length;i++){ if(EVENTS[i].t<min-0.1)M.fired[i]=true; else M.fired[i]=false; } };
+window.__roar=function(n){for(var i=0;i<(n||6);i++)tap();};
+window.__pred=function(i){i=i||0;showPred(PREDS[i],i);};
+</script>
+</body>
+</html>

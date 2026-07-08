@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>THE TURNSTILE — take your place</title>
+<style>
+@font-face{font-family:'Anybody';src:url(plate/fonts/anybody.woff2) format('woff2');font-weight:400 700;font-display:swap}
+@font-face{font-family:'Anybody';src:url(plate/fonts/anybody900.woff2) format('woff2');font-weight:800 900;font-display:swap}
+:root{
+  --paper:#E6DBC2; --card:#F3ECDB; --ink:#1A1815; --sub:#8C8467; --line:#D3C6A6;
+  --gold:#C79A38; --verde:#2E6A4E; --oat:#D0C29E;
+  --home:#D52B1E;              /* SUI — wires from fixture */
+  --away:#E8B10A;              /* COL — wires from fixture */
+  --pick:#8C8467;             /* becomes your side's colour once chosen */
+  --disp:'Anybody','Arial Black',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;font-family:var(--disp);color:var(--ink)}
+.wrap{position:relative;width:100%;max-width:440px;min-height:100vh;margin:0 auto;background:var(--paper);
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='120' height='120' filter='url(%23n)' opacity='0.05'/></svg>");
+  display:flex;flex-direction:column;justify-content:center;padding:16px 14px}
+
+/* the matchday pass — a content-height object floating on the paper */
+.pass{position:relative;display:flex;flex-direction:column;background:var(--card);box-shadow:0 14px 40px rgba(26,24,21,.22)}
+.pass::before{content:"";position:absolute;inset:7px;border:1.5px solid var(--ink);pointer-events:none;z-index:5}
+.notch{position:absolute;width:14px;height:14px;background:var(--paper);border-radius:50%;z-index:6}
+.notch.tl{top:-7px;left:-7px}.notch.tr{top:-7px;right:-7px}.notch.bl{bottom:-7px;left:-7px}.notch.br{bottom:-7px;right:-7px}
+.hostband{display:flex;height:5px;margin:12px 12px 0}
+.hostband i{flex:1}.hostband .v{background:var(--verde)}.hostband .r{background:var(--home)}.hostband .a{background:var(--away)}.hostband .g{background:var(--gold)}
+
+/* masthead */
+.mast{display:flex;align-items:baseline;justify-content:space-between;padding:11px 18px 2px}
+.mast .brand{font-weight:900;font-size:16px;letter-spacing:.02em}
+.mast .meta{font-weight:700;font-size:8px;letter-spacing:.17em;color:var(--sub);text-align:right;line-height:1.55}
+
+/* step labels */
+.lab{font-weight:800;font-size:9.5px;letter-spacing:.2em;color:var(--sub);padding:14px 18px 8px;text-transform:uppercase;display:flex;align-items:center}
+.lab b{color:var(--ink);margin-left:.35em}
+.lab .n{display:inline-flex;width:15px;height:15px;border:1.5px solid var(--sub);border-radius:50%;align-items:center;justify-content:center;font-size:9px;margin-right:9px;color:var(--sub)}
+
+/* 1 — choose your side: two ends */
+.ends{display:flex;margin:0 12px;border:1.5px solid var(--ink)}
+.end{flex:1;padding:20px 10px 15px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;
+  background:var(--card);transition:background .25s,color .25s,opacity .25s;-webkit-tap-highlight-color:transparent}
+.end+.end{border-left:1.5px solid var(--ink)}
+.end .flag{font-size:34px;line-height:1}
+.end .tri{font-weight:900;font-size:34px;line-height:.9;letter-spacing:.02em}
+.end.h .tri{color:var(--home)}.end.a .tri{color:var(--away)}
+.end .nm{font-weight:700;font-size:8.5px;letter-spacing:.15em;color:var(--sub)}
+.end .join{font-weight:800;font-size:8px;letter-spacing:.14em;opacity:0;transition:opacity .2s;margin-top:1px}
+.end.h.on{background:var(--home);color:var(--card)}
+.end.a.on{background:var(--away);color:var(--ink)}
+.end.on .tri,.end.on .nm{color:inherit}.end.on .nm{opacity:.85}.end.on .join{opacity:1;color:inherit}
+.ends.picked .end:not(.on){opacity:.38}
+.neutral{display:block;width:calc(100% - 24px);margin:8px 12px 0;padding:9px;background:none;border:1.5px dashed var(--line);
+  font-family:var(--disp);font-weight:700;font-size:9px;letter-spacing:.16em;color:var(--sub);cursor:pointer;text-transform:uppercase}
+.neutral.on{border-style:solid;border-color:var(--ink);color:var(--ink)}
+
+/* 2 — predict: the scoreline + conviction */
+.score{display:flex;align-items:flex-start;justify-content:center;gap:16px;margin:4px 12px 0}
+.sc{display:flex;flex-direction:column;align-items:center;gap:5px}
+.sc .sct{font-weight:800;font-size:9px;letter-spacing:.13em;color:var(--sub)}
+.sc.h .sct{color:var(--home)}.sc.a .sct{color:var(--away)}
+.scn{width:62px;height:62px;border:1.5px solid var(--ink);background:var(--card);font-family:var(--disp);font-weight:900;font-size:36px;line-height:1;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.sc.h .scn{color:var(--home)}.sc.a .scn{color:var(--away)}
+.scm{border:none;background:none;font-family:var(--disp);font-weight:900;font-size:15px;color:var(--sub);cursor:pointer;padding:0 8px;line-height:1}
+.scdash{font-weight:900;font-size:26px;color:var(--ink);align-self:center;transform:translateY(-4px)}
+.schint{text-align:center;font-weight:700;font-size:7.5px;letter-spacing:.14em;color:var(--sub);margin-top:7px}
+.conv{display:flex;align-items:center;gap:11px;margin:13px 18px 0}
+.conv .ct{font-weight:800;font-size:8.5px;letter-spacing:.15em;color:var(--sub);white-space:nowrap}
+.conv .pips{display:flex;gap:5px;flex:1}
+.conv .pip{flex:1;height:9px;background:var(--card);border:1.5px solid var(--line);cursor:pointer;transition:background .15s,border-color .15s}
+.conv .pip.on{background:var(--pick);border-color:var(--ink)}
+.conv .cl{font-weight:800;font-size:8px;letter-spacing:.09em;color:var(--sub);white-space:nowrap;min-width:52px;text-align:right}
+
+/* market read — the number, kept beside, never blended into the crowd */
+.mkt{margin:18px 18px 0;padding-top:12px;border-top:1px solid var(--line)}
+.mkthd{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
+.mkt .ml{font-weight:800;font-size:8px;letter-spacing:.16em;color:var(--gold)}
+.mkt .mr{font-weight:700;font-size:7px;letter-spacing:.13em;color:var(--sub)}
+.mbar{display:flex;height:24px;border:1.5px solid var(--ink)}
+.mbar i{display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:800;font-size:8.5px;letter-spacing:.04em;color:var(--card);overflow:hidden;white-space:nowrap}
+.mbar i+i{border-left:1.5px solid var(--ink)}
+.mbar .h{background:var(--home)}
+.mbar .d{background:var(--oat);color:var(--ink)}
+.mbar .a{background:var(--away);color:var(--ink)}
+
+/* confirm */
+.go{margin:20px 12px 14px;padding:15px;background:var(--ink);color:var(--card);border:none;font-family:var(--disp);
+  font-weight:900;font-size:13px;letter-spacing:.14em;cursor:pointer;opacity:.32;pointer-events:none;transition:opacity .28s}
+.go.ready{opacity:1;pointer-events:auto}
+.go.ready:active{transform:translateY(1px)}
+.go small{display:block;font-weight:700;font-size:7.5px;letter-spacing:.2em;opacity:.6;margin-top:3px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="pass">
+    <span class="notch tl"></span><span class="notch tr"></span><span class="notch bl"></span><span class="notch br"></span>
+    <div class="hostband"><i class="v"></i><i class="r"></i><i class="a"></i><i class="g"></i></div>
+    <div class="mast">
+      <div class="brand">ROOOT</div>
+      <div class="meta">MATCHDAY · SUI v COL<br>KICK-OFF 20:00</div>
+    </div>
+
+    <div class="lab"><span class="n">1</span>CHOOSE YOUR<b>SIDE</b></div>
+    <div class="ends" id="ends">
+      <div class="end h" data-side="h">
+        <div class="flag">🇨🇭</div><div class="tri">SUI</div><div class="nm">SWITZERLAND</div>
+        <div class="join">◆ YOU'RE IN</div>
+      </div>
+      <div class="end a" data-side="a">
+        <div class="flag">🇨🇴</div><div class="tri">COL</div><div class="nm">COLOMBIA</div>
+        <div class="join">◆ YOU'RE IN</div>
+      </div>
+    </div>
+    <button class="neutral" id="neutral">— HERE FOR THE FOOTBALL —</button>
+
+    <div class="lab"><span class="n">2</span>PREDICT THE<b>SCORE</b></div>
+    <div class="score" id="score">
+      <div class="sc h"><div class="sct">SUI</div><button class="scn" data-t="h">0</button><button class="scm" data-t="h">−</button></div>
+      <div class="scdash">–</div>
+      <div class="sc a"><div class="sct">COL</div><button class="scn" data-t="a">0</button><button class="scm" data-t="a">−</button></div>
+    </div>
+    <div class="schint">TAP TO SET THE SCORE</div>
+    <div class="conv">
+      <span class="ct">HOW SURE?</span>
+      <div class="pips" id="pips">
+        <div class="pip" data-lv="1"></div><div class="pip" data-lv="2"></div>
+        <div class="pip" data-lv="3"></div><div class="pip" data-lv="4"></div>
+      </div>
+      <span class="cl" id="cl">—</span>
+    </div>
+
+    <div class="mkt">
+      <div class="mkthd"><span class="ml">THE MARKET READS</span><span class="mr">PRE-MATCH · DE-VIGGED</span></div>
+      <!-- sample proportions — wires from the live de-vigged odds feed -->
+      <div class="mbar"><i class="h" style="flex:44">SUI 44</i><i class="d" style="flex:28">X 28</i><i class="a" style="flex:28">COL 28</i></div>
+    </div>
+
+    <button class="go" id="go">TAKE YOUR PLACE<small>THE GROUND OPENS →</small></button>
+  </div>
+</div>
+<script>
+var side=null, sco={h:0,a:0}, touched=false, conv=0;
+var ends=document.getElementById('ends'), neutral=document.getElementById('neutral'),
+    score=document.getElementById('score'), pips=document.getElementById('pips'),
+    cl=document.getElementById('cl'), go=document.getElementById('go');
+var CONVLBL={1:'A HUNCH',2:'A LEAN',3:'CONFIDENT',4:'CERTAIN'};
+var SIDECOL={h:'#D52B1E',a:'#E8B10A'};
+
+function ready(){ if(side && touched) go.classList.add('ready'); }
+
+[].forEach.call(ends.children,function(el){
+  el.onclick=function(){
+    side=el.dataset.side;
+    ends.classList.add('picked');
+    [].forEach.call(ends.children,function(e){e.classList.toggle('on',e===el);});
+    neutral.classList.remove('on');
+    document.documentElement.style.setProperty('--pick',SIDECOL[side]);
+    ready();
+  };
+});
+neutral.onclick=function(){
+  side='n'; neutral.classList.add('on');
+  ends.classList.remove('picked');
+  [].forEach.call(ends.children,function(e){e.classList.remove('on');});
+  document.documentElement.style.setProperty('--pick','#8C8467');
+  ready();
+};
+function paintScore(){ [].forEach.call(score.querySelectorAll('.scn'),function(n){ n.textContent=sco[n.dataset.t]; }); }
+[].forEach.call(score.querySelectorAll('.scn'),function(n){ n.onclick=function(){ sco[n.dataset.t]=Math.min(9,sco[n.dataset.t]+1); touched=true; paintScore(); ready(); }; });
+[].forEach.call(score.querySelectorAll('.scm'),function(m){ m.onclick=function(){ sco[m.dataset.t]=Math.max(0,sco[m.dataset.t]-1); touched=true; paintScore(); ready(); }; });
+[].forEach.call(pips.children,function(el){
+  el.onclick=function(){
+    conv=+el.dataset.lv;
+    [].forEach.call(pips.children,function(e){e.classList.toggle('on',+e.dataset.lv<=conv);});
+    cl.textContent=CONVLBL[conv]||'—';
+  };
+});
+go.onclick=function(){
+  if(!go.classList.contains('ready'))return;
+  go.innerHTML='SEE YOU INSIDE<small>◆ YOU CALLED SUI '+sco.h+'–'+sco.a+' COL</small>';
+};
+</script>
+</body>
+</html>

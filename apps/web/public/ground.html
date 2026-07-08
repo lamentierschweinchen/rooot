@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>THE GROUND — the composite (prototype)</title>
+<style>
+@font-face{font-family:'Anybody';src:url(plate/fonts/anybody.woff2) format('woff2');font-weight:400 700;font-display:swap}
+@font-face{font-family:'Anybody';src:url(plate/fonts/anybody900.woff2) format('woff2');font-weight:800 900;font-display:swap}
+:root{
+  --paper:#E6DBC2; --card:#F3ECDB; --ink:#1A1815; --sub:#8C8467; --line:#D3C6A6;
+  --gold:#C79A38; --verde:#2E6A4E; --you:#2049AA; --them:#C8504D;
+  --disp:'Anybody','Arial Black',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;font-family:var(--disp);color:var(--ink);overflow:hidden}
+.wrap{position:relative;width:100%;max-width:440px;height:100vh;margin:0 auto;background:var(--paper);display:flex;flex-direction:column}
+
+/* masthead + lens dial */
+.cmast{display:flex;align-items:center;justify-content:space-between;padding:8px 13px;background:var(--paper);border-bottom:1.5px solid var(--ink);z-index:4}
+.cmast .sc{font-weight:900;font-size:15px;letter-spacing:.02em;white-space:nowrap}
+.cmast .sc .h{color:var(--you)}.cmast .sc .a{color:var(--them)}
+.tabs{display:flex;border:1.5px solid var(--ink)}
+.tab{padding:5px 11px;font-family:var(--disp);font-weight:800;font-size:8.5px;letter-spacing:.1em;background:var(--card);color:var(--sub);cursor:pointer;border:none;-webkit-tap-highlight-color:transparent}
+.tab+.tab{border-left:1.5px solid var(--ink)}
+.tab.on{background:var(--ink);color:var(--card)}
+
+/* their end — thin band across the top (the far stand) */
+.them{display:flex;align-items:center;gap:9px;padding:5px 13px;background:linear-gradient(180deg,rgba(200,80,77,.14),transparent)}
+.them .nm{font-weight:800;font-size:8px;letter-spacing:.12em;color:var(--them);white-space:nowrap}
+.them .mini{display:flex;gap:2px;flex:1;overflow:hidden}
+.them .mini i{width:7px;height:7px;background:var(--them);opacity:.45;flex:none}
+.them .ct{font-weight:700;font-size:7.5px;letter-spacing:.06em;color:var(--sub);white-space:nowrap}
+
+/* the centre — the dial you turn (the real surface, framed) */
+.center{position:relative;flex:1;min-height:0;background:var(--card);border-top:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink)}
+.center iframe{width:100%;height:100%;border:none;display:block;background:var(--paper)}
+.swipehint{position:absolute;bottom:9px;left:50%;transform:translateX(-50%);font-weight:800;font-size:7.5px;letter-spacing:.14em;color:var(--sub);background:rgba(243,236,219,.9);padding:3px 10px;border:1px solid var(--line);pointer-events:none;z-index:2;transition:opacity .4s}
+
+/* your end — the foreground you cheer from */
+.you{position:relative;background:linear-gradient(0deg,rgba(32,73,170,.16),transparent);padding:9px 13px 12px;cursor:pointer;-webkit-tap-highlight-color:transparent;overflow:hidden}
+.you .yhd{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:7px}
+.you .nm{font-weight:800;font-size:8.5px;letter-spacing:.12em;color:var(--you)}
+.you .reads{font-weight:800;font-size:8px;letter-spacing:.07em;color:var(--sub)}
+.you .reads b{color:var(--gold)}
+.cheerbar{display:flex;align-items:center;gap:8px}
+.cheerbar .cl{font-weight:800;font-size:7.5px;letter-spacing:.13em;color:var(--sub);min-width:66px}
+.cheerbar .bar{flex:1;height:9px;background:var(--card);border:1.5px solid var(--ink);overflow:hidden}
+.cheerbar .fill{height:100%;width:0;background:var(--you)}
+.cheerbar .cv{font-weight:800;font-size:8px;color:var(--sub);min-width:44px;text-align:right}
+.taphint{text-align:center;font-weight:800;font-size:7.5px;letter-spacing:.16em;color:var(--sub);margin-top:7px}
+.cburst{position:absolute;left:50%;top:8px;transform:translateX(-50%) scale(.6);font-weight:900;font-size:26px;color:var(--you);opacity:0;pointer-events:none}
+.cburst.pop{animation:cb .9s cubic-bezier(.2,1.5,.35,1) forwards}
+@keyframes cb{0%{opacity:0;transform:translateX(-50%) scale(.5)}30%{opacity:.9;transform:translateX(-50%) scale(1.1)}100%{opacity:0;transform:translateX(-50%) scale(1)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="cmast">
+    <span class="sc"><span class="h" id="hT">ARG</span> <span id="sc">3–2</span> <span class="a" id="aT">CPV</span></span>
+    <div class="tabs" id="tabs">
+      <button class="tab on" data-lens="loom">LOOM</button>
+      <button class="tab" data-lens="stadium">STADIUM</button>
+    </div>
+  </div>
+
+  <div class="them">
+    <span class="nm">CPV · THEIR END</span>
+    <div class="mini" id="miniThem"></div>
+    <span class="ct">14,100</span>
+  </div>
+
+  <div class="center" id="center">
+    <iframe id="lens" title="centre view" src="woven-loom.html?embed=1"></iframe>
+    <div class="swipehint" id="swipehint">◂ SWIPE / TAP TABS ▸</div>
+  </div>
+
+  <div class="you" id="youEnd">
+    <div class="cburst" id="cburst">ROOOT!</div>
+    <div class="yhd"><span class="nm">ARG · YOUR END</span><span class="reads">READS ARG 3·CPV 2 · XP <b>30</b></span></div>
+    <div class="cheerbar"><span class="cl">YOUR CHEER</span><div class="bar"><div class="fill" id="cheerFill"></div></div><span class="cv" id="cheerV">quiet</span></div>
+    <div class="taphint">TAP HERE TO CHEER · THE CROWD STAYS WHILE YOU TURN THE DIAL</div>
+  </div>
+</div>
+<script>
+var LENS={loom:'woven-loom.html?embed=1', stadium:'stadium.html?embed=1&match=argcpv'};
+var order=['loom','stadium'], cur=0;
+var tabs=document.getElementById('tabs'), lens=document.getElementById('lens'), center=document.getElementById('center');
+function setLens(name){ cur=order.indexOf(name); lens.src=LENS[name];
+  [].forEach.call(tabs.children,function(t){t.classList.toggle('on',t.dataset.lens===name);});
+  var sh=document.getElementById('swipehint'); sh.style.opacity='1'; clearTimeout(window._sh); window._sh=setTimeout(function(){sh.style.opacity='0';},1600); }
+[].forEach.call(tabs.children,function(t){ t.onclick=function(){ setLens(t.dataset.lens); }; });
+// swipe the centre to turn the dial
+var cx=0;
+center.addEventListener('touchstart',function(e){cx=e.touches[0].clientX;},{passive:true});
+center.addEventListener('touchend',function(e){ var dx=e.changedTouches[0].clientX-cx;
+  if(Math.abs(dx)>45){ cur=(cur+(dx<0?1:order.length-1))%order.length; setLens(order[cur]); } },{passive:true});
+// their mini mosaic
+var mt=document.getElementById('miniThem'); for(var i=0;i<14;i++)mt.insertAdjacentHTML('beforeend','<i></i>');
+// your cheer (tap → fills + decays; a ROOOT! burst at the peak)
+var cheer=0, lastMs=performance.now(), lastBurst=0;
+document.getElementById('youEnd').addEventListener('pointerdown',function(){ cheer=Math.min(1,cheer+0.19); });
+function cw(r){return r>.8?'DEAFENING':r>.55?'LOUD':r>.3?'rising':r>.12?'murmur':'quiet';}
+function loop(now){ var dt=Math.min(.3,(now-lastMs)/1000); lastMs=now; cheer=Math.max(0,cheer-dt*0.3);
+  document.getElementById('cheerFill').style.width=(cheer*100)+'%'; document.getElementById('cheerV').textContent=cw(cheer);
+  if(cheer>0.55 && (now-lastBurst)>1600){ lastBurst=now; var b=document.getElementById('cburst'); b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }
+  requestAnimationFrame(loop); }
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

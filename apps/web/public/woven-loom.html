@@ -18,6 +18,9 @@ body{background:var(--paper);font-family:var(--disp);color:var(--ink);-webkit-fo
 .mast .rp .dot{width:6px;height:6px;border-radius:50%;background:#C8202A;animation:blink 1.4s infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
 .sub{font-weight:600;font-size:8.5px;letter-spacing:.13em;color:var(--sub);margin-bottom:10px}
+/* embed mode — framed inside the composite: shed the chrome, the cloth fills */
+body.embed .mast,body.embed .sub,body.embed .legend{display:none}
+body.embed .wrap{padding:6px 8px 8px}
 /* the loom is a live window: the cloth scrolls up as it weaves, the shuttle sits near the foot */
 .loomv{position:relative;flex:1;min-height:0;background:var(--card);border:1.5px solid var(--ink);box-shadow:0 12px 34px rgba(26,24,21,.13);overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
 .loomv svg{display:block;width:100%;height:auto}
@@ -60,6 +63,7 @@ body{background:var(--paper);font-family:var(--disp);color:var(--ink);-webkit-fo
 <script>
 (function(){
   'use strict';
+  if(/embed=1/.test(location.search))document.body.classList.add('embed');
   var N=13;
   var COL={1:null,2:'#1A1815',3:'#C79A38',4:'#E5B431',5:'#C8504D',6:'#2E6A4E',7:'#F3ECDB',8:'#2049AA'};
   var d=function(x,y){return Math.hypot(x-6,y-6);};
@@ -287,7 +291,9 @@ body{background:var(--paper);font-family:var(--disp);color:var(--ink);-webkit-fo
   (function(){ var FX={ '18202701':['ARG','ARGENTINA','#75AADB','EGY','EGYPT','#CE1126'],
     '18202783':['SUI','SWITZERLAND','#D52B1E','COL','COLOMBIA','#FCD116'],
     '18193785':['USA','USA','#2A3B78','BEL','BELGIUM','#B4232B'] };
-    var mid=new URLSearchParams(location.search).get('match')||'18202783', f=FX[mid];
+    // only re-theme when a match is EXPLICITLY requested (live/coordinator); otherwise keep the
+    // replay data's own teams so the standalone loom stays coherent (data ↔ teams matched).
+    var mid=new URLSearchParams(location.search).get('match'), f=mid&&FX[mid];
     if(f) window.__loom.teams({tri:f[0],name:f[1],primary:f[2]},{tri:f[3],name:f[4],primary:f[5]});
   })();
   if(KEEP)M.t=M.dur;   // freeze the finished cloth
