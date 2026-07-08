@@ -54,3 +54,15 @@ G.tick();
 assert.ok(G.snapshot().roar.home > 0.3, 'goal spikes home roar (got ' + G.snapshot().roar.home.toFixed(2) + ')');
 assert.equal(G.snapshot().faithSide, 'away', 'trailing end keeps faith');
 console.log('OK roar+faith');
+
+const V = createModel();
+let moment = null, verdict = null;
+V.onMoment = function (f) { V._m = f; };   // model exposes hooks for the harness
+V.ingest({ type: 'ledger', msg: { type: 'event', ev: { kind: 'var', side: 'home' } } });
+assert.ok(V.pullMoment(), 'VAR opens a moment');
+V._st.userPredict = { home: 1, away: 0 };
+V.ingest({ type: 'score', ev: { home: 0, away: 0, minute: 120 } });
+V.ingest({ type: 'status', ev: { phase: 'FULL_TIME' } });
+const vr = V.pullVerdict();
+assert.equal(vr.hit, false, 'predicted 1-0, actual 0-0 → miss');
+console.log('OK moments+verdict');

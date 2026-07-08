@@ -3,7 +3,7 @@
   var TUNE = {
     homeSize: 8203, awaySize: 14100,   // fabricated crowd sizes (labeled "simulated")
     homeBias: 0.14, reactivity: 1.0, regression: 0.02, roarDecay: 0.90,
-    divergenceGain: 1.0, crescendo: 0.82
+    divergenceGain: 1.0, crescendo: 0.82, lullTicks: 20
   };
   function createModel(tune) {
     var T = Object.assign({}, TUNE, tune || {});
@@ -13,6 +13,9 @@
       belief: { home: 0.5, away: 0.5 },     // each camp's hope for ITS team
       roar: { home: 0, away: 0 }, faithSide: null, crescendo: false, moments: [], consensus: null
     };
+    var momentSeq = 0, quietTicks = 0, pendingMoments = [], lastVerdict = null;
+    st.pullMoment = function () { return pendingMoments.shift() || null; };
+    st.pullVerdict = function () { return lastVerdict; };
     function clamp01(x) { return x < 0 ? 0 : x > 1 ? 1 : x; }
     function sideOf(msg) { var s = msg.msg && msg.msg.ev && msg.msg.ev.side; return s === 'home' ? 'home' : s === 'away' ? 'away' : null; }
     function impulse(side, mag) { if (!side) return; var other = side === 'home' ? 'away' : 'home';
@@ -27,6 +30,10 @@
       });
       st.faithSide = st.home < st.away ? 'home' : st.away < st.home ? 'away' : null;   // the trailing end keeps faith
       st.crescendo = (st.roar.home > T.crescendo) || (st.roar.away > T.crescendo);
+      if (st.phase === 'FIRST_HALF' || st.phase === 'SECOND_HALF') {   // a lull in open play opens a mini-prediction
+        quietTicks++;
+        if (quietTicks === T.lullTicks) pendingMoments.push({ momentId: ++momentSeq, kind: 'predict', side: null, palette: 'predict', closesAtMs: st.minute });
+      }
       // consensus: crowd's predicted scoreline = current score + expected-more from belief (kept simple)
       // byRoot: each partisan camp's own hopeful scoreline, leaning toward its own team via T.homeBias
       st.consensus = {
@@ -41,13 +48,26 @@
     function ingest(msg) {
       if (!msg || !msg.type) return;
       if (msg.type === 'score' && msg.ev) { st.home = msg.ev.home; st.away = msg.ev.away; if (typeof msg.ev.minute === 'number') st.minute = msg.ev.minute; }
-      else if (msg.type === 'status' && msg.ev) { st.phase = msg.ev.phase || st.phase; }
+      else if (msg.type === 'status' && msg.ev) {
+        st.phase = msg.ev.phase || st.phase;
+        if (msg.ev.phase === 'FULL_TIME' || msg.ev.phase === 'PENALTIES') {
+          if (st.userPredict) lastVerdict = { predicted: [st.userPredict.home, st.userPredict.away], actual: [st.home, st.away],
+            hit: st.userPredict.home === st.home && st.userPredict.away === st.away };
+          st.done = true;
+        }
+      }
       else if (msg.type === 'odds' && msg.tick) { st.market = { home: msg.tick.pHome, draw: msg.tick.pDraw, away: msg.tick.pAway }; }
       else if (msg.type === 'ledger' && msg.msg && msg.msg.type === 'event') {
         var k = msg.msg.ev.kind, sd = sideOf(msg);
         if (k === 'danger') { impulse(sd, 0.015); if (sd) st.roar[sd] = Math.min(1, st.roar[sd] + 0.12); }
         else if (k === 'shot') { impulse(sd, 0.03); if (sd) st.roar[sd] = Math.min(1, st.roar[sd] + 0.25); }
         else if (k === 'goal' && msg.msg.ev.confirmed) { impulse(sd, 0.12); if (sd) st.roar[sd] = Math.min(1, st.roar[sd] + 0.7); }
+        // a VAR check or a penalty (in-progress kick, or a 'possible' being checked as
+        // one — contracts/normalize.ts sets no ev.detail for 'possible'; the real
+        // wire-carried flag survives on ev.raw.Data.Penalty) opens a verdict moment.
+        if (k === 'var' || k === 'penalty-kick' || (k === 'possible' && msg.msg.ev.raw && msg.msg.ev.raw.Data && msg.msg.ev.raw.Data.Penalty === true))
+          pendingMoments.push({ momentId: ++momentSeq, kind: 'verdict', side: sd, palette: k === 'var' ? 'var' : 'pen', closesAtMs: st.minute });
+        quietTicks = 0;   // any story-worthy event resets the lull
       }
     }
     function tick() { st.tick(); }
@@ -59,7 +79,7 @@
         consensus: st.consensus, moments: st.moments.slice()
       };
     }
-    return { ingest: ingest, tick: tick, snapshot: snapshot, _st: st, _T: T };
+    return { ingest: ingest, tick: tick, snapshot: snapshot, pullMoment: st.pullMoment, pullVerdict: st.pullVerdict, _st: st, _T: T };
   }
   root.createModel = createModel;
   if (typeof module !== 'undefined' && module.exports) module.exports = { createModel: createModel };
@@ -71,9 +91,15 @@
   var wsBase = q.get('ws') || 'wss://rooot-stands.fly.dev/';
   var model = createModel();
   var cb = { state: [], consensus: [], verdict: [], moment: [], momentResult: [] };
-  var me = 'sim-' + matchId, mySide = null;
+  var me = 'sim-' + matchId, mySide = null, verdictFired = false;
   function fire(list, v) { for (var i = 0; i < list.length; i++) try { list[i](v); } catch (e) {} }
-  function publish() { var s = model.snapshot(); fire(cb.state, { rooted: s.rooted, roar: s.roar, faithSide: s.faithSide, connected: true }); if (s.consensus) fire(cb.consensus, s.consensus); }
+  function publish() {
+    var s = model.snapshot();
+    fire(cb.state, { rooted: s.rooted, roar: s.roar, faithSide: s.faithSide, connected: true });
+    if (s.consensus) fire(cb.consensus, s.consensus);
+    var mo; while ((mo = model._st.pullMoment())) fire(cb.moment, mo);
+    if (!verdictFired) { var vr = model._st.pullVerdict(); if (vr) { verdictFired = true; fire(cb.verdict, vr); } }
+  }
   window.__stands = {
     anonId: me, matchId: matchId,
     root: function (side) { mySide = side === 'away' ? 'away' : 'home'; publish(); },
