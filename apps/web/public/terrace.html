@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>THE TERRACE — cheer & react (replay)</title>
+<title>THE STANDS — cheer & react</title>
 <style>
 @font-face{font-family:'Anybody';src:url(plate/fonts/anybody.woff2) format('woff2');font-weight:400 700;font-display:swap}
 @font-face{font-family:'Anybody';src:url(plate/fonts/anybody900.woff2) format('woff2');font-weight:800 900;font-display:swap}
@@ -239,9 +239,11 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
     </div>
   </div>
 
-  <div class="foot">crowd figures are sample — they wire to live counts · events replayed from a recorded match</div>
+  <div class="foot" id="foot">crowd figures are sample — they wire to live counts · events replayed from a recorded match</div>
 </div>
 
+<!-- demo engine — ONLY under ?demo=1: baked recording → serverless feed → window.__match + window.__stands -->
+<script>if(/[?&]demo=1/.test(location.search))document.write('<scr'+'ipt src="plate/demo-suicol.js"></scr'+'ipt><scr'+'ipt src="demo-feed.js"></scr'+'ipt><scr'+'ipt src="match-read.js"></scr'+'ipt><scr'+'ipt src="crowd-sim.js"></scr'+'ipt>');</script>
 <script>
 var FEELINGS=[
   {k:'JOY',img:'plate/gens/react/joy.png'},
@@ -282,6 +284,7 @@ var PREDS=[
 
 var el=function(id){return document.getElementById(id);};
 var PASS=null; try{ PASS=JSON.parse(localStorage.getItem('rooot.pass')||'null'); }catch(e){}   // the fan's pass from the door (side + call + conviction)
+var DEMO=/[?&]demo=1/.test(location.search);   // ?demo=1 → THE STANDS run off window.__match/__stands (the engine)
 var M={t:0,score:[0,0],rY:0,rT:0,run:true,lastMs:0,fired:{},await:null,dur:92,xp:0,reads:{h:0,a:0},pred:null,predShown:{},predResolved:{}};
 var SPEED=1.3; // match-minutes per second (slowed so events + calls are catchable)
 
@@ -316,7 +319,7 @@ function burstPath(cx,cy,R,r,n){var d='',a;for(var i=0;i<n*2;i++){var rad=(i%2?r
 function popBurst(txt){var b=el('burst');if(!b)return; el('burstText').textContent=txt; el('burstText').setAttribute('font-size', txt.length>6?28:34); M.lastBurst=performance.now(); b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');}
 
 // your tap = roar (your end surges — the field, not a gauge)
-function tap(){M.rY=Math.min(1,M.rY+0.16);ripple(tilesYou,6);var e=el('youEnd');e.classList.remove('surge');void e.offsetWidth;e.classList.add('surge');}
+function tap(){ if(DEMO&&window.__stands){window.__stands.cheer();} else {M.rY=Math.min(1,M.rY+0.16);} ripple(tilesYou,6);var e=el('youEnd');e.classList.remove('surge');void e.offsetWidth;e.classList.add('surge');}
 el('youEnd').addEventListener('pointerdown',function(e){ if(e.target.closest('.pk')||e.target.closest('.sk-keep'))return; tap(); });
 
 // picker
@@ -346,6 +349,7 @@ function pick(label,isV){
   var p=el('picker');
   [].forEach.call(p.querySelectorAll('.pk'),function(c){c.classList.toggle('on',c.textContent===label);});
   M.await.picked=true;M.await.mine=label;
+  if(DEMO&&window.__stands&&M.await.momentId)window.__stands.momentReact(M.await.momentId,label);   // your read → the live crowd
   var ctx=M.await;
   setTimeout(function(){ p.classList.remove('on');reveal(ctx,label,isV);el('taphint').style.opacity=''; if(M.await===ctx)M.await=null; },560);
 }
@@ -461,18 +465,17 @@ function fire(ev){
 function step(now){
   var dt=Math.min(0.3,(now-M.lastMs)/1000); M.lastMs=now;
   if(!M.frz){
-    if(M.run){ M.t=Math.min(M.dur, M.t + dt*SPEED); }
-    // decay / simulate roar
-    M.rY=Math.max(0,M.rY-dt*0.28);
-    if(M.rY>0.5 && (now-(M.lastBurst||0))>1500){ popBurst('ROOOT!'); }
-    M.rT=Math.max(0.05+0.05*Math.sin(M.t*0.7), M.rT-dt*0.30);
-    // fire due events
-    for(var i=0;i<EVENTS.length;i++){ if(!M.fired[i] && M.t>=EVENTS[i].t){ M.fired[i]=true; fire(EVENTS[i]); } }
-    // mini-predictions (optional, windowed)
-    for(var pi=0;pi<PREDS.length;pi++){ var pp=PREDS[pi];
-      if(!M.predShown[pi] && M.t>=pp.popT){ M.predShown[pi]=true; showPred(pp,pi); }
-      if(!M.predResolved[pi] && M.t>=pp.resolveT){ M.predResolved[pi]=true; resolvePred(pi); }
+    if(!DEMO){   // scripted drivers — under ?demo=1 the engine (window.__match/__stands) drives clock/roar/events
+      if(M.run){ M.t=Math.min(M.dur, M.t + dt*SPEED); }
+      M.rY=Math.max(0,M.rY-dt*0.28);
+      M.rT=Math.max(0.05+0.05*Math.sin(M.t*0.7), M.rT-dt*0.30);
+      for(var i=0;i<EVENTS.length;i++){ if(!M.fired[i] && M.t>=EVENTS[i].t){ M.fired[i]=true; fire(EVENTS[i]); } }
+      for(var pi=0;pi<PREDS.length;pi++){ var pp=PREDS[pi];
+        if(!M.predShown[pi] && M.t>=pp.popT){ M.predShown[pi]=true; showPred(pp,pi); }
+        if(!M.predResolved[pi] && M.t>=pp.resolveT){ M.predResolved[pi]=true; resolvePred(pi); }
+      }
     }
+    if(M.rY>0.5 && (now-(M.lastBurst||0))>1500){ popBurst('ROOOT!'); }   // burst on real roar (scripted or engine)
   }
   // render — the ends surge as they roar; the field is the meter
   el('clock').textContent=Math.floor(M.t)+"'";
@@ -485,6 +488,37 @@ function step(now){
   requestAnimationFrame(step);
 }
 requestAnimationFrame(function(t){M.lastMs=t;step(t);});
+
+// ===== ?demo=1 — drive THE STANDS off the real crowd-sim (__stands) + match (__match) engine =====
+function ccUpdate(c){ var cc=el('crowdcall'); if(!cc)return;
+  if(c.all){ var b=cc.querySelectorAll('.ccscore b'); if(b[0])b[0].textContent='SUI '+c.all[0]; if(b[1])b[1].textContent=c.all[1]+' COL'; }
+  if(c.market){ var mk=cc.querySelector('.ccmkt'); if(mk)mk.textContent='· vs market SUI '+Math.round(c.market[0]*100)+'·'+Math.round(c.market[1]*100)+'·'+Math.round(c.market[2]*100); }
+  if(c.byRoot&&c.byRoot.home&&c.byRoot.away){ var aff=cc.querySelector('.ccaff'); if(aff)aff.innerHTML='your end <b>'+c.byRoot.home[0]+'–'+c.byRoot.home[1]+'</b> · their end <b>'+c.byRoot.away[0]+'–'+c.byRoot.away[1]+'</b>'; }
+}
+function openMoment(w){ if(!w||w.kind!=='verdict')return;
+  el('crowdcall').style.opacity='0';
+  var mo=el('moment'); mo.className='moment on'; el('momentMin').textContent=Math.floor(M.t)+"'";
+  var pair; if(w.palette==='pen'){el('momentBig').textContent='PENALTY?';pair=['PENALTY','NEVER'];}
+  else {el('momentBig').textContent='VAR CHECK';pair=['GOAL','NO GOAL'];}
+  M.await={momentId:w.momentId,home:pair[0],away:pair[1],q:(w.palette==='pen'?'WAS IT A PENALTY?':'DID IT COUNT?')};
+  showPicker(pair);
+  setTimeout(function(){ if(!el('split').classList.contains('on') && !(M.await&&!M.await.picked)){ mo.classList.remove('on'); el('crowdcall').style.opacity='1'; } },4200);
+}
+function wireDemo(){ if(!window.__match||!window.__stands)return false;
+  var mySide=(PASS&&PASS.side==='a')?'away':'home', other=mySide==='home'?'away':'home';
+  window.__stands.root(mySide); if(PASS&&PASS.call)window.__stands.predict(PASS.call.h,PASS.call.a);   // seat the fan + carry the door's call (so cheer() has a side)
+  var f=el('foot'); if(f)f.textContent='crowd is simulated (crowd-sim) · match replayed from a baked SUI–COL feed';
+  function onMatch(m){ if(!m)return; M.score=[m.score.home,m.score.away]; el('scH').textContent=m.score.home; el('scA').textContent=m.score.away;
+    if(m.clock&&m.clock.min)M.t=m.clock.min; if(m.done&&!M._ft){M._ft=true; showKeepsake();} }
+  window.__match.on(onMatch); onMatch(window.__match);
+  window.__stands.onState(function(s){ if(s.roar){M.rY=s.roar[mySide]||0;M.rT=s.roar[other]||0;}
+    if(s.rooted){ var y=el('ctYou'),t=el('ctThem'); if(y)y.textContent=(s.rooted[mySide]||0).toLocaleString(); if(t)t.textContent=(s.rooted[other]||0).toLocaleString(); } });
+  window.__stands.onConsensus(ccUpdate);
+  window.__stands.onMoment(openMoment);
+  window.__stands.onVerdict(function(v){ if(!M._ft){M._ft=true; showKeepsake();} });
+  return true;
+}
+if(DEMO){ if(!wireDemo()){ var _wt=setInterval(function(){ if(wireDemo())clearInterval(_wt); },200); } }
 
 // verification helpers: jump the replay clock, force a roar / prediction
 window.__jump=function(min){ M.t=min-0.1; for(var i=0;i<EVENTS.length;i++){ if(EVENTS[i].t<min-0.1)M.fired[i]=true; else M.fired[i]=false; } };
