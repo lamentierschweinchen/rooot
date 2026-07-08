@@ -76,6 +76,8 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
 #ctrlViz{position:relative;background:var(--card);border:2.5px solid var(--ink);padding:13px 9px 11px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='120' height='120' filter='url(%23n)' opacity='0.05'/></svg>")}
 #ctrlViz::after{content:"";position:absolute;inset:5px;border:1.4px solid var(--ink);pointer-events:none}
 #ctrlViz svg{position:relative;z-index:1}
+#oddsViz{position:relative;background:var(--card);border:2px solid var(--ink);padding:9px}
+.oddskey{display:flex;justify-content:space-between;margin:12px 20px 24px;font-weight:800;font-size:9px;letter-spacing:.03em}
 #shots{position:absolute;inset:0}
 @keyframes pop{0%{transform:translate(-50%,-50%) scale(0);opacity:0}62%{transform:translate(-50%,-50%) scale(1.18)}100%{transform:translate(-50%,-50%) scale(1);opacity:1}}
 #shots .dot{position:absolute;width:4.8%;height:0;padding-bottom:4.8%;border-radius:50%;transform:translate(-50%,-50%);animation:pop .38s cubic-bezier(.3,1.5,.5,1) both}
@@ -179,6 +181,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
       <div class="hot sm" data-place="book" style="left:49.8%;top:50.5%"><div class="ring"><img class="wic" src="plate/gens/whistle.png" alt=""></div><span class="cap">THE BOOK</span></div>
       <div class="hot sm" data-place="bench" style="left:79%;top:50%"><div class="ring"><span class="ic">⇅</span></div><span class="cap">THE BENCH</span></div>
       <div class="hot sm soon" data-place="stands" style="left:12%;top:85%"><div class="ring"><span class="ic">◍</span></div><span class="cap">THE STANDS</span></div>
+      <div class="hot sm" data-place="odds" style="left:82%;top:14%"><div class="ring"><span class="ic" style="font-size:10px;letter-spacing:0">1X2</span></div><span class="cap">THE MARKET</span></div>
     </div>
   </div>
 
@@ -192,6 +195,15 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     <div class="art"><div style="position:relative"><img src="plate/gens/goal-empty.png" alt="goal"><div id="shots"></div></div></div>
     <div class="splabel"><span class="t h" id="gH">SUI</span><span>THE SHOTS</span><span class="t a" id="gA">COL</span></div>
     <div class="spgrid" id="goalGrid"></div>
+  </section>
+
+  <!-- DETAIL: THE MARKET (the live 1X2, de-vigged — the tide, made a chart) -->
+  <section class="sheet" id="sheet-odds">
+    <div class="sh-head"><span class="t">THE MARKET<small>THE 1X2 · DE-VIGGED</small></span><button class="close" data-close>✕</button></div>
+    <div class="hostband"><i class="v"></i><i class="r"></i><i class="a"></i><i class="g"></i></div>
+    <div class="art" style="margin:14px 16px 0"><div id="oddsViz"></div>
+      <div style="text-align:center;margin-top:5px;font-weight:700;font-size:7px;letter-spacing:.14em;color:var(--sub)">HOME · DRAW · AWAY, ACROSS THE MATCH</div></div>
+    <div class="oddskey" id="oddsKey"></div>
   </section>
 
   <!-- DETAIL: CONTROL (the pitch body — possession · territory · danger) -->
@@ -278,6 +290,8 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
 </div>
 
 <script src="plate/gens/stadium-data.js"></script>
+<!-- demo engine — ONLY under ?demo=1: baked recording → window.__match (score/clock/market/marketSeries) -->
+<script>if(/[?&]demo=1/.test(location.search))document.write('<scr'+'ipt src="plate/demo-suicol.js"></scr'+'ipt><scr'+'ipt src="demo-feed.js"></scr'+'ipt><scr'+'ipt src="match-read.js"></scr'+'ipt>');</script>
 <script>
 (function(){
   'use strict';
@@ -514,7 +528,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
 
   // ---- zoom interaction + inter-card nav ----
   var openSheet=null, toastT=null;
-  var CARDS=[['goal','GOAL-MOUTH'],['arc','SET PIECES'],['control','CONTROL'],['book','THE BOOK'],['bench','TEAM SHEET'],['pens','PENALTIES']];   // built detail cards, in order (grows as families land)
+  var CARDS=[['goal','GOAL-MOUTH'],['arc','SET PIECES'],['control','CONTROL'],['book','THE BOOK'],['bench','TEAM SHEET'],['odds','THE MARKET'],['pens','PENALTIES']];   // built detail cards, in order (grows as families land)
   function toast(msg){var t=el('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove('show');},1800);}
   var SOON={stands:'THE STANDS'};   // only truly-unbuilt places left (book/bench/control now have sheets)
   function syncNav(place){
@@ -566,6 +580,28 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
       if(window.__statsAdapter&&window.__statsAdapter.onStats)window.__statsAdapter.onStats(function(s){s.__live=true;render(s);});
       else{var s=window.__stats;s.__live=true;render(s);}}
     else if(tries>12)clearInterval(iv);},400); }
+
+  // ---- THE MARKET card + demo masthead: read window.__match (serverless; __stats is the live wire, offline in demo) ----
+  function drawOdds(m){ m=m||window.__match; var box=el('oddsViz'); if(!box||!m)return;
+    var series=m.marketSeries||[], cs=getComputedStyle(document.documentElement);
+    var HC=(cs.getPropertyValue('--home')||'#2049AA').trim(), AC=(cs.getPropertyValue('--away')||'#C8504D').trim();
+    var W=280,H=140,px=10,py=12;
+    if(!series.length){ box.innerHTML='<div style="text-align:center;padding:44px 0;font-weight:700;font-size:8px;letter-spacing:.14em;color:var(--sub)">THE MARKET PRINTS AS THE MATCH PLAYS</div>'; if(el('oddsKey'))el('oddsKey').innerHTML=''; return; }
+    var lastMin=series[series.length-1].min||0, useMin=lastMin>=5, maxMin=Math.max(90,lastMin);   // pre-kickoff every point is min 0 → spread by index so the opening drift reads as a line
+    function X(mn,i){return px+(useMin?(mn/maxMin):(series.length>1?i/(series.length-1):0))*(W-2*px);} function Y(p){return py+(1-p)*(H-2*py);}
+    function path(k){var d='';for(var i=0;i<series.length;i++){d+=(i?'L':'M')+X(series[i].min,i).toFixed(1)+' '+Y(series[i][k]).toFixed(1)+' ';}return d;}
+    function cased(k,c){var d=path(k);return '<path d="'+d+'" fill="none" stroke="#1A1815" stroke-width="3.9" stroke-linejoin="round" stroke-linecap="round"/><path d="'+d+'" fill="none" stroke="'+c+'" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>';}
+    box.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;display:block"><rect x="'+px+'" y="'+py+'" width="'+(W-2*px)+'" height="'+(H-2*py)+'" fill="#EFE7D2" stroke="#1A1815" stroke-width="1.4"/><line x1="'+px+'" y1="'+Y(0.5).toFixed(1)+'" x2="'+(W-px)+'" y2="'+Y(0.5).toFixed(1)+'" stroke="#8C8467" stroke-width="0.6" stroke-dasharray="2 3"/>'+'<path d="'+path('draw')+'" fill="none" stroke="#7a7256" stroke-width="1.6" stroke-dasharray="2.5 3" stroke-linejoin="round"/>'+cased('away',AC)+cased('home',HC)+'</svg>';
+    var last=series[series.length-1], k=el('oddsKey'); if(k)k.innerHTML='<span style="color:'+HC+'">'+el('mHT').textContent+' '+Math.round(last.home*100)+'%</span><span style="color:#7a7256">DRAW '+Math.round(last.draw*100)+'%</span><span style="color:'+AC+'">'+el('mAT').textContent+' '+Math.round(last.away*100)+'%</span>';
+  }
+  if(q.get('demo')==='1' && window.__match){
+    var onMatchS=function(m){ if(!m)return;
+      el('mSc').textContent=m.score.home+'–'+m.score.away; el('board').textContent=m.score.home+'–'+m.score.away;
+      el('mSt').textContent='REPLAY'; el('mMin').textContent=(m.clock&&m.clock.min!=null?m.clock.min+'′':'');
+      if(m.teams&&m.teams.home&&m.teams.home.tri)el('mHT').textContent=m.teams.home.tri; if(m.teams&&m.teams.away&&m.teams.away.tri)el('mAT').textContent=m.teams.away.tri;
+      drawOdds(m); };
+    window.__match.on(onMatchS); onMatchS(window.__match);
+  }
 })();
 </script>
 <script src="/stats-adapter.js"></script>
