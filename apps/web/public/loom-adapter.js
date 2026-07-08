@@ -36,6 +36,20 @@
   // the loom wants 1=home/left, 2=away/right.
   function sideNum(s) { return s === 'home' ? 1 : s === 'away' ? 2 : 0; }
 
+  // ── CURATION — which events weave onto the cloth. The loom is design's clean set
+  // (goals · shots · cards · corners · VAR); the owner wants it SPARSE, high-signal
+  // moments only (Jul 8: "which event types we even want there … relatively sparse").
+  // One knob per family — flip + redeploy:
+  //   sub      ON  — the owner asked for these back.
+  //   freekick ON  — dangerous free kicks only (the correlation below; safe fouls never
+  //                  weave). Owner flagged these as maybe-redundant (a dangerous free kick
+  //                  usually shows up as the shot/goal it produces) — kept, easy to cut.
+  //   offside  ON  — in design's legend already; genuinely sparse (usually 1-5 a match).
+  //   injury   OFF — never in the design vocabulary OR the legend; buried the cloth in
+  //                  ~7-12 medical crosses a match. Still counted in the stadium stats.
+  // This matches design's legend (goal·save·block·miss·corner·freekick·offside·card·var)
+  // PLUS subs — the one family the owner explicitly asked to add.
+  var WEAVE = { goal: true, shot: true, card: true, corner: true, var: true, sub: true, freekick: true, offside: true, injury: false };
   // pressure weight per possession grade (owner's brief).
   var PRESS = { safe: 0.3, possession: 0.5, attack: 1, danger: 1.5, 'high-danger': 2 };
   // ledger goalKind (Shot|Head|Own) → loom event type (shot|head|own).
@@ -296,21 +310,22 @@
           } else if (k === 'shot') {
             // pass the wire id: shots re-emit (unconfirmed → outcome), so the loom must
             // REPLACE by id, not stack a second mark. Same for cards (empty → named).
-            L.event({ minute: mPos, kind: 'shot', side: sideNum(ev.side), type: (ev.detail || '').toLowerCase(), id: ev.id });
+            if (WEAVE.shot) L.event({ minute: mPos, kind: 'shot', side: sideNum(ev.side), type: (ev.detail || '').toLowerCase(), id: ev.id });
           } else if (k === 'yellow-card' || k === 'red-card') {
-            L.event({ minute: mPos, kind: 'card', side: sideNum(ev.side), type: k === 'red-card' ? 'red' : 'yellow', id: ev.id });
+            if (WEAVE.card) L.event({ minute: mPos, kind: 'card', side: sideNum(ev.side), type: k === 'red-card' ? 'red' : 'yellow', id: ev.id });
           } else if (k === 'corner') {
-            L.event({ minute: mPos, kind: 'corner', side: sideNum(ev.side), id: ev.id });
+            if (WEAVE.corner) L.event({ minute: mPos, kind: 'corner', side: sideNum(ev.side), id: ev.id });
           } else if (k === 'substitution') {
-            L.event({ minute: mPos, kind: 'sub', side: sideNum(ev.side), id: ev.id });
+            if (WEAVE.sub) L.event({ minute: mPos, kind: 'sub', side: sideNum(ev.side), id: ev.id });
           } else if (k === 'injury') {
-            L.event({ minute: mPos, kind: 'injury', side: sideNum(ev.side), id: ev.id });
+            // OFF by default (WEAVE.injury) — noise; still tallied in the stadium stats.
+            if (WEAVE.injury) L.event({ minute: mPos, kind: 'injury', side: sideNum(ev.side), id: ev.id });
           } else if (k === 'free-kick') {
             var fkt = (ev.detail || '').toLowerCase();
             if (fkt.indexOf('offside') >= 0) {
               // offside is its own event — weave it directly, where it happened.
-              L.event({ minute: mPos, kind: 'freekick', side: sideNum(ev.side), type: 'offside', id: ev.id });
-            } else {
+              if (WEAVE.offside) L.event({ minute: mPos, kind: 'freekick', side: sideNum(ev.side), type: 'offside', id: ev.id });
+            } else if (WEAVE.freekick) {
               // a foul → HOLD it; the danger branch weaves it only if it LED TO DANGER.
               // Routine midfield fouls that go nowhere never weave (they'd flood the cloth).
               var _fs = sideNum(ev.side);
@@ -319,7 +334,7 @@
           } else if (k === 'var') {
             // ONE mark per REVIEW, not per envelope: a review re-fires with the
             // same id (OPEN → OPEN → Overturned) — dedupe so 2 reviews ≠ 6 marks.
-            if (!firedVars[ev.id]) { firedVars[ev.id] = true; L.event({ minute: mPos, kind: 'var', detail: ev.detail }); }
+            if (WEAVE.var && !firedVars[ev.id]) { firedVars[ev.id] = true; L.event({ minute: mPos, kind: 'var', detail: ev.detail }); }
           }
           break;
         }
