@@ -19,14 +19,20 @@
       st.belief[side] = clamp01(st.belief[side] + mag * T.reactivity); st.belief[other] = clamp01(st.belief[other] - mag * 0.5 * T.reactivity); }
     function marketFor(side) { return side === 'home' ? st.market.home : st.market.away; }
     function biasedTarget(side) { return clamp01(marketFor(side) + T.homeBias); }   // hope sits above the market
+    function round1(x) { return Math.round(x * 10) / 10; }
     st.tick = function () {
       ['home', 'away'].forEach(function (side) {
         st.roar[side] = st.roar[side] * T.roarDecay;                       // decay (Task 3 adds spikes)
         st.belief[side] += (biasedTarget(side) - st.belief[side]) * T.regression;   // drift toward hopeful baseline
       });
       // consensus: crowd's predicted scoreline = current score + expected-more from belief (kept simple)
+      // byRoot: each partisan camp's own hopeful scoreline, leaning toward its own team via T.homeBias
       st.consensus = {
-        all: [Math.round((st.home + st.belief.home) * 10) / 10, Math.round((st.away + st.belief.away) * 10) / 10],
+        all: [round1(st.home + st.belief.home), round1(st.away + st.belief.away)],
+        byRoot: {
+          home: [round1(st.home + st.belief.home + T.homeBias), round1(st.away + st.belief.away - T.homeBias * 0.5)],
+          away: [round1(st.home + st.belief.home - T.homeBias * 0.5), round1(st.away + st.belief.away + T.homeBias)]
+        },
         market: [st.market.home, st.market.draw, st.market.away]
       };
     };

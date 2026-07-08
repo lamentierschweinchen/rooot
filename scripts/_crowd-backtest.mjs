@@ -33,9 +33,16 @@ assert.ok(s.roar && typeof s.roar.home === 'number', 'snapshot has roar');
 console.log('OK skeleton snapshot', JSON.stringify(s));
 
 import { toFeed } from './_tofeed.mjs';
-const feed = toFeed('fixtures/sui-col-scores-20260707.jsonl');
+const feed = toFeed('apps/web/dist/replay/col-gha-20260704.jsonl'); // combined odds+scores
 const M = createModel();
-let maxGap = 0;
-for (const msg of feed) { M.ingest(msg); M.tick(); const s = M._st; maxGap = Math.max(maxGap, Math.abs(s.belief.home - s.market.home)); }
-assert.ok(maxGap > 0.05, 'crowd belief diverges from market by >0.05 somewhere (got ' + maxGap.toFixed(3) + ')');
-console.log('OK divergence maxGap=', maxGap.toFixed(3));
+let minB = 1, maxB = 0, maxGap = 0, firstMarket = null, marketMoved = false;
+for (const msg of feed) { M.ingest(msg); M.tick(); const s = M._st;
+  minB = Math.min(minB, s.belief.home); maxB = Math.max(maxB, s.belief.home);
+  maxGap = Math.max(maxGap, Math.abs(s.belief.home - s.market.home));
+  if (firstMarket === null) firstMarket = s.market.home;
+  else if (Math.abs(s.market.home - firstMarket) > 0.02) marketMoved = true;
+}
+assert.ok(marketMoved, 'the feed carries real odds so the market moves (else divergence is meaningless)');
+assert.ok(maxB - minB > 0.1, 'belief MOVES over the replay — a no-op model leaves it flat at 0.5 (range ' + (maxB - minB).toFixed(3) + ')');
+assert.ok(maxGap > 0.05, 'crowd diverges from the moving market (maxGap ' + maxGap.toFixed(3) + ')');
+console.log('OK divergence beliefRange=', (maxB - minB).toFixed(3), 'maxGap=', maxGap.toFixed(3));
