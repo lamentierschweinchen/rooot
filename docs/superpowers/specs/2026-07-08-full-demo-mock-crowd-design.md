@@ -195,3 +195,25 @@ judgeable.
   new part; owner runs any `fly secrets set` for prod (classifier blocks the agent) — demo is
   devnet-only so this doesn't bite.
 - THE ALBUM (retention rail) — out of scope, later.
+
+## 13. Coordination with the parallel design lane (owner-flagged)
+
+The design instance is editing the same surface files (terrace · ground · gate · woven-loom ·
+stadium) in parallel — a real clobber risk (shared repo + shared Vercel account under the
+owner's login; a stale-checkout deploy can revert the other's live work, and per-deployment
+URLs are auth-gated so they can't be diffed). Strategy, in priority:
+
+1. **New files carry the weight.** `crowd-sim.js`, the orchestrator, and the baked-data player
+   are NEW files → zero conflict. Put as much logic there as possible; keep the surfaces thin.
+2. **Prefer a global read over a rewrite.** Where a surface must consume live data (terrace's
+   scripted `EVENTS`→`__loom`, the composite embeds' params, the gate's market), the ideal is
+   the surface reads a global that the sim/driver populates — the wiring lives in adapters, not
+   the surface internals. Ask design to expose a small input hook per surface (like `__loom`'s
+   API) so I attach instead of edit.
+3. **When a surface edit is unavoidable, it is surgical + additive + immediate.** Before
+   touching any design-owned file: `git pull`/check `git status` + `design/QUEUE` for their
+   uncommitted work; make the smallest additive change; commit right away; never `vercel --prod`
+   over an uncommitted tree without confirming it isn't design's newer work.
+4. **Announce the build in `design/QUEUE`** — name the demo build and the exact seams I need,
+   so design can add the hooks (or steer clear) rather than us colliding. This note is step 0
+   of the plan.
