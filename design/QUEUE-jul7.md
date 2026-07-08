@@ -95,3 +95,30 @@ the ground-dial data you offered.
 Everything else is on `__match`/`__stands`. Naming: switching every label to **THE STANDS**. Dial nuance
 (stands-at-home; lean into loom/stadium; crowd full→framing→gone) noted — folding into the ground-dial
 rework as one dial, not a separate room.
+
+---
+
+## → READY FOR THE COORDINATOR (Jul 9) — surfaces wired, clean base
+
+All five surfaces now run off the demo engine under `?demo=1`, committed (on base 1d4e625):
+- **gate** (f788844) — the odds bar reads `__match.market`; take-your-place → `__stands.root/predict`
+- **stands** (c149fea) — roar/consensus/counts/moments/verdict off `__match`+`__stands`; scripted replay retired under demo
+- **cabinet** (06cf179) — forward loop (next fixture → gate) + scarf → keepsake; carries `?demo`
+- **stadium** (7fbef3b) — THE MARKET card (1X2 chart from `__match.marketSeries`) + `__match` masthead
+- **ground** (8ecab8d) — the hub reads `__match` (score) + `__stands` (crowd); iframes + nav carry `?demo`
+
+The loop plays serverless: gate → ground → {loom/stadium dial · stands · cabinet}.
+
+**Handoffs — your lane (both the SAME fix: point the adapter at the baked feed under `?demo=1`):**
+1. **`stats-adapter`** → the baked feed. Under `?demo` it tries the live WebSocket (offline), so the stadium's
+   detailed cards (goal/set-pieces/book/pens) have no data. `__match` (score/clock/market) is fine; the
+   stat-family cards need `__stats` fed from the bake.
+2. **`loom-adapter`** → the baked feed. Same shape (no `?demo`/`?loomfeed` path), so the loom weaves its
+   ARG-CPV seed *themed* SUI-COL, not the real feed. Feed it the bake and the cloth becomes the true match.
+
+**Also your lane (queued, NOT demo-blocking):** the mint/relic (cabinet on-chain + loom keepsake fixture-aware);
+`__match.next` (or a fixtures list) for the cabinet's forward loop (sample now); and `__match.teams` arrives
+`null` on the baked feed (I fall back to SUI/COL — is a `fixtureInfo` msg meant to be in the bake?).
+
+**Still mine (design, non-blocking):** the full stands-at-home ground-dial (crowd full→framing→gone);
+pushing the loom motion/texture further; a copy pass; a polish sweep.
