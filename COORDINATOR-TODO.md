@@ -12,6 +12,14 @@ fixture defaults on today's game. `__stats` carries every computable family + th
 mostly-empty FreeKickType); **THE SHOOTOUT MODE** — the loom becomes a penalty board on
 StatusId 12 (`window.__loomShootout`, verified vs the real SUI–COL 4–3; join-replay
 already covers penalty-kick so it's airtight). Design briefed to elevate the board.
+**Jul 8:** owner flagged the loom as too busy — re-curated events via a `WEAVE` knob in
+loom-adapter.js. Injuries OFF (never in design's legend; ~7-12 crosses/match — the clutter);
+now weaves design's legend set + subs. By-second placement kept (design's demo uses decimal
+minutes → the sub-minute x is intended). Verified vs recorded col-gha via server replay mode.
+OPEN: free kicks kept ON but owner leans redundant — one flag flips. Legend needs a SUB key.
+NOTED: `/live` default is still the finished SUI-COL (18202783) while other games go live —
+the stale-default (#11); proper fix needs the /fixtures endpoint (a server change, best done
+between matches so it doesn't clear live join-snapshots).
 
 ---
 ## P0 — now / next

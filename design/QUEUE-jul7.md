@@ -21,6 +21,15 @@ not vaporware). **Your canvas now — make the drama land.**
   climax. (A "SUI to kick next" tension needs `penalty_shootout_team` widened into the feed —
   ping me and I'll wire it; it's a server change so I've held it.)
 
+## FYI · LOOM EVENTS RE-CURATED (owner flagged the cloth as too busy, Jul 8)
+Owner: the loom had drifted busy — it was weaving injuries (~7-12 red crosses a match),
+which were never in your legend. Pulled them. The cloth now weaves your legend set exactly
+(goals·shots·cards·corners·VAR·offsides·free-kicks) **plus subs** (owner asked to keep subs).
+Coordinator side only — your render wasn't touched. One thing for you: **the legend has no
+SUB entry** but subs now weave (the green-up/red-down arrow glyph) — add a "SUB" key to the
+legend so the vocabulary matches. (Injuries stay OUT of the legend.) Curation lives in one
+`WEAVE` config in loom-adapter.js if you want a family flipped.
+
 ## P0 · THE STARTING XI — the owner's flagged "big miss"
 WHO is playing, shown **before a ball is kicked** — owner's placement: **by THE BENCH**
 (it gives that card something to hold pre-kickoff, before subs/injuries exist).
