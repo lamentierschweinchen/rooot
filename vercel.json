@@ -3,10 +3,9 @@
   "buildCommand": "npm --prefix apps/web run build",
   "outputDirectory": "apps/web/dist",
   "cleanUrls": true,
-  "redirects": [
-    { "source": "/", "destination": "/live", "permanent": false }
-  ],
   "rewrites": [
-    { "source": "/live", "destination": "/woven-loom" }
+    { "source": "/live", "destination": "/woven-loom?match=18209181" },
+    { "source": "/demo", "destination": "/showcase" },
+    { "source": "/loom", "destination": "/woven-loom" }
   ]
 }

@@ -133,7 +133,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 
 <script>
 var el=function(id){return document.getElementById(id);};
-var DEMO=/[?&]demo=1/.test(location.search), Q=DEMO?'?demo=1':'';
+var DEMO=/[?&]demo=1/.test(location.search), Q=DEMO?'?demo=1':(/[?&]live=1/.test(location.search)?'?live=1':'?demo=0');
 // sample kept matches — each wires to a real relic (the woven cloth) + your tx-signed call
 var SCARVES=[
   {h:'ARG',a:'CPV',hc:'#2049AA',ac:'#C8504D',hi:'#F3ECDB',ai:'#F3ECDB',sc:'3–2',comp:'WORLD CUP',date:"08 JUL '26",call:'ARG 3–2',res:'hit',no:'014'},

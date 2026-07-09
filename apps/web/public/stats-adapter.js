@@ -22,6 +22,7 @@
 (function () {
   'use strict';
   var q = new URLSearchParams(location.search);
+  var DEMO = q.get('demo') === '1';   // live by default; demo only when explicitly asked
   // NB: production serves clean URLs (cleanUrls) — the path is '/stadium', not
   // '/stadium.html'. Match by substring so BOTH the clean route and the .html file
   // (preview / direct open) activate the adapter. Exact '.html' checks silently
@@ -29,9 +30,9 @@
   var p = location.pathname;
   var ON = p === '/' || p === '/live'
     || p.indexOf('/count-live') >= 0 || p.indexOf('/count') >= 0 || p.indexOf('/stadium') >= 0
-    || q.get('site') === '1' || q.get('loomfeed') === '1' || q.get('statsfeed') === '1' || q.get('demo') === '1';
+    || q.get('site') === '1' || q.get('loomfeed') === '1' || q.get('statsfeed') === '1' || DEMO;
   if (!ON) return;
-  var matchId = q.get('match') || '18202783'; // SUI–COL default (live now). MUST match stadium's FIX default. TODO(P2): dynamic default so /stadium + /count auto-follow the live game.
+  var matchId = q.get('match') || '18209181'; // SUI–COL default (live now). MUST match stadium's FIX default. TODO(P2): dynamic default so /stadium + /count auto-follow the live game.
   var wsBase = q.get('ws') || 'wss://rooot-stands.fly.dev/';
 
   // PRESS weights (match the loom) — for the TERRITORY proxy (danger-weighted).
@@ -234,7 +235,7 @@
   }
   // under ?demo=1 with no explicit ?ws, feed the stadium's stat cards from the baked
   // serverless feed (demo-feed.js) instead of the live WebSocket.
-  if (q.get('demo') === '1' && !q.get('ws') && window.__demoFeed) {
+  if (DEMO && !q.get('ws') && window.__demoFeed) {
     window.__demoFeed.start(function (m) { try { onFeed(m); } catch (err) { console.warn('[stats-adapter] translate error', err); } });
   } else {
     connect();

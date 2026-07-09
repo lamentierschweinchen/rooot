@@ -155,11 +155,12 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
     <div class="stamp" id="stamp"><b>ADMITTED</b><span>SUI v COL · 20:00</span></div>
   </div>
 </div>
-<!-- demo engine — ONLY under ?demo=1: baked recording → serverless feed → window.__match + window.__stands -->
+<!-- demo engine — private prototype default: baked recording → serverless feed → window.__match + window.__stands -->
 <script>if(/[?&]demo=1/.test(location.search))document.write('<scr'+'ipt src="plate/demo-suicol.js"></scr'+'ipt><scr'+'ipt src="demo-feed.js"></scr'+'ipt><scr'+'ipt src="match-read.js"></scr'+'ipt><scr'+'ipt src="crowd-sim.js"></scr'+'ipt>');</script>
 <script>
 var side=null, sco={h:0,a:0}, touched=false, conv=0;
 var DEMO=/[?&]demo=1/.test(location.search);
+var MODE_Q=DEMO?'&demo=1':(/[?&]live=1/.test(location.search)?'&live=1':'&demo=0');
 var ends=document.getElementById('ends'), neutral=document.getElementById('neutral'),
     score=document.getElementById('score'), pips=document.getElementById('pips'),
     cl=document.getElementById('cl'), go=document.getElementById('go');
@@ -212,7 +213,7 @@ go.onclick=function(){
   if(DEMO&&window.__stands){ if(side&&side!=='n')window.__stands.root(side==='h'?'home':'away'); window.__stands.predict(sco.h,sco.a); }   // your seat + call into the live crowd
   document.getElementById('stamp').classList.add('on');   // the turnstile presses your pass — ADMITTED
   go.innerHTML='SEE YOU INSIDE<small>◆ YOU CALLED SUI '+sco.h+'–'+sco.a+' COL</small>';
-  setTimeout(function(){ location.href='ground.html?from=gate'+(DEMO?'&demo=1':''); }, 1050);   // the tunnel — walk into the ground (carry ?demo=1)
+  setTimeout(function(){ location.href='ground.html?from=gate'+MODE_Q; }, 1050);   // the tunnel — walk into the ground (carry prototype mode)
 };
 </script>
 </body>

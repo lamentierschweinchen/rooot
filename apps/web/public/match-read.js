@@ -78,7 +78,8 @@
 
   if (typeof window === 'undefined') return;
   var q = new URLSearchParams(location.search);
-  if (q.get('demo') !== '1' && q.get('matchread') !== '1') return;   // demo-only
+  var DEMO = q.get('demo') === '1';   // live by default; demo only when explicitly asked
+  if (!DEMO && q.get('matchread') !== '1') return;   // private prototype defaults to demo; explicit live/demo=0 opts out
   var matchId = q.get('match') || '18202783';
   var wsBase = q.get('ws'); // explicit only — connectFeed() decides WS vs. baked from its presence
   var state = initialState();
@@ -107,7 +108,7 @@
         ws.onclose = function () { setTimeout(connect, 1000); };
         ws.onerror = function () { try { ws.close(); } catch (_) {} };
       })();
-    } else if (q.get('demo') === '1' && root.__demoFeed) {
+    } else if (DEMO && root.__demoFeed) {
       root.__demoFeed.start(onMsg);
     }
   }
