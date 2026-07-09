@@ -40,6 +40,7 @@ import {
   parseLedgerMessage,
   parseOddsMessage,
   parseSpell,
+  parseLineups,
 } from '../contracts/normalize';
 import type { FeedMsg } from '../contracts/feed';
 
@@ -110,6 +111,9 @@ function bakeFile(file: string): Baked[] {
     // the same way the live server does. sui-col: Participant1 = SUI = home, so p1IsHome = true.
     const sp = parseSpell(raw, at, 'replay', true);
     if (sp) out.push({ atMs: at, msg: { type: 'spell', fixtureId: String(FIXTURE_ID), spell: sp } });
+    // the starting XI (both squads named before kickoff) → the stadium's team-sheet card.
+    const lu = parseLineups(raw);
+    if (lu && lu.lineup) out.push({ atMs: at, msg: { type: 'lineup', fixtureId: String(lu.fixtureId), lineup: lu.lineup } });
   }
   return out;
 }
@@ -118,6 +122,10 @@ function main(): void {
   const scores = bakeFile(SCORES_FILE);
   const odds = bakeFile(ODDS_FILE);
   let merged = [...scores, ...odds].sort((a, b) => a.atMs - b.atMs);
+
+  // Capture pre-match head data that must survive the trim: the starting XI (lineups arrive ~1h
+  // before kickoff, well outside the trim window below).
+  const lineups = merged.filter((m) => m.msg.type === 'lineup').map((m) => m.msg);
 
   // Trim the long pre-match odds tail: the recording spans ~4.7h (odds tick for hours before
   // kickoff), but the demo should open just before kickoff and PLAY THE MATCH — not sit in dead
@@ -128,18 +136,24 @@ function main(): void {
     merged.find((m) => m.msg.type === 'ledger');
   if (kickoff) merged = merged.filter((m) => m.atMs >= kickoff.atMs - LEAD_MS);
 
-  // fixtureInfo at the head (AFTER the trim, so it survives) so __match.teams populates and the
-  // loom themes SUI-COL instead of falling back to its ARG-CPV seed.
-  merged.unshift({
-    atMs: (merged.length ? merged[0].atMs : 0) - 1,
-    msg: {
-      type: 'fixtureInfo',
-      fixture: {
-        home: { code: 'SUI', name: 'Switzerland', colors: ['#D52B1E', '#FFFFFF'] },
-        away: { code: 'COL', name: 'Colombia', colors: ['#FCD116', '#003893'] },
+  // Re-attach the head just before the first retained message, so they're set pre-kickoff even
+  // after the trim: fixtureInfo (→ __match.teams + loom theming) and the starting XI (→ the
+  // stadium team-sheet). Ascending negative offsets keep them first + ordered.
+  const t0 = merged[0]?.atMs ?? 0;
+  const head = [
+    {
+      atMs: t0 - 1 - lineups.length,
+      msg: {
+        type: 'fixtureInfo',
+        fixture: {
+          home: { code: 'SUI', name: 'Switzerland', colors: ['#D52B1E', '#FFFFFF'] },
+          away: { code: 'COL', name: 'Colombia', colors: ['#FCD116', '#003893'] },
+        },
       },
     },
-  } as (typeof merged)[number]);
+    ...lineups.map((lu, i) => ({ atMs: t0 - lineups.length + i, msg: lu })),
+  ] as typeof merged;
+  merged.unshift(...head);
 
   const counts = { score: 0, status: 0, ledger: 0, odds: 0 } as Record<FeedMsg['type'], number>;
   for (const m of merged) counts[m.msg.type] = (counts[m.msg.type] ?? 0) + 1;
