@@ -335,7 +335,9 @@ body.embed .wrap{padding:6px 8px 8px}
     '18193785':['USA','USA','#2A3B78','BEL','BELGIUM','#B4232B'], '18209181':['FRA','FRANCE','#0055A4','MAR','MOROCCO','#C1272D'] };
     // only re-theme when a match is EXPLICITLY requested (live/coordinator); otherwise keep the
     // replay data's own teams so the standalone loom stays coherent (data ↔ teams matched).
-    var mid=new URLSearchParams(location.search).get('match'), f=mid&&FX[mid];
+    // /live is served by a rewrite that hides ?match from the client URL, so on the
+    // live front door default to tonight's fixture (mirrors loom-adapter's matchId default).
+    var mid=new URLSearchParams(location.search).get('match')||(location.pathname==='/live'?'18209181':null), f=mid&&FX[mid];
     if(f) window.__loom.teams({tri:f[0],name:f[1],primary:f[2]},{tri:f[3],name:f[4],primary:f[5]});
   })();
   if(KEEP)M.t=M.dur;   // freeze the finished cloth
