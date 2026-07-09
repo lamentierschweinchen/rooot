@@ -60,7 +60,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .end.h.on{background:var(--home);color:var(--card)}
 .end.a.on{background:var(--away);color:var(--ink)}
 .end.on .tri,.end.on .nm{color:inherit}.end.on .nm{opacity:.85}.end.on .join{opacity:1;color:inherit}
-.ends.picked .end:not(.on){opacity:.38}
+.ends.picked .end:not(.on){opacity:.55}
 .neutral{display:block;width:calc(100% - 24px);margin:8px 12px 0;padding:9px;background:none;border:1.5px dashed var(--line);
   font-family:var(--disp);font-weight:700;font-size:9px;letter-spacing:.16em;color:var(--sub);cursor:pointer;text-transform:uppercase}
 .neutral.on{border-style:solid;border-color:var(--ink);color:var(--ink)}
@@ -74,7 +74,8 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .sc.h .scn{color:var(--home)}.sc.a .scn{color:var(--away)}
 .scm{border:none;background:none;font-family:var(--disp);font-weight:900;font-size:15px;color:var(--sub);cursor:pointer;padding:0 8px;line-height:1}
 .scdash{font-weight:900;font-size:26px;color:var(--ink);align-self:center;transform:translateY(-4px)}
-.schint{text-align:center;font-weight:700;font-size:7.5px;letter-spacing:.14em;color:var(--sub);margin-top:7px}
+.schint{text-align:center;font-weight:700;font-size:7.5px;letter-spacing:.14em;color:var(--sub);margin-top:7px;transition:opacity .25s}
+.schint.set{opacity:0}
 .conv{display:flex;align-items:center;gap:11px;margin:13px 18px 0}
 .conv .ct{font-weight:800;font-size:8.5px;letter-spacing:.15em;color:var(--sub);white-space:nowrap}
 .conv .pips{display:flex;gap:5px;flex:1}
@@ -210,7 +211,7 @@ neutral.onclick=function(){
   document.documentElement.style.setProperty('--pick','#8C8467');
   ready();
 };
-function paintScore(){ [].forEach.call(score.querySelectorAll('.scn'),function(n){ n.textContent=sco[n.dataset.t]; }); }
+function paintScore(){ [].forEach.call(score.querySelectorAll('.scn'),function(n){ n.textContent=sco[n.dataset.t]; }); if(touched){var sh=document.querySelector('.schint'); if(sh)sh.classList.add('set');} }
 [].forEach.call(score.querySelectorAll('.scn'),function(n){ n.onclick=function(){ sco[n.dataset.t]=Math.min(9,sco[n.dataset.t]+1); touched=true; paintScore(); ready(); }; });
 [].forEach.call(score.querySelectorAll('.scm'),function(m){ m.onclick=function(){ sco[m.dataset.t]=Math.max(0,sco[m.dataset.t]-1); touched=true; paintScore(); ready(); }; });
 [].forEach.call(pips.children,function(el){
