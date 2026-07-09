@@ -22,7 +22,7 @@
   // Activate on the explicit dev opt-in (?loomfeed=1) OR the clean live front
   // door (rooot.club / /live, served by a rewrite). Direct /loom-proto stays
   // the self-contained demo — untouched.
-  var SITE = location.pathname === '/' || location.pathname === '/live' || q.get('site') === '1';
+  var SITE = location.pathname === '/' || location.pathname === '/live' || q.get('site') === '1' || q.get('demo') === '1';
   if (q.get('loomfeed') !== '1' && !SITE) return;
   var matchId = q.get('match') || '18202783'; // SUI–COL default (live now). MUST match loom-proto's FIXTURES default. TODO(P2): dynamic default so /live auto-follows the live game.
   var wsBase = q.get('ws') || 'wss://rooot-stands.fly.dev/';
@@ -368,6 +368,12 @@
       ws.onclose = function () { setTimeout(connect, backoff); backoff = Math.min(backoff * 2, 30000); };
       ws.onerror = function () { try { ws.close(); } catch (_) {} };
     }
-    connect();
+    // under ?demo=1 with no explicit ?ws, weave the baked serverless feed (demo-feed.js) —
+    // the loom shows the REAL recorded match offline, not its ARG-CPV demo seed.
+    if (q.get('demo') === '1' && !q.get('ws') && window.__demoFeed) {
+      window.__demoFeed.start(function (msg) { try { onFeed(msg); } catch (err) { console.warn('[loom-adapter] translate error', err); } });
+    } else {
+      connect();
+    }
   });
 })();

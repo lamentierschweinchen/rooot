@@ -54,10 +54,20 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = { play: play, DEMO_SECONDS: DEMO_SECONDS };
 
   if (typeof window === 'undefined') return;
+  // ONE shared playback, many subscribers — so every consumer in a window (crowd-sim,
+  // match-read, loom-adapter, stats-adapter) rides the SAME clock instead of each spinning
+  // its own drifting playback. Consumers all subscribe at page load, before the first 100ms
+  // tick fires, so none miss the opening messages.
+  var subs = [], player = null;
+  function ensurePlaying() {
+    if (player || !window.__DEMO_SUICOL) return;
+    player = play(window.__DEMO_SUICOL, function (msg) {
+      for (var i = 0; i < subs.length; i++) { try { subs[i](msg); } catch (e) {} }
+    }, DEMO_SECONDS);
+  }
   window.__demoFeed = {
     DEMO_SECONDS: DEMO_SECONDS,
-    start: function (onMsg) {
-      return play(window.__DEMO_SUICOL, onMsg, DEMO_SECONDS);
-    },
+    subscribe: function (onMsg) { subs.push(onMsg); ensurePlaying(); return { stop: function () {} }; },
+    start: function (onMsg) { return this.subscribe(onMsg); }, // alias — shares the one playback
   };
 })(typeof window !== 'undefined' ? window : this);

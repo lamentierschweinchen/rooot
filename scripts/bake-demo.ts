@@ -112,7 +112,29 @@ function bakeFile(file: string): Baked[] {
 function main(): void {
   const scores = bakeFile(SCORES_FILE);
   const odds = bakeFile(ODDS_FILE);
-  const merged = [...scores, ...odds].sort((a, b) => a.atMs - b.atMs);
+  let merged = [...scores, ...odds].sort((a, b) => a.atMs - b.atMs);
+
+  // Trim the long pre-match odds tail: the recording spans ~4.7h (odds tick for hours before
+  // kickoff), but the demo should open just before kickoff and PLAY THE MATCH — not sit in dead
+  // pre-match odds for a third of its runtime. Start ~3 min before the first playing status.
+  const LEAD_MS = 3 * 60 * 1000;
+  const kickoff =
+    merged.find((m) => m.msg.type === 'status' && (m.msg.ev.phase === 'FIRST_HALF' || m.msg.ev.phase === 'SECOND_HALF')) ||
+    merged.find((m) => m.msg.type === 'ledger');
+  if (kickoff) merged = merged.filter((m) => m.atMs >= kickoff.atMs - LEAD_MS);
+
+  // fixtureInfo at the head (AFTER the trim, so it survives) so __match.teams populates and the
+  // loom themes SUI-COL instead of falling back to its ARG-CPV seed.
+  merged.unshift({
+    atMs: (merged.length ? merged[0].atMs : 0) - 1,
+    msg: {
+      type: 'fixtureInfo',
+      fixture: {
+        home: { code: 'SUI', name: 'Switzerland', colors: ['#D52B1E', '#FFFFFF'] },
+        away: { code: 'COL', name: 'Colombia', colors: ['#FCD116', '#003893'] },
+      },
+    },
+  } as (typeof merged)[number]);
 
   const counts = { score: 0, status: 0, ledger: 0, odds: 0 } as Record<FeedMsg['type'], number>;
   for (const m of merged) counts[m.msg.type] = (counts[m.msg.type] ?? 0) + 1;
