@@ -92,6 +92,15 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .go.ready{opacity:1;pointer-events:auto}
 .go.ready:active{transform:translateY(1px)}
 .go small{display:block;font-weight:700;font-size:7.5px;letter-spacing:.2em;opacity:.6;margin-top:3px}
+
+/* THE TURNSTILE — your pass is stamped as you walk in (shown on confirm only; additive — never hides the gate) */
+.stamp{position:absolute;left:50%;top:47%;transform:translate(-50%,-50%) rotate(-11deg) scale(1.6);opacity:0;z-index:8;pointer-events:none;
+  text-align:center;color:var(--verde);border:2.5px double var(--verde);border-radius:5px;padding:9px 20px;background:rgba(46,106,78,.05)}
+.stamp b{font-weight:900;font-size:23px;letter-spacing:.11em;line-height:1;display:block}
+.stamp span{font-weight:700;font-size:8px;letter-spacing:.17em;display:block;margin-top:3px;opacity:.82}
+.stamp.on{animation:stampIn .5s cubic-bezier(.2,1.5,.4,1) forwards}
+@keyframes stampIn{0%{opacity:0;transform:translate(-50%,-50%) rotate(-11deg) scale(1.7)}55%{opacity:.96;transform:translate(-50%,-50%) rotate(-11deg) scale(.93)}100%{opacity:.9;transform:translate(-50%,-50%) rotate(-11deg) scale(1)}}
+@media (prefers-reduced-motion:reduce){.stamp.on{animation:none;opacity:.9;transform:translate(-50%,-50%) rotate(-11deg) scale(1)}}
 </style>
 </head>
 <body>
@@ -140,6 +149,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
     </div>
 
     <button class="go" id="go">TAKE YOUR PLACE<small>THE GROUND OPENS →</small></button>
+    <div class="stamp" id="stamp"><b>ADMITTED</b><span>SUI v COL · 20:00</span></div>
   </div>
 </div>
 <!-- demo engine — ONLY under ?demo=1: baked recording → serverless feed → window.__match + window.__stands -->
@@ -197,8 +207,9 @@ go.onclick=function(){
   // your pass — persisted, then read by the terrace checkpoint + woven into the keepsakes
   try{ localStorage.setItem('rooot.pass', JSON.stringify({side:side, call:sco, conv:conv, ts:Date.now()})); }catch(e){}
   if(DEMO&&window.__stands){ if(side&&side!=='n')window.__stands.root(side==='h'?'home':'away'); window.__stands.predict(sco.h,sco.a); }   // your seat + call into the live crowd
+  document.getElementById('stamp').classList.add('on');   // the turnstile presses your pass — ADMITTED
   go.innerHTML='SEE YOU INSIDE<small>◆ YOU CALLED SUI '+sco.h+'–'+sco.a+' COL</small>';
-  setTimeout(function(){ location.href='ground.html?from=gate'+(DEMO?'&demo=1':''); }, 950);   // the tunnel — walk into the ground (carry ?demo=1)
+  setTimeout(function(){ location.href='ground.html?from=gate'+(DEMO?'&demo=1':''); }, 1050);   // the tunnel — walk into the ground (carry ?demo=1)
 };
 </script>
 </body>
