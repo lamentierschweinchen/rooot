@@ -371,9 +371,9 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
       function colStands(awayFrac){ var bY=Hh*Math.max(0.16,Math.min(0.84,awayFrac));
         for(var s=0;s<standsMask.length;s+=3){ var idx=standsMask[s],yy=standsMask[s+1],ll=standsMask[s+2]/1000,tt=(yy<bY)?awayH:homeH,o=h2rgb(tt[0],Math.min(1,tt[1]*0.9),ll);
           D[idx]=o[0];D[idx+1]=o[1];D[idx+2]=o[2]; } }
-      // the PITCH becomes the two team colours, split at possession `frac` (home from the bottom), keeping grass luminance so lines survive
-      function colPitch(frac){ var splitY=ry0+(ry1-ry0)*(1-frac);
-        for(var k=0;k<mask.length;k+=3){var idx=mask[k],yy=mask[k+1],ll=mask[k+2]/1000,tt=(yy>=splitY)?homeH:awayH,o=h2rgb(tt[0],Math.min(1,tt[1]*0.92),Math.min(0.64,ll*0.5+0.42));D[idx]=o[0];D[idx+1]=o[1];D[idx+2]=o[2];}
+      // the PITCH shows the territory each side is infringing on: home presses into the away/top goal, away presses into the home/bottom goal.
+      function colPitch(frac){ var splitY=ry0+(ry1-ry0)*frac;
+        for(var k=0;k<mask.length;k+=3){var idx=mask[k],yy=mask[k+1],ll=mask[k+2]/1000,tt=(yy<=splitY)?homeH:awayH,o=h2rgb(tt[0],Math.min(1,tt[1]*0.92),Math.min(0.64,ll*0.5+0.42));D[idx]=o[0];D[idx+1]=o[1];D[idx+2]=o[2];}
         return splitY; }
       repaint=function(){
         if(lastAwayFrac!==paintedAwayFrac){ colStands(lastAwayFrac); paintedAwayFrac=lastAwayFrac; }   // stands only when the split moves
@@ -506,11 +506,11 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     var ap=100-hp;
     el('mHT').textContent=HOME.tri;el('mAT').textContent=AWAY.tri;
     el('mSt').textContent=live?'LIVE':'REPLAY';el('bMin').textContent=(s.minute!=null?s.minute+'′':'');
-    // possession on the pitch
+    // possession numbers stay attributed to the team; the pitch places that control in the territory it infringes.
     el('pA').textContent=(ap!=null?ap:'—');el('pH').textContent=(hp!=null?hp:'—');
     // scoreboard
     el('bSc').textContent=hg+'–'+ag;
-    // the pitch itself becomes the two team colours (canvas recolour), split at possession — home from the bottom
+    // the pitch itself becomes the two team colours (canvas recolour), split by infringement — home toward the away/top goal
     lastHp=hp; if(repaint)repaint();
     // hotspot counts (tendencies)
     el('hGA').textContent=(hs.onTarget||0)+(hs.offTarget||0)+(hs.blocked||0); // home shooting the away (top) goal
