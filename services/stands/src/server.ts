@@ -669,6 +669,22 @@ function sendJson(res: ServerResponse, status: number, body: unknown): void {
   res.end(JSON.stringify(body));
 }
 
+/* ── CORS for /seat/* (Task 6c) — the browser calls these cross-origin
+ * (rooot.club / a localhost preview → this fly.dev host), so every seat
+ * response needs the headers below, and the preflight OPTIONS request needs
+ * an explicit 204. Devnet MVP with no cookies/credentials, so a `*` origin
+ * is fine — deliberately NOT pairing it with Access-Control-Allow-Credentials.
+ * WS routes don't go through HTTP CORS at all, so they're untouched. */
+const SEAT_CORS_HEADERS: Record<string, string> = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'content-type',
+};
+
+function setSeatCorsHeaders(res: ServerResponse): void {
+  for (const [name, value] of Object.entries(SEAT_CORS_HEADERS)) res.setHeader(name, value);
+}
+
 function readBody(req: IncomingMessage): Promise<string> {
   return new Promise((resolve, reject) => {
     let data = '';
@@ -759,6 +775,16 @@ export function createStandsServer() {
     } catch {
       sendJson(res, 400, { error: 'bad request' });
       return;
+    }
+    // /seat/* CORS (Task 6c) — set on every seat response, and short-circuit the
+    // preflight OPTIONS here, before any routing or body parsing runs below.
+    if (url.pathname.startsWith('/seat/')) {
+      setSeatCorsHeaders(res);
+      if (req.method === 'OPTIONS') {
+        res.writeHead(204);
+        res.end();
+        return;
+      }
     }
     if (req.method === 'GET' && url.pathname === '/health') {
       const body = JSON.stringify({
