@@ -39,10 +39,15 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .wrap.crowd-full .them,.wrap.crowd-full .you{max-height:0!important;opacity:0;pointer-events:none}
 
 /* their end — the far stand, thin across the top */
-.them{display:flex;align-items:center;gap:9px;padding:6px 13px;max-height:50px;background:linear-gradient(180deg,rgba(200,80,77,.17),transparent);border-bottom:1.5px solid var(--ink)}
+.them{--roar:0;position:relative;display:flex;align-items:center;gap:9px;padding:6px 13px;max-height:50px;background:linear-gradient(180deg,rgba(200,80,77,.17),transparent);border-bottom:1.5px solid var(--ink)}
+.them::after{content:"";position:absolute;inset:0;background:var(--them);opacity:calc(var(--roar,0)*.34);pointer-events:none;transition:opacity .14s}
+.them>*{position:relative;z-index:1}
+.them.roar{animation:theirRoar .45s ease-out}
+@keyframes theirRoar{0%{filter:brightness(1)}35%{filter:brightness(1.22)}100%{filter:brightness(1)}}
 .them .nm{font-weight:800;font-size:8px;letter-spacing:.12em;color:var(--them);white-space:nowrap}
 .them .mini{display:flex;gap:2px;flex:1;overflow:hidden}
-.them .mini i{width:7px;height:7px;background:var(--them);opacity:.42;flex:none}
+.them .mini i{width:7px;height:7px;background:var(--them);opacity:.42;flex:none;transition:opacity .12s,box-shadow .12s}
+.them .mini i.hot{opacity:1;box-shadow:0 0 5px var(--them)}
 .them .ct{font-weight:700;font-size:7.5px;letter-spacing:.06em;color:var(--sub);white-space:nowrap}
 
 /* the centre — the lens you dial to */
@@ -141,10 +146,17 @@ wrap.addEventListener('touchend',function(e){ var dx=e.changedTouches[0].clientX
 // their mini mosaic
 var mt=el('miniThem'); for(var i=0;i<16;i++)mt.insertAdjacentHTML('beforeend','<i></i>');
 // your cheer (tap → fills + decays; a ROOOT! burst at the peak)
-var cheer=0, lastMs=performance.now(), lastBurst=0;
+var cheer=0, themRoar=0, lastMs=performance.now(), lastBurst=0, lastLiveThem=0;
 el('youEnd').addEventListener('pointerdown',function(){ cheer=Math.min(1,cheer+0.19); if((DEMO||LIVE)&&window.__stands)window.__stands.cheer(); });
 function cw(r){return r>.8?'DEAFENING':r>.55?'LOUD':r>.3?'rising':r>.12?'murmur':'quiet';}
+function liveRoarLevel(v){return v>0?Math.min(1,0.28+v*1.6):0;}
+function flashThem(){
+  var band=el('themBand'); band.classList.remove('roar'); void band.offsetWidth; band.classList.add('roar');
+  setTimeout(function(){band.classList.remove('roar');},520);
+  for(var i=0;i<mt.children.length;i++){ if(((i*7+Date.now())%3)===0){ var m=mt.children[i]; m.classList.add('hot'); (function(m){setTimeout(function(){m.classList.remove('hot');},260);})(m); } }
+}
 function loop(now){ var dt=Math.min(.3,(now-lastMs)/1000); lastMs=now; cheer=Math.max(0,cheer-dt*0.3);
+  themRoar=Math.max(0,themRoar-dt*0.55); el('themBand').style.setProperty('--roar',themRoar.toFixed(3));
   el('cheerFill').style.width=(cheer*100)+'%'; el('cheerV').textContent=cw(cheer);
   if(cheer>0.55 && (now-lastBurst)>1600){ lastBurst=now; var b=el('cburst'); b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }
   requestAnimationFrame(loop); }
@@ -174,9 +186,18 @@ function wireLive(){
     wireLive.didStands=true;
     if(PASS&&PASS.side!=='n')window.__stands.root(sideKey);
     if(PASS&&PASS.call)window.__stands.predict(PASS.call.h,PASS.call.a);
-    window.__stands.onState(function(s){ if(!s||!s.rooted)return;
-      el('themCt').textContent=(s.rooted[other]||0).toLocaleString();
-      el('youReads').innerHTML=(s.rooted[sideKey]||0).toLocaleString()+' HERE';
+    window.__stands.onState(function(s){ if(!s)return;
+      if(s.roar){
+        var yRaw=s.roar[sideKey]||0, tRaw=s.roar[other]||0, y=liveRoarLevel(yRaw), t=liveRoarLevel(tRaw);
+        cheer=Math.max(cheer,y);
+        themRoar=Math.max(themRoar,t);
+        if(tRaw>lastLiveThem+0.02)flashThem();
+        lastLiveThem=tRaw;
+      }
+      if(s.rooted){
+        el('themCt').textContent=(s.rooted[other]||0).toLocaleString();
+        el('youReads').innerHTML=(s.rooted[sideKey]||0).toLocaleString()+' HERE';
+      }
     });
   }
   if(window.__statsAdapter&&!wireLive.didStats){

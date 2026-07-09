@@ -334,6 +334,8 @@ function roarWord(r){return r>.8?'DEAFENING':r>.55?'LOUD':r>.3?'rising':r>.12?'m
 function burstPath(cx,cy,R,r,n){var d='',a;for(var i=0;i<n*2;i++){var rad=(i%2?r:R);a=Math.PI*i/n-Math.PI/2;d+=(i?'L':'M')+(cx+rad*Math.cos(a)).toFixed(1)+' '+(cy+rad*Math.sin(a)).toFixed(1)+' ';}return d+'Z';}
 (function(){var d=burstPath(110,90,94,61,13); el('burstShape').setAttribute('d',d); el('burstDots').setAttribute('d',d);})();
 function popBurst(txt){var b=el('burst');if(!b)return; el('burstText').textContent=txt; el('burstText').setAttribute('font-size', txt.length>6?28:34); M.lastBurst=performance.now(); b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');}
+function liveRoarLevel(v){return v>0?Math.min(1,0.28+v*1.6):0;}   // one real tap is ~0.33/s; make that legible, not a ghost
+function bumpEnd(node,list,k){ if(!node)return; node.classList.remove('surge'); void node.offsetWidth; node.classList.add('surge'); ripple(list,k||7); setTimeout(function(){node.classList.remove('surge');},520); }
 
 // your tap = roar (your end surges — the field, not a gauge)
 function tap(){ if((DEMO||LIVE)&&window.__stands){window.__stands.cheer();} else {M.rY=Math.min(1,M.rY+0.16);} ripple(tilesYou,6);var e=el('youEnd');e.classList.remove('surge');void e.offsetWidth;e.classList.add('surge');}
@@ -491,6 +493,9 @@ function step(now){
         if(!M.predShown[pi] && M.t>=pp.popT){ M.predShown[pi]=true; showPred(pp,pi); }
         if(!M.predResolved[pi] && M.t>=pp.resolveT){ M.predResolved[pi]=true; resolvePred(pi); }
       }
+    } else if(LIVE){
+      M.rY=Math.max(0,M.rY-dt*0.55);
+      M.rT=Math.max(0,M.rT-dt*0.55);
     }
     if(M.rY>0.5 && (now-(M.lastBurst||0))>1500){ popBurst('ROOOT!'); }   // burst on real roar (scripted or engine)
   }
@@ -551,7 +556,13 @@ function wireLive(){
     if(PASS&&PASS.side!=='n')window.__stands.root(sideKey);
     if(PASS&&PASS.call)window.__stands.predict(PASS.call.h,PASS.call.a);
     window.__stands.onState(function(s){
-      if(s.roar){ M.rY=Math.min(1,(s.roar[sideKey]||0)/3); M.rT=Math.min(1,(s.roar[other]||0)/3); }
+      if(s.roar){
+        var yRaw=s.roar[sideKey]||0, tRaw=s.roar[other]||0, y=liveRoarLevel(yRaw), t=liveRoarLevel(tRaw);
+        M.rY=Math.max(M.rY,y); M.rT=Math.max(M.rT,t);
+        if(yRaw>(wireLive.lastY||0)+0.02)bumpEnd(el('youEnd'),tilesYou,Math.ceil(6+y*8));
+        if(tRaw>(wireLive.lastT||0)+0.02)bumpEnd(el('endThem'),tilesThem,Math.ceil(6+t*8));
+        wireLive.lastY=yRaw; wireLive.lastT=tRaw;
+      }
       if(s.rooted){ var y=el('ctYou'),t=el('ctThem'); if(y)y.textContent=(s.rooted[sideKey]||0).toLocaleString(); if(t)t.textContent=(s.rooted[other]||0).toLocaleString(); }
     });
     window.__stands.onConsensus(ccUpdate);
