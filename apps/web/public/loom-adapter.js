@@ -25,7 +25,7 @@
   // the self-contained demo — untouched.
   var SITE = location.pathname === '/' || location.pathname === '/live' || q.get('site') === '1' || DEMO;
   if (q.get('loomfeed') !== '1' && !SITE) return;
-  var matchId = q.get('match') || '18209181'; // SUI–COL default (live now). MUST match loom-proto's FIXTURES default. TODO(P2): dynamic default so /live auto-follows the live game.
+  var matchId = q.get('match') || '18209181'; // FRA–MAR live-test default. TODO(P2): dynamic default so /live auto-follows the live game.
   var wsBase = q.get('ws') || 'wss://rooot-stands.fly.dev/';
 
   function waitForLoom(cb) {
