@@ -46,11 +46,19 @@ accessibility. Findings ranked by impact. Tags: **[design]** I can do now, indep
 6. Deselected side's flag sticker nearly vanishes (dim state too aggressive).
 7. "TAP TO SET THE SCORE" hint persists after a score is set — retire it once touched.
 
-## Priorities / recommended order (all independent of the coordinator)
-1. **Reduced-motion a11y pass** (#4) — broad, safe, quick; lifts every surface at once. *Do first.*
-2. **Empty cabinet + P1 pre-wire** (#1) — biggest experiential gap; wire `cabinet.html` to
-   `__seat`/`__album` with a sample fallback, and design the empty state. Real the moment the stub lands.
-3. **Loom empty-state affordance** (#2) + gate polish (#6, #7).
-4. **Coordinate** the keepsake-sealed masthead (#3) with the owner/coordinator (owner-file + `__loom`).
+## Priorities / status
+1. ✅ **Reduced-motion a11y pass** (#4) — `5cfe31f`. Guard added to all 7 surfaces.
+2. ✅ **Empty cabinet + P1 pre-wire** (#1) — `41bd5b2`. `cabinet.html` renders from `__seat`/`__album`
+   with a sample fallback; the empty first-run state (NEED pockets, all virtues still-to-earn) ships.
+3. ✅ **Gate polish** (#6, #7) — `132021f`. Legible unchosen side; score hint retires once set.
+4. ⏸ **Loom empty-state** (#2) — *reassessed as marginal.* The loom's header already explains the
+   idea ("MARKET IS THE GROUND · PLAY IS THE CORDS · EVENTS ARE STITCHED"), so an early screenshot
+   sells itself and the empty warp reads honestly as "yet to be woven." A pre-kickoff "waiting"
+   affordance is a minor future nicety — and it lives in an owner-edited file, so not worth a
+   unilateral change now. Revisit with the keepsake work below.
+5. 🤝 **Keepsake-sealed masthead** (#3) — *coordinate.* Needs the `__loom` keepsake payload to carry
+   the final score + a masthead that flips LIVE→KEPT; touches the owner-edited masthead. Bundle with
+   the coordinator's `__loom` work.
+6. ⏳ **Contrast spot-check** (#5) — ongoing; the big one (terrace stat line) is fixed.
 
-Nothing here blocks on P0/P1 of the coordinator handoff — this is a parallel design track.
+Nothing here blocked on the coordinator — this was a parallel design track. Items 1–3 landed.

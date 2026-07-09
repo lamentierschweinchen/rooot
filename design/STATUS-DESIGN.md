@@ -5,9 +5,16 @@
 coordinator's lane — I flag, I don't touch. Update this doc as state changes.*
 
 ## 🔧 IN FLIGHT RIGHT NOW
-**Nothing mid-edit.** Coherence sweep done — book, trophies, flags, and a stands polish pass all landed.
+**Nothing mid-edit.** Parallel design track (gap analysis) done while the coordinator picks up the
+[data-wiring handoff](HANDOFF-coordinator-data-wiring.md) (P0 event names + P1 `__seat`/`__album`).
 
 ## ✅ DONE + committed (recent → older)
+- `41bd5b2` **cabinet renders from `__seat`/`__album`** (P1 pre-wire, sample fallback) + the **empty
+  first-run state** (NEED pockets, all virtues still-to-earn). Goes real the instant `demo-seat.js` lands.
+- `132021f` gate polish (legible unchosen side, score hint retires); `5cfe31f` reduced-motion on all 7
+  surfaces. Gap analysis + status: `design/GAP-ANALYSIS.md`.
+- **Coordinate later:** the kept-keepsake masthead still reads LIVE (needs `__loom` final-score payload;
+  owner-edited masthead) — see gap analysis #3.
 - `97eed3d` terrace: **Ben-Day halftone over the crowd** — multiply dot-screen on the tile field so
   each end reads as printed colour-blocks (matches flags/badges/ROOOT burst). Texture only, no data.
 - `2da1380` terrace: **your own stat line made legible** at the you-end (was ink-on-dark). Fixes ground too.
