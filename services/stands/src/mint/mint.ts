@@ -7,7 +7,7 @@
  * `umi` (must already have `mplCore()` registered and an identity set).
  */
 import { create } from '@metaplex-foundation/mpl-core';
-import { generateSigner, type Umi } from '@metaplex-foundation/umi';
+import { generateSigner, publicKey, type Umi } from '@metaplex-foundation/umi';
 import { base58 } from '@metaplex-foundation/umi/serializers';
 import type { MatchRelicData } from '@contracts/relic';
 import { buildOnChainName } from './metadata';
@@ -28,12 +28,20 @@ export interface RelicMintResult {
   uris: UploadedRelicUris;
 }
 
-/** Create the Core asset pointing at the uploaded metadata. Returns the asset + signature + links. */
+/**
+ * Create the Core asset pointing at the uploaded metadata. Returns the asset + signature + links.
+ *
+ * `owner` (optional): a base58 pubkey that should own the minted asset. When omitted, mpl-core
+ * defaults ownership to the create authority (the `umi` identity — today's behavior). When
+ * present, the asset is owned by that pubkey while `umi`'s identity still pays and signs — this is
+ * how the service can mint a relic for a walletless fan without ever touching their keys.
+ */
 export async function mintRelic(
   relic: MatchRelicData,
   uris: UploadedRelicUris,
   umi: Umi,
   cluster: MintCluster,
+  owner?: string,
 ): Promise<RelicMintResult> {
   const asset = generateSigner(umi);
 
@@ -41,6 +49,7 @@ export async function mintRelic(
     asset,
     name: buildOnChainName(relic),
     uri: uris.metadataUri,
+    ...(owner ? { owner: publicKey(owner) } : {}),
   }).sendAndConfirm(umi);
 
   const signature = base58.deserialize(tx.signature)[0];
