@@ -18,8 +18,10 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
 
 /* live masthead */
 .mast{position:absolute;top:0;left:0;right:0;z-index:9;display:flex;align-items:center;justify-content:space-between;padding:11px 16px;background:var(--paper);border-bottom:1.5px solid var(--line)}
-.mast .sc{font-weight:900;font-size:20px;letter-spacing:.02em}
-.mast .sc .h{color:var(--home)}.mast .sc .a{color:var(--away)}
+.mast .hd{font-weight:900;font-size:19px;letter-spacing:.09em}
+.mast .mt{display:flex;align-items:center;gap:7px;font-weight:900;font-size:13px;letter-spacing:.02em}
+.mast .mt i{font-style:normal;color:var(--sub);font-weight:800;font-size:10px}
+.mast .mt .h{color:var(--home)}.mast .mt .a{color:var(--away)}
 .mast .st{font-weight:700;font-size:9px;letter-spacing:.18em;color:var(--sub);display:flex;align-items:center;gap:6px}
 .mast .st .dot{width:6px;height:6px;border-radius:50%;background:#C8202A;animation:pulse 1.4s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
@@ -31,7 +33,9 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
 .stadwrap .stad{width:100%;display:block}
 .pnum{position:absolute;transform:translate(-50%,-50%);font-weight:900;color:var(--card);z-index:2;text-shadow:0 1px 5px rgba(26,24,21,.65),0 0 2px rgba(26,24,21,.55)}
 .pnum.a{left:49.8%;top:38%;font-size:25px}.pnum.h{left:49.8%;top:63%;font-size:25px}
-.board{position:absolute;left:50%;top:12.1%;transform:translate(-50%,-50%);z-index:3;font-weight:900;font-size:18px;letter-spacing:.03em;color:#F3ECDB;pointer-events:none;text-shadow:0 1px 2px #000}
+.board{position:absolute;left:50%;top:12.1%;transform:translate(-50%,-50%);z-index:3;pointer-events:none;text-align:center;color:#F3ECDB;text-shadow:0 1px 2px #000;line-height:1}
+.board .bsc{display:block;font-weight:900;font-size:14px;letter-spacing:.05em}
+.board .bmin{display:block;font-weight:700;font-size:7px;letter-spacing:.13em;color:#E8B10A;margin-top:2px}
 
 /* interactive hotspots on the stadium */
 .hot{position:absolute;transform:translate(-50%,-50%);z-index:4;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;-webkit-tap-highlight-color:transparent}
@@ -163,15 +167,15 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
 <div class="wrap">
 
   <div class="mast">
-    <span class="sc"><b class="h" id="mHT">—</b> <span id="mSc">0–0</span> <b class="a" id="mAT">—</b></span>
-    <span class="st"><span class="dot"></span><span id="mSt">LIVE</span> · <span id="mMin">—</span></span>
+    <span class="hd">STADIUM</span>
+    <span class="mt"><b class="h" id="mHT">—</b> <i>v</i> <b class="a" id="mAT">—</b><span class="st"><span class="dot"></span><span id="mSt">LIVE</span></span></span>
   </div>
 
   <!-- THE GROUND: the real stadium, tendencies visible, places tappable -->
   <div class="ground" id="ground">
     <div class="stadwrap" id="stadwrap">
       <canvas class="stad" id="stadcanvas" width="760" height="1079"></canvas>
-      <div class="board" id="board">0–0</div>
+      <div class="board" id="board"><span class="bsc" id="bSc">0–0</span><span class="bmin" id="bMin"></span></div>
       <div class="pnum a" id="pA">—</div><div class="pnum h" id="pH">—</div>
       <div class="hot goal" data-place="goal" style="left:49.8%;top:23%"><div class="ring"><span class="n" id="hGA">0</span></div><span class="cap" id="capA">GOAL</span></div>
       <div class="hot goal" data-place="goal" style="left:49.8%;top:78%"><div class="ring"><span class="n" id="hGH">0</span></div><span class="cap" id="capH">GOAL</span></div>
@@ -180,7 +184,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
       <div class="hot sm" data-place="book" style="left:27%;top:47%"><div class="ring"><img class="wic" src="plate/gens/whistle.png" alt=""></div><span class="cap">THE BOOK</span></div>
       <div class="hot sm" data-place="bench" style="left:79%;top:50%"><div class="ring"><span class="ic">⇅</span></div><span class="cap">THE BENCH</span></div>
       <div class="hot sm soon" data-place="stands" style="left:12%;top:85%"><div class="ring"><span class="ic">◍</span></div><span class="cap">THE STANDS</span></div>
-      <div class="hot sm" data-place="odds" style="left:82%;top:14%"><div class="ring"><span class="ic" style="font-size:10px;letter-spacing:0">1X2</span></div><span class="cap">THE MARKET</span></div>
+      <div class="hot xs" data-place="odds" style="left:61%;top:9.5%"><div class="ring"><span class="ic" style="font-size:9px;letter-spacing:0">1X2</span></div><span class="cap">THE MARKET</span></div>
     </div>
   </div>
 
@@ -476,12 +480,12 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     var live=!!s.__live,h=s.home||{},a=s.away||{},hs=h.shots||{},as=a.shots||{},hg=h.goals||0,ag=a.goals||0;
     var hp=(h.possessionPct!=null)?Math.round(h.possessionPct):(h.territory!=null?Math.round(h.territory*100):50);
     var ap=100-hp;
-    el('mHT').textContent=HOME.tri;el('mAT').textContent=AWAY.tri;el('mSc').textContent=hg+'–'+ag;
-    el('mSt').textContent=live?'LIVE':'REPLAY';el('mMin').textContent=(s.minute!=null?s.minute+'′':'');
+    el('mHT').textContent=HOME.tri;el('mAT').textContent=AWAY.tri;
+    el('mSt').textContent=live?'LIVE':'REPLAY';el('bMin').textContent=(s.minute!=null?s.minute+'′':'');
     // possession on the pitch
     el('pA').textContent=(ap!=null?ap:'—');el('pH').textContent=(hp!=null?hp:'—');
     // scoreboard
-    el('board').textContent=hg+'–'+ag;
+    el('bSc').textContent=hg+'–'+ag;
     // the pitch itself becomes the two team colours (canvas recolour), split at possession — home from the bottom
     lastHp=hp; if(repaint)repaint();
     // hotspot counts (tendencies)
@@ -602,8 +606,8 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
   }
   if(q.get('demo')==='1' && window.__match){
     var onMatchS=function(m){ if(!m)return;
-      el('mSc').textContent=m.score.home+'–'+m.score.away; el('board').textContent=m.score.home+'–'+m.score.away;
-      el('mSt').textContent='REPLAY'; el('mMin').textContent=(m.clock&&m.clock.min!=null?m.clock.min+'′':'');
+      el('bSc').textContent=m.score.home+'–'+m.score.away;
+      el('mSt').textContent='REPLAY'; el('bMin').textContent=(m.clock&&m.clock.min!=null?m.clock.min+'′':'');
       if(m.teams&&m.teams.home&&m.teams.home.tri)el('mHT').textContent=m.teams.home.tri; if(m.teams&&m.teams.away&&m.teams.away.tri)el('mAT').textContent=m.teams.away.tri;
       drawOdds(m); };
     window.__match.on(onMatchS); onMatchS(window.__match);
