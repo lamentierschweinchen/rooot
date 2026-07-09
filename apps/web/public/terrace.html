@@ -32,6 +32,10 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 
 /* the tifo — one tile per rooted fan; density = the real count, brightness = the roar */
 .tifo{position:absolute;inset:0;display:grid;grid-template-columns:repeat(22,1fr);gap:1.5px;padding:5px;align-content:start;z-index:1}
+/* Ben-Day halftone over the crowd — the same printed-ink texture as the flags/badges; pure texture, no data */
+.tifo::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:2;
+  background-image:radial-gradient(circle,rgba(26,24,21,.5) 0.9px,transparent 1.3px);background-size:4.5px 4.5px;
+  opacity:.32;mix-blend-mode:multiply}
 .tile{width:100%;padding-bottom:100%;border-radius:1px;background:var(--fld);opacity:.18;transition:opacity .16s}
 .tile.lit{opacity:.5}
 .tile.flash{opacity:1 !important;box-shadow:0 0 6px var(--fld)}
