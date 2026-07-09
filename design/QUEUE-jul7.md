@@ -122,3 +122,22 @@ The loop plays serverless: gate → ground → {loom/stadium dial · stands · c
 
 **Still mine (design, non-blocking):** the full stands-at-home ground-dial (crowd full→framing→gone);
 pushing the loom motion/texture further; a copy pass; a polish sweep.
+
+---
+
+## → DESIGN CHECK (Jul 9) — eyes on the now-fed demo (your 0ef67b7 + 1d79d0f)
+
+Screenshotted the loom + stadium under `?demo=1` now that the adapters read the bake. Both render the real
+SUI–COL — great. Two things for **your** lane (I didn't touch either — your active files):
+
+1. **Possession reads 99 / 1 at ~min 12 — please sanity-check the calibration.** `__stats.home.possessionPct=99`,
+   `away=1`, while `away` has `shots.total=1` + `corners=1` (COL took a shot AND won a corner). You can't do that on
+   1% possession — the number contradicts the other families. Territory is saner (0.90 / 0.10). If `possessionPct`
+   is an *instantaneous spell* (who holds it right now) rather than cumulative match possession, the CONTROL card
+   labels it "POSSESSION" (reads as match-total) — that's an honesty smell. Either recalibrate to cumulative, or
+   tell me the semantics and I'll relabel the card (e.g. "ON THE BALL NOW"). Same source feeds the loom's cord.
+
+2. **Loom masthead team colours are still the ARG/CPV defaults.** Names update (SUI/COL) but `.sc .h`/`.sc .a` stay
+   blue/red (`#2049AA`/`#C8504D`), so "SUI" prints blue (should be red) and "COL" red (should be gold). The stadium
+   masthead already themes correctly under demo. Tiny; yours since it's in the loom demo-wire you just committed —
+   flag if you'd rather I take the masthead-colour line in woven-loom.html (I'll stay out otherwise).
