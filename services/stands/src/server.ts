@@ -17,10 +17,12 @@ import { FEELING_PALETTES } from '@contracts/crowd';
 import type { FeedMsg } from '@contracts/feed';
 import { REACT_WINDOW_MS, SWING_DELTA_MIN } from './decay';
 import { networkFor } from './mint/config';
+import type { LiveScoreSnapshot } from './mint/relic-from-match';
 import { MatchRegistry } from './registry';
 import { anchorRecordHash, relayCall } from './relay';
 import { assetsByOwner } from './seat/album';
 import { bindClaim } from './seat/claim';
+import { mintScarfForClaim, type ScarfMint } from './seat/mint-scarf';
 import { loadProfile, saveProfile } from './seat/profile-store';
 import { isValidPubkey } from './seat/validate';
 import { SentimentAccumulator } from './sentiment/accumulator';
@@ -648,8 +650,19 @@ function handleMessage(ws: WebSocket, state: ConnState, raw: string): void {
   }
 }
 
-/* ── /seat HTTP routes (Task 6a: bind the anon session + read back; the mint
- * itself is stubbed here — Task 6b wires mintRelic and returns a real asset). */
+/* ── /seat HTTP routes (Task 6a: bind the anon session + read back; Task 6b
+ * wires the real-match branch to mintScarfForClaim — service pays, fan owns,
+ * guarded so a mint failure can never turn an already-saved bind into a 500). */
+
+/** The REAL current score for matchId, as of right now — read from the same join-snapshot cache
+ * that catches up a freshly-joined socket (this module's own state; MatchState carries no score).
+ * `{home:0,away:0}` when no score message has arrived yet — a real, true tally, not a fabrication.
+ * `decided` is true only once FULL_TIME was genuinely observed (`resolvedMatches`, populated in
+ * predictLifecycle off the real status feed) — never guessed. */
+function currentScoreSnapshot(matchId: string): LiveScoreSnapshot {
+  const ev = joinSnapshots.get(matchId)?.score?.ev;
+  return { home: ev?.home ?? 0, away: ev?.away ?? 0, decided: resolvedMatches.has(matchId) };
+}
 
 function sendJson(res: ServerResponse, status: number, body: unknown): void {
   res.writeHead(status, { 'Content-Type': 'application/json' });
@@ -665,11 +678,13 @@ function readBody(req: IncomingMessage): Promise<string> {
   });
 }
 
-/** POST /seat/claim {anonId,pubkey,method,matchId?} -> {profile, mint:null}.
+/** POST /seat/claim {anonId,pubkey,method,matchId?} -> {profile, mint:{asset,txUrl}|null}.
  * When matchId names a live match, bindClaim folds the fan's REAL rooted side
- * + locked call into the record (never inventing one). Otherwise (no matchId,
- * or a matchId the registry doesn't know) the claim is identity-only — still
- * honest, just nothing to fold in yet. */
+ * + locked call into the record (never inventing one), and — Task 6b — the
+ * scarf is minted owned by pubkey into the ROOOT scarf collection (service
+ * pays, devnet only; see seat/mint-scarf.ts). Otherwise (no matchId, or a
+ * matchId the registry doesn't know) the claim is identity-only: still
+ * honest, nothing to fold in, and no mint is attempted (`mint: null`). */
 async function handleSeatClaim(req: IncomingMessage, res: ServerResponse): Promise<void> {
   let body: any;
   try {
@@ -690,15 +705,28 @@ async function handleSeatClaim(req: IncomingMessage, res: ServerResponse): Promi
       ? bindClaim(match, anonId, pubkey, method, Date.now())
       : { pubkey, method, side: null, call: null, matchId: matchId ?? null, boundAtMs: Date.now() };
     const profile = saveProfile(pubkey, { sides: record.side ? [record.side] : [], since: record.boundAtMs });
-    // TODO(Task 6b): mint the scarf owned by pubkey here and return { asset, txUrl }
-    sendJson(res, 200, { profile, mint: null });
+    // Task 6b: mint the scarf for a REAL match claim only (identity-only claims stay mint:null).
+    // Independently try/caught — mintScarfForClaim itself never throws (it catches internally),
+    // but this belt-and-suspenders guard means a mint problem can NEVER turn an already-saved
+    // bind into a 500: the claim always responds 200 with mint:null on any mint-side issue.
+    let mint: ScarfMint | null = null;
+    if (match) {
+      try {
+        mint = await mintScarfForClaim(record, currentScoreSnapshot(match.matchId));
+      } catch (err) {
+        console.warn(`[seat] mint threw unexpectedly for ${pubkey.slice(0, 8)}: ${String(err)}`);
+      }
+    }
+    sendJson(res, 200, { profile, mint });
   } catch (err) {
     console.warn(`[seat] claim failed for ${pubkey.slice(0, 8)}: ${String(err)}`);
     sendJson(res, 500, { error: 'claim failed' });
   }
 }
 
-/** GET /seat/album?pubkey= -> {scarves}. Devnet DAS lookup; empty until 6b mints. */
+/** GET /seat/album?pubkey= -> {scarves}. Devnet DAS lookup — returns real minted scarves
+ * (Task 6b), filtered to the ROOOT scarf collection (mint/collection.ts resolves it from
+ * ROOOT_SCARF_COLLECTION or its own on-disk cache — see seat/album.ts). */
 async function handleSeatAlbum(pubkey: string | null, res: ServerResponse): Promise<void> {
   if (!pubkey || !isValidPubkey(pubkey)) {
     sendJson(res, 400, { error: 'invalid pubkey' });

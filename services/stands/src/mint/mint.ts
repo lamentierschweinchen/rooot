@@ -13,6 +13,7 @@ import type { MatchRelicData } from '@contracts/relic';
 import { buildOnChainName } from './metadata';
 import { assetExplorerUrl, txExplorerUrl, type MintCluster } from './config';
 import type { UploadedRelicUris } from './storage';
+import type { ScarfCollectionRef } from './collection';
 
 /** The result of a successful relic mint. */
 export interface RelicMintResult {
@@ -35,6 +36,12 @@ export interface RelicMintResult {
  * defaults ownership to the create authority (the `umi` identity — today's behavior). When
  * present, the asset is owned by that pubkey while `umi`'s identity still pays and signs — this is
  * how the service can mint a relic for a walletless fan without ever touching their keys.
+ *
+ * `collection` (optional, Task 6b): places the asset inside a Metaplex Core collection (see
+ * mint/collection.ts's `ensureScarfCollection`) so a DAS `getAssetsByOwner` grouping filter can
+ * tell a ROOOT scarf apart from anything else a fan's wallet holds (seat/album.ts). `umi`'s
+ * identity must be the collection's update authority (ensureScarfCollection creates it that way,
+ * defaulting to the payer) — omitted, the asset mints uncollected exactly as before.
  */
 export async function mintRelic(
   relic: MatchRelicData,
@@ -42,6 +49,7 @@ export async function mintRelic(
   umi: Umi,
   cluster: MintCluster,
   owner?: string,
+  collection?: ScarfCollectionRef,
 ): Promise<RelicMintResult> {
   const asset = generateSigner(umi);
 
@@ -50,6 +58,7 @@ export async function mintRelic(
     name: buildOnChainName(relic),
     uri: uris.metadataUri,
     ...(owner ? { owner: publicKey(owner) } : {}),
+    ...(collection ? { collection } : {}),
   }).sendAndConfirm(umi);
 
   const signature = base58.deserialize(tx.signature)[0];

@@ -172,6 +172,48 @@ function buildVerify(prov: RelicProvenance, live: boolean): VerifyHint {
   return hint;
 }
 
+/* ── claim-time minimal relic (Task 6b) ─────────────────────────────────────────────────────────
+ * The fan's OWN claim facts (matchId/side/call) — never a match-level fact, and never invented:
+ * `side`/`call` are included ONLY when the fan truly has them (seat/claim.ts's bindClaim never
+ * fabricates either). seat/album.ts's shapeAlbum reads these back by trait_type to render the
+ * fan's personal scarf facts. Declared as an independent structural shape (not importing
+ * seat/claim.ts's ClaimRecord) so this file keeps its existing self-contained import surface —
+ * a ClaimRecord's side/call fields are structurally compatible with FanClaimAttrs below. */
+
+export interface FanClaimAttrs {
+  matchId: string;
+  side: 'home' | 'away' | 'neutral' | null;
+  call: { home: number; away: number } | null;
+}
+
+/** `attributes` entries for the fan's own claim (matchId always; side/call only when real). */
+export function buildFanAttributes(fan: FanClaimAttrs): NftAttribute[] {
+  const attrs: NftAttribute[] = [{ trait_type: 'matchId', value: fan.matchId }];
+  if (fan.side) attrs.push({ trait_type: 'side', value: fan.side });
+  if (fan.call) attrs.push({ trait_type: 'call', value: `${fan.call.home}-${fan.call.away}` });
+  return attrs;
+}
+
+/**
+ * Description for a claim-time minimal relic (mint/relic-from-match.ts): the fixture identity +
+ * the score as it stood at claim time ARE real, but rich match aggregates (the odds path, the
+ * goal-by-goal timeline, the crowd's roar, the stands verdict) were NOT captured for this relic —
+ * unlike `buildDescription`'s `live` branch, this never claims a final result or a stands verdict
+ * it doesn't have (honesty seam: never overclaim past what was actually captured).
+ */
+export function buildClaimDescription(relic: MatchRelicData, decided: boolean): string {
+  const fix = `${relic.fixture.home.name} vs ${relic.fixture.away.name}`;
+  const scoreLine = decided
+    ? `Full-time ${SCORE_STR(relic)}.`
+    : `${SCORE_STR(relic)} as it stood the moment this seat was claimed (the match may still have been live).`;
+  return (
+    `A ROOOT scarf — proof you had a seat at ${fix}, minted to your key on devnet. ${scoreLine} ` +
+    "This is a minimal relic: your seat is real and on-chain; rich match aggregates (the odds " +
+    "path, the goal-by-goal timeline, the crowd's roar) were not captured for this relic. " +
+    `Relics are made live at ${SITE_URL}. — ${ATTRIBUTION}`
+  );
+}
+
 /**
  * Build the full relic metadata object. Pass the URI the `image` should point at:
  *  • local bundle  → relative filename ({ imageUri: 'cover.png' })

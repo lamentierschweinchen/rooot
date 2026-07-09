@@ -1,3 +1,5 @@
+import { resolveScarfCollectionAddress } from '../mint/collection';
+
 export interface AlbumScarf { asset: string; name: string; matchId: string | null; side: string | null; call: { home: number; away: number } | null; image: string | null; }
 interface DasAttr { trait_type: string; value: string; }
 interface DasAsset { id: string; content?: { metadata?: { name?: string; attributes?: DasAttr[] }; json_uri?: string; links?: { image?: string } }; }
@@ -18,11 +20,14 @@ export function shapeAlbum(assets: DasAsset[]): AlbumScarf[] {
   }
   return out;
 }
-const SCARF_COLLECTION = process.env.ROOOT_SCARF_COLLECTION || '';
 export async function assetsByOwner(pubkey: string, rpcUrl: string): Promise<AlbumScarf[]> {
   const res = await fetch(rpcUrl, { method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ jsonrpc: '2.0', id: 'seat', method: 'getAssetsByOwner', params: { ownerAddress: pubkey, page: 1, limit: 200 } }) });
   const json = await res.json() as any;
-  const items: DasAsset[] = (json?.result?.items || []).filter((a: any) => !SCARF_COLLECTION || (a.grouping || []).some((g: any) => g.group_key === 'collection' && g.group_value === SCARF_COLLECTION));
+  // Resolved PER CALL (not a module-load-time constant) so this always agrees with mint/collection.ts's
+  // ensureScarfCollection on which collection to trust — including right after the very first claim
+  // in a process's life, the one that creates the collection and writes its cache file (Task 6b).
+  const scarfCollection = resolveScarfCollectionAddress();
+  const items: DasAsset[] = (json?.result?.items || []).filter((a: any) => !scarfCollection || (a.grouping || []).some((g: any) => g.group_key === 'collection' && g.group_value === scarfCollection));
   return shapeAlbum(items);
 }
