@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>THE GROUND — the composite (prototype)</title>
+<title>THE GROUND — your place at the match</title>
 <style>
 @font-face{font-family:'Anybody';src:url(plate/fonts/anybody.woff2) format('woff2');font-weight:400 700;font-display:swap}
 @font-face{font-family:'Anybody';src:url(plate/fonts/anybody900.woff2) format('woff2');font-weight:800 900;font-display:swap}
@@ -16,33 +16,41 @@
 html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;font-family:var(--disp);color:var(--ink);overflow:hidden}
 .wrap{position:relative;width:100%;max-width:440px;height:100vh;margin:0 auto;background:var(--paper);display:flex;flex-direction:column}
 
-/* masthead + lens dial */
+/* masthead — the score, and the way to your cabinet */
 .cmast{display:flex;align-items:center;justify-content:space-between;padding:8px 13px;background:var(--paper);border-bottom:1.5px solid var(--ink);z-index:4}
 .cmast .sc{font-weight:900;font-size:15px;letter-spacing:.02em;white-space:nowrap}
 .cmast .sc .h{color:var(--you)}.cmast .sc .a{color:var(--them)}
-.tabs{display:flex;border:1.5px solid var(--ink)}
-.tab{padding:5px 11px;font-family:var(--disp);font-weight:800;font-size:8.5px;letter-spacing:.1em;background:var(--card);color:var(--sub);cursor:pointer;border:none;-webkit-tap-highlight-color:transparent}
-.tab+.tab{border-left:1.5px solid var(--ink)}
-.tab.on{background:var(--ink);color:var(--card)}
-.mright{display:flex;align-items:center;gap:8px}
+.cmast .min{font-weight:700;font-size:8px;letter-spacing:.1em;color:var(--sub);margin-left:5px}
 .cabbtn{width:30px;height:26px;flex:none;border:1.5px solid var(--ink);background:var(--card);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--ink);text-decoration:none;-webkit-tap-highlight-color:transparent}
 .cabbtn:active{background:var(--ink);color:var(--card)}
 
-/* their end — thin band across the top (the far stand) */
-.them{display:flex;align-items:center;gap:9px;padding:5px 13px;background:linear-gradient(180deg,rgba(200,80,77,.14),transparent);text-decoration:none;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
-.them .enter{font-weight:800;font-size:7.5px;letter-spacing:.1em;color:var(--them);border:1.2px solid var(--them);padding:2px 7px;border-radius:2px;white-space:nowrap}
+/* THE DIAL — one control. THE STANDS at home; lean into LOOM (left) or STADIUM (right). */
+.dial{display:flex;border-bottom:1.5px solid var(--ink);background:var(--card)}
+.dseg{flex:1;padding:7px 4px 6px;text-align:center;background:var(--card);color:var(--sub);cursor:pointer;border:none;-webkit-tap-highlight-color:transparent;position:relative;transition:background .2s,color .2s}
+.dseg+.dseg{border-left:1.5px solid var(--ink)}
+.dseg .dt{display:block;font-family:var(--disp);font-weight:900;font-size:10px;letter-spacing:.09em;line-height:1}
+.dseg .dhint{display:block;font-weight:700;font-size:6px;letter-spacing:.13em;margin-top:3px;opacity:.7}
+.dseg.on{background:var(--ink);color:var(--card)}
+.dseg.on .dhint{opacity:.6}
+.dseg.home::after{content:"⌂";position:absolute;top:3px;right:5px;font-size:7px;opacity:.45}
+
+/* the crowd frames the lens — FULL (the terrace) at home, thin FRAMING at loom/stadium, morphing between */
+.them,.you{overflow:hidden;transition:max-height .42s cubic-bezier(.4,0,.2,1),opacity .3s ease}
+.wrap.crowd-full .them,.wrap.crowd-full .you{max-height:0!important;opacity:0;pointer-events:none}
+
+/* their end — the far stand, thin across the top */
+.them{display:flex;align-items:center;gap:9px;padding:6px 13px;max-height:50px;background:linear-gradient(180deg,rgba(200,80,77,.17),transparent);border-bottom:1.5px solid var(--ink)}
 .them .nm{font-weight:800;font-size:8px;letter-spacing:.12em;color:var(--them);white-space:nowrap}
 .them .mini{display:flex;gap:2px;flex:1;overflow:hidden}
-.them .mini i{width:7px;height:7px;background:var(--them);opacity:.45;flex:none}
+.them .mini i{width:7px;height:7px;background:var(--them);opacity:.42;flex:none}
 .them .ct{font-weight:700;font-size:7.5px;letter-spacing:.06em;color:var(--sub);white-space:nowrap}
 
-/* the centre — the dial you turn (the real surface, framed) */
-.center{position:relative;flex:1;min-height:0;background:var(--card);border-top:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink)}
+/* the centre — the lens you dial to */
+.center{position:relative;flex:1;min-height:0;background:var(--card)}
 .center iframe{width:100%;height:100%;border:none;display:block;background:var(--paper)}
-.swipehint{position:absolute;bottom:9px;left:50%;transform:translateX(-50%);font-weight:800;font-size:7.5px;letter-spacing:.14em;color:var(--sub);background:rgba(243,236,219,.9);padding:3px 10px;border:1px solid var(--line);pointer-events:none;z-index:2;transition:opacity .4s}
 
 /* your end — the foreground you cheer from */
-.you{position:relative;background:linear-gradient(0deg,rgba(32,73,170,.16),transparent);padding:9px 13px 12px;cursor:pointer;-webkit-tap-highlight-color:transparent;overflow:hidden}
+.you{position:relative;max-height:118px;background:linear-gradient(0deg,rgba(32,73,170,.19),transparent);padding:9px 13px 11px;cursor:pointer;-webkit-tap-highlight-color:transparent;border-top:1.5px solid var(--ink)}
 .you .yhd{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:7px}
 .you .nm{font-weight:800;font-size:8.5px;letter-spacing:.12em;color:var(--you)}
 .you .reads{font-weight:800;font-size:8px;letter-spacing:.07em;color:var(--sub)}
@@ -50,91 +58,98 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .cheerbar{display:flex;align-items:center;gap:8px}
 .cheerbar .cl{font-weight:800;font-size:7.5px;letter-spacing:.13em;color:var(--sub);min-width:66px}
 .cheerbar .bar{flex:1;height:9px;background:var(--card);border:1.5px solid var(--ink);overflow:hidden}
-.cheerbar .fill{height:100%;width:0;background:var(--you)}
+.cheerbar .fill{height:100%;width:0;background:var(--you);transition:width .1s}
 .cheerbar .cv{font-weight:800;font-size:8px;color:var(--sub);min-width:44px;text-align:right}
-.taphint{text-align:center;font-weight:800;font-size:7.5px;letter-spacing:.16em;color:var(--sub);margin-top:7px}
-.cburst{position:absolute;left:50%;top:8px;transform:translateX(-50%) scale(.6);font-weight:900;font-size:26px;color:var(--you);opacity:0;pointer-events:none}
+.taphint{text-align:center;font-weight:800;font-size:7.5px;letter-spacing:.15em;color:var(--sub);margin-top:7px}
+.cburst{position:absolute;left:50%;top:5px;transform:translateX(-50%) scale(.6);font-weight:900;font-size:24px;color:var(--you);opacity:0;pointer-events:none}
 .cburst.pop{animation:cb .9s cubic-bezier(.2,1.5,.35,1) forwards}
 @keyframes cb{0%{opacity:0;transform:translateX(-50%) scale(.5)}30%{opacity:.9;transform:translateX(-50%) scale(1.1)}100%{opacity:0;transform:translateX(-50%) scale(1)}}
-.spec{flex:none;text-align:center;padding:4px 8px;font-weight:800;font-size:7px;letter-spacing:.13em;color:var(--sub);background:var(--paper);border-top:1.5px solid var(--ink)}
+.spec{flex:none;text-align:center;padding:4px 8px;font-weight:800;font-size:7px;letter-spacing:.12em;color:var(--sub);background:var(--paper);border-top:1.5px solid var(--ink)}
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="wrap crowd-full" id="wrap">
   <div class="cmast">
-    <span class="sc"><span class="h" id="hT">ARG</span> <span id="sc">v</span> <span class="a" id="aT">CPV</span></span>
-    <div class="mright">
-      <div class="tabs" id="tabs">
-        <button class="tab on" data-lens="loom">LOOM</button>
-        <button class="tab" data-lens="stadium">STADIUM</button>
-      </div>
-      <a class="cabbtn" href="cabinet.html" title="your cabinet" aria-label="your cabinet">◈</a>
-    </div>
+    <span class="sc"><span class="h" id="hT">ARG</span> <span id="sc">v</span> <span class="a" id="aT">CPV</span><span class="min" id="clk"></span></span>
+    <a class="cabbtn" href="cabinet.html" title="your cabinet" aria-label="your cabinet">◈</a>
   </div>
 
-  <a class="them" id="themBand" href="terrace.html">
-    <span class="nm">CPV · THEIR END</span>
+  <div class="dial" id="dial">
+    <button class="dseg" data-lens="loom"><span class="dt">LOOM</span><span class="dhint">THE TIDE</span></button>
+    <button class="dseg home on" data-lens="stands"><span class="dt">THE STANDS</span><span class="dhint">YOU'RE HERE</span></button>
+    <button class="dseg" data-lens="stadium"><span class="dt">STADIUM</span><span class="dhint">THE PITCH</span></button>
+  </div>
+
+  <div class="them" id="themBand">
+    <span class="nm" id="themNm">CPV · THEIR END</span>
     <div class="mini" id="miniThem"></div>
-    <span class="ct">14,100</span>
-    <span class="enter">⤢ ENTER</span>
-  </a>
+    <span class="ct" id="themCt">14,100</span>
+  </div>
 
   <div class="center" id="center">
-    <iframe id="lens" title="centre view" src="woven-loom.html?embed=1"></iframe>
-    <div class="swipehint" id="swipehint">◂ SWIPE / TAP TABS ▸</div>
+    <iframe id="lens" title="centre view" src="terrace.html?embed=1"></iframe>
   </div>
 
   <div class="you" id="youEnd">
     <div class="cburst" id="cburst">ROOOT!</div>
-    <div class="yhd"><span class="nm">ARG · YOUR END</span><span class="reads">READS ARG 3·CPV 2 · XP <b>30</b></span></div>
+    <div class="yhd"><span class="nm" id="youNm">ARG · YOUR END</span><span class="reads" id="youReads"></span></div>
     <div class="cheerbar"><span class="cl">YOUR CHEER</span><div class="bar"><div class="fill" id="cheerFill"></div></div><span class="cv" id="cheerV">quiet</span></div>
     <div class="taphint">TAP HERE TO CHEER · THE CROWD STAYS WHILE YOU TURN THE DIAL</div>
   </div>
-  <div class="spec">SPECIMEN · SAMPLE CROWD + SCORES · WIRES TO ONE LIVE SOURCE</div>
+
+  <div class="spec" id="spec">SPECIMEN · SAMPLE CROWD + SCORES · WIRES TO ONE LIVE SOURCE</div>
 </div>
 <!-- demo engine — ONLY under ?demo=1: baked recording → window.__match + window.__stands -->
 <script>if(/[?&]demo=1/.test(location.search))document.write('<scr'+'ipt src="plate/demo-suicol.js"></scr'+'ipt><scr'+'ipt src="demo-feed.js"></scr'+'ipt><scr'+'ipt src="match-read.js"></scr'+'ipt><scr'+'ipt src="crowd-sim.js"></scr'+'ipt>');</script>
 <script>
 var DEMO=/[?&]demo=1/.test(location.search);
-var LENS=DEMO
-  ? {loom:'woven-loom.html?embed=1&match=18202783&demo=1', stadium:'stadium.html?embed=1&match=18202783&demo=1'}
-  : {loom:'woven-loom.html?embed=1', stadium:'stadium.html?embed=1&match=argcpv'};
-var order=['loom','stadium'], cur=0;
-var tabs=document.getElementById('tabs'), lens=document.getElementById('lens'), center=document.getElementById('center');
-function setLens(name){ cur=order.indexOf(name); lens.src=LENS[name];
-  [].forEach.call(tabs.children,function(t){t.classList.toggle('on',t.dataset.lens===name);});
-  var sh=document.getElementById('swipehint'); sh.style.opacity='1'; clearTimeout(window._sh); window._sh=setTimeout(function(){sh.style.opacity='0';},1600); }
-[].forEach.call(tabs.children,function(t){ t.onclick=function(){ setLens(t.dataset.lens); }; });
-// swipe the centre to turn the dial
+var byq=function(s){return document.querySelector(s);}, el=function(i){return document.getElementById(i);};
+var wrap=el('wrap'), dial=el('dial'), lens=el('lens');
+function lensSrc(name){
+  var base={loom:'woven-loom.html',stands:'terrace.html',stadium:'stadium.html'}[name];
+  var q='?embed=1';
+  if(DEMO)q+='&match=18202783&demo=1';
+  else if(name==='stadium')q+='&match=argcpv';
+  return base+q;
+}
+var order=['loom','stands','stadium'], cur=1;   // THE STANDS is home
+function setLens(name){
+  if(order.indexOf(name)<0)return;
+  cur=order.indexOf(name);
+  lens.src=lensSrc(name);
+  wrap.classList.toggle('crowd-full', name==='stands');   // stands = crowd full; loom/stadium = crowd frames the lens
+  [].forEach.call(dial.children,function(t){ t.classList.toggle('on', t.dataset.lens===name); });
+}
+[].forEach.call(dial.children,function(t){ t.onclick=function(){ setLens(t.dataset.lens); }; });
+// lean the dial by swiping the frame (the lens iframe keeps its own touches)
 var cx=0;
-center.addEventListener('touchstart',function(e){cx=e.touches[0].clientX;},{passive:true});
-center.addEventListener('touchend',function(e){ var dx=e.changedTouches[0].clientX-cx;
-  if(Math.abs(dx)>45){ cur=(cur+(dx<0?1:order.length-1))%order.length; setLens(order[cur]); } },{passive:true});
+wrap.addEventListener('touchstart',function(e){cx=e.touches[0].clientX;},{passive:true});
+wrap.addEventListener('touchend',function(e){ var dx=e.changedTouches[0].clientX-cx;
+  if(Math.abs(dx)>50){ var ni=Math.max(0,Math.min(order.length-1,cur+(dx<0?1:-1))); setLens(order[ni]); } },{passive:true});
 // their mini mosaic
-var mt=document.getElementById('miniThem'); for(var i=0;i<14;i++)mt.insertAdjacentHTML('beforeend','<i></i>');
+var mt=el('miniThem'); for(var i=0;i<16;i++)mt.insertAdjacentHTML('beforeend','<i></i>');
 // your cheer (tap → fills + decays; a ROOOT! burst at the peak)
 var cheer=0, lastMs=performance.now(), lastBurst=0;
-document.getElementById('youEnd').addEventListener('pointerdown',function(){ cheer=Math.min(1,cheer+0.19); if(DEMO&&window.__stands)window.__stands.cheer(); });
+el('youEnd').addEventListener('pointerdown',function(){ cheer=Math.min(1,cheer+0.19); if(DEMO&&window.__stands)window.__stands.cheer(); });
 function cw(r){return r>.8?'DEAFENING':r>.55?'LOUD':r>.3?'rising':r>.12?'murmur':'quiet';}
 function loop(now){ var dt=Math.min(.3,(now-lastMs)/1000); lastMs=now; cheer=Math.max(0,cheer-dt*0.3);
-  document.getElementById('cheerFill').style.width=(cheer*100)+'%'; document.getElementById('cheerV').textContent=cw(cheer);
-  if(cheer>0.55 && (now-lastBurst)>1600){ lastBurst=now; var b=document.getElementById('cburst'); b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }
+  el('cheerFill').style.width=(cheer*100)+'%'; el('cheerV').textContent=cw(cheer);
+  if(cheer>0.55 && (now-lastBurst)>1600){ lastBurst=now; var b=el('cburst'); b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }
   requestAnimationFrame(loop); }
-// ?demo=1 — the hub reads one truth: __match (score) + __stands (crowd); iframes + nav carry demo
-if(DEMO){
-  var byq=function(s){return document.querySelector(s);};
-  byq('.cabbtn').setAttribute('href','cabinet.html?demo=1');
-  document.getElementById('themBand').setAttribute('href','terrace.html?demo=1');
-  document.documentElement.style.setProperty('--you','#D52B1E'); document.documentElement.style.setProperty('--them','#E8B10A');
-  document.getElementById('hT').textContent='SUI'; document.getElementById('aT').textContent='COL';
-  byq('.you .nm').textContent='SUI · YOUR END'; byq('.them .nm').textContent='COL · THEIR END';
-  var rd=byq('.you .reads'); if(rd)rd.textContent='';
-  var sp=byq('.spec'); if(sp)sp.textContent='THE CROWD IS SIMULATED · THE MATCH IS A BAKED SUI–COL REPLAY';
-  lens.src=LENS.loom;   // reload the centre iframe with match + demo
-  if(window.__match)window.__match.on(function(m){ document.getElementById('sc').textContent=m.score.home+'–'+m.score.away; });
-  if(window.__stands){ window.__stands.root('home'); window.__stands.onState(function(s){ if(s.rooted)byq('.them .ct').textContent=(s.rooted.away||0).toLocaleString(); }); }
-}
 requestAnimationFrame(loop);
+// ?demo=1 — the hub reads one truth: __match (score/clock) + __stands (crowd); nav carries demo
+if(DEMO){
+  byq('.cabbtn').setAttribute('href','cabinet.html?demo=1');
+  document.documentElement.style.setProperty('--you','#D52B1E'); document.documentElement.style.setProperty('--them','#E8B10A');
+  el('hT').textContent='SUI'; el('aT').textContent='COL';
+  el('themNm').textContent='COL · THEIR END'; el('youNm').textContent='SUI · YOUR END';
+  el('spec').textContent='THE CROWD IS SIMULATED · THE MATCH IS A BAKED SUI–COL REPLAY';
+  if(window.__match)window.__match.on(function(m){ el('sc').textContent=m.score.home+'–'+m.score.away;
+    if(m.clock)el('clk').textContent='· '+(m.clock.phase==='HALF_TIME'?'HT':(m.clock.min+"'")); });
+  if(window.__stands){ window.__stands.root('home'); window.__stands.onState(function(s){ if(s.rooted){
+    el('themCt').textContent=(s.rooted.away||0).toLocaleString(); el('youReads').innerHTML=(s.rooted.home||0).toLocaleString()+' HERE'; } }); }
+}
+setLens('stands');   // open at home — you take your place in THE STANDS
 </script>
 </body>
 </html>
