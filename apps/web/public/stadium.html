@@ -469,14 +469,15 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     var cs=getComputedStyle(document.documentElement);
     var HC=(cs.getPropertyValue('--home')||'').trim()||'#2049AA', AC=(cs.getPropertyValue('--away')||'').trim()||'#C8504D';
     var L='stroke="#1A1815" stroke-width="1.5" fill="none"';
-    function grad(id,c){return '<radialGradient id="'+id+'"><stop offset="0" stop-color="'+c+'" stop-opacity=".82"/><stop offset=".55" stop-color="'+c+'" stop-opacity=".3"/><stop offset="1" stop-color="'+c+'" stop-opacity="0"/></radialGradient>';}
-    function bloom(cy,dg,hi,c,id){ if(dg<=0&&hi<=0)return '';   // no danger → no bloom (honest-empty shows nothing, not fake threat)
-      var r=dg>0?(12+dg*1.4):0, cr=hi>0?(4+hi*1.4):0;
-      return (r>0?'<circle cx="100" cy="'+cy+'" r="'+r.toFixed(0)+'" fill="url(#'+id+')"/>':'')+(cr>0?'<circle cx="100" cy="'+cy+'" r="'+cr.toFixed(0)+'" fill="'+c+'" opacity=".92"/>':''); }
+    // flat-tile heat-field: each dangerous attack is ONE tile, filling from the attacked goal outward; the high-danger core is solid, the rest lighter — geometric, printed, honest (tile count = the number)
+    function tiles(goalY,dir,dg,hi,c){ if(dg<=0)return '';
+      var cols=7,tw=22,th=14,gap=2.6,x0=100-(cols*tw)/2,n=Math.min(dg,cols*5),out='';
+      for(var i=0;i<n;i++){ var row=Math.floor(i/cols),col=i%cols,x=x0+col*tw,y=goalY+dir*row*th;
+        out+='<rect x="'+(x+gap/2).toFixed(1)+'" y="'+(y+gap/2).toFixed(1)+'" width="'+(tw-gap).toFixed(1)+'" height="'+(th-gap).toFixed(1)+'" fill="'+c+'" opacity="'+(i<hi?'.9':'.32')+'"/>'; }
+      return out; }
     box.innerHTML='<svg viewBox="0 0 200 286" style="width:100%;max-width:184px;display:block;margin:0 auto">'+
-      '<defs>'+grad('bh',HC)+grad('ba',AC)+'</defs>'+
       '<rect x="6" y="6" width="188" height="274" fill="#E9DFC6"/>'+
-      bloom(48,hd,hh,HC,'bh')+bloom(238,ad,ah,AC,'ba')+
+      tiles(38,1,hd,hh,HC)+tiles(234,-1,ad,ah,AC)+
       '<line x1="6" y1="143" x2="194" y2="143" '+L+'/><circle cx="100" cy="143" r="24" '+L+'/>'+
       '<rect x="66" y="6" width="68" height="30" '+L+'/><rect x="66" y="250" width="68" height="30" '+L+'/>'+
       '</svg>';
