@@ -207,7 +207,13 @@ var _bg=document.querySelector('.backg'); if(_bg)_bg.setAttribute('href','ground
     var callText = s.call ? (s.call.home+'–'+s.call.away) : '—';
     var sideText = s.side ? String(s.side).toUpperCase() : '';
     var name = s.name || 'ROOOT SCARF';
-    var bg = s.image ? (' style="background-image:url('+esc(s.image)+');background-size:cover;background-position:center"') : '';
+    // SEAT: s.image comes from on-chain DAS metadata via a collection filter that does NOT
+    // check a verified flag, so it is not fully trusted -- esc() alone doesn't stop a crafted
+    // value from closing url(...) early and injecting extra CSS declarations. Only a strict
+    // https URL with no space/quote/paren is allowed into the style attribute at all; anything
+    // else drops to no cover image (safe, never an injection vector).
+    var safeImg = (s.image && /^https:\/\/[^\s"'()]+$/.test(s.image)) ? s.image : '';
+    var bg = safeImg ? (' style="background-image:url('+esc(safeImg)+');background-size:cover;background-position:center"') : '';
     var href = 'woven-loom.html?keepsake=1'+(s.matchId?('&match='+encodeURIComponent(s.matchId)):'')+(DEMO?'&demo=1':'');
     return '<div class="keep reveal" data-href="'+esc(href)+'">'+
       '<div class="scarf"'+bg+'>'+

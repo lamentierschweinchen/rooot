@@ -92,6 +92,9 @@
         });
       }).then(function (body) {
         state = nextSeat(state, { type: 'claimed', pubkey: res.pubkey, method: res.method });
+        // SEAT: persist the PUBLIC pubkey (+ method) only, so a reload doesn't drop back to
+        // anon -- the derived secret is never touched here and never goes to localStorage.
+        try { localStorage.setItem('rooot.seat.pubkey', res.pubkey); localStorage.setItem('rooot.seat.method', res.method); } catch (_) {}
         window.__seat.profile = body.profile;
         publish();
         return { pubkey: res.pubkey, mint: body.mint };
@@ -100,4 +103,17 @@
   }
 
   window.__seat = { status: state.status, pubkey: null, method: null, anonId: anonId(), profile: null, claim: claim, on: function (fn) { subs.push(fn); fn(snap()); } };
+
+  // SEAT: restore claimed status from a persisted pubkey (Task 8 review Fix 2) -- so a
+  // returning fan's cabinet/album read-only views survive a reload without a fresh
+  // Face-ID prompt. Only ever reads back the PUBLIC pubkey/method pair written in claim()
+  // above; the derived secret is never persisted and is re-derived via the passkey the
+  // next time something actually needs to sign.
+  try {
+    var pk = localStorage.getItem('rooot.seat.pubkey');
+    if (pk) {
+      state = nextSeat(state, { type: 'claimed', pubkey: pk, method: localStorage.getItem('rooot.seat.method') || 'passkey' });
+      publish();
+    }
+  } catch (_) {}
 })(typeof window !== 'undefined' ? window : this);
