@@ -291,7 +291,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
 
 <script src="plate/gens/stadium-data.js"></script>
 <!-- demo engine — ONLY under ?demo=1: baked recording → window.__match (score/clock/market/marketSeries) -->
-<script>if(/[?&]demo=1/.test(location.search))document.write('<scr'+'ipt src="plate/demo-suicol.js"></scr'+'ipt><scr'+'ipt src="demo-feed.js"></scr'+'ipt><scr'+'ipt src="match-read.js"></scr'+'ipt>');</script>
+<script>if(/[?&]demo=1/.test(location.search))document.write('<scr'+'ipt src="plate/demo-suicol.js"></scr'+'ipt><scr'+'ipt src="demo-feed.js"></scr'+'ipt><scr'+'ipt src="match-read.js"></scr'+'ipt><scr'+'ipt src="crowd-sim.js"></scr'+'ipt>');</script>
 <script>
 (function(){
   'use strict';
@@ -317,7 +317,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
   document.documentElement.style.setProperty('--away',AWAY.ink);
 
   // ---- paint the stadium: recolour the stands to the two teams, and split the pitch by possession ----
-  var repaintPitch=null, lastHp=50;   // set once the canvas is painted; render() calls it with the live possession share
+  var repaint=null, lastHp=50, lastAwayFrac=0.5;   // repaint() recolours the stands (honest rooting split, away from the top) + the pitch (possession)
   (function paintStadium(){
     var cv=document.getElementById('stadcanvas'); if(!cv||!cv.getContext)return;
     function h2r(h){return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];}
@@ -334,27 +334,34 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
       var ctx=cv.getContext('2d');ctx.drawImage(img,0,0);
       var d;try{d=ctx.getImageData(0,0,cv.width,cv.height);}catch(e){return;}
       var D=d.data,W=cv.width,Hh=cv.height;
-      // --- neutral tan bowls + track → team colours: top half → away, bottom half → home (keep luminance so the seating shading survives) ---
-      var midY=Hh*0.5;
+      // --- collect the seating pixels ONCE so the stands can be recoloured to the HONEST rooting split (each dot earned) ---
+      var standsMask=[];
       for(var i=0;i<D.length;i+=4){ if(D[i+3]<40)continue;
         var r=D[i],g=D[i+1],b=D[i+2],l=r2h(r,g,b)[2];
         if(r>g-4 && r>b+16 && l>0.16 && l<0.72 && !(g>r+10&&g>b+6)){   // tan seating only — cream paper bg/track (lighter) and green pitch excluded
-          var yy=(i>>2)/W, tt=(yy<midY)?awayH:homeH, o=h2rgb(tt[0],Math.min(1,tt[1]*0.9),l);
-          D[i]=o[0];D[i+1]=o[1];D[i+2]=o[2];
+          standsMask.push(i); standsMask.push((i>>2)/W); standsMask.push(Math.round(l*1000));
         }
       }
       // --- pitch mask: only green pixels inside the pitch rect ---
       var rx0=Math.round(W*0.267),rx1=Math.round(W*0.734),ry0=Math.round(Hh*0.216),ry1=Math.round(Hh*0.795),mask=[];
       for(var y=ry0;y<ry1;y++)for(var x=rx0;x<rx1;x++){var i2=(y*W+x)*4,r=D[i2],g=D[i2+1],b=D[i2+2];
         if(g>r+10&&g>b+8&&g>45&&g<170){mask.push(i2);mask.push(y);mask.push(Math.round(r2h(r,g,b)[2]*1000));}}
-      // the pitch becomes the two team colours, split at possession `frac` (home from the bottom), keeping the grass luminance so lines/texture survive
-      repaintPitch=function(frac){
-        var splitY=ry0+(ry1-ry0)*(1-frac);
+      // the STANDS lean to who actually rooted: away fills from the top, home from the bottom. the clamp keeps a minimum core
+      // behind each goal (16%) so both ends always stand — honest floor, not inflation; the middle is the real live split.
+      var paintedAwayFrac=null;
+      function colStands(awayFrac){ var bY=Hh*Math.max(0.16,Math.min(0.84,awayFrac));
+        for(var s=0;s<standsMask.length;s+=3){ var idx=standsMask[s],yy=standsMask[s+1],ll=standsMask[s+2]/1000,tt=(yy<bY)?awayH:homeH,o=h2rgb(tt[0],Math.min(1,tt[1]*0.9),ll);
+          D[idx]=o[0];D[idx+1]=o[1];D[idx+2]=o[2]; } }
+      // the PITCH becomes the two team colours, split at possession `frac` (home from the bottom), keeping grass luminance so lines survive
+      function colPitch(frac){ var splitY=ry0+(ry1-ry0)*(1-frac);
         for(var k=0;k<mask.length;k+=3){var idx=mask[k],yy=mask[k+1],ll=mask[k+2]/1000,tt=(yy>=splitY)?homeH:awayH,o=h2rgb(tt[0],Math.min(1,tt[1]*0.92),Math.min(0.64,ll*0.5+0.42));D[idx]=o[0];D[idx+1]=o[1];D[idx+2]=o[2];}
-        ctx.putImageData(d,0,0);
-        ctx.fillStyle='#C79A38';ctx.fillRect(rx0,splitY-1.6,rx1-rx0,3.2);   // gold seam at the divide
+        return splitY; }
+      repaint=function(){
+        if(lastAwayFrac!==paintedAwayFrac){ colStands(lastAwayFrac); paintedAwayFrac=lastAwayFrac; }   // stands only when the split moves
+        var splitY=colPitch(lastHp/100); ctx.putImageData(d,0,0);
+        ctx.fillStyle='#C79A38';ctx.fillRect(rx0,splitY-1.6,rx1-rx0,3.2);   // gold seam at the possession divide
       };
-      repaintPitch(lastHp/100);
+      repaint();
     };
     img.src=window.STADIUM_IMG||'plate/gens/stadium-neutral-tall.png';   // inline data-URI → recolour works even on file:// (no canvas taint)
   })();
@@ -477,7 +484,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     // scoreboard
     el('board').textContent=hg+'–'+ag;
     // the pitch itself becomes the two team colours (canvas recolour), split at possession — home from the bottom
-    lastHp=hp; if(repaintPitch)repaintPitch(hp/100);
+    lastHp=hp; if(repaint)repaint();
     // hotspot counts (tendencies)
     el('hGA').textContent=(hs.onTarget||0)+(hs.offTarget||0)+(hs.blocked||0); // home shooting the away (top) goal
     el('hGH').textContent=(as.onTarget||0)+(as.offTarget||0)+(as.blocked||0);
@@ -601,6 +608,8 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
       if(m.teams&&m.teams.home&&m.teams.home.tri)el('mHT').textContent=m.teams.home.tri; if(m.teams&&m.teams.away&&m.teams.away.tri)el('mAT').textContent=m.teams.away.tri;
       drawOdds(m); };
     window.__match.on(onMatchS); onMatchS(window.__match);
+    // the bowl leans to who ACTUALLY rooted — honest crowd split from __stands (each dot earned, min core behind each goal)
+    if(window.__stands&&window.__stands.onState){ window.__stands.onState(function(s){ if(s&&s.rooted){ var hh=s.rooted.home||0,aa=s.rooted.away||0; if(hh+aa>0){ lastAwayFrac=aa/(hh+aa); if(repaint)repaint(); } } }); }
   }
 })();
 </script>
