@@ -174,7 +174,7 @@ var SIDECOL={h:'#D52B1E',a:'#E8B10A'};
 
 // flags: upgrade each end's flag to its generated sticker-badge if we have that nation;
 // otherwise leave the unicode emoji already in the markup (graceful fallback — auto-fills as more are drawn)
-var FLAGSET={ARG:1,BEL:1,ENG:1,FRA:1,MOR:1,NOR:1,SPA:1,SUI:1};
+var FLAGSET={ARG:1,BEL:1,COL:1,ENG:1,FRA:1,MOR:1,NOR:1,SPA:1,SUI:1};
 [].forEach.call(document.querySelectorAll('.end'),function(end){
   var t=end.querySelector('.tri'), f=end.querySelector('.flag');
   var tri=t?t.textContent.trim():''; if(!f||!FLAGSET[tri])return;
