@@ -147,7 +147,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
   <div class="sec"><span class="t">THE PINS</span><span class="c">the fan virtues · bronze → silver → gold · earned, not bought</span></div>
   <div class="pins" id="pins"></div>
 
-  <div class="foot reveal">your cabinet fills as you live matches · each scarf is the match woven from the real feed<br>provenance sits on-chain — yours to keep, worthless to flip</div>
+  <div class="foot reveal">your cabinet fills as you live matches · each scarf is the match woven from the real feed<br>provenance sits on-chain — yours to keep, worthless to flip · sample shown until wired</div>
 </div>
 
 <!-- SEAT: identity (Task 8) — window.__seat only; the cabinet never claims, so nacl/seat-passkey
@@ -244,6 +244,12 @@ var _bg=document.querySelector('.backg'); if(_bg)_bg.setAttribute('href','ground
     var seat=window.__seat;
     if (!seat || seat.status!=='claimed' || !seat.pubkey) { paintAnon(); return; }
     var pubkey=seat.pubkey;
+    // SEAT: honesty — a claimed fan gets real header + album data, so hide the two still-unwired
+    // sample blocks that most directly contradict it (fake match history, fake next fixture).
+    // .crest and THE PINS stay up (covered by the foot's "sample shown until wired" disclaimer;
+    // a separate Design-owned wiring follow-up).
+    var _record=document.querySelector('.record'); if(_record) _record.style.display='none';
+    var _next=el('nextFix'); if(_next) _next.style.display='none';
     var whoEl=el('who'); if(whoEl) whoEl.textContent='loading…';
     var rack=el('rack'); if(rack) rack.innerHTML='<div class="hall reveal" style="padding:14px 0;color:var(--sub)">loading your seat…</div>';
     fetchJson(SEAT_API+'/seat/me?pubkey='+encodeURIComponent(pubkey)).then(function(res){

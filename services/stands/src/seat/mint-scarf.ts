@@ -12,7 +12,7 @@
  */
 import type { ClaimRecord } from './claim';
 import { buildRelicFromMatch, type LiveScoreSnapshot } from '../mint/relic-from-match';
-import { buildFanAttributes, buildClaimDescription } from '../mint/metadata';
+import { buildFanAttributes, buildClaimAttributes, buildClaimDescription } from '../mint/metadata';
 import { uploadRelic } from '../mint/storage';
 import { mintRelic } from '../mint/mint';
 import { makeScarfCoverPng } from '../mint/cover';
@@ -51,7 +51,10 @@ export async function mintScarfForClaim(record: ClaimRecord, score: LiveScoreSna
         // finished match — override both so this minimal relic never overclaims (see
         // mint/metadata.ts's buildClaimDescription doc comment).
         description: buildClaimDescription(relic, score.decided),
-        attributes: [...md.attributes, ...fanAttrs],
+        // Honesty seam (review fix): NEVER inherit buildAttributes' match-level traits (Goals,
+        // Won the stands, Data source, Kickoff) — this minimal relic doesn't have that data.
+        // buildClaimAttributes emits only what's genuinely true at claim time.
+        attributes: [...buildClaimAttributes(relic), ...fanAttrs],
         rooot: {
           ...md.rooot,
           verify: {

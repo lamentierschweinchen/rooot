@@ -195,6 +195,26 @@ export function buildFanAttributes(fan: FanClaimAttrs): NftAttribute[] {
 }
 
 /**
+ * `attributes` entries for a claim-time minimal relic — deliberately NOT `buildAttributes`. That
+ * function's `Goals`/`Won the stands`/`Data source`/`Kickoff (UTC)` traits describe match-level
+ * aggregates (goal count, computed stands verdict, live-capture provenance, kickoff clock time)
+ * that `buildRelicFromMatch` never populates for a claim relic — its `goals: []` and
+ * `verdict.winner: 'draw'` are structural placeholders (the frozen contract has no "unknown"
+ * option), not real zero/draw facts, and its `kickoffISO` is a bare date, not a genuine kickoff
+ * time. Emitting those trait_types would mint a permanent, false on-chain claim. This keeps only
+ * what a claim relic actually knows: the real fixture identity, the real score as of claim time,
+ * and which network it's minted on (honesty seam, mirrors buildClaimDescription).
+ */
+export function buildClaimAttributes(relic: MatchRelicData): NftAttribute[] {
+  return [
+    { trait_type: 'Home', value: relic.fixture.home.name },
+    { trait_type: 'Away', value: relic.fixture.away.name },
+    { trait_type: 'Final score', value: SCORE_STR(relic) },
+    { trait_type: 'Network', value: relic.provenance.network },
+  ];
+}
+
+/**
  * Description for a claim-time minimal relic (mint/relic-from-match.ts): the fixture identity +
  * the score as it stood at claim time ARE real, but rich match aggregates (the odds path, the
  * goal-by-goal timeline, the crowd's roar, the stands verdict) were NOT captured for this relic —
