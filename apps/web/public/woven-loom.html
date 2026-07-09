@@ -131,7 +131,7 @@ body.embed .wrap{padding:6px 8px 8px}
   // ---------- window.__loom : the feed contract (coordinator's loom-adapter pushes here) ----------
   var dirty=true;
   window.__loom={
-    live:function(){ M.live=true; possSeed=dgrSeed=null; M.belief=[]; M.poss={}; M.dgr={1:{},2:{}}; M.events=[]; M.score=[0,0]; M.t=0; dirty=true; },
+    live:function(){ M.live=true; possSeed=dgrSeed=null; M.belief=[]; M.poss={}; M.dgr={1:{},2:{}}; M.events=[]; M.score=[0,0]; M.t=0; goolQ=[]; goolFired={}; dirty=true; },  // drop the seed's queued goals too, or they'd erupt as the live clock passes them
     clock:function(minute,running){ if(minute>=M.t)M.t=minute; M.run=running!==false; M.anchorMin=minute; M.anchorMs=(window.performance&&performance.now())||Date.now(); },
     odds:function(o){ M.belief.push({m:o.minute,h:o.pHome*100,d:o.pDraw*100,a:o.pAway*100}); M.belief.sort(function(x,y){return x.m-y.m;}); dirty=true; },
     pressure:function(minute,side,w){ var m=Math.floor(minute); M.dgr[side][m]=(M.dgr[side][m]||0)+(w||1); dirty=true; },
@@ -141,7 +141,7 @@ body.embed .wrap{padding:6px 8px 8px}
       // REPLACE by wire id — shots/cards re-emit (unconfirmed→outcome, empty→named) and the
       // join-replay resends them; without this each re-emit stacked a duplicate mark.
       if(id){ for(var i=0;i<M.events.length;i++){ if(M.events[i].id===id){ M.events[i].t=t; M.events[i].m=e.minute; M.events[i].s=sd; dirty=true; return; } } }
-      M.events.push({m:e.minute,s:sd,t:t,id:id}); dirty=true; if(t==='goal')queueGool(e.minute,e.side); },
+      M.events.push({m:e.minute,s:sd,t:t,id:id}); dirty=true; if(t==='goal'&&!e.quiet)queueGool(e.minute,e.side); },  // quiet = join-replay goal: weave it, but don't erupt GOOOL for history
     score:function(a,c){ M.score=[a,c]; dirty=true; },
     teams:function(h,a){ if(h){ if(h.tri)M.hTri=h.tri; if(h.primary)HOME=h.primary; } if(a){ if(a.tri)M.aTri=a.tri; if(a.primary)AWAY=a.primary; } dirty=true; },
     phase:function(p){ M.et=!!(p&&(p.phase==='EXTRA_TIME'||p.phase==='PENALTIES')); if(M.et)M.dur=126; },
