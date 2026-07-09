@@ -591,8 +591,8 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
   if(!demoOn) render(FALLBACK);   // the near-final sample is for the non-demo standalone preview only; under demo we start honest (0–0) and fill from the replay feed — one synced state
   if(!q.get('embed') || demoOn){ var tries=0,iv=setInterval(function(){tries++;   // subscribe whenever there's a real feed: standalone, or ANY demo (the embedded lens runs its own engine)
     if(window.__stats&&window.__stats.home){clearInterval(iv);
-      if(window.__statsAdapter&&window.__statsAdapter.onStats)window.__statsAdapter.onStats(function(s){s.__live=true;render(s);});
-      else{var s=window.__stats;s.__live=true;render(s);}}
+      if(window.__statsAdapter&&window.__statsAdapter.onStats)window.__statsAdapter.onStats(function(s){s.__live=!demoOn;render(s);});
+      else{var s=window.__stats;s.__live=!demoOn;render(s);}}
     else if(tries>12)clearInterval(iv);},400); }
 
   // ---- THE MARKET card + demo masthead: read window.__match (serverless; __stats is the live wire, offline in demo) ----
