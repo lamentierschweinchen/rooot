@@ -8,7 +8,7 @@ function attr(a: DasAsset, k: string): string | null {
   return hit ? String(hit.value) : null;
 }
 function parseCall(v: string | null): { home: number; away: number } | null {
-  if (!v) return null; const m = /^(\d+)-(\d+)$/.exec(v); return m ? { home: +m[1], away: +m[2] } : null;
+  if (!v) return null; const m = /^(\d+)-(\d+)$/.exec(v); return m ? { home: +m[1]!, away: +m[2]! } : null;
 }
 export function shapeAlbum(assets: DasAsset[]): AlbumScarf[] {
   const out: AlbumScarf[] = [];
@@ -22,7 +22,7 @@ const SCARF_COLLECTION = process.env.ROOOT_SCARF_COLLECTION || '';
 export async function assetsByOwner(pubkey: string, rpcUrl: string): Promise<AlbumScarf[]> {
   const res = await fetch(rpcUrl, { method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ jsonrpc: '2.0', id: 'seat', method: 'getAssetsByOwner', params: { ownerAddress: pubkey, page: 1, limit: 200 } }) });
-  const json = await res.json();
+  const json = await res.json() as any;
   const items: DasAsset[] = (json?.result?.items || []).filter((a: any) => !SCARF_COLLECTION || (a.grouping || []).some((g: any) => g.group_key === 'collection' && g.group_value === SCARF_COLLECTION));
   return shapeAlbum(items);
 }
