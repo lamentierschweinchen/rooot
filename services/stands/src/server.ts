@@ -9,14 +9,20 @@
  * cheer/call still work); DISABLE_ROOMS drops roomId join/RoomStateMsg.
  */
 import { createServer } from 'node:http';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { WebSocket, WebSocketServer } from 'ws';
 import type { CallMsg, CallReceiptMsg, ClientMsg, MomentKind, MomentOpenMsg, MomentResultMsg, RoomStateMsg, ServerMsg, Side } from '@contracts/crowd';
 import { FEELING_PALETTES } from '@contracts/crowd';
 import type { FeedMsg } from '@contracts/feed';
 import { REACT_WINDOW_MS, SWING_DELTA_MIN } from './decay';
+import { networkFor } from './mint/config';
 import { MatchRegistry } from './registry';
 import { anchorRecordHash, relayCall } from './relay';
+import { assetsByOwner } from './seat/album';
+import { bindClaim } from './seat/claim';
+import { loadProfile, saveProfile } from './seat/profile-store';
+import { isValidPubkey } from './seat/validate';
 import { SentimentAccumulator } from './sentiment/accumulator';
 import { fixtureInfo } from './sentiment/teams';
 
@@ -642,9 +648,80 @@ function handleMessage(ws: WebSocket, state: ConnState, raw: string): void {
   }
 }
 
+/* ── /seat HTTP routes (Task 6a: bind the anon session + read back; the mint
+ * itself is stubbed here — Task 6b wires mintRelic and returns a real asset). */
+
+function sendJson(res: ServerResponse, status: number, body: unknown): void {
+  res.writeHead(status, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(body));
+}
+
+function readBody(req: IncomingMessage): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let data = '';
+    req.on('data', (chunk) => { data += chunk; });
+    req.on('end', () => resolve(data));
+    req.on('error', reject);
+  });
+}
+
+/** POST /seat/claim {anonId,pubkey,method,matchId?} -> {profile, mint:null}.
+ * When matchId names a live match, bindClaim folds the fan's REAL rooted side
+ * + locked call into the record (never inventing one). Otherwise (no matchId,
+ * or a matchId the registry doesn't know) the claim is identity-only — still
+ * honest, just nothing to fold in yet. */
+async function handleSeatClaim(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  let body: any;
+  try {
+    const raw = await readBody(req);
+    body = raw ? JSON.parse(raw) : {};
+  } catch {
+    sendJson(res, 400, { error: 'invalid json' });
+    return;
+  }
+  const { anonId, pubkey, method, matchId } = body ?? {};
+  if (!isValidPubkey(pubkey)) {
+    sendJson(res, 400, { error: 'invalid pubkey' });
+    return;
+  }
+  const match = typeof matchId === 'string' ? registry.get(matchId) : undefined;
+  const record = match
+    ? bindClaim(match, anonId, pubkey, method, Date.now())
+    : { pubkey, method, side: null, call: null, matchId: matchId ?? null, boundAtMs: Date.now() };
+  const profile = saveProfile(pubkey, { sides: record.side ? [record.side] : [], since: record.boundAtMs });
+  // TODO(Task 6b): mint the scarf owned by pubkey here and return { asset, txUrl }
+  sendJson(res, 200, { profile, mint: null });
+}
+
+/** GET /seat/album?pubkey= -> {scarves}. Devnet DAS lookup; empty until 6b mints. */
+async function handleSeatAlbum(pubkey: string | null, res: ServerResponse): Promise<void> {
+  if (!pubkey || !isValidPubkey(pubkey)) {
+    sendJson(res, 400, { error: 'invalid pubkey' });
+    return;
+  }
+  try {
+    const scarves = await assetsByOwner(pubkey, networkFor('devnet').rpcUrl);
+    sendJson(res, 200, { scarves });
+  } catch (err) {
+    console.warn(`[seat] album fetch failed for ${pubkey.slice(0, 8)}: ${String(err)}`);
+    sendJson(res, 502, { error: 'album fetch failed' });
+  }
+}
+
+/** GET /seat/me?pubkey= -> {profile}. Flat-file read-back, no DB. */
+function handleSeatMe(pubkey: string | null, res: ServerResponse): void {
+  if (!pubkey || !isValidPubkey(pubkey)) {
+    sendJson(res, 400, { error: 'invalid pubkey' });
+    return;
+  }
+  const profile = loadProfile(pubkey);
+  sendJson(res, 200, { profile });
+}
+
 export function createStandsServer() {
   const httpServer = createServer((req, res) => {
-    if (req.method === 'GET' && req.url === '/health') {
+    const url = new URL(req.url ?? '/', 'http://x');
+    if (req.method === 'GET' && url.pathname === '/health') {
       const body = JSON.stringify({
         uptime: Math.floor((Date.now() - START_MS) / 1000),
         matchesActive: registry.activeMatchCount(),
@@ -652,6 +729,18 @@ export function createStandsServer() {
       });
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(body);
+      return;
+    }
+    if (req.method === 'POST' && url.pathname === '/seat/claim') {
+      void handleSeatClaim(req, res);
+      return;
+    }
+    if (req.method === 'GET' && url.pathname === '/seat/album') {
+      void handleSeatAlbum(url.searchParams.get('pubkey'), res);
+      return;
+    }
+    if (req.method === 'GET' && url.pathname === '/seat/me') {
+      handleSeatMe(url.searchParams.get('pubkey'), res);
       return;
     }
     res.writeHead(404, { 'Content-Type': 'text/plain' });
