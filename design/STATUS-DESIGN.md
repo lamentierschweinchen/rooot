@@ -5,11 +5,17 @@
 coordinator's lane — I flag, I don't touch. Update this doc as state changes.*
 
 ## 🔧 IN FLIGHT RIGHT NOW
-**Nothing mid-edit.** The stadium card-feedback pass (owner's 5-point list) is fully landed —
-goal, bench (offside removed), set pieces, control, book, market all done. Next up is queued
-work below (trophies/flags), gated on owner-generated art.
+**Nothing mid-edit.** Book alignment + trophy socketing just landed (below). Flags still queued
+(blocked on the demo-teams call).
 
 ## ✅ DONE + committed (recent → older)
+- `c03e13a` cabinet(pins): **socketed the 7 fan-virtue badges** as ranked medals — each generated
+  mark set into a flat struck-metal medallion (bronze/silver/gold = which tier an honest counter
+  passed); locked virtue = dashed ghost. Marks processed into `plate/gens/trophies/` (white keyed
+  off root; solid-pixel trim so each fills its medal). Sample counts until wired.
+- `693082b` stadium(book): bookings **rest ON the ruled lines** (measured the 7 rules in
+  book-ledger.png; anchor bottom-up, uniform 3px gap) + **overflow plan** — >7 bookings collapse
+  the last rule to a muted "+N MORE BOOKED" (never silently dropped)
 - `a1b7534` control: **filled the sparse card** — TERRITORY stat + labeled possession/territory
   split-bars under the flat-tile danger field (both honest from `__stats`)
 - `2e69c4b` control: gradient-bloom danger heat → **coarse grid of flat tiles** (kills the one
@@ -41,10 +47,10 @@ work below (trophies/flags), gated on owner-generated art.
    `6258adf`) are **STALE** — ignore them.
 
 ## ⏭ PENDING (my lane, queued)
-- **Trophies** — owner is generating the 7 marks (crystal ball, megaphone, planted flag, upstream
-  arrow, crosshair-eye, ticket stub, black sheep). When they land I rebuild the cabinet pins as
-  **bronze/silver/gold framed badges** + wire each to its honest counter. Prompts:
-  `design/GEN-PROMPTS-FLAGS-TROPHY.md`.
+- **Trophies — DONE** (see above). Two small follow-ups for the owner: (1) `roots.png` came out as
+  a *bare* mark (no badge ground) unlike the other six complete badges — I keyed its white bg and
+  it reads OK planted into the silver medal, but a regen as a full badge would match the set better;
+  (2) sample counts are placeholders — wire to the real on-chain record when the relic contract lands.
 - **Flags** — 8 QF flags generated (`design/generations/flags/`: ARG BEL ENG FRA MOR NOR SPA SUI),
   not yet socketed into gate/cabinet. Blocked on a demo-teams call: `/demo` is SUI–COL but COL
   isn't a QF, so socketing needs a fallback or a demo-teams change.
