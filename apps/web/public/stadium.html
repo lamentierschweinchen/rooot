@@ -115,6 +115,10 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
 .spbar{display:flex;height:6px;border-radius:3px;overflow:hidden;background:rgba(26,24,21,.07);margin:0 4px}
 .spbar i{display:block;height:100%;min-width:0;transition:flex-grow .4s}
 .spbar i.h{background:var(--home)}.spbar i.a{background:var(--away)}
+.csrow{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
+.csrow .csv{font-weight:900;font-size:9px;letter-spacing:.04em}.csrow .csv b{font-size:14px}
+.csrow .csv.h{color:var(--home)}.csrow .csv.a{color:var(--away)}
+.csrow .csl{font-weight:700;font-size:8px;letter-spacing:.14em;color:var(--sub)}
 /* detail: THE BOOK — bookings stamped down the ledger pages */
 .bpage{position:absolute;top:0;bottom:0;width:34%}
 .bpage.h{left:8%}.bpage.a{right:11.5%}
@@ -221,10 +225,11 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     <div class="art" style="margin:14px 16px 0">
       <div id="ctrlViz"></div>
       <div style="text-align:center;margin-top:5px;font-weight:700;font-size:7px;letter-spacing:.14em;color:var(--sub)">DANGEROUS ATTACKS · ON EACH GOAL</div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
-        <span style="font-weight:900;font-size:9px;letter-spacing:.06em;color:var(--home)"><span id="ctrlHp" style="font-size:14px">50</span>% <span id="ctrlHn">ARG</span></span>
-        <span style="font-weight:700;font-size:8px;letter-spacing:.14em;color:var(--sub)">WHO HOLDS THE BALL</span>
-        <span style="font-weight:900;font-size:9px;letter-spacing:.06em;color:var(--away)"><span id="ctrlAn">CPV</span> <span id="ctrlAp" style="font-size:14px">50</span>%</span>
+      <div style="margin-top:13px">
+        <div class="csrow"><span class="csv h"><b id="ctrlHp">50</b>% <span id="ctrlHn">SUI</span></span><span class="csl">POSSESSION</span><span class="csv a"><span id="ctrlAn">COL</span> <b id="ctrlAp">50</b>%</span></div>
+        <div class="spbar"><i class="h" id="posBh"></i><i class="a" id="posBa"></i></div>
+        <div class="csrow" style="margin-top:11px"><span class="csv h"><b id="ctrlHt">50</b>%</span><span class="csl">TERRITORY</span><span class="csv a"><b id="ctrlAt">50</b>%</span></div>
+        <div class="spbar"><i class="h" id="terBh"></i><i class="a" id="terBa"></i></div>
       </div>
     </div>
     <div class="sh-read">
@@ -537,6 +542,10 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     el('ctrlHn').textContent=HOME.tri;el('ctrlAn').textContent=AWAY.tri;el('ctrlHn2').textContent=HOME.tri;el('ctrlAn2').textContent=AWAY.tri;
     var pK=(h.possessionPct!=null||h.territory!=null);  // don't fake a 50/50 when possession is unknown
     el('ctrlHp').textContent=pK?hp:'—';el('ctrlAp').textContent=pK?ap:'—';
+    el('posBh').style.flexGrow=pK?hp:50;el('posBa').style.flexGrow=pK?ap:50;
+    var tK=(h.territory!=null),ht=tK?Math.round(h.territory*100):50,at=100-ht;
+    el('ctrlHt').textContent=tK?ht:'—';el('ctrlAt').textContent=tK?at:'—';
+    el('terBh').style.flexGrow=ht;el('terBa').style.flexGrow=at;
     var had=h.attacks||{},aad=a.attacks||{};
     el('ctrlHd').textContent=(had.danger||0);el('ctrlAd').textContent=(aad.danger||0);
     el('ctrlHh').textContent=(had.highDanger||0);el('ctrlAh').textContent=(aad.highDanger||0);
