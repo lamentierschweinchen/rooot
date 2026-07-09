@@ -17,9 +17,10 @@
   'use strict';
   var q = new URLSearchParams(location.search);
   var ON = location.pathname === '/' || location.pathname === '/live'
+    || q.get('live') === '1'
     || q.get('site') === '1' || q.get('loomfeed') === '1' || q.get('standsfeed') === '1';
   if (!ON) return;
-  var matchId = q.get('match') || '18193785'; // USA–BEL default (Jul 7 hero fixture)
+  var matchId = q.get('match') || '18209181'; // FRA–MAR live-test default
   var wsBase = q.get('ws') || 'wss://rooot-stands.fly.dev/';
 
   var ANON_KEY = 'rooot.anonId';
@@ -30,18 +31,22 @@
     } catch (_) { return 'anon-' + Math.random().toString(36).slice(2, 10); }
   }
   var me = anonId();
-  var ws = null, mySide = null, backoff = 1000;
+  var ws = null, mySide = null, backoff = 1000, outbox = [];
   var lastTriple = null;                 // live de-vigged market, for the predict stamp
   var trailing = null;                   // side currently behind → faith
   var lastScore = { home: 0, away: 0 };
-  var cb = { state: [], consensus: [], verdict: [], moment: [], momentResult: [] };
+  var cb = { state: [], consensus: [], verdict: [], moment: [], momentResult: [], market: [] };
   function fire(list, v) { for (var i = 0; i < list.length; i++) { try { list[i](v); } catch (e) {} } }
 
-  function send(m) { if (ws && ws.readyState === 1) { try { ws.send(JSON.stringify(m)); } catch (e) {} } }
+  function send(m) {
+    if (ws && ws.readyState === 1) { try { ws.send(JSON.stringify(m)); } catch (e) {} return; }
+    outbox.push(m); if (outbox.length > 24) outbox.shift();
+  }
+  function flush() { var q = outbox; outbox = []; for (var i = 0; i < q.length; i++) send(q[i]); }
   function hello() { send({ type: 'hello', matchId: matchId, anonId: me, side: mySide || undefined }); }
 
   // ── the surface design renders against ──
-  var pendingCheer = 0, cheerTimer = null, view = { rooted: { home: 0, away: 0 }, roar: { home: 0, away: 0 }, faithSide: null, connected: false };
+  var pendingCheer = 0, cheerTimer = null, view = { rooted: { home: 0, away: 0 }, roar: { home: 0, away: 0 }, faithSide: null, connected: false, market: null };
   window.__stands = {
     anonId: me,
     matchId: matchId,
@@ -60,6 +65,7 @@
     onVerdict: function (fn) { cb.verdict.push(fn); },               // your prediction verdict at FT
     onMoment: function (fn) { cb.moment.push(fn); },                 // a drama window opens (kind, side, palette, closesAtMs)
     onMomentResult: function (fn) { cb.momentResult.push(fn); },     // the split reveal
+    onMarket: function (fn) { cb.market.push(fn); if (lastTriple) try { fn(lastTriple); } catch (e) {} },
   };
   function flushCheer() { cheerTimer = null; var n = pendingCheer; pendingCheer = 0; if (n > 0 && mySide) send({ type: 'cheer', matchId: matchId, side: mySide, n: n, atMs: Date.now() }); }
   function publish() { view.faithSide = trailing; fire(cb.state, view); }
@@ -76,7 +82,16 @@
       case 'predictVerdict': if (m.matchId === matchId && m.anonId === me) fire(cb.verdict, m); break;
       case 'moment': if (m.matchId === matchId) fire(cb.moment, m); break;
       case 'momentResult': if (m.matchId === matchId) fire(cb.momentResult, m); break;
-      case 'odds': { var t = m.tick; if (t && t.period !== 'et') lastTriple = { home: t.pHome, draw: t.pDraw, away: t.pAway }; break; }
+      case 'odds': {
+        var t = m.tick;
+        if (t && t.period !== 'et') {
+          lastTriple = { home: t.pHome, draw: t.pDraw, away: t.pAway };
+          view.market = lastTriple;
+          fire(cb.market, lastTriple);
+          publish();
+        }
+        break;
+      }
       case 'score':
         if (m.ev && typeof m.ev.home === 'number') {
           lastScore = { home: m.ev.home, away: m.ev.away };
@@ -91,7 +106,7 @@
   function connect() {
     var url = wsBase + (wsBase.indexOf('?') >= 0 ? '&' : '?') + 'matchId=' + encodeURIComponent(matchId);
     try { ws = new WebSocket(url); } catch (e) { setTimeout(connect, backoff); return; }
-    ws.onopen = function () { backoff = 1000; hello(); console.log('[stands-adapter] live wire →', matchId); };
+    ws.onopen = function () { backoff = 1000; hello(); flush(); console.log('[stands-adapter] live wire →', matchId); };
     ws.onmessage = function (e) { var m; try { m = JSON.parse(e.data); } catch (_) { return; } try { onMsg(m); } catch (err) { console.warn('[stands-adapter]', err); } };
     ws.onclose = function () { view.connected = false; publish(); setTimeout(connect, backoff); backoff = Math.min(backoff * 2, 30000); };
     ws.onerror = function () { try { ws.close(); } catch (_) {} };

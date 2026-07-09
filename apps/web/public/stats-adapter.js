@@ -30,9 +30,9 @@
   var p = location.pathname;
   var ON = p === '/' || p === '/live'
     || p.indexOf('/count-live') >= 0 || p.indexOf('/count') >= 0 || p.indexOf('/stadium') >= 0
-    || q.get('site') === '1' || q.get('loomfeed') === '1' || q.get('statsfeed') === '1' || DEMO;
+    || q.get('site') === '1' || q.get('loomfeed') === '1' || q.get('statsfeed') === '1' || q.get('live') === '1' || DEMO;
   if (!ON) return;
-  var matchId = q.get('match') || '18209181'; // SUI–COL default (live now). MUST match stadium's FIX default. TODO(P2): dynamic default so /stadium + /count auto-follow the live game.
+  var matchId = q.get('match') || '18209181'; // FRA–MAR live-test default. TODO(P2): dynamic default so /stadium + /count auto-follow the live game.
   var wsBase = q.get('ws') || 'wss://rooot-stands.fly.dev/';
 
   // PRESS weights (match the loom) — for the TERRITORY proxy (danger-weighted).

@@ -102,14 +102,25 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 </div>
 <!-- demo engine — private prototype default: baked recording → window.__match + window.__stands -->
 <script>if(/[?&]demo=1/.test(location.search))document.write('<scr'+'ipt src="plate/demo-suicol.js"></scr'+'ipt><scr'+'ipt src="demo-feed.js"></scr'+'ipt><scr'+'ipt src="match-read.js"></scr'+'ipt><scr'+'ipt src="crowd-sim.js"></scr'+'ipt>');</script>
+<script src="stands-adapter.js"></script>
+<script src="stats-adapter.js"></script>
 <script>
-var DEMO=/[?&]demo=1/.test(location.search);
+var PARAMS=new URLSearchParams(location.search);
+var DEMO=PARAMS.get('demo')==='1', LIVE=PARAMS.get('live')==='1';
+var MATCH_ID=PARAMS.get('match')||(LIVE?'18209181':'18202783');
+var FIXTURES={
+  '18202783':{home:{tri:'SUI',name:'SUI',color:'#D52B1E'},away:{tri:'COL',name:'COL',color:'#E8B10A'}},
+  '18209181':{home:{tri:'FRA',name:'FRA',color:'#0055A4'},away:{tri:'MAR',name:'MAR',color:'#C1272D'}}
+};
+var FX=FIXTURES[MATCH_ID]||FIXTURES['18209181'];
+var PASS=null; try{ PASS=JSON.parse(localStorage.getItem('rooot.pass')||'null'); }catch(e){}
 var byq=function(s){return document.querySelector(s);}, el=function(i){return document.getElementById(i);};
 var wrap=el('wrap'), dial=el('dial'), lens=el('lens');
 function lensSrc(name){
   var base={loom:'woven-loom.html',stands:'terrace.html',stadium:'stadium.html'}[name];
   var q='?embed=1';
   if(DEMO)q+='&match=18202783&demo=1';
+  else if(LIVE)q+='&live=1&match='+encodeURIComponent(MATCH_ID)+'&site=1&standsfeed=1&loomfeed=1&statsfeed=1';
   else if(name==='stadium')q+='&match=argcpv';
   return base+q;
 }
@@ -131,7 +142,7 @@ wrap.addEventListener('touchend',function(e){ var dx=e.changedTouches[0].clientX
 var mt=el('miniThem'); for(var i=0;i<16;i++)mt.insertAdjacentHTML('beforeend','<i></i>');
 // your cheer (tap → fills + decays; a ROOOT! burst at the peak)
 var cheer=0, lastMs=performance.now(), lastBurst=0;
-el('youEnd').addEventListener('pointerdown',function(){ cheer=Math.min(1,cheer+0.19); if(DEMO&&window.__stands)window.__stands.cheer(); });
+el('youEnd').addEventListener('pointerdown',function(){ cheer=Math.min(1,cheer+0.19); if((DEMO||LIVE)&&window.__stands)window.__stands.cheer(); });
 function cw(r){return r>.8?'DEAFENING':r>.55?'LOUD':r>.3?'rising':r>.12?'murmur':'quiet';}
 function loop(now){ var dt=Math.min(.3,(now-lastMs)/1000); lastMs=now; cheer=Math.max(0,cheer-dt*0.3);
   el('cheerFill').style.width=(cheer*100)+'%'; el('cheerV').textContent=cw(cheer);
@@ -150,6 +161,35 @@ if(DEMO){
   if(window.__stands){ window.__stands.root('home'); window.__stands.onState(function(s){ if(s.rooted){
     el('themCt').textContent=(s.rooted.away||0).toLocaleString(); el('youReads').innerHTML=(s.rooted.home||0).toLocaleString()+' HERE'; } }); }
 }
+function wireLive(){
+  if(!LIVE)return true;
+  var sideKey=PASS&&PASS.side==='a'?'away':'home', other=sideKey==='home'?'away':'home';
+  var you=sideKey==='home'?FX.home:FX.away, them=other==='home'?FX.home:FX.away;
+  byq('.cabbtn').setAttribute('href','cabinet.html?live=1&match='+encodeURIComponent(MATCH_ID));
+  document.documentElement.style.setProperty('--you',you.color); document.documentElement.style.setProperty('--them',them.color);
+  el('hT').textContent=FX.home.tri; el('aT').textContent=FX.away.tri; el('hT').style.color=FX.home.color; el('aT').style.color=FX.away.color;
+  el('themNm').textContent=them.tri+' · THEIR END'; el('youNm').textContent=you.tri+' · YOUR END';
+  el('spec').textContent='LIVE CROWD + MATCH WIRE · ANONYMOUS TEST SEAT';
+  if(window.__stands&&!wireLive.didStands){
+    wireLive.didStands=true;
+    if(PASS&&PASS.side!=='n')window.__stands.root(sideKey);
+    if(PASS&&PASS.call)window.__stands.predict(PASS.call.h,PASS.call.a);
+    window.__stands.onState(function(s){ if(!s||!s.rooted)return;
+      el('themCt').textContent=(s.rooted[other]||0).toLocaleString();
+      el('youReads').innerHTML=(s.rooted[sideKey]||0).toLocaleString()+' HERE';
+    });
+  }
+  if(window.__statsAdapter&&!wireLive.didStats){
+    wireLive.didStats=true;
+    window.__statsAdapter.onStats(function(st){
+      if(!st)return;
+      el('sc').textContent=(st.home.goals||0)+'–'+(st.away.goals||0);
+      if(typeof st.minute==='number')el('clk').textContent='· '+st.minute+"'";
+    });
+  }
+  return wireLive.didStands&&wireLive.didStats;
+}
+if(LIVE&&!wireLive()){ var _liveGround=setInterval(function(){ if(wireLive())clearInterval(_liveGround); },160); }
 setLens('stands');   // open at home — you take your place in THE STANDS
 </script>
 </body>
