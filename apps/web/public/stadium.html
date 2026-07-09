@@ -83,7 +83,6 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
 #oddsViz{position:relative;background:var(--card);border:2px solid var(--ink);padding:9px}
 .oddskey{display:flex;justify-content:space-between;margin:12px 20px 24px;font-weight:800;font-size:9px;letter-spacing:.03em}
 #shots{position:absolute;inset:0}
-.skymask{position:absolute;top:15.8%;left:50%;width:13.5%;height:0;padding-bottom:13.5%;transform:translate(-50%,-50%);border-radius:50%;background:#F6E6C7}   /* covers the decorative gold ball baked into goal-empty.png — regen the art to drop it cleanly */
 @keyframes pop{0%{transform:translate(-50%,-50%) scale(0);opacity:0}62%{transform:translate(-50%,-50%) scale(1.18)}100%{transform:translate(-50%,-50%) scale(1);opacity:1}}
 #shots .dot{position:absolute;width:4.8%;height:0;padding-bottom:4.8%;border-radius:50%;transform:translate(-50%,-50%);animation:pop .38s cubic-bezier(.3,1.5,.5,1) both}
 #shots .dot.miss.h{box-shadow:inset 0 0 0 2.5px var(--home)}
@@ -196,7 +195,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
   <section class="sheet" id="sheet-goal">
     <div class="sh-head"><span class="t">THE GOAL-MOUTH<small>SHOTS · IN OR HELD</small></span><button class="close" data-close>✕</button></div>
     <div class="hostband"><i class="v"></i><i class="r"></i><i class="a"></i><i class="g"></i></div>
-    <div class="art"><div style="position:relative"><img src="plate/gens/goal-empty.png" alt="goal"><div class="skymask"></div><div id="shots"></div></div></div>
+    <div class="art"><div style="position:relative"><img src="plate/gens/goal-mouth.png" alt="goal"><div id="shots"></div></div></div>
     <div class="splabel"><span class="t h" id="gH">SUI</span><span>THE SHOTS</span><span class="t a" id="gA">COL</span></div>
     <div class="spgrid" id="goalGrid"></div>
   </section>
