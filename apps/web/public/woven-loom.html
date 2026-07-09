@@ -111,6 +111,11 @@ body.embed .wrap{padding:6px 8px 8px}
   var SEALED=KEEP;                              // THE PRESSING — the weave has stopped and the cloth has sealed into the keepsake
   var KS={editionNo:null, owner:null, call:null};   // the personal seam: bound when the fan's own record is woven in; honest-empty until the wire sends it
   function esc(s){ return String(s).replace(/[<>&]/g,function(c){return c==='<'?'&lt;':c==='>'?'&gt;':'&amp;';}); }
+  // masthead ink — the team's colour, darkened only if too light to read on the cream paper (e.g. COL yellow)
+  function mastInk(hex){ if(!/^#[0-9a-fA-F]{6}$/.test(hex))return hex;
+    var r=parseInt(hex.substr(1,2),16),g=parseInt(hex.substr(3,2),16),b=parseInt(hex.substr(5,2),16), lum=(0.299*r+0.587*g+0.114*b)/255;
+    if(lum>0.55){ var k=0.55/lum; r=Math.round(r*k); g=Math.round(g*k); b=Math.round(b*k); }
+    return 'rgb('+r+','+g+','+b+')'; }
 
   // seed the ARG–CPV replay so the loom weaves it as a living demo when no wire is attached
   function seedReplay(){
@@ -312,7 +317,8 @@ body.embed .wrap{padding:6px 8px 8px}
     goolQ.forEach(function(g,i){ if(!goolFired[i] && M.t>=g.m){ goolFired[i]=true; fireGool(); } });
     // masthead
     document.getElementById('sc').textContent=M.score[0]+'–'+M.score[1];
-    document.getElementById('hT').textContent=M.hTri; document.getElementById('aT').textContent=M.aTri;
+    var _hT=document.getElementById('hT'),_aT=document.getElementById('aT');
+    _hT.textContent=M.hTri; _aT.textContent=M.aTri; _hT.style.color=mastInk(HOME); _aT.style.color=mastInk(AWAY);
     var mm=Math.floor(M.t), lbl=ended?('FULL TIME · '+mm+'′'):((M.live?'LIVE':'REPLAY')+' · '+mm+'′');
     document.getElementById('rp').textContent=lbl;
     document.getElementById('liveDot').style.background=(M.live&&!ended)?'#C8202A':'#8C8467';
