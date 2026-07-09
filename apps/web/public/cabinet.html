@@ -147,35 +147,118 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
   <div class="sec"><span class="t">THE PINS</span><span class="c">the fan virtues · bronze → silver → gold · earned, not bought</span></div>
   <div class="pins" id="pins"></div>
 
-  <div class="foot reveal">your cabinet fills as you live matches · each scarf is the match woven from the real feed<br>provenance sits on-chain — yours to keep, worthless to flip · sample shown until wired</div>
+  <div class="foot reveal">your cabinet fills as you live matches · each scarf is the match woven from the real feed<br>provenance sits on-chain — yours to keep, worthless to flip</div>
 </div>
 
+<!-- SEAT: identity (Task 8) — window.__seat only; the cabinet never claims, so nacl/seat-passkey
+     aren't needed here (see woven-loom.html for the full nacl→passkey→adapter load order). -->
+<script src="seat-adapter.js"></script>
 <script>
 var el=function(id){return document.getElementById(id);};
 var DEMO=/[?&]demo=1/.test(location.search), Q=DEMO?'?demo=1':(/[?&]live=1/.test(location.search)?'?live=1':'?demo=0');
-// sample kept matches — each wires to a real relic (the woven cloth) + your tx-signed call
-var SCARVES=[
-  {h:'ARG',a:'CPV',hc:'#2049AA',ac:'#C8504D',hi:'#F3ECDB',ai:'#F3ECDB',sc:'3–2',comp:'WORLD CUP',date:"08 JUL '26",call:'ARG 3–2',res:'hit',no:'014'},
-  {h:'SUI',a:'COL',hc:'#D52B1E',ac:'#E8B10A',hi:'#F3ECDB',ai:'#1A1815',sc:'1–1',comp:'GROUP F',date:"04 JUL '26",call:'SUI 2–1',res:'miss',no:'009'},
-  {h:'BRA',a:'NOR',hc:'#F7D117',ac:'#BA0C2F',hi:'#1A1815',ai:'#F3ECDB',sc:'0–1',comp:'GROUP C',date:"01 JUL '26",call:'the upset',res:'hit',no:'003'}
-];
-function resTag(r){ return r==='hit'?'<span class="hit">✓ CALLED IT</span>':r==='miss'?'<span class="miss">✗ didn’t fall</span>':'<span class="no">— neutral</span>'; }
-el('rack').innerHTML=SCARVES.map(function(s){
-  return '<div class="keep reveal" data-match="'+s.h+'-'+s.a+'">'+
-    '<div class="scarf" style="--h:'+s.hc+';--a:'+s.ac+';--hink:'+s.hi+';--aink:'+s.ai+'">'+
-      '<span class="fr"></span>'+
-      '<div class="half h"><span class="tri">'+s.h+'</span></div>'+
-      '<div class="cart"><span class="sc">'+s.sc+'</span><span class="cp">'+s.comp+'</span></div>'+
-      '<div class="half a"><span class="tri">'+s.a+'</span></div>'+
-      '<span class="fr"></span>'+
-    '</div>'+
-    '<div class="hall"><span class="call">'+s.date+' · you called <b>'+s.call+'</b> '+resTag(s.res)+'</span><span>Nº '+s.no+'</span></div>'+
-  '</div>';
-}).join('');
-// tap a scarf → unroll the full woven cloth (the keepsake)
-[].forEach.call(document.querySelectorAll('.keep'),function(k){ k.onclick=function(){ location.href='woven-loom.html?keepsake=1'+(DEMO?'&demo=1':''); }; });   // unroll the cloth (carry demo)
 el('nextFix').setAttribute('href','gate.html'+Q);   // forward loop → the next gate (carry demo)
 var _bg=document.querySelector('.backg'); if(_bg)_bg.setAttribute('href','ground.html'+Q);   // keep the walkthrough in demo mode
+
+// SEAT: YOUR SEAT + THE ALBUM from live data (Task 8) — replaces the old hardcoded #who "lukas"
+// and the sample SCARVES array. Keeps every existing visual class (.rack/.keep/.scarf/.hall);
+// only the data source + the innerHTML built from it change. Guards window.__seat + fetch
+// failures throughout — the cabinet must never break if the seat scripts or server are absent.
+(function () {
+  'use strict';
+  var q = new URLSearchParams(location.search);
+  var wsBase = q.get('ws') || 'wss://rooot-stands.fly.dev/';   // same convention as seat-adapter.js
+  var SEAT_API = wsBase.replace(/^ws/, 'http').replace(/\/+$/, '');
+
+  function esc(s){ return String(s).replace(/[<>&"]/g,function(c){return c==='<'?'&lt;':c==='>'?'&gt;':c==='&'?'&amp;':'&quot;';}); }
+  function shortKey(pk){ return (pk && pk.length>10) ? (pk.slice(0,4)+'…'+pk.slice(-4)) : (pk||''); }
+  function fetchJson(url){
+    if (typeof fetch !== 'function') return Promise.resolve({ok:false});
+    return fetch(url).then(function(r){
+      if (!r.ok) return {ok:false};
+      return r.json().then(function(j){ return {ok:true, body:j}; });
+    }).catch(function(){ return {ok:false}; });
+  }
+
+  // honest empty state — no pubkey, nothing to read. Replaces #who + the sample rack entirely.
+  function paintAnon(){
+    var whoEl=el('who'); if(whoEl) whoEl.textContent='no seat yet';
+    var af=document.querySelector('.who .af'); if(af) af.style.display='none';
+    var rack=el('rack'); if(rack) rack.innerHTML='<div class="hall reveal" style="padding:14px 0">No seat yet — claim one when you keep your first match.</div>';
+  }
+
+  function paintHeader(profile, pubkey){
+    var whoEl=el('who');
+    if (whoEl) whoEl.textContent = (profile && profile.displayName) ? profile.displayName : shortKey(pubkey);
+    var af=document.querySelector('.who .af');
+    if (af) {
+      var sides=(profile && profile.sides) || [];
+      var bits=[];
+      if (sides.length) bits.push('ROOTED '+sides.map(function(s){return String(s).toUpperCase();}).join(' · '));
+      if (profile && profile.since) bits.push("SINCE '"+String(new Date(profile.since).getFullYear()).slice(2));
+      af.textContent = bits.length ? bits.join(' · ') : 'YOUR SEAT';
+      af.style.display='';
+    }
+  }
+
+  // one real scarf {asset,name,matchId,side,call,image} → the existing .keep/.scarf/.hall markup.
+  // No fabricated team colours/dates/verdicts: the cover image (real, on-chain) fills the scarf,
+  // and only fields the server actually returned are shown.
+  function scarfCard(s){
+    var callText = s.call ? (s.call.home+'–'+s.call.away) : '—';
+    var sideText = s.side ? String(s.side).toUpperCase() : '';
+    var name = s.name || 'ROOOT SCARF';
+    var bg = s.image ? (' style="background-image:url('+esc(s.image)+');background-size:cover;background-position:center"') : '';
+    var href = 'woven-loom.html?keepsake=1'+(s.matchId?('&match='+encodeURIComponent(s.matchId)):'')+(DEMO?'&demo=1':'');
+    return '<div class="keep reveal" data-href="'+esc(href)+'">'+
+      '<div class="scarf"'+bg+'>'+
+        '<span class="fr"></span>'+
+        '<div class="half h"><span class="tri"></span></div>'+
+        '<div class="cart"><span class="sc">'+esc(callText)+'</span><span class="cp">'+(s.call?'YOUR CALL':'NO CALL RECORDED')+'</span></div>'+
+        '<div class="half a"><span class="tri"></span></div>'+
+        '<span class="fr"></span>'+
+      '</div>'+
+      '<div class="hall"><span class="call">'+esc(name)+(s.call?(' · you called <b>'+esc(callText)+'</b>'):'')+'</span><span>'+esc(sideText)+'</span></div>'+
+    '</div>';
+  }
+
+  function paintAlbum(scarves, failed){
+    var rack=el('rack'); if(!rack) return;
+    if (failed) { rack.innerHTML='<div class="hall reveal" style="padding:14px 0">Couldn’t load your album right now.</div>'; return; }
+    if (!scarves || !scarves.length) { rack.innerHTML='<div class="hall reveal" style="padding:14px 0">Nothing kept yet — your next full time will land here.</div>'; return; }
+    // MVP honesty (per spec): the real GOT album plus a plain note — no fabricated NEED pockets
+    // until a real fixture schedule is wired client-side.
+    rack.innerHTML = scarves.map(scarfCard).join('') +
+      '<div class="hall reveal" style="padding:6px 0;justify-content:center;color:var(--sub)">more as the tournament goes</div>';
+    [].forEach.call(rack.querySelectorAll('.keep[data-href]'), function(k){
+      k.onclick=function(){ location.href=k.getAttribute('data-href'); };   // unroll that match's cloth (carries its real matchId)
+    });
+  }
+
+  function renderSeat(){
+    var seat=window.__seat;
+    if (!seat || seat.status!=='claimed' || !seat.pubkey) { paintAnon(); return; }
+    var pubkey=seat.pubkey;
+    var whoEl=el('who'); if(whoEl) whoEl.textContent='loading…';
+    var rack=el('rack'); if(rack) rack.innerHTML='<div class="hall reveal" style="padding:14px 0;color:var(--sub)">loading your seat…</div>';
+    fetchJson(SEAT_API+'/seat/me?pubkey='+encodeURIComponent(pubkey)).then(function(res){
+      paintHeader(res.ok ? res.body.profile : null, pubkey);
+    });
+    fetchJson(SEAT_API+'/seat/album?pubkey='+encodeURIComponent(pubkey)).then(function(res){
+      paintAlbum(res.ok ? (res.body && res.body.scarves) : null, !res.ok);
+    });
+  }
+  // exposed only so a claimed state can be re-checked from devtools without a reload, e.g.:
+  //   window.__seat.status='claimed'; window.__seat.pubkey='<pk>'; window.__seatCabinetRefresh();
+  window.__seatCabinetRefresh = renderSeat;
+
+  try {
+    // .on() paints the current state now AND re-paints on any future publish() (a real claim()
+    // resolving later in this session) — falls back to a single direct read if the adapter's
+    // script didn't load at all.
+    if (window.__seat && typeof window.__seat.on === 'function') window.__seat.on(renderSeat);
+    else renderSeat();
+  } catch (e) { renderSeat(); }
+})();
 
 // THE PINS — the seven badges of the fan virtues. Each is ONE earned emblem, ranked by an HONEST
 // counter: bronze/silver/gold = which tier your real count has passed. Sample counts until wired.

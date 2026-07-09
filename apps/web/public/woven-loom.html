@@ -55,6 +55,13 @@ body.embed .wrap{padding:6px 8px 8px}
 .ksSeal{animation:ksIn 1.2s ease-out .12s both}
 .ksFrame{animation:ksIn 1.6s ease-out both}
 @keyframes ksIn{from{opacity:0}to{opacity:1}}
+/* SEAT: PRESSING claim CTA (Task 8) — plain, additive; hidden until the loom seals at full time */
+.seatCta{display:none;margin-top:10px}
+.seatCta.on{display:block}
+.seatCta button{width:100%;padding:11px 14px;font-family:var(--disp);font-weight:800;font-size:11px;letter-spacing:.08em;background:var(--ink);color:var(--card);border:1.5px solid var(--ink);cursor:pointer}
+.seatCta button:disabled{opacity:.6;cursor:default}
+.seatCta button:active{transform:translateY(1px)}
+.seatCta .note{padding:11px 14px;font-weight:800;font-size:11px;letter-spacing:.08em;text-align:center;color:var(--ink);border:1.5px solid var(--gold)}
 </style>
 </head>
 <body>
@@ -62,6 +69,8 @@ body.embed .wrap{padding:6px 8px 8px}
   <div class="mast"><span class="sc"><b class="h" id="hT">ARG</b> <span id="sc">0–0</span> <b class="a" id="aT">CPV</b></span><span class="rp"><span class="dot" id="liveDot"></span><span id="rp">REPLAY · 0′</span></span></div>
   <div class="sub">THE LOOM — THE MATCH WOVEN LIVE · MARKET IS THE GROUND · PLAY IS THE CORDS · EVENTS ARE STITCHED</div>
   <div class="loomv" id="loomv"><div class="gooool" id="gooool"><b>GOOOL</b></div><div class="board" id="board"></div></div>
+  <!-- SEAT: PRESSING claim CTA (Task 8) — populated + shown only once the cloth seals at full time -->
+  <div class="seatCta" id="seatCta"></div>
   <div class="legend" id="legend"></div>
 </div>
 
@@ -358,5 +367,68 @@ body.embed .wrap{padding:6px 8px 8px}
 <script src="plate/demo-suicol.js"></script>
 <script src="demo-feed.js"></script>
 <script src="loom-adapter.js"></script>
+<!-- SEAT: identity scripts (Task 8) — IN THIS ORDER: nacl sets window.nacl before seat-passkey.js
+     needs it; seat-adapter.js's claim() lazily reads window.seatPasskey, so it loads last. -->
+<script src="plate/nacl.min.js"></script>
+<script src="seat-passkey.js"></script>
+<script src="seat-adapter.js"></script>
+<script>
+(function () {
+  'use strict';
+  // SEAT: THE PRESSING claim CTA (Task 8) — additive, guarded; never edits the loom's own state
+  // or markup. Full time is detected by watching for the seal (.ksSeal) the loom already renders
+  // in its SEALED branch above (renderCloth()) — zero changes to that code.
+  var elCta = document.getElementById('seatCta');
+  if (!elCta) return; // markup missing for some reason — never throw, just no CTA
+
+  var shown = false, pending = false;
+
+  function matchIdFromLoom() {
+    // the same fixture the loom is weaving: the ?match= param, else loom-adapter's own default
+    // (window.__loomAdapter.matchId, set once it activates) — never invented client-side.
+    var m = new URLSearchParams(location.search).get('match');
+    if (m) return m;
+    return (window.__loomAdapter && window.__loomAdapter.matchId) || null;
+  }
+
+  function paint(state) {
+    if (state === 'idle') {
+      elCta.innerHTML = '<button type="button" id="seatClaimBtn">This is yours — take your seat to keep it.</button>';
+    } else if (state === 'pending') {
+      elCta.innerHTML = '<button type="button" disabled>keeping…</button>';
+    } else if (state === 'done') {
+      elCta.innerHTML = '<div class="note">Kept — it’s in your album.</div>';
+    } else if (state === 'fail') {
+      elCta.innerHTML = '<button type="button" id="seatClaimBtn">Couldn’t keep it — try again.</button>';
+    }
+    var btn = document.getElementById('seatClaimBtn');
+    if (btn) btn.onclick = onClaim;
+  }
+
+  function onClaim() {
+    if (pending) return;
+    if (!window.__seat || typeof window.__seat.claim !== 'function') return; // guard: adapter absent
+    pending = true;
+    paint('pending');
+    try {
+      window.__seat.claim({ matchId: matchIdFromLoom() }).then(
+        function () { pending = false; paint('done'); },
+        function () { pending = false; paint('fail'); }   // claim-unavailable / user-cancel / any rejection: plain retry, never throw
+      );
+    } catch (e) { pending = false; paint('fail'); }
+  }
+
+  function checkSealed() {
+    if (shown) return;
+    if (!document.querySelector('.ksSeal')) return;   // not sealed yet (still weaving, or KEEP hasn't rendered)
+    shown = true;
+    if (!window.__seat || window.__seat.status === 'claimed') return;   // no seat script, or already kept — nothing to show
+    elCta.className = 'seatCta on';
+    paint('idle');
+  }
+  checkSealed();                 // covers the KEEP/keepsake view (already sealed at boot)
+  setInterval(checkSealed, 400); // covers the replay/live view (seals mid-session at full time)
+})();
+</script>
 </body>
 </html>
