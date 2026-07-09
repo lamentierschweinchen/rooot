@@ -405,7 +405,10 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     var OFF='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.6" fill="none" stroke="#8C8467" stroke-width="3"/></svg>';
     var BLK='<svg viewBox="0 0 24 24"><rect x="4.5" y="4.5" width="15" height="15" rx="2" fill="none" stroke="#1A1815" stroke-width="2.6"/><line x1="4.5" y1="12" x2="19.5" y2="12" stroke="#1A1815" stroke-width="1.8"/><line x1="12" y1="4.5" x2="12" y2="19.5" stroke="#1A1815" stroke-width="1.8"/></svg>';
     var WW='<svg viewBox="0 0 24 24"><path d="M6 21 V4 H18" fill="none" stroke="#C79A38" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    var PEN='<svg viewBox="0 0 24 24"><path d="M5.5 9.5 A7.5 7.5 0 0 1 18.5 9.5" fill="none" stroke="#1A1815" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="15" r="2.5" fill="#1A1815"/></svg>';
+    var hpe=h.penalties||{},ape=a.penalties||{},hpn=(hpe.scored||0)+(hpe.missed||0),apn=(ape.scored||0)+(ape.missed||0);
     var rows=[['GOALS',hg,ag,BALL],['SAVED',Math.max(0,(hs.onTarget||0)-hg),Math.max(0,(as.onTarget||0)-ag),GLOVE],['OFF TARGET',hs.offTarget||0,as.offTarget||0,OFF],['BLOCKED',hs.blocked||0,as.blocked||0,BLK]];
+    if((hpn+apn)>0)rows.push(['PENALTIES',hpn,apn,PEN]);   // in-game pens folded into goal attempts (rare — only shown when they actually happen)
     if(((hs.woodwork||0)+(as.woodwork||0))>0)rows.push(['WOODWORK',hs.woodwork||0,as.woodwork||0,WW]);
     box.innerHTML=rows.map(function(r){return '<div class="sprow"><span class="spn h">'+r[1]+'</span><span class="spmid">'+r[3]+r[0]+'</span><span class="spn a">'+r[2]+'</span></div>';}).join('');
   }
@@ -420,7 +423,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
       r.innerHTML='<span class="chip '+(bk.type==='Red'?'r':'y')+'"></span><span class="bn">'+(bk.player||'—')+'</span><span class="bmn">'+(bk.minute!=null?bk.minute+"′":'')+'</span>';
       page.appendChild(r); }); }
   // THE TEAM SHEET — a side's starting XI (number · name, captain marked). null until the wire names them.
-  function fmtName(n){ if(!n)return '—'; var c=n.indexOf(','); return c>=0?(n.slice(c+1).trim()+' '+n.slice(0,c).trim()):n; }
+  function fmtName(n){ if(!n)return '—'; var c=n.indexOf(','); if(c<0)return n; var sur=n.slice(0,c).trim(),fr=n.slice(c+1).trim(),full=(fr?fr+' ':'')+sur; return full.length<=17?full:(fr?fr.charAt(0)+'. ':'')+sur; }   // full name where it fits; else F. Surname (no ugly truncation)
   function fillXI(ol,arr,cls){ if(!ol)return; ol.innerHTML='';
     if(!arr||!arr.length){ ol.innerHTML='<li class="xnone">TEAM SHEET NOT IN YET</li>'; return; }
     arr.forEach(function(p){ var li=document.createElement('li'); li.className='xrow';
