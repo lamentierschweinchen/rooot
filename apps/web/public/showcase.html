@@ -32,12 +32,12 @@ body{min-height:100vh;
 .stage{display:flex;gap:34px;align-items:flex-start;justify-content:center;margin-top:26px;flex-wrap:wrap}
 
 /* the phone */
-.phone{flex:none;display:flex;flex-direction:column;align-items:center}
-.jumpbar{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-bottom:13px;max-width:420px}
+.phone{flex:none;display:flex;flex-direction:column;align-items:center;width:min(100%,420px)}
+.jumpbar{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-bottom:13px;max-width:420px;width:100%}
 .jumpbar button{font-family:var(--disp);font-weight:800;font-size:8.5px;letter-spacing:.09em;padding:6px 10px;background:var(--card);color:var(--sub);border:1.5px solid var(--ink);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .15s,color .15s}
 .jumpbar button:hover{color:var(--ink)}
 .jumpbar button.on{background:var(--ink);color:var(--card)}
-.device{position:relative;height:min(812px,86vh);aspect-ratio:398/812;background:var(--ink);border-radius:34px;padding:11px 9px;box-shadow:0 26px 60px rgba(26,24,21,.4),0 3px 0 rgba(26,24,21,.5)}
+.device{position:relative;width:min(398px,calc(86vh * 398 / 812),100%);aspect-ratio:398/812;background:var(--ink);border-radius:34px;padding:11px 9px;box-shadow:0 26px 60px rgba(26,24,21,.4),0 3px 0 rgba(26,24,21,.5)}
 .device::before{content:"";position:absolute;top:15px;left:50%;transform:translateX(-50%);width:44px;height:4px;border-radius:3px;background:rgba(243,236,219,.28);z-index:3}
 .device iframe{width:100%;height:100%;border:none;border-radius:25px;display:block;background:var(--paper)}
 .devhint{margin-top:12px;font-weight:800;font-size:9px;letter-spacing:.13em;color:var(--sub);text-align:center}
@@ -75,7 +75,8 @@ body{min-height:100vh;
 .foot .honest{font-weight:700;font-size:9px;letter-spacing:.05em;color:var(--sub);line-height:1.6;max-width:640px}
 .foot .honest b{color:var(--ink)}
 .foot .sig{font-weight:800;font-size:8px;letter-spacing:.16em;color:var(--sub);white-space:nowrap}
-@media(max-width:900px){ .stage{gap:26px} .device{height:min(760px,80vh)} .guide{max-width:none} }
+@media(max-width:900px){ .stage{gap:26px} .device{width:min(398px,calc(80vh * 398 / 812),100%)} .guide{max-width:none} }
+@media(max-width:430px){ .page{padding-left:16px;padding-right:16px} }
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;scroll-behavior:auto !important}}
 </style>
 </head>
