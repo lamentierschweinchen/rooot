@@ -175,10 +175,9 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
       <div class="pnum a" id="pA">—</div><div class="pnum h" id="pH">—</div>
       <div class="hot goal" data-place="goal" style="left:49.8%;top:23%"><div class="ring"><span class="n" id="hGA">0</span></div><span class="cap" id="capA">GOAL</span></div>
       <div class="hot goal" data-place="goal" style="left:49.8%;top:78%"><div class="ring"><span class="n" id="hGH">0</span></div><span class="cap" id="capH">GOAL</span></div>
-      <div class="hot sm" data-place="arc" style="left:33%;top:25%"><div class="ring"><span class="n" id="hC">0</span></div><span class="cap">SET PIECES</span></div>
-      <div class="hot sm" data-place="control" style="left:62%;top:58%"><div class="ring"><span class="ic">◑</span></div><span class="cap">CONTROL</span></div>
-      <div class="hot xs" data-place="pens" style="left:49.8%;top:69.5%"><div class="ring"><span class="ic">•</span></div><span class="cap">PENS</span></div>
-      <div class="hot sm" data-place="book" style="left:49.8%;top:50.5%"><div class="ring"><img class="wic" src="plate/gens/whistle.png" alt=""></div><span class="cap">THE BOOK</span></div>
+      <div class="hot sm" data-place="arc" style="left:70%;top:25.5%"><div class="ring"><span class="n" id="hC">0</span></div><span class="cap">SET PIECES</span></div>
+      <div class="hot sm" data-place="control" style="left:49.8%;top:50.5%"><div class="ring"><span class="ic">◑</span></div><span class="cap">CONTROL</span></div>
+      <div class="hot sm" data-place="book" style="left:27%;top:47%"><div class="ring"><img class="wic" src="plate/gens/whistle.png" alt=""></div><span class="cap">THE BOOK</span></div>
       <div class="hot sm" data-place="bench" style="left:79%;top:50%"><div class="ring"><span class="ic">⇅</span></div><span class="cap">THE BENCH</span></div>
       <div class="hot sm soon" data-place="stands" style="left:12%;top:85%"><div class="ring"><span class="ic">◍</span></div><span class="cap">THE STANDS</span></div>
       <div class="hot sm" data-place="odds" style="left:82%;top:14%"><div class="ring"><span class="ic" style="font-size:10px;letter-spacing:0">1X2</span></div><span class="cap">THE MARKET</span></div>
@@ -535,7 +534,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
 
   // ---- zoom interaction + inter-card nav ----
   var openSheet=null, toastT=null;
-  var CARDS=[['goal','GOAL-MOUTH'],['arc','SET PIECES'],['control','CONTROL'],['book','THE BOOK'],['bench','TEAM SHEET'],['odds','THE MARKET'],['pens','PENALTIES']];   // built detail cards, in order (grows as families land)
+  var CARDS=[['goal','GOAL-MOUTH'],['arc','SET PIECES'],['control','CONTROL'],['book','THE BOOK'],['bench','TEAM SHEET'],['odds','THE MARKET']];   // built detail cards, in order (pens folded into GOAL-MOUTH — in-game pens are rare)
   function toast(msg){var t=el('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove('show');},1800);}
   var SOON={stands:'THE STANDS'};   // only truly-unbuilt places left (book/bench/control now have sheets)
   function syncNav(place){
