@@ -183,7 +183,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
       <div class="hot sm" data-place="control" style="left:49.8%;top:50.5%"><div class="ring"><span class="ic">◑</span></div><span class="cap">CONTROL</span></div>
       <div class="hot sm" data-place="book" style="left:27%;top:47%"><div class="ring"><img class="wic" src="plate/gens/whistle.png" alt=""></div><span class="cap">THE BOOK</span></div>
       <div class="hot sm" data-place="bench" style="left:79%;top:50%"><div class="ring"><span class="ic">⇅</span></div><span class="cap">THE BENCH</span></div>
-      <div class="hot sm soon" data-place="stands" style="left:12%;top:85%"><div class="ring"><span class="ic">◍</span></div><span class="cap">THE STANDS</span></div>
+      <div class="hot sm" data-place="stands" style="left:50%;top:90%"><div class="ring"><span class="ic">◍</span></div><span class="cap">THE STANDS</span></div>
       <div class="hot xs" data-place="odds" style="left:61%;top:9.5%"><div class="ring"><span class="ic" style="font-size:9px;letter-spacing:0">1X2</span></div><span class="cap">THE MARKET</span></div>
     </div>
   </div>
@@ -551,6 +551,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     dots.innerHTML=CARDS.map(function(c){return '<i data-go="'+c[0]+'" title="'+c[1]+'"'+(c[0]===place?' class="on"':'')+'></i>';}).join('');
   }
   function open(place,origin){
+    if(place==='stands'){ location.href='terrace.html'+(q.get('demo')==='1'?'?demo=1':''); return; }   // the stands lead INTO the stands
     var sh=el('sheet-'+place);
     if(!sh){ toast((SOON[place]||place.toUpperCase())+' · NEXT'); return; }
     if(openSheet && openSheet!==sh){ openSheet.style.transformOrigin='50% 50%'; openSheet.classList.remove('open'); }
