@@ -28,11 +28,14 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 
 /* identity + record */
 .who{display:flex;align-items:center;gap:12px;margin:16px 18px 0;padding:12px 14px;background:var(--card);border:1.5px solid var(--ink)}
-.who .crest{width:42px;height:42px;flex:none;border:2px solid var(--ink);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px;background:var(--paper)}
-.who .crest .sp{display:flex;flex-direction:column;width:100%;height:100%}
-.who .crest .sp i{flex:1}
+.who .crest{width:46px;height:46px;flex:none;display:flex;align-items:center;justify-content:center;background:none;border:none}
+.who .crest img{width:46px;height:46px;object-fit:contain;filter:drop-shadow(1.5px 1.5px 0 rgba(26,24,21,.2))}
 .who .nm{font-weight:900;font-size:16px;letter-spacing:.02em}
-.who .af{font-weight:700;font-size:8px;letter-spacing:.08em;color:var(--sub);margin-top:2px}
+.who .af{font-weight:700;font-size:8px;letter-spacing:.08em;color:var(--sub);margin-top:3px;display:flex;align-items:center;flex-wrap:wrap;gap:0 2px}
+/* flag tiles — the vintage sticker-badges; keyed from the generated set, unicode fallback out-of-set */
+.flagtile{display:inline-block;object-fit:contain;vertical-align:-.2em;border-radius:2.5px;filter:drop-shadow(1px 1px 0 rgba(26,24,21,.16))}
+.af .flagtile{width:16px;height:16px}
+.af .fsep{color:var(--line);margin:0 1px}
 .record{display:flex;margin:12px 18px 0;border:1.5px solid var(--ink);background:var(--card)}
 .record .st{flex:1;padding:9px 4px;text-align:center;border-right:1px solid var(--line)}
 .record .st:last-child{border-right:none}
@@ -43,8 +46,10 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 /* NEXT UP — the forward loop: your next fixture → its gate */
 .next{display:flex;align-items:center;gap:12px;margin:0 18px;padding:13px 15px;background:var(--ink);color:var(--card);text-decoration:none;box-shadow:4px 4px 0 rgba(26,24,21,.2);-webkit-tap-highlight-color:transparent}
 .next:active{transform:translateY(1px)}
-.next .fx{font-weight:900;font-size:18px;letter-spacing:.02em}
+.next .fx{font-weight:900;font-size:18px;letter-spacing:.02em;display:flex;align-items:center}
 .next .fx .v{color:var(--sub);font-size:12px;margin:0 5px;font-weight:800}
+.next .fx .nf{width:21px;height:21px;border-radius:2.5px}
+.next .fx .nf:first-child{margin-right:8px}.next .fx .nf:last-child{margin-left:8px}
 .next .meta{font-weight:700;font-size:8px;letter-spacing:.09em;color:var(--gold);margin-top:3px}
 .next .go{margin-left:auto;font-weight:900;font-size:22px;color:var(--card)}
 
@@ -123,8 +128,8 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
   <div class="hostband"><i class="v"></i><i class="r"></i><i class="a"></i><i class="g"></i></div>
 
   <div class="who">
-    <div class="crest"><span class="sp"><i style="background:#D52B1E"></i><i style="background:#E8B10A"></i></span></div>
-    <div><div class="nm" id="who">lukas</div><div class="af">ROOTED FOR 🇨🇭 · 🇦🇷 · SINCE '26</div></div>
+    <div class="crest"><img src="plate/gens/flags/SUI.png" alt="SWITZERLAND"></div>
+    <div><div class="nm" id="who">lukas</div><div class="af">ROOTED FOR&nbsp;<img class="flagtile" src="plate/gens/flags/SUI.png" alt="SUI"><span class="fsep">·</span><img class="flagtile" src="plate/gens/flags/ARG.png" alt="ARG"><span class="fsep">·</span>SINCE '26</div></div>
   </div>
   <div class="record">
     <div class="st"><b>12</b><span class="l">MATCHES LIVED</span></div>
@@ -134,7 +139,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
   </div>
 
   <div class="sec"><span class="t">NEXT UP</span><span class="c">the season continues</span></div>
-  <a class="next" id="nextFix" href="gate.html"><div><div class="fx" id="nextFx">SPA<span class="v">v</span>BEL</div><div class="meta" id="nextMeta">SAT 20:00 · YOU'RE SPAIN</div></div><span class="go">→</span></a>
+  <a class="next" id="nextFix" href="gate.html"><div><div class="fx" id="nextFx"><img class="flagtile nf" src="plate/gens/flags/SPA.png" alt="SPA">SPA<span class="v">v</span>BEL<img class="flagtile nf" src="plate/gens/flags/BEL.png" alt="BEL"></div><div class="meta" id="nextMeta">SAT 20:00 · YOU'RE SPAIN</div></div><span class="go">→</span></a>
 
   <div class="sec"><span class="t">THE SCARVES</span><span class="c">tap to unroll the cloth</span></div>
   <div class="rack" id="rack"></div>
