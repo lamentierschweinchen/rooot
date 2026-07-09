@@ -402,9 +402,10 @@ import assert from 'node:assert';
 import { shapeAlbum } from './album';
 
 const assets = [
-  { id: 'A1', content: { metadata: { name: 'ROOOT · FRA v MAR' }, json_uri: 'ar://x',
-    attributes: [{ trait_type: 'matchId', value: '18209181' }, { trait_type: 'side', value: 'home' },
-                 { trait_type: 'call', value: '2-1' }] }, links: { image: 'ar://img' } },
+  { id: 'A1', content: { json_uri: 'ar://x', links: { image: 'ar://img' },
+    metadata: { name: 'ROOOT · FRA v MAR',
+      attributes: [{ trait_type: 'matchId', value: '18209181' }, { trait_type: 'side', value: 'home' },
+                   { trait_type: 'call', value: '2-1' }] } } },
   { id: 'BAD', content: { metadata: {}, json_uri: '' } }, // malformed → dropped
 ];
 const out = shapeAlbum(assets as any);
@@ -423,10 +424,10 @@ Expected: FAIL — `Cannot find module './album'`.
 ```ts
 export interface AlbumScarf { asset: string; name: string; matchId: string | null; side: string | null; call: { home: number; away: number } | null; image: string | null; }
 interface DasAttr { trait_type: string; value: string; }
-interface DasAsset { id: string; content?: { metadata?: { name?: string }; json_uri?: string; attributes?: DasAttr[] }; links?: { image?: string }; }
+interface DasAsset { id: string; content?: { metadata?: { name?: string; attributes?: DasAttr[] }; json_uri?: string; links?: { image?: string } }; }
 
 function attr(a: DasAsset, k: string): string | null {
-  const list = a.content?.attributes || [];
+  const list = a.content?.metadata?.attributes || [];
   const hit = list.find((x) => x.trait_type === k);
   return hit ? String(hit.value) : null;
 }
@@ -437,7 +438,7 @@ export function shapeAlbum(assets: DasAsset[]): AlbumScarf[] {
   const out: AlbumScarf[] = [];
   for (const a of assets) {
     const name = a.content?.metadata?.name; if (!name) continue; // drop malformed, never fake
-    out.push({ asset: a.id, name, matchId: attr(a, 'matchId'), side: attr(a, 'side'), call: parseCall(attr(a, 'call')), image: a.links?.image ?? null });
+    out.push({ asset: a.id, name, matchId: attr(a, 'matchId'), side: attr(a, 'side'), call: parseCall(attr(a, 'call')), image: a.content?.links?.image ?? null });
   }
   return out;
 }
