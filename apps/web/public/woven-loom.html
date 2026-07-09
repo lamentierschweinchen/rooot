@@ -55,6 +55,7 @@ body.embed .wrap{padding:6px 8px 8px}
 .ksSeal{animation:ksIn 1.2s ease-out .12s both}
 .ksFrame{animation:ksIn 1.6s ease-out both}
 @keyframes ksIn{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;scroll-behavior:auto !important}}
 </style>
 </head>
 <body>

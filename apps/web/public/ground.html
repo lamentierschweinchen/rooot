@@ -65,6 +65,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .cburst.pop{animation:cb .9s cubic-bezier(.2,1.5,.35,1) forwards}
 @keyframes cb{0%{opacity:0;transform:translateX(-50%) scale(.5)}30%{opacity:.9;transform:translateX(-50%) scale(1.1)}100%{opacity:0;transform:translateX(-50%) scale(1)}}
 .spec{flex:none;text-align:center;padding:4px 8px;font-weight:800;font-size:7px;letter-spacing:.12em;color:var(--sub);background:var(--paper);border-top:1.5px solid var(--ink)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;scroll-behavior:auto !important}}
 </style>
 </head>
 <body>
