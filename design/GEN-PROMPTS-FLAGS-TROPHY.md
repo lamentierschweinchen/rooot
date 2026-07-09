@@ -8,9 +8,24 @@ Deliver each as a PNG on a transparent background for clean keying; I socket the
 
 ## FLAGS — done
 
-You generated the real quarter-finalists in the sticker-badge style. The recipe below stands as
-the reference for any future nation (semis/final) — ask and I'll write that nation out in full:
+You generated the 8 quarter-finalists (ARG BEL ENG FRA MOR NOR SPA SUI) — socketed into the cabinet
+(crest · rooted-for · next-up) and the gate ends. The **fill-ins** below cover the nations our sample
+surfaces still reach for; the master recipe under them stands for any future nation.
 
+### Fill-ins — copy-paste, one at a time (each complete on its own)
+
+**COLOMBIA (COL)** — the `/demo` gate's away end (a framed-emoji fallback holds it now; this makes it a real sticker):
+> Design a single collectible team-flag sticker-badge in a retro Bauhaus-meets-Panini/Topps style: hard rectilinear flat colour-blocks with nothing blended, a thick confident black keyline tracing the forms, and a calm white/cream card border framing it like a vintage football sticker, finished with an honest offset-print texture — a whisper of Ben-Day halftone and the faintest registration-offset. The subject is the national flag of Colombia — a wide yellow band filling the top half, a blue band across the third quarter, and a red band across the bottom quarter (2:1:1 proportions) — reduced to clean, confident geometry. Loud flat colour owned by the flag, black ink, calm border. It must feel like a beautiful printed collectible sticker, never a glossy emoji or a generic UI icon: flat (no 3D, no gradient, no glow, no drop-shadow), bold at small sizes, no lettering. Plain flat background (transparent or cream) for clean keying. Give 3 distinct variations in a clean horizontal row.
+
+**BRAZIL (BRA)** — only if we later flag the cabinet scarves (the BRA–NOR keepsake):
+> Design a single collectible team-flag sticker-badge in a retro Bauhaus-meets-Panini/Topps style: hard rectilinear flat colour-blocks with nothing blended, a thick confident black keyline tracing the forms, and a calm white/cream card border framing it like a vintage football sticker, finished with an honest offset-print texture — a whisper of Ben-Day halftone and the faintest registration-offset. The subject is the national flag of Brazil — a bold green field, a large yellow diamond centred, and a deep-blue disc at its heart carrying a scatter of small white five-pointed stars (no banner, no lettering) — reduced to clean, confident geometry. Loud flat colour owned by the flag, black ink, calm border. It must feel like a beautiful printed collectible sticker, never a glossy emoji or a generic UI icon: flat (no 3D, no gradient, no glow, no drop-shadow), bold at small sizes, no lettering. Plain flat background (transparent or cream) for clean keying. Give 3 distinct variations in a clean horizontal row.
+
+**CAPE VERDE (CPV)** — only if we later flag the cabinet scarves (the ARG–CPV keepsake):
+> Design a single collectible team-flag sticker-badge in a retro Bauhaus-meets-Panini/Topps style: hard rectilinear flat colour-blocks with nothing blended, a thick confident black keyline tracing the forms, and a calm white/cream card border framing it like a vintage football sticker, finished with an honest offset-print texture — a whisper of Ben-Day halftone and the faintest registration-offset. The subject is the national flag of Cape Verde — a deep-blue field, a horizontal band of white-red-white running across the lower third, and a ring of ten small yellow five-pointed stars centred over it — reduced to clean, confident geometry. Loud flat colour owned by the flag, black ink, calm border. It must feel like a beautiful printed collectible sticker, never a glossy emoji or a generic UI icon: flat (no 3D, no gradient, no glow, no drop-shadow), bold at small sizes, no lettering. Plain flat background (transparent or cream) for clean keying. Give 3 distinct variations in a clean horizontal row.
+
+---
+
+**Master recipe** (for any other nation — semis/final; ask and I'll write it out filled-in):
 > Design a single collectible team-flag sticker-badge in a retro Bauhaus-meets-Panini/Topps style: hard rectilinear flat colour-blocks with nothing blended, a thick confident black keyline tracing the forms, and a calm white/cream card border framing it like a vintage football sticker, finished with an honest offset-print texture — a whisper of Ben-Day halftone and the faintest registration-offset. The subject is the national flag of **[NATION]** — **[its flag in one line of essential colour-blocks]** — reduced to clean, confident geometry. Loud flat colour owned by the flag, black ink, calm border. It must feel like a beautiful printed collectible sticker, never a glossy emoji or a generic UI icon: flat (no 3D, no gradient, no glow, no drop-shadow), bold at small sizes, no lettering. Plain flat background (transparent or cream) for clean keying. Give 3 distinct variations in a clean horizontal row.
 
 ---

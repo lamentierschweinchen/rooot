@@ -5,10 +5,14 @@
 coordinator's lane — I flag, I don't touch. Update this doc as state changes.*
 
 ## 🔧 IN FLIGHT RIGHT NOW
-**Nothing mid-edit.** Book alignment + trophy socketing just landed (below). Flags still queued
-(blocked on the demo-teams call).
+**Nothing mid-edit.** Book, trophies, and flags all landed (below).
 
 ## ✅ DONE + committed (recent → older)
+- `212a8d0` gate: **flags at the two ends** — each upgrades to its generated sticker if in-set (SUI),
+  else keeps a framed-emoji fallback (COL). Data-driven off `.tri`, so it auto-upgrades + works for
+  the `/live` FRA–MOR gate (both in-set).
+- `bc00df5` cabinet: **flag sticker-badges socketed** — crest = primary rooted flag (SUI); ROOTED FOR
+  = SUI · ARG tiles; NEXT UP = SPA · BEL flanking the fixture. All in-set; scarves keep tricodes.
 - `c03e13a` cabinet(pins): **socketed the 7 fan-virtue badges** as ranked medals — each generated
   mark set into a flat struck-metal medallion (bronze/silver/gold = which tier an honest counter
   passed); locked virtue = dashed ghost. Marks processed into `plate/gens/trophies/` (white keyed
@@ -51,9 +55,10 @@ coordinator's lane — I flag, I don't touch. Update this doc as state changes.*
   a *bare* mark (no badge ground) unlike the other six complete badges — I keyed its white bg and
   it reads OK planted into the silver medal, but a regen as a full badge would match the set better;
   (2) sample counts are placeholders — wire to the real on-chain record when the relic contract lands.
-- **Flags** — 8 QF flags generated (`design/generations/flags/`: ARG BEL ENG FRA MOR NOR SPA SUI),
-  not yet socketed into gate/cabinet. Blocked on a demo-teams call: `/demo` is SUI–COL but COL
-  isn't a QF, so socketing needs a fallback or a demo-teams change.
+- **Flags — DONE** (cabinet + gate, above). The graceful-fallback approach dissolved the demo-teams
+  blocker — no demo change needed. One fill-in left for full coverage: a **COL** sticker so the
+  `/demo` gate's away end stops falling back to a framed emoji (BRA/CPV too, only if we ever flag the
+  scarves). Ready copy-paste prompts are in `design/GEN-PROMPTS-FLAGS-TROPHY.md` → Fill-ins.
 - Stadium cards — owner will "come back to refine" (set pieces especially).
 - **Overview dual-split legibility** (candidate, owner taste-call): the bowl leans to *rooting* and
   the pitch splits on *possession* — two honest but different meanings, drawn in the same two team
