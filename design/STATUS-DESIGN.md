@@ -5,15 +5,15 @@
 coordinator's lane — I flag, I don't touch. Update this doc as state changes.*
 
 ## 🔧 IN FLIGHT RIGHT NOW
-**CONTROL card rework** (`apps/web/public/stadium.html`), owner-directed:
-1. Replace the gradient-bloom danger heat with a **coarse grid of FLAT TILES** (per the CONTROL
-   plate direction — the bloom drifts "AI-gradient", the one off-brand viz in the stadium).
-2. **Add stats** — it feels sparse (only possession + danger). Pulling honestly from `__stats`:
-   territory, high-danger split, etc.
-If you see `stadium.html` mid-edit around the `bloom()` / `repaintPitch` / CONTROL-render code,
-that's me. Nobody else should touch that block until this lands.
+**Nothing mid-edit.** The stadium card-feedback pass (owner's 5-point list) is fully landed —
+goal, bench (offside removed), set pieces, control, book, market all done. Next up is queued
+work below (trophies/flags), gated on owner-generated art.
 
 ## ✅ DONE + committed (recent → older)
+- `a1b7534` control: **filled the sparse card** — TERRITORY stat + labeled possession/territory
+  split-bars under the flat-tile danger field (both honest from `__stats`)
+- `2e69c4b` control: gradient-bloom danger heat → **coarse grid of flat tiles** (kills the one
+  "AI-gradient" viz in the stadium; on-brand printed look)
 - `19d2fd3` set pieces: home-vs-away bar under every stat (corners/free-kicks/throw-ins)
 - `47628a5` goal: wired regenerated `goal-mouth.png` (no golden ball), dropped mask hack
 - `b32f1da` goal+nav: bigger register symbols, always-on penalty row; **nav is now a docked
