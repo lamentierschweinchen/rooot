@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { mergeProfile } from './profile-store';
+import { mergeProfile, saveProfile } from './profile-store';
 
 const base = { pubkey: 'K', sides: ['home'], since: 100, displayName: null };
 const merged = mergeProfile(base, { sides: ['away'], since: 50, displayName: 'ro' });
@@ -12,3 +12,9 @@ const merged2 = mergeProfile(merged, { sides: ['home'], since: 999, displayName:
 assert.deepEqual(merged2.sides.sort(), ['away', 'home'], 'no duplicate sides');
 assert.equal(merged2.displayName, 'ro', 'empty name does not clobber');
 console.log('OK merge idempotent + name-safe');
+
+assert.equal(merged2.since, 50, 'earliest since retained after a later patch');
+console.log('OK earliest since retained');
+
+assert.throws(() => saveProfile('../evil', {}), /invalid pubkey/, 'rejects path-traversal pubkey');
+console.log('OK rejects traversal pubkey');
