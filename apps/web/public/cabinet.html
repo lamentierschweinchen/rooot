@@ -78,9 +78,11 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .pins{display:flex;flex-wrap:wrap;gap:17px 13px;padding:0 18px}
 .pin{width:72px;text-align:center}
 /* the medal: a flat struck-metal disc — its colour IS the rank — with the earned emblem set into it */
-.medal{position:relative;width:60px;height:60px;margin:0 auto;border-radius:50%;border:2.5px solid var(--ink);display:flex;align-items:center;justify-content:center;box-shadow:2px 2px 0 rgba(26,24,21,.22)}
-.medal::before{content:"";position:absolute;inset:3.5px;border-radius:50%;border:1px solid rgba(26,24,21,.22)}   /* struck-coin inner rim, flat */
-.medal img{position:relative;width:50px;height:50px;object-fit:contain;filter:drop-shadow(0 1px 0 rgba(26,24,21,.22))}
+.medal{position:relative;width:64px;height:64px;margin:0 auto;border-radius:50%;border:2.5px solid var(--ink);display:flex;align-items:center;justify-content:center;box-shadow:2px 2px 0 rgba(26,24,21,.22);overflow:hidden}
+.medal::before{content:"";position:absolute;inset:4px;border-radius:50%;border:1px solid rgba(26,24,21,.22);z-index:1}   /* struck-coin inner rim, flat */
+/* per-badge size (inline) normalises the EMBLEM BODY to ~48px — marks fill their bounding box differently
+   (a circle fills it, the megaphone's bars or the wide pentagon don't), so a flat 50px looked uneven */
+.medal img{position:relative;object-fit:contain;filter:drop-shadow(0 1px 0 rgba(26,24,21,.22))}
 .pin.bronze .medal{background:#B0763B}
 .pin.silver .medal{background:#AEB5BA}
 .pin.gold   .medal{background:var(--gold)}
@@ -172,21 +174,22 @@ var _bg=document.querySelector('.backg'); if(_bg)_bg.setAttribute('href','ground
 
 // THE PINS — the seven badges of the fan virtues. Each is ONE earned emblem, ranked by an HONEST
 // counter: bronze/silver/gold = which tier your real count has passed. Sample counts until wired.
+// sz = per-badge display px, tuned so each EMBLEM BODY lands ~48px inside the 64px medal (see .medal img note)
 var VIRTUES=[
-  {img:'root.png',    l:'THE ROOT',         c:14,    unit:'ROOTED',  t:[1,10,50]},      // took a side, stood in it
-  {img:'call.png',    l:'THE CALL',         c:21,    unit:'NAILED',  t:[1,5,25]},       // your scoreline landed
-  {img:'tide.png',    l:'AGAINST THE TIDE',  c:4,     unit:'UPSETS',  t:[1,5,20]},       // right, when the market wasn't
-  {img:'twelfth.png', l:'THE TWELFTH',       c:51200, unit:'CHEERS',  t:[500,5000,50000]},// your voice in the roar
-  {img:'read.png',    l:'READ THE GAME',     c:9,     unit:'READS',   t:[1,10,40]},      // saw the moment coming
-  {img:'season.png',  l:'SEASON TICKET',     c:12,    unit:'LIVED',   t:[5,20,50]},      // matches you were there for
-  {img:'few.png',     l:'ONE OF THE FEW',    c:0,     unit:'TIMES',   t:[1,5,20]}        // rooted the outnumbered end
+  {img:'root.png',    l:'THE ROOT',         c:14,    unit:'ROOTED',  t:[1,10,50],       sz:48},// took a side, stood in it
+  {img:'call.png',    l:'THE CALL',         c:21,    unit:'NAILED',  t:[1,5,25],        sz:50},// your scoreline landed
+  {img:'tide.png',    l:'AGAINST THE TIDE',  c:4,     unit:'UPSETS',  t:[1,5,20],        sz:49},// right, when the market wasn't
+  {img:'twelfth.png', l:'THE TWELFTH',       c:51200, unit:'CHEERS',  t:[500,5000,50000],sz:52},// your voice in the roar (bars break out — sized to sit just inside the rim, no clip)
+  {img:'read.png',    l:'READ THE GAME',     c:9,     unit:'READS',   t:[1,10,40],       sz:48},// saw the moment coming
+  {img:'season.png',  l:'SEASON TICKET',     c:12,    unit:'LIVED',   t:[5,20,50],       sz:51},// matches you were there for
+  {img:'few.png',     l:'ONE OF THE FEW',    c:0,     unit:'TIMES',   t:[1,5,20],        sz:52} // rooted the outnumbered end
 ];
 function rankOf(c,t){ return c>=t[2]?'gold':c>=t[1]?'silver':c>=t[0]?'bronze':'locked'; }
 function fmtC(n){ return n>=1000?(+(n/1000).toFixed(n>=10000?0:1))+'k':(''+n); }
 el('pins').innerHTML=VIRTUES.map(function(v){
   var rk=rankOf(v.c,v.t), locked=rk==='locked';
   var cnt=locked?('LOCKED · '+v.t[0]+'+'):(fmtC(v.c)+' '+v.unit);
-  return '<div class="pin reveal '+rk+'"><div class="medal"><img src="plate/gens/trophies/'+v.img+'" alt="'+v.l+'"></div><div class="pl">'+v.l+'</div><div class="pc">'+cnt+'</div></div>';
+  return '<div class="pin reveal '+rk+'"><div class="medal"><img src="plate/gens/trophies/'+v.img+'" alt="'+v.l+'" style="width:'+v.sz+'px;height:'+v.sz+'px"></div><div class="pl">'+v.l+'</div><div class="pc">'+cnt+'</div></div>';
 }).join('');
 </script>
 </body>
