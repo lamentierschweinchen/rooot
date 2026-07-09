@@ -122,12 +122,14 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
 /* detail: THE BOOK — bookings stamped down the ledger pages */
 .bpage{position:absolute;top:0;bottom:0;width:34%}
 .bpage.h{left:8%}.bpage.a{right:11.5%}
-@keyframes bfade{from{opacity:0;transform:translateY(-50%) scale(.9)}to{opacity:1;transform:translateY(-50%) scale(1)}}
-.bentry{position:absolute;left:7%;right:7%;display:flex;align-items:center;gap:5px;transform:translateY(-50%);animation:bfade .34s ease both}
-.bentry .chip{width:10px;height:14px;border-radius:2px;flex-shrink:0;box-shadow:0 1px 1.5px rgba(26,24,21,.35)}
+@keyframes bfade{from{opacity:0;transform:translateY(-100%) scale(.92)}to{opacity:1;transform:translateY(-100%) scale(1)}}
+/* anchored bottom-up (translateY(-100%)) so the row RESTS on its printed rule instead of straddling it */
+.bentry{position:absolute;left:7%;right:7%;display:flex;align-items:center;gap:5px;transform:translateY(-100%);animation:bfade .34s ease both}
+.bentry .chip{width:9px;height:13px;border-radius:2px;flex-shrink:0;box-shadow:0 1px 1.5px rgba(26,24,21,.35)}
 .bentry .chip.y{background:#E5B431}.bentry .chip.r{background:#C8504D}
 .bentry .bn{font-weight:800;font-size:9px;letter-spacing:.01em;color:#1A1815;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bentry .bmn{margin-left:auto;font-weight:800;font-size:8.5px;color:var(--sub);flex-shrink:0}
+.bentry.more{opacity:.72}.bentry.more .bn{color:var(--sub);font-weight:800;font-size:7.5px;letter-spacing:.14em}
 .varstrip{min-height:14px;margin:11px 16px 0;font-weight:800;font-size:9px;letter-spacing:.07em;color:var(--sub);display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .varstrip b{color:var(--ink);letter-spacing:.14em}
 .varstrip .vchip{padding:2px 8px;border:1.4px solid var(--sub);border-radius:20px}
@@ -427,10 +429,14 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
   function fillBook(page,team){ if(!page)return; page.innerHTML=''; var c=team.cards||{},list=(c.list||[]).slice(),i;
     if(!list.length){ for(i=0;i<(c.red||0);i++)list.push({type:'Red'}); for(i=0;i<(c.yellow||0);i++)list.push({type:'Yellow'}); }  // fallback: counts only, no names yet
     list.sort(function(x,y){return (x.minute||0)-(y.minute||0);});
-    var lines=[24,33.2,42.4,51.6,60.8,70,79.2];
-    list.slice(0,7).forEach(function(bk,k){ var r=document.createElement('div');r.className='bentry';r.style.top=lines[k]+'%';
+    var lines=[28.2,35.6,43.0,50.5,58.1,65.6,73.1];   // measured Y of the 7 printed rules in book-ledger.png — entries rest ON their line
+    var MAX=lines.length, over=list.length>MAX, show=over?list.slice(0,MAX-1):list;   // overflow: never silently drop — the last rule becomes a "+N more" summary
+    show.forEach(function(bk,k){ var r=document.createElement('div');r.className='bentry';r.style.top='calc('+lines[k]+'% - 3px)';
       r.innerHTML='<span class="chip '+(bk.type==='Red'?'r':'y')+'"></span><span class="bn">'+(bk.player||'—')+'</span><span class="bmn">'+(bk.minute!=null?bk.minute+"′":'')+'</span>';
-      page.appendChild(r); }); }
+      page.appendChild(r); });
+    if(over){ var m=document.createElement('div');m.className='bentry more';m.style.top='calc('+lines[MAX-1]+'% - 3px)';
+      m.innerHTML='<span class="bn">+ '+(list.length-(MAX-1))+' MORE BOOKED</span>';
+      page.appendChild(m); } }
   // THE TEAM SHEET — a side's starting XI (number · name, captain marked). null until the wire names them.
   function fmtName(n){ if(!n)return '—'; var c=n.indexOf(','); if(c<0)return n; var sur=n.slice(0,c).trim(),fr=n.slice(c+1).trim(),full=(fr?fr+' ':'')+sur; return full.length<=17?full:(fr?fr.charAt(0)+'. ':'')+sur; }   // full name where it fits; else F. Surname (no ugly truncation)
   function fillXI(ol,arr,cls){ if(!ol)return; ol.innerHTML='';
