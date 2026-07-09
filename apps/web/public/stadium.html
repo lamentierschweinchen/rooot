@@ -308,6 +308,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
 <script src="plate/gens/stadium-data.js"></script>
 <!-- demo engine — private prototype default: baked recording → window.__match (score/clock/market/marketSeries) -->
 <script>if(!/[?&](live=1|demo=0)/.test(location.search))document.write('<scr'+'ipt src="plate/demo-suicol.js"></scr'+'ipt><scr'+'ipt src="demo-feed.js"></scr'+'ipt><scr'+'ipt src="match-read.js"></scr'+'ipt><scr'+'ipt src="crowd-sim.js"></scr'+'ipt>');</script>
+<script>if(/[?&]live=1/.test(location.search))document.write('<scr'+'ipt src="match-read.js"></scr'+'ipt>');</script>
 <script>
 (function(){
   'use strict';
@@ -619,7 +620,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
       else{var s=window.__stats;s.__live=!demoOn;render(s);}}
     else if(tries>12)clearInterval(iv);},400); }
 
-  // ---- THE MARKET card + demo masthead: read window.__match (serverless; __stats is the live wire, offline in demo) ----
+  // ---- THE MARKET card + masthead: read window.__match (demo tape or live odds wire) ----
   function drawOdds(m){ m=m||window.__match; var box=el('oddsViz'); if(!box||!m)return;
     var series=m.marketSeries||[], cs=getComputedStyle(document.documentElement);
     var HC=(cs.getPropertyValue('--home')||'#2049AA').trim(), AC=(cs.getPropertyValue('--away')||'#C8504D').trim();
@@ -632,10 +633,10 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     box.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;display:block"><rect x="'+px+'" y="'+py+'" width="'+(W-2*px)+'" height="'+(H-2*py)+'" fill="#EFE7D2" stroke="#1A1815" stroke-width="1.4"/><line x1="'+px+'" y1="'+Y(0.5).toFixed(1)+'" x2="'+(W-px)+'" y2="'+Y(0.5).toFixed(1)+'" stroke="#8C8467" stroke-width="0.6" stroke-dasharray="2 3"/>'+'<path d="'+path('draw')+'" fill="none" stroke="#7a7256" stroke-width="1.6" stroke-dasharray="2.5 3" stroke-linejoin="round"/>'+cased('away',AC)+cased('home',HC)+'</svg>';
     var last=series[series.length-1], k=el('oddsKey'); if(k)k.innerHTML='<span style="color:'+HC+'">'+el('mHT').textContent+' '+Math.round(last.home*100)+'%</span><span style="color:#7a7256">DRAW '+Math.round(last.draw*100)+'%</span><span style="color:'+AC+'">'+el('mAT').textContent+' '+Math.round(last.away*100)+'%</span>';
   }
-  if(DEMO && window.__match){
+  if((DEMO||LIVE) && window.__match){
     var onMatchS=function(m){ if(!m)return;
       el('bSc').textContent=m.score.home+'–'+m.score.away;
-      el('mSt').textContent='REPLAY'; el('bMin').textContent=(m.clock&&m.clock.min!=null?m.clock.min+'′':'');
+      el('mSt').textContent=LIVE?'LIVE':'REPLAY'; el('bMin').textContent=(m.clock&&m.clock.min!=null?m.clock.min+'′':'');
       if(m.teams&&m.teams.home&&m.teams.home.tri)el('mHT').textContent=m.teams.home.tri; if(m.teams&&m.teams.away&&m.teams.away.tri)el('mAT').textContent=m.teams.away.tri;
       drawOdds(m); };
     window.__match.on(onMatchS); onMatchS(window.__match);

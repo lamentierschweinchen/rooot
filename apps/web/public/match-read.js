@@ -14,9 +14,9 @@
  * fires `on(fn)` subscribers. connectFeed is intentionally duplicated in
  * crowd-sim.js (~10 lines) rather than shared — not worth a new file.
  *
- * Opt-in: ?demo=1 or ?matchread=1. Match via ?match=<id>; ?ws=<wsBase> picks
- * the live WebSocket transport (mirrors crowd-sim.js's gate); no ?ws under
- * ?demo=1 plays the baked apps/web/public/plate/demo-suicol.js recording.
+ * Opt-in: ?demo=1, ?live=1, or ?matchread=1. Match via ?match=<id>; live
+ * defaults to the stands WebSocket (override with ?ws=<wsBase>); demo with no
+ * ?ws plays the baked apps/web/public/plate/demo-suicol.js recording.
  *
  * Honesty: market is the feed's real de-vigged triple, never synthesized.
  * marketSeries accumulates one { min, home, draw, away } point per odds
@@ -79,9 +79,10 @@
   if (typeof window === 'undefined') return;
   var q = new URLSearchParams(location.search);
   var DEMO = q.get('demo') === '1';   // live by default; demo only when explicitly asked
-  if (!DEMO && q.get('matchread') !== '1') return;   // private prototype defaults to demo; explicit live/demo=0 opts out
-  var matchId = q.get('match') || '18202783';
-  var wsBase = q.get('ws'); // explicit only — connectFeed() decides WS vs. baked from its presence
+  var LIVE = q.get('live') === '1';
+  if (!DEMO && !LIVE && q.get('matchread') !== '1') return;   // private prototype defaults to demo; explicit live/demo=0 opts out
+  var matchId = q.get('match') || (LIVE ? '18209181' : '18202783');
+  var wsBase = q.get('ws') || (LIVE ? 'wss://rooot-stands.fly.dev/' : null);
   var state = initialState();
   var subs = [];
   function snapshot() { return { score: state.score, clock: state.clock, market: state.market, marketSeries: state.marketSeries, teams: state.teams, done: state.done }; }
