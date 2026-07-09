@@ -75,12 +75,22 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .hall .no{color:var(--gold);font-weight:800}
 
 /* THE PINS — moment tokens */
-.pins{display:flex;flex-wrap:wrap;gap:14px;padding:0 18px}
-.pin{width:66px;text-align:center}
-.pin .disc{width:56px;height:56px;margin:0 auto;border-radius:50%;border:2.5px solid var(--ink);background:var(--card);display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:2px 2px 0 rgba(26,24,21,.18)}
-.pin.gold .disc{background:var(--gold)}
-.pin.locked .disc{background:var(--paper);border-style:dashed;opacity:.5}
-.pin .pl{font-weight:800;font-size:6.5px;letter-spacing:.05em;color:var(--sub);margin-top:5px;line-height:1.15}
+.pins{display:flex;flex-wrap:wrap;gap:17px 13px;padding:0 18px}
+.pin{width:72px;text-align:center}
+/* the medal: a flat struck-metal disc — its colour IS the rank — with the earned emblem set into it */
+.medal{position:relative;width:60px;height:60px;margin:0 auto;border-radius:50%;border:2.5px solid var(--ink);display:flex;align-items:center;justify-content:center;box-shadow:2px 2px 0 rgba(26,24,21,.22)}
+.medal::before{content:"";position:absolute;inset:3.5px;border-radius:50%;border:1px solid rgba(26,24,21,.22)}   /* struck-coin inner rim, flat */
+.medal img{position:relative;width:50px;height:50px;object-fit:contain;filter:drop-shadow(0 1px 0 rgba(26,24,21,.22))}
+.pin.bronze .medal{background:#B0763B}
+.pin.silver .medal{background:#AEB5BA}
+.pin.gold   .medal{background:var(--gold)}
+.pin.locked .medal{background:var(--paper);border-style:dashed;box-shadow:none}
+.pin.locked .medal::before{display:none}
+.pin.locked .medal img{filter:grayscale(1) opacity(.3)}
+.pin .pl{font-weight:800;font-size:7px;letter-spacing:.03em;color:var(--ink);margin-top:6px;line-height:1.18}
+.pin .pc{font-weight:800;font-size:6.5px;letter-spacing:.05em;margin-top:2px}
+.pin.bronze .pc{color:#9C6733}.pin.silver .pc{color:#82888D}.pin.gold .pc{color:#A87F27}
+.pin.locked .pl{color:var(--sub)}.pin.locked .pc{color:var(--sub);font-weight:700}
 
 /* footer */
 .foot{margin:26px 18px 0;padding-top:12px;border-top:1px solid var(--line);text-align:center;font-weight:700;font-size:7.5px;letter-spacing:.09em;color:var(--sub);line-height:1.5}
@@ -95,6 +105,8 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .pin:nth-child(3){animation-delay:.18s}
 .pin:nth-child(4){animation-delay:.24s}
 .pin:nth-child(5){animation-delay:.3s}
+.pin:nth-child(6){animation-delay:.36s}
+.pin:nth-child(7){animation-delay:.42s}
 @media (prefers-reduced-motion:reduce){.reveal{animation:none}}
 </style>
 </head>
@@ -125,7 +137,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
   <div class="sec"><span class="t">THE SCARVES</span><span class="c">tap to unroll the cloth</span></div>
   <div class="rack" id="rack"></div>
 
-  <div class="sec"><span class="t">THE PINS</span><span class="c">moments you were there for</span></div>
+  <div class="sec"><span class="t">THE PINS</span><span class="c">the fan virtues · bronze → silver → gold · earned, not bought</span></div>
   <div class="pins" id="pins"></div>
 
   <div class="foot reveal">your cabinet fills as you live matches · each scarf is the match woven from the real feed<br>provenance sits on-chain — yours to keep, worthless to flip · sample shown until wired</div>
@@ -158,16 +170,23 @@ el('rack').innerHTML=SCARVES.map(function(s){
 el('nextFix').setAttribute('href','gate.html'+Q);   // forward loop → the next gate (carry demo)
 var _bg=document.querySelector('.backg'); if(_bg)_bg.setAttribute('href','ground.html'+Q);   // keep the walkthrough in demo mode
 
-// sample pins — moments (locked ones are yet to be earned)
-var PINS=[
-  {e:'🧣',l:'FIRST ROOT',gold:false},
-  {e:'🎯',l:'CALLED THE UPSET',gold:true},
-  {e:'◆',l:'STILL SINGING',gold:false},
-  {e:'🔥',l:'A NIGHT AT 100dB',gold:false},
-  {e:'',l:'HAT-TRICK — LOCKED',locked:true}
+// THE PINS — the seven badges of the fan virtues. Each is ONE earned emblem, ranked by an HONEST
+// counter: bronze/silver/gold = which tier your real count has passed. Sample counts until wired.
+var VIRTUES=[
+  {img:'root.png',    l:'THE ROOT',         c:14,    unit:'ROOTED',  t:[1,10,50]},      // took a side, stood in it
+  {img:'call.png',    l:'THE CALL',         c:21,    unit:'NAILED',  t:[1,5,25]},       // your scoreline landed
+  {img:'tide.png',    l:'AGAINST THE TIDE',  c:4,     unit:'UPSETS',  t:[1,5,20]},       // right, when the market wasn't
+  {img:'twelfth.png', l:'THE TWELFTH',       c:51200, unit:'CHEERS',  t:[500,5000,50000]},// your voice in the roar
+  {img:'read.png',    l:'READ THE GAME',     c:9,     unit:'READS',   t:[1,10,40]},      // saw the moment coming
+  {img:'season.png',  l:'SEASON TICKET',     c:12,    unit:'LIVED',   t:[5,20,50]},      // matches you were there for
+  {img:'few.png',     l:'ONE OF THE FEW',    c:0,     unit:'TIMES',   t:[1,5,20]}        // rooted the outnumbered end
 ];
-el('pins').innerHTML=PINS.map(function(p){
-  return '<div class="pin reveal'+(p.gold?' gold':'')+(p.locked?' locked':'')+'"><div class="disc">'+(p.e||'')+'</div><div class="pl">'+p.l+'</div></div>';
+function rankOf(c,t){ return c>=t[2]?'gold':c>=t[1]?'silver':c>=t[0]?'bronze':'locked'; }
+function fmtC(n){ return n>=1000?(+(n/1000).toFixed(n>=10000?0:1))+'k':(''+n); }
+el('pins').innerHTML=VIRTUES.map(function(v){
+  var rk=rankOf(v.c,v.t), locked=rk==='locked';
+  var cnt=locked?('LOCKED · '+v.t[0]+'+'):(fmtC(v.c)+' '+v.unit);
+  return '<div class="pin reveal '+rk+'"><div class="medal"><img src="plate/gens/trophies/'+v.img+'" alt="'+v.l+'"></div><div class="pl">'+v.l+'</div><div class="pc">'+cnt+'</div></div>';
 }).join('');
 </script>
 </body>
