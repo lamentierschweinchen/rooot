@@ -110,6 +110,11 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
 .spmid{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:800;font-size:10px;letter-spacing:.11em;color:var(--sub)}
 .spmid svg{width:24px;height:24px;flex-shrink:0}
 .spmid img{width:33px;height:33px;object-fit:contain;flex-shrink:0}
+#sheet-arc .sprow{flex-direction:column;align-items:stretch;gap:7px}
+#sheet-arc .sptop{display:flex;align-items:center}
+.spbar{display:flex;height:6px;border-radius:3px;overflow:hidden;background:rgba(26,24,21,.07);margin:0 4px}
+.spbar i{display:block;height:100%;min-width:0;transition:flex-grow .4s}
+.spbar i.h{background:var(--home)}.spbar i.a{background:var(--away)}
 /* detail: THE BOOK — bookings stamped down the ledger pages */
 .bpage{position:absolute;top:0;bottom:0;width:34%}
 .bpage.h{left:8%}.bpage.a{right:11.5%}
@@ -235,9 +240,9 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     <div class="art"><div style="position:relative"><img src="plate/gens/arc.png" alt="set pieces"><div id="corners"><div class="cband h" id="corH"></div><div class="cband a" id="corA"></div></div></div></div>
     <div class="splabel"><span class="t h" id="cHn">POR</span><span>SET PIECES WON</span><span class="t a" id="cAn">ESP</span></div>
     <div class="spgrid">
-      <div class="sprow"><span class="spn h" id="spCh">0</span><span class="spmid"><svg viewBox="0 0 24 24" fill="none"><line x1="6" y1="22" x2="6" y2="3" stroke="#8C8467" stroke-width="2"/><path d="M6 3.5 L17 7 L6 10.5 Z" fill="#8C8467"/></svg>CORNERS</span><span class="spn a" id="spCa">0</span></div>
-      <div class="sprow"><span class="spn h" id="spFh">0</span><span class="spmid"><img src="plate/gens/freekick.png" alt="">FREE KICKS</span><span class="spn a" id="spFa">0</span></div>
-      <div class="sprow"><span class="spn h" id="spTh">—</span><span class="spmid"><img src="plate/gens/throwin.png" alt="">THROW-INS</span><span class="spn a" id="spTa">—</span></div>
+      <div class="sprow"><div class="sptop"><span class="spn h" id="spCh">0</span><span class="spmid"><svg viewBox="0 0 24 24" fill="none"><line x1="6" y1="22" x2="6" y2="3" stroke="#8C8467" stroke-width="2"/><path d="M6 3.5 L17 7 L6 10.5 Z" fill="#8C8467"/></svg>CORNERS</span><span class="spn a" id="spCa">0</span></div><div class="spbar"><i class="h" id="barCh"></i><i class="a" id="barCa"></i></div></div>
+      <div class="sprow"><div class="sptop"><span class="spn h" id="spFh">0</span><span class="spmid"><img src="plate/gens/freekick.png" alt="">FREE KICKS</span><span class="spn a" id="spFa">0</span></div><div class="spbar"><i class="h" id="barFh"></i><i class="a" id="barFa"></i></div></div>
+      <div class="sprow"><div class="sptop"><span class="spn h" id="spTh">—</span><span class="spmid"><img src="plate/gens/throwin.png" alt="">THROW-INS</span><span class="spn a" id="spTa">—</span></div><div class="spbar"><i class="h" id="barTh"></i><i class="a" id="barTa"></i></div></div>
     </div>
   </section>
 
@@ -502,9 +507,9 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     // detail: SET PIECES — corner marks on the hero + the dead-ball breakdown
     ensureC('corH','h',h.corners||0);ensureC('corA','a',a.corners||0);
     el('cHn').textContent=HOME.tri;el('cAn').textContent=AWAY.tri;
-    el('spCh').textContent=h.corners||0;el('spCa').textContent=a.corners||0;
-    el('spFh').textContent=(h.freeKicks!=null?h.freeKicks:0);el('spFa').textContent=(a.freeKicks!=null?a.freeKicks:0);
-    el('spTh').textContent=(h.throwIns!=null?h.throwIns:'—');el('spTa').textContent=(a.throwIns!=null?a.throwIns:'—');
+    el('spCh').textContent=h.corners||0;el('spCa').textContent=a.corners||0;el('barCh').style.flexGrow=h.corners||0;el('barCa').style.flexGrow=a.corners||0;
+    el('spFh').textContent=(h.freeKicks!=null?h.freeKicks:0);el('spFa').textContent=(a.freeKicks!=null?a.freeKicks:0);el('barFh').style.flexGrow=h.freeKicks||0;el('barFa').style.flexGrow=a.freeKicks||0;
+    el('spTh').textContent=(h.throwIns!=null?h.throwIns:'—');el('spTa').textContent=(a.throwIns!=null?a.throwIns:'—');el('barTh').style.flexGrow=h.throwIns||0;el('barTa').style.flexGrow=a.throwIns||0;
     // detail: THE BOOK — bookings on the ledger, offsides/fouls tallied, match-level VAR strip
     fillBook(el('bookH'),h); fillBook(el('bookA'),a);
     el('bkHn').textContent=HOME.tri;el('bkAn').textContent=AWAY.tri;
