@@ -47,7 +47,12 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .end{flex:1;padding:20px 10px 15px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;
   background:var(--card);transition:background .25s,color .25s,opacity .25s;-webkit-tap-highlight-color:transparent}
 .end+.end{border-left:1.5px solid var(--ink)}
-.end .flag{font-size:34px;line-height:1}
+.end .flag{line-height:1}
+/* generated sticker-badge */
+.end .flag.tile{display:flex;align-items:center;justify-content:center}
+.end .flag img{width:44px;height:44px;object-fit:contain;filter:drop-shadow(1.5px 1.5px 0 rgba(26,24,21,.22))}
+/* fallback: frame the unicode emoji as a tile so it rhymes with the sticker until that nation is drawn */
+.end .flag:not(.tile){display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;font-size:27px;background:var(--paper);border:1.5px solid var(--ink);border-radius:4px;box-shadow:1.5px 1.5px 0 rgba(26,24,21,.2)}
 .end .tri{font-weight:900;font-size:34px;line-height:.9;letter-spacing:.02em}
 .end.h .tri{color:var(--home)}.end.a .tri{color:var(--away)}
 .end .nm{font-weight:700;font-size:8.5px;letter-spacing:.15em;color:var(--sub)}
@@ -166,6 +171,15 @@ var ends=document.getElementById('ends'), neutral=document.getElementById('neutr
     cl=document.getElementById('cl'), go=document.getElementById('go');
 var CONVLBL={1:'A HUNCH',2:'A LEAN',3:'CONFIDENT',4:'CERTAIN'};
 var SIDECOL={h:'#D52B1E',a:'#E8B10A'};
+
+// flags: upgrade each end's flag to its generated sticker-badge if we have that nation;
+// otherwise leave the unicode emoji already in the markup (graceful fallback — auto-fills as more are drawn)
+var FLAGSET={ARG:1,BEL:1,ENG:1,FRA:1,MOR:1,NOR:1,SPA:1,SUI:1};
+[].forEach.call(document.querySelectorAll('.end'),function(end){
+  var t=end.querySelector('.tri'), f=end.querySelector('.flag');
+  var tri=t?t.textContent.trim():''; if(!f||!FLAGSET[tri])return;
+  f.classList.add('tile'); f.innerHTML='<img src="plate/gens/flags/'+tri+'.png" alt="'+tri+'">';
+});
 
 function ready(){ if(side && touched) go.classList.add('ready'); }
 
