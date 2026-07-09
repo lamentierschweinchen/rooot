@@ -684,13 +684,18 @@ async function handleSeatClaim(req: IncomingMessage, res: ServerResponse): Promi
     sendJson(res, 400, { error: 'invalid pubkey' });
     return;
   }
-  const match = typeof matchId === 'string' ? registry.get(matchId) : undefined;
-  const record = match
-    ? bindClaim(match, anonId, pubkey, method, Date.now())
-    : { pubkey, method, side: null, call: null, matchId: matchId ?? null, boundAtMs: Date.now() };
-  const profile = saveProfile(pubkey, { sides: record.side ? [record.side] : [], since: record.boundAtMs });
-  // TODO(Task 6b): mint the scarf owned by pubkey here and return { asset, txUrl }
-  sendJson(res, 200, { profile, mint: null });
+  try {
+    const match = typeof matchId === 'string' ? registry.get(matchId) : undefined;
+    const record = match
+      ? bindClaim(match, anonId, pubkey, method, Date.now())
+      : { pubkey, method, side: null, call: null, matchId: matchId ?? null, boundAtMs: Date.now() };
+    const profile = saveProfile(pubkey, { sides: record.side ? [record.side] : [], since: record.boundAtMs });
+    // TODO(Task 6b): mint the scarf owned by pubkey here and return { asset, txUrl }
+    sendJson(res, 200, { profile, mint: null });
+  } catch (err) {
+    console.warn(`[seat] claim failed for ${pubkey.slice(0, 8)}: ${String(err)}`);
+    sendJson(res, 500, { error: 'claim failed' });
+  }
 }
 
 /** GET /seat/album?pubkey= -> {scarves}. Devnet DAS lookup; empty until 6b mints. */
@@ -720,7 +725,13 @@ function handleSeatMe(pubkey: string | null, res: ServerResponse): void {
 
 export function createStandsServer() {
   const httpServer = createServer((req, res) => {
-    const url = new URL(req.url ?? '/', 'http://x');
+    let url: URL;
+    try {
+      url = new URL(req.url ?? '/', 'http://x');
+    } catch {
+      sendJson(res, 400, { error: 'bad request' });
+      return;
+    }
     if (req.method === 'GET' && url.pathname === '/health') {
       const body = JSON.stringify({
         uptime: Math.floor((Date.now() - START_MS) / 1000),
