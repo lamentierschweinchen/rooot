@@ -22,7 +22,10 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
   display:flex;flex-direction:column;justify-content:center;padding:16px 14px}
 
 /* the matchday pass — a content-height object floating on the paper */
-.pass{position:relative;display:flex;flex-direction:column;background:var(--card);box-shadow:0 14px 40px rgba(26,24,21,.22)}
+.pass{position:relative;display:flex;flex-direction:column;background:var(--card);box-shadow:0 14px 40px rgba(26,24,21,.22);animation:passArrive .7s cubic-bezier(.22,.9,.28,1) both}
+@keyframes passArrive{from{transform:translateY(22px) scale(.986)}to{transform:none}}   /* the ticket settles onto the paper (transform-only → never hides the gate) */
+@media(prefers-reduced-motion:reduce){.pass{animation:none}}
+.mast .serial{color:var(--gold);font-weight:800;letter-spacing:.11em}
 .pass::before{content:"";position:absolute;inset:7px;border:1.5px solid var(--ink);pointer-events:none;z-index:5}
 .notch{position:absolute;width:14px;height:14px;background:var(--paper);border-radius:50%;z-index:6}
 .notch.tl{top:-7px;left:-7px}.notch.tr{top:-7px;right:-7px}.notch.bl{bottom:-7px;left:-7px}.notch.br{bottom:-7px;right:-7px}
@@ -110,7 +113,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
     <div class="hostband"><i class="v"></i><i class="r"></i><i class="a"></i><i class="g"></i></div>
     <div class="mast">
       <div class="brand">ROOOT</div>
-      <div class="meta">MATCHDAY · SUI v COL<br>KICK-OFF 20:00</div>
+      <div class="meta">MATCHDAY · SUI v COL<br>KICK-OFF 20:00<br><b class="serial">ADMIT ONE · '26</b></div>
     </div>
 
     <div class="lab"><span class="n">1</span>CHOOSE YOUR<b>SIDE</b></div>
