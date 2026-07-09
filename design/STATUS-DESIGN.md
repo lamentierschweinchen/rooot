@@ -5,9 +5,15 @@
 coordinator's lane — I flag, I don't touch. Update this doc as state changes.*
 
 ## 🔧 IN FLIGHT RIGHT NOW
-**Nothing mid-edit.** Book, trophies, and flags all landed (below).
+**Nothing mid-edit.** Coherence sweep done — book, trophies, flags, and a stands polish pass all landed.
 
 ## ✅ DONE + committed (recent → older)
+- `97eed3d` terrace: **Ben-Day halftone over the crowd** — multiply dot-screen on the tile field so
+  each end reads as printed colour-blocks (matches flags/badges/ROOOT burst). Texture only, no data.
+- `2da1380` terrace: **your own stat line made legible** at the you-end (was ink-on-dark). Fixes ground too.
+- Coherence sweep verdict: all 7 surfaces walked at the "shareable individually?" bar — strong overall;
+  the two above were the only real fixes. Loom-sparse-early is honest (weave fills with the match).
+- `8047de8` gate: **COL sticker** socketed (owner drew it) — both demo ends now real flag-badges.
 - `212a8d0` gate: **flags at the two ends** — each upgrades to its generated sticker if in-set (SUI),
   else keeps a framed-emoji fallback (COL). Data-driven off `.tri`, so it auto-upgrades + works for
   the `/live` FRA–MOR gate (both in-set).
