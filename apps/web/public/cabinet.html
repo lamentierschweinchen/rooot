@@ -175,32 +175,40 @@ function rankOf(c,t){ return c>=t[2]?'gold':c>=t[1]?'silver':c>=t[0]?'bronze':'l
 function fmtC(n){ return n>=1000?(+(n/1000).toFixed(n>=10000?0:1))+'k':(''+n); }
 function resTag(r){ return r==='hit'?'<span class="hit">✓ CALLED IT</span>':r==='miss'?'<span class="miss">✗ didn’t fall</span>':'<span class="no">— neutral</span>'; }
 
-// --- the sample cabinet, shown until the coordinator's __seat/__album interface lands (same shape as the spec) ---
+// team tricode → scarf palette [fill, ink-on-fill]. Colours live here (design's); the mint carries only facts.
+var COLORS={ARG:['#2049AA','#F3ECDB'],CPV:['#C8504D','#F3ECDB'],SUI:['#D52B1E','#F3ECDB'],COL:['#E8B10A','#1A1815'],BRA:['#F7D117','#1A1815'],NOR:['#BA0C2F','#F3ECDB'],SPA:['#C60B1E','#F3ECDB'],BEL:['#1A1815','#F3D02F'],ENG:['#D52B1E','#F3ECDB'],FRA:['#2049AA','#F3ECDB'],MOR:['#0E5B32','#F3ECDB']};
+function pal(tri){ return COLORS[tri]||['#8C8467','#F3ECDB']; }
+function fmtSince(v){ if(v==null||v==='')return "'26"; if(typeof v==='string')return v; var d=new Date(v); return "'"+String(d.getFullYear()).slice(2); }   // ms → 'YY; passes strings through
+function deriveRecord(sc){ var n=0; for(var i=0;i<sc.length;i++)if(sc[i].result==='hit')n++; return {lived:sc.length,calls:sc.length,nailed:n,loudestNight:null}; }   // honest: straight off the kept relics
+
+// --- the sample cabinet, shown until the coordinator's __seat/__album interface lands (reconciled shape) ---
 var SAMPLE={
   profile:{displayName:'lukas',sides:['SUI','ARG'],since:"'26"},
   record:{lived:12,calls:34,nailed:21,loudestNight:'ARG'},
   scarves:[
-    {home:'ARG',away:'CPV',hc:'#2049AA',ac:'#C8504D',hi:'#F3ECDB',ai:'#F3ECDB',score:'3–2',comp:'WORLD CUP',date:"08 JUL '26",call:'ARG 3–2',result:'hit',serial:'014'},
-    {home:'SUI',away:'COL',hc:'#D52B1E',ac:'#E8B10A',hi:'#F3ECDB',ai:'#1A1815',score:'1–1',comp:'GROUP F',date:"04 JUL '26",call:'SUI 2–1',result:'miss',serial:'009'},
-    {home:'BRA',away:'NOR',hc:'#F7D117',ac:'#BA0C2F',hi:'#1A1815',ai:'#F3ECDB',score:'0–1',comp:'GROUP C',date:"01 JUL '26",call:'the upset',result:'hit',serial:'003'}
+    {asset:'d1',home:'ARG',away:'CPV',score:'3–2',call:'ARG 3–2',result:'hit', comp:'WORLD CUP',date:"08 JUL '26",serial:'014'},
+    {asset:'d2',home:'SUI',away:'COL',score:'1–1',call:'SUI 2–1',result:'miss',comp:'GROUP F',  date:"04 JUL '26",serial:'009'},
+    {asset:'d3',home:'BRA',away:'NOR',score:'0–1',call:'the upset',result:'hit',comp:'GROUP C',  date:"01 JUL '26",serial:'003'}
   ],
   next:{home:'SPA',away:'BEL',kickoff:"SAT 20:00",side:'SPAIN'}
 };
-// read the live interface if present (empty for a first-time fan), else the sample
+// read the live interface if present (empty for a first-time fan), else the sample. record: album's if given, else derived from scarves
 function resolve(){
   var seat=window.__seat, album=window.__album;
-  if(seat||album) return {
-    real:true,
-    profile:(seat&&seat.profile)||{displayName:'you',sides:[],since:''},
-    record:(album&&album.record)||{lived:0,calls:0,nailed:0,loudestNight:null},
-    scarves:(album&&album.scarves)||[],
-    next:(album&&album.next)||null
-  };
+  if(seat||album){ var scarves=(album&&album.scarves)||[];
+    return {
+      real:true,
+      profile:(seat&&seat.profile)||{displayName:'you',sides:[],since:''},
+      record:(album&&album.record)||deriveRecord(scarves),
+      scarves:scarves,
+      next:(album&&album.next)||null
+    };
+  }
   return SAMPLE;
 }
-function scarfHTML(s){
+function scarfHTML(s){ var ph=pal(s.home), pa=pal(s.away);
   return '<div class="keep reveal" data-match="'+s.home+'-'+s.away+'">'+
-    '<div class="scarf" style="--h:'+s.hc+';--a:'+s.ac+';--hink:'+s.hi+';--aink:'+s.ai+'">'+
+    '<div class="scarf" style="--h:'+ph[0]+';--a:'+pa[0]+';--hink:'+ph[1]+';--aink:'+pa[1]+'">'+
       '<span class="fr"></span>'+
       '<div class="half h"><span class="tri">'+s.home+'</span></div>'+
       '<div class="cart"><span class="sc">'+s.score+'</span><span class="cp">'+s.comp+'</span></div>'+
@@ -213,13 +221,13 @@ function scarfHTML(s){
 
 function render(){
   var d=resolve(), sides=d.profile.sides||[];
-  var empty=d.real && !d.scarves.length && !d.record.lived;
+  var empty=d.real && !d.scarves.length && !d.record.lived;   // a genuinely first-time seat
 
   // identity
   el('who').textContent=d.profile.displayName||'you';
   el('crest').innerHTML=sides.length?(FLAGSET[sides[0]]?'<img src="plate/gens/flags/'+sides[0]+'.png" alt="'+sides[0]+'">':'<span class="crestnone">'+sides[0]+'</span>'):'<span class="crestnone">◈</span>';
   el('af').innerHTML=sides.length
-    ? 'ROOTED FOR&nbsp;'+sides.map(function(s){return flagTile(s);}).join('<span class="fsep">·</span>')+'<span class="fsep">·</span>SINCE '+d.profile.since
+    ? 'ROOTED FOR&nbsp;'+sides.map(function(s){return flagTile(s);}).join('<span class="fsep">·</span>')+'<span class="fsep">·</span>SINCE '+fmtSince(d.profile.since)
     : 'YOUR SEAT IS OPEN · TAKE A SIDE AT THE GATE';
 
   // record — the four tiles
@@ -244,7 +252,8 @@ function render(){
       '<div class="emptymsg">your first match awaits — live one and its scarf is woven here, yours forever</div></div>';
   }
 
-  // THE PINS — sample ranks until counters land; an empty seat shows every virtue still-to-earn
+  // THE PINS — counters are post-MVP (all 7 have no per-fan source yet), so we keep sample ranks; only a
+  // genuinely empty seat forces them all locked. When the coordinator ships real counters, wire them here.
   el('pins').innerHTML=VIRTUES.map(function(v){
     var c=empty?0:v.c, rk=rankOf(c,v.t), locked=rk==='locked';
     var cnt=locked?('LOCKED · '+v.t[0]+'+'):(fmtC(c)+' '+v.unit);

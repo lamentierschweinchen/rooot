@@ -1,134 +1,126 @@
-# Data wiring — design → coordinator handoff
+# Data wiring — design → coordinator handoff  ·  *RECONCILED with your YOUR SEAT plan*
 
-*From: **design lane** (owns `apps/web/public/*.html` + `design/`) · Date: 2026-07-09 ·
-For: **coordinator** (data / adapters / bake / `contracts/` / `main.ts`) ·
-Aligns with: `docs/superpowers/specs/2026-07-09-your-seat-identity-retention-design.md` (YOUR SEAT).*
+*From: **design lane** (owns `apps/web/public/*.html` + `design/`) · Updated: 2026-07-09 after reading
+`docs/superpowers/plans/2026-07-09-your-seat-identity-retention.md`.*
 
-Two asks to make the shipped design surfaces read **real** data instead of sample. Both live in your
-lane. I don't touch `contracts/`, `apps/web/src/main.ts`, the bake, or the engine adapters — I wire my
-HTML surfaces to whatever interface you expose. **P0** is a small, independent unblock; **P1** is your
-YOUR SEAT MVP with the exact read shape my cabinet needs (so we don't discover a mismatch late).
+> **Read this before you touch `cabinet.html`.** Your plan (Task ~8 / line 579) has the coordinator
+> editing `cabinet.html` and references its old hardcoded `#who` + `SCARVES` (lines ~157-161). That file
+> **moved** — I refactored it (commit `41bd5b2`): it already reads a `window.__seat` / `window.__album`
+> interface with a sample fallback, and already has the empty first-run state (NEED pockets, all virtues
+> still-to-earn). So **Task ~8 is done on the design side** — please **don't edit `cabinet.html`**; just
+> feed it the interface below. This keeps us off the same file (AGENTS.md: two lanes never share one).
 
----
+## Ownership (so we don't collide)
 
-## Already working — please don't re-do
+| Yours (data / chain / adapters) | Mine (surfaces) |
+|---|---|
+| `window.__seat`, `window.__album`, `/seat/*`, mint attributes, `seat-adapter.js`, `seat-privy.js`, `demo-seat.js` | `cabinet.html` render, `woven-loom.html` PRESSING CTA wiring |
 
-- `window.__match` — score, clock, market 1X2, `marketSeries` ✓
-- `window.__stats` — shots, corners, freeKicks, throwIns, cards **counts**, goals, attacks
-  (danger/highDanger), territory, possessionPct, fouls, offsides, penalties, varReviews, lineups/XI ✓
-- `window.__stands` — rooted home/away, roar, faithSide ✓
-- The starting **XI carries player names** ✓
-
-My surfaces already consume all of the above correctly. The only gaps are below.
+You expose the interface; I wire the pixels. Same split as `__stands`/`__match`/`__loom` today.
 
 ---
 
-## P0 — event player-names are `null` in the bake  ·  *quick; unblocks THE BOOK + THE BENCH*
+## P0 — event player-names are `null` in the bake  *(unchanged; quick; unblocks THE BOOK + THE BENCH)*
 
-**Symptom (verified live just now in `?demo=1`):** events carry `minute`/`type` but **every name is `null`**.
-
-```js
-__stats.home.cards.list[0]  → { player: null,  type:'Yellow', minute:50 }   // want: player
-__stats.home.subs.moves[0]  → { inName: null, outName: null,  minute:45 }   // want: inName / outName
-__stats.home.scorers[0]     → null                                           // want: scorer name
-```
-
-The **XI kept its names**, so this reads as a **re-bake regression that dropped only *event* names** —
-not a render bug (my surfaces print exactly what they're given).
-
-**Impact:** `stadium.html` → **THE BOOK** renders every booking as `– 50′`, and **THE BENCH** renders
-subs as `– → –`. Two otherwise-finished cards look broken purely on this.
-
-**Ask:**
-1. Re-bake the SUI–COL demo (`plate/demo-suicol.js`) with event player-names attached to
-   `cards.list[].player`, `subs.moves[].inName`/`outName`, and `scorers[]`.
-2. Confirm the **live** adapter (`match-read.js` / the stats adapter) passes those names through on the
-   FRA–MOR premiere path too.
-3. If the upstream feed genuinely lacks event names, say so — I'll design an honest name-less fallback
-   (minute + type only). But please check first: the names **showed earlier this session**, so the data
-   likely exists.
-
-**Done when:** in `stadium.html?demo=1&match=18202783`, THE BOOK shows real surnames on bookings and
-THE BENCH shows real in/out names. I'll screenshot to confirm at runtime (build-green ≠ done).
+`__stats.*.cards.list[].player`, `subs.moves[].inName/outName`, and `scorers[]` are all `null` (minute/
+type present; the XI kept its names → re-bake regression). THE BOOK renders "– 50′", THE BENCH "– → –".
+Re-bake `plate/demo-suicol.js` with event names + confirm the live adapter passes them. **Done when**
+`stadium.html?demo=1&match=18202783` shows real names.
 
 ---
 
-## P1 — a read interface for the cabinet + a `?demo=1` stub  ·  *your YOUR SEAT MVP #1 & #5*
+## P1 — reconciled to your model
 
-`cabinet.html` is fully built visually but **100% hardcoded sample** ("sample shown until wired"). To
-swap sample → real I need the data behind a JS interface my static HTML can read — **exactly like
-`__stands` / `__match`** — **and a demo stub** so I can build + verify on the replay like every other
-surface (I can't build against an interface that only exists on live/claimed).
+### 1 · `window.__seat` — keep your shape, two asks
 
-### `window.__seat` — identity (already in your spec; I read these)
+Your `{ status, pubkey, method, anonId, profile, claim(), on() }` is great and I already read it. Two things:
 
-```js
-window.__seat = { profile: { displayName, sides:[tri…], since }, status, claim(), on(fn) }
-```
+- **`profile.sides` must be team tricodes**, not `'home'/'away'`. The cabinet crest + "ROOTED FOR"
+  render flag stickers (SUI, ARG …); `'home'`/`'away'` can't map to a flag. You have the match teams at
+  bind time — resolve the picked side → its tricode before `saveProfile`. (`sides: ['SUI','ARG']`.)
+- **`profile.since` is a number (ms)** in your store — fine, I format it to `'26` on my side. No change
+  needed from you; just flagging so we agree it stays ms.
 
-### `window.__album` — the room's data (name it whatever; these are the fields the cabinet renders)
+### 2 · `window.__album` — expose the album as a global (not a raw `fetch` in the surface)
+
+Your plan has `cabinet.html` `fetch('/seat/album?pubkey=')` directly. Two problems: it **breaks the
+serverless `?demo=1` walkthrough** (no server), and it's the one surface that reaches past its adapter.
+Please wrap it the way `__stands`/`__match` already work — the `seat-adapter` owns a global the surface reads:
 
 ```js
 window.__album = {
-  record:  { lived, calls, nailed, loudestNight },   // the 4 record tiles (numbers + a tri)
-  scarves: [                                          // the rack, newest first
-    { home, away, hc, ac, hi, ai, score, comp, date, call, result, serial }
-    // result: 'hit' | 'miss' | 'neutral'
-  ],
-  next:    { home, away, kickoff, side } | null,      // NEXT UP fixture (null → I hide the block)
-  on(fn)                                              // re-render on change
+  scarves: [ /* AlbumScarf, shaped below */ ],
+  record: null,        // optional — if null I DERIVE it from scarves (see §4); provide it only if cheap
+  next:   null,        // optional — null is fine, I fall back to the "first gate" CTA (no fixtures source yet)
+  on(fn)               // re-fire when assets-by-owner refreshes
 }
 ```
 
-### The demo stub — `demo-seat.js`
+- **Live:** `seat-adapter` fetches `/seat/album` on claim + publishes to `__album`, fires `on`.
+- **Demo:** `demo-seat.js` (loaded under `?demo=1` beside `demo-feed.js`) sets `__seat` + `__album` from
+  the sample at the bottom of this doc. This is what unblocks me building/verifying on the replay.
 
-Load it under `?demo=1` alongside `demo-feed.js` / `crowd-sim.js`. It should populate `__seat` +
-`__album` with the sample **that cabinet.html currently hardcodes** — so this is literally "expose the
-existing values through the interface." Copy these verbatim:
+### 3 · The mint attribute schema — carry the record, so the rack can render it
+
+Your `shapeAlbum` currently reads only `matchId / side / call`, and the mint writes only those three. The
+cabinet's scarf-rack shows **teams · score · your call · result · comp · date · Nº** and tapping unrolls the
+cloth. The asset is the honest permanent record, so write these attributes at mint (you have them all at
+full time). `AlbumScarf` then becomes:
 
 ```js
-window.__seat = {
-  status: 'anon',
-  profile: { displayName: 'lukas', sides: ['SUI','ARG'], since: "'26" },
-  claim(){ /* stub: resolve to a fake pubkey */ }, on(){}
-};
-window.__album = {
-  record: { lived: 12, calls: 34, nailed: 21, loudestNight: 'ARG' },
-  scarves: [
-    { home:'ARG', away:'CPV', hc:'#2049AA', ac:'#C8504D', hi:'#F3ECDB', ai:'#F3ECDB', score:'3–2', comp:'WORLD CUP', date:"08 JUL '26", call:'ARG 3–2', result:'hit',  serial:'014' },
-    { home:'SUI', away:'COL', hc:'#D52B1E', ac:'#E8B10A', hi:'#F3ECDB', ai:'#1A1815', score:'1–1', comp:'GROUP F',   date:"04 JUL '26", call:'SUI 2–1', result:'miss', serial:'009' },
-    { home:'BRA', away:'NOR', hc:'#F7D117', ac:'#BA0C2F', hi:'#1A1815', ai:'#F3ECDB', score:'0–1', comp:'GROUP C',   date:"01 JUL '26", call:'the upset', result:'hit', serial:'003' }
-  ],
-  next: { home:'SPA', away:'BEL', kickoff:"SAT 20:00", side:'SPAIN' },
-  on(){}
-};
+AlbumScarf = {
+  asset,                 // on-chain id (you have it)
+  home, away,            // tricodes — 'SUI','COL'
+  score,                 // final, e.g. '1–1'   (NOT the prediction)
+  call,                  // the fan's locked call, e.g. 'SUI 2–1'  (string is fine)
+  result,                // 'hit' | 'miss' | 'neutral'  (call vs final)
+  comp,                  // 'GROUP F'
+  date,                  // "04 JUL '26"
+  serial,                // edition Nº, '009'
+  matchId,               // keep — the tap target unrolls its cloth
+  image                  // keep — the woven-cloth relic, for the unrolled keepsake view
+}
 ```
 
-Once the stub exists, I rewrite `cabinet.html` to render entirely from `__seat`/`__album` (drop the
-hardcoded arrays), keeping the demo visually identical — then the live path fills the same interface
-from the fan's owned assets per your spec, and the cabinet is real for free.
+**Team colours stay mine** — I map `home`/`away` tricode → `{hc,ac,hi,ai}` in the cabinet, so you don't
+write colours. You only write the factual record fields above. Malformed asset → drop it (never fake), as
+you already do.
 
-### Claim hook
+### 4 · record & next — I derive / de-scope, no endpoint needed
 
-The loom's full-time **PRESSING** ceremony is built on my side; when `__seat.claim()` exists I wire the
-"take your seat to keep it" tap to it. No new UI needed from you — just the method.
+- **record** (MATCHES LIVED · CALLS MADE · NAILED · LOUDEST NIGHT): I derive `lived`/`calls` = scarf count,
+  `nailed` = scarves with `result:'hit'`, from `__album.scarves` — honest, straight off the real relics. So
+  **no `/seat/me` record fields needed.** `LOUDEST NIGHT` has no on-chain source yet → I show `—` until a
+  per-match cheer-peak attribute exists (a nice *later* mint field; not MVP).
+- **next**: no fixtures source exists, so `__album.next = null` and I render the generic "TAKE YOUR PLACE ·
+  YOUR FIRST GATE" CTA. Wire a real fixture later and I'll light it up.
 
-**Done when:** `cabinet.html?demo=1` renders the sample **entirely from the interface** (nothing
-hardcoded), and changing a stub value changes the page. I'll verify at runtime.
+### 5 · The claim hook
+
+`woven-loom.html`'s full-time PRESSING is mine; when `__seat.claim()` exists I wire "take your seat to keep
+it" to it (your Task 7). Just the method — no UI from you.
 
 ---
 
-## Explicitly NOT blocking
+## Demo stub — `demo-seat.js` (copy verbatim; it's what `cabinet.html` currently samples)
 
-- **Seven virtue pins → real counters** is **post-MVP in your own spec** (§9). Pins stay sample for now
-  — honest, the footer says so. When you reach it, the 7 counters they need are: matches **rooted**,
-  scorelines **nailed**, **upsets** vs market, total **cheers**, moment **reads**, matches **lived**,
-  **outnumbered** ends. (Thresholds live in `design/GEN-PROMPTS-FLAGS-TROPHY.md`.)
-- Flags are done (cabinet + gate); SPA carries the modern constitutional arms — owner confirmed keep.
+```js
+window.__seat = { status:'anon', pubkey:null, method:null, anonId:'demo',
+  profile:{ displayName:'lukas', sides:['SUI','ARG'], since: 1767225600000 }, claim(){}, on(){} };  // since ms ≈ Jan '26
+window.__album = {
+  record:{ lived:12, calls:34, nailed:21, loudestNight:'ARG' },   // demo carries a curated fuller record; real fans → record:null and I derive it
+  next:{ home:'SPA', away:'BEL', kickoff:"SAT 20:00", side:'SPAIN' },
+  scarves:[
+    { asset:'d1', home:'ARG', away:'CPV', score:'3–2', call:'ARG 3–2', result:'hit',  comp:'WORLD CUP', date:"08 JUL '26", serial:'014', matchId:'x', image:null },
+    { asset:'d2', home:'SUI', away:'COL', score:'1–1', call:'SUI 2–1', result:'miss', comp:'GROUP F',   date:"04 JUL '26", serial:'009', matchId:'x', image:null },
+    { asset:'d3', home:'BRA', away:'NOR', score:'0–1', call:'the upset', result:'hit', comp:'GROUP C',   date:"01 JUL '26", serial:'003', matchId:'x', image:null }
+  ], on(){} };
+```
 
-## Coordination note
+**Done when:** `cabinet.html?demo=1` renders from `__album`/`__seat` (I'll re-map my resolver to the fields
+above), and a genuinely empty `__album` shows my first-run state. I verify at runtime + screenshot the
+same day the stub lands.
 
-`contracts/` and `apps/web/src/main.ts` are yours; if wiring `demo-seat.js` into the `?demo=1` loader
-touches `main.ts` or the gate/ground `document.write` blocks, that's your edit — tell me if you'd rather
-I add the `<script>` tag to my surfaces once the file exists. Ping me the moment the stub lands and I'll
-wire + screenshot the cabinet the same day.
+## Not blocking
+- Seven virtue pins → real counters: post-MVP in your spec §9. Pins stay sample; empty seat shows all locked.
+- Flags done; SPA carries the modern constitutional arms (owner confirmed keep).
