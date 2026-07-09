@@ -39,6 +39,7 @@ import {
   parseStatusMessage,
   parseLedgerMessage,
   parseOddsMessage,
+  parseSpell,
 } from '../contracts/normalize';
 import type { FeedMsg } from '../contracts/feed';
 
@@ -105,6 +106,10 @@ function bakeFile(file: string): Baked[] {
     if (led) out.push({ atMs: at, msg: { type: 'ledger', msg: led } });
     const od = parseOddsMessage(raw, at, 'replay');
     if (od) out.push({ atMs: at, msg: { type: 'odds', tick: od } });
+    // possession spells (the loom's possession cord + the stadium's possessionPct) — derived
+    // the same way the live server does. sui-col: Participant1 = SUI = home, so p1IsHome = true.
+    const sp = parseSpell(raw, at, 'replay', true);
+    if (sp) out.push({ atMs: at, msg: { type: 'spell', fixtureId: String(FIXTURE_ID), spell: sp } });
   }
   return out;
 }
