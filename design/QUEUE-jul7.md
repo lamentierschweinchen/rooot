@@ -141,3 +141,16 @@ SUI–COL — great. Two things for **your** lane (I didn't touch either — you
    blue/red (`#2049AA`/`#C8504D`), so "SUI" prints blue (should be red) and "COL" red (should be gold). The stadium
    masthead already themes correctly under demo. Tiny; yours since it's in the loom demo-wire you just committed —
    flag if you'd rather I take the masthead-colour line in woven-loom.html (I'll stay out otherwise).
+
+3. **The demo can't showcase the STARTING XI — the bake has no lineups.** `__stats.lineups` is null on the baked
+   feed, so THE TEAM SHEET reads "TEAM SHEET NOT IN YET" for both sides (my empty state, rendering correctly). But
+   the XI was the owner's flagged **P0 "big miss"** — the demo walkthrough should show it. If the announced XI can
+   be baked in (it arrives on join, pre-kickoff), the card fills the instant the stadium opens. Right now a marquee
+   feature is invisible in the demo.
+
+4. **Stat families aren't time-synced to the replay clock** (loom + score are). At 47' HALF_TIME, `__stats.away.subs`
+   already lists a **118'** sub (Mina ⇄ Lucumi Bonilla — extra time). The loom wove only to ~12' at the 12' mark, but
+   the stat cards jump to the FINAL match state at any clock: the bench shows future subs, possession/shots read
+   end-of-match mid-match. If stats-adapter gated events by the replay minute the way loom-adapter does, every card
+   would play forward in sync with the tide. (My cards render what they're given faithfully — this is the feed's
+   time-sync, not the render. In live it's correct; it only shows in the replay.)
