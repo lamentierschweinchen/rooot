@@ -174,6 +174,20 @@ export class MatchState {
     return { home, away };
   }
 
+  /** Read-only per-anonId access to the rooted side (the fan's REAL side, or
+   * undefined if they never rooted). The seat claim folds this — never invents
+   * it. Typed read of the private `rooted` map; no mutation, no copying. */
+  getRootedSide(anonId: string): Side | undefined {
+    return this.rooted.get(anonId);
+  }
+
+  /** Read-only per-anonId access to the locked prediction (the fan's REAL call,
+   * or undefined if they never predicted). The seat claim folds this — never
+   * invents it. Typed read of the private `predictions` map; no mutation. */
+  getPrediction(anonId: string): { home: number; away: number; atMs: number } | undefined {
+    return this.predictions.get(anonId);
+  }
+
   /* ── predict (the retention spine, docs/MECHANISMS.md §2) ──────────── */
 
   /** Record/replace a fan's predicted scoreline. Ignored once locked (KO).
