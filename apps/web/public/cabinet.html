@@ -175,25 +175,28 @@ var VIRTUES=[
 ];
 function rankOf(c,t){ return c>=t[2]?'gold':c>=t[1]?'silver':c>=t[0]?'bronze':'locked'; }
 function fmtC(n){ return n>=1000?(+(n/1000).toFixed(n>=10000?0:1))+'k':(''+n); }
-function resTag(r){ return r==='hit'?'<span class="hit">✓ CALLED IT</span>':r==='miss'?'<span class="miss">✗ didn’t fall</span>':'<span class="no">— neutral</span>'; }
+// full-time is a truthful THREE-state verdict (post-mortem): exact scoreline · right outcome, wrong score · wrong
+function resTag(r){ return r==='exact'?'<span class="hit">✓ NAILED IT</span>':r==='outcome'?'<span class="no">≈ RIGHT CALL</span>':'<span class="miss">✗ didn’t fall</span>'; }
 
 // team tricode → scarf palette [fill, ink-on-fill]. Colours live here (design's); the mint carries only facts.
 var COLORS={ARG:['#2049AA','#F3ECDB'],CPV:['#C8504D','#F3ECDB'],SUI:['#D52B1E','#F3ECDB'],COL:['#E8B10A','#1A1815'],BRA:['#F7D117','#1A1815'],NOR:['#BA0C2F','#F3ECDB'],SPA:['#C60B1E','#F3ECDB'],BEL:['#1A1815','#F3D02F'],ENG:['#D52B1E','#F3ECDB'],FRA:['#2049AA','#F3ECDB'],MOR:['#0E5B32','#F3ECDB']};
 function pal(tri){ return COLORS[tri]||['#8C8467','#F3ECDB']; }
 function fmtSince(v){ if(v==null||v==='')return "'26"; if(typeof v==='string')return v; var d=new Date(v); return "'"+String(d.getFullYear()).slice(2); }   // ms → 'YY; passes strings through
-function deriveRecord(sc){ var n=0; for(var i=0;i<sc.length;i++)if(sc[i].result==='hit')n++; return {lived:sc.length,calls:sc.length,nailed:n,loudestNight:null}; }   // honest: straight off the kept relics
+function deriveRecord(sc){ var n=0; for(var i=0;i<sc.length;i++)if(sc[i].result==='exact')n++; return {lived:sc.length,calls:sc.length,nailed:n,loudestNight:null}; }   // NAILED = exact scoreline only; straight off the kept relics
 
-// --- the sample cabinet, shown until the coordinator's __seat/__album interface lands (reconciled shape) ---
+// --- the sample cabinet, shown ONLY in the ?demo=1 walkthrough. result is 3-state: exact | outcome | wrong ---
 var SAMPLE={
   profile:{displayName:'lukas',sides:['SUI','ARG'],since:"'26"},
   record:{lived:12,calls:34,nailed:21,loudestNight:'ARG'},
   scarves:[
-    {asset:'d1',home:'ARG',away:'CPV',score:'3–2',call:'ARG 3–2',result:'hit', comp:'WORLD CUP',date:"08 JUL '26",serial:'014'},
-    {asset:'d2',home:'SUI',away:'COL',score:'1–1',call:'SUI 2–1',result:'miss',comp:'GROUP F',  date:"04 JUL '26",serial:'009'},
-    {asset:'d3',home:'BRA',away:'NOR',score:'0–1',call:'the upset',result:'hit',comp:'GROUP C',  date:"01 JUL '26",serial:'003'}
+    {asset:'d1',home:'ARG',away:'CPV',score:'3–2',call:'ARG 3–2',result:'exact',  comp:'WORLD CUP',date:"08 JUL '26",serial:'014'},
+    {asset:'d2',home:'SUI',away:'COL',score:'1–1',call:'SUI 2–1',result:'wrong',  comp:'GROUP F',  date:"04 JUL '26",serial:'009'},
+    {asset:'d3',home:'BRA',away:'NOR',score:'0–1',call:'the upset',result:'outcome',comp:'GROUP C', date:"01 JUL '26",serial:'003'}
   ],
   next:{home:'SPA',away:'BEL',kickoff:"SAT 20:00",side:'SPAIN'}
 };
+// live (or any non-demo) with no seat/album yet → an HONEST empty seat, never the fake sample (post-mortem: no sample on live)
+var EMPTY={real:true, profile:{displayName:'you',sides:[],since:''}, record:{lived:0,calls:0,nailed:0,loudestNight:null}, scarves:[], next:null};
 // read the live interface if present (empty for a first-time fan), else the sample. record: album's if given, else derived from scarves
 function resolve(){
   var seat=window.__seat, album=window.__album;
@@ -206,7 +209,7 @@ function resolve(){
       next:(album&&album.next)||null
     };
   }
-  return SAMPLE;
+  return DEMO?SAMPLE:EMPTY;   // the walkthrough shows the curated sample; a real seat with no data shows the honest empty state
 }
 function scarfHTML(s){ var ph=pal(s.home), pa=pal(s.away);
   return '<div class="keep reveal" data-match="'+s.home+'-'+s.away+'">'+
