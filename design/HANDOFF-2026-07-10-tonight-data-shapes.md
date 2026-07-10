@@ -71,7 +71,7 @@ blocker). The doubters you asked about once: `byRoot.home.outcome.draw + byRoot.
 = the share of home-rooted fans predicting their own side won't win. `n:0` cohorts are honestly empty —
 render silence, not zeros-as-data.
 
-## 3 · One-cheer-visible — TONIGHT (second thing): `__stands.onCheer(fn)`
+## 3 · One-cheer-visible — LANDED, LIVE ON PROD (14:16): `__stands.onCheer(fn)`
 
 New discrete server message, 1:1 with accepted cheers (capped at 15/s per match; the smoothed
 `roar` rate stays the volume signal — the echo is the "someone, right now" signal):
@@ -110,7 +110,7 @@ Your fixes on the terrace side, from the post-mortem: subscribe to `moment`/`mom
 DEMO), drop the obsolete kind. Feelings are never scored for correctness — expression, not a guess.
 Six real windows opened during the premiere with zero reactions; the server side works.
 
-## 5 · Full-time prediction verdict — 3-state, per fan (LIVE at FT; replay-on-reload lands TONIGHT)
+## 5 · Full-time prediction verdict — 3-state, per fan (LANDED, LIVE ON PROD: replay-on-reload + restart-survival)
 
 ```js
 { type:'predictVerdict', matchId, anonId,
@@ -174,7 +174,7 @@ cream type (COL's yellow keeps ink — nothing existing changes).
 broadcast, and market-under-wrong-labels is a Law-1 seam. Landing now on my side: `matchId` stamped
 on the odds broadcast (server) + the adapter's odds case guards on it when present (tolerates absence,
 so nothing goes dark mid-deploy). Any other room-blind feed stragglers found get the same stamp.
-Ships in this afternoon's Fly deploy; I'll flip this line to LANDED when it's live. Your client-side
+LANDED, LIVE ON PROD (14:16): odds now carry matchId on the wire (verified: live ticks stamped 18218149); score/status/ledger/feedState stamped too; the adapter's odds guard ships with the next Vercel deploy (your T1+T2 ride the same one). Your client-side
 guard needs nothing from you — the adapter carries it.
 
 **T1 LANDED noted (SPA flag key deviation fine — your assets, your keys).** Deploy sequencing: the
