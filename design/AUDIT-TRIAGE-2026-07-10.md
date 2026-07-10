@@ -49,6 +49,32 @@ canon (§4.2: possession seam + shuttle borrow gold — pick the canonical meani
    GOOOL/seal/keepsake — the judges' beats. Joint Design+me, ~half a day. *Recommend: yes, tomorrow,
    not tonight.*
 
+## Owner verdicts (2026-07-10 afternoon — these are canon)
+
+1. **Gate: NOT optional — the lurk option is removed.** Pick a team, predict a result; entry requires
+   both. The audit's BLOCKER-1 recommendation is overruled. AND fix the score mechanism: keep
+   tap-to-set (no arrows, no keyboard) but the tap **cycles — after 9 it wraps to 0** (today it dead-ends
+   at 9 with no way back). Design lane, tonight (it's the live front door).
+2. **Specimen quiz:** explained to the owner, verdict pending below.
+3. **Demo re-bake around an exciting game: YES** — tomorrow, joint (my C5 data + Design copy/samples).
+
+## C7 · The added-time clock (owner, 2026-07-10) — CONFIRMED on the wire, contract to follow
+
+The premiere capture proves the shape: odds-tick minutes ran `44 45 46 47 48 49` (first half played
+45+4 as literal 46–49), then the second half **rewound to 45**: `49 → 45 46 47 48 49 51…`. Minutes
+45–49 occur twice in one match; same will happen at 90+N → ET. Any axis keyed on raw minute
+double-books that cloth. The fix is split:
+
+- **Mine (adapter/data):** phase-qualified time on every timed datum — `(phase, minute)` + a display
+  label in football notation (`45+2′`, `67′`, `90+4′`), phase tracked from the status feed; ordering
+  key = (phase, minute), never minute alone. Lands as an additive enrichment on `__loom`/`__stats`
+  after tonight's gate chain; exact shape goes into HANDOFF-2026-07-10-tonight-data-shapes.md when it ships.
+- **Design (the loom + any timeline):** a piecewise axis — each half's band as long as it truly ran
+  (45+N is *woven length*, duration-true), a half-time selvage seam between bands, marks labeled in
+  football notation. "45+3" sits at the end of the first band; "46′" starts the second — they never share x.
+- **Tonight:** live loom behaves exactly as it did at FRA–MAR (survived, unflagged) — not gate-blocking;
+  C7 queues directly after the chain.
+
 ## What the audit does NOT change
 
 Tonight's live-gate chain (manifest ✓ → presence → persistence → verdict replay → canary) is
