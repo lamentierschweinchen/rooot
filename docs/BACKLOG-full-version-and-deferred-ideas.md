@@ -87,6 +87,27 @@ Tech doc (the architecture: one server, two buses, the honesty law, the seams) �
 
 Loom living/breathing motion + shootout-board elevation (woven knots, the held breath); stadium GOAL "symbol + count" + CONTROL plate register; socket the per-team generated balls over the SVG; copy crystallisation (the poetry earns its place once surfaces settle); the loom pre-kickoff "the weave begins at kickoff" affordance (reassessed marginal).
 
+## 10 · AUTOPILOT — match nights with zero team oversight (owner question, 2026-07-10)
+
+The owner's end-state: "everything is set up, everything works" — no human in the loop per game. Honest
+assessment: **achievable for normal games; a thin monitored residual remains.** The per-game manual steps
+today and their automation path:
+
+- **Fixture rotation** (today: `fly secrets set TXLINE_FIXTURES` + `fixture.json` + landing copy per game)
+  → the service already reads `/api/fixtures/snapshot`; it can rotate active fixtures itself and SERVE the
+  manifest (`/fixture` endpoint replaces the static file), landing reads `__fixture` → zero per-game touches.
+  Tonight's manifest is deliberately the first brick of this.
+- **Pre-match assurance** (today: humans re-test) → the canary's smoke mode on a schedule (T-2h, T-30m)
+  + `live-monitor.mjs` wired to a notification channel → a green/red light nobody has to ask for.
+- **Degraded-mode honesty** (today: a human notices odds-without-scores, coverage gaps — see
+  txline-scores-coverage-gap) → automate the DETECTION: surfaces render "LIVE · market only" honestly when
+  the scores feed is silent; the human is only paged, never required for the fallback itself.
+- **The residual that stays human:** TxLINE token renewal (JWT expires 2026-08-02), platform incidents
+  (Fly/Vercel), upstream coverage escalations to TxODDS, and anything product/design. Alerting, not attendance.
+
+Estimate: ~1–2 focused days after the tournament-critical path. Not tonight; tonight's manifest +
+persistence + canary are its foundation.
+
 ---
 
 ## HOW TO USE THIS
