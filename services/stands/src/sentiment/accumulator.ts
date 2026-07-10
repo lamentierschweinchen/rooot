@@ -144,6 +144,20 @@ export class SentimentAccumulator {
     }
   }
 
+  /** Snapshot persistence only (services/stands/src/snapshot.ts): the felt-moment
+   * history accumulated so far, so a mid-match restart doesn't silently drop
+   * moments felt before it from the eventual full-time record. Returns a copy —
+   * callers must not mutate the live accumulator through it. */
+  getMoments(): MomentFeeling[] {
+    return [...this.moments];
+  }
+
+  /** Snapshot restore only: reinstate moments felt before a restart. Call once,
+   * right after construction (boot time) — appends, does not dedupe. */
+  restoreMoments(moments: MomentFeeling[]): void {
+    this.moments.push(...moments);
+  }
+
   /** crystallize the record (call at FULL_TIME with the crowd data). */
   crystallize(crowd: CrowdInputs, edition: SentimentRecord['edition']): SentimentRecord {
     const market = summarizeMarket(this.full, this.phaseSnaps, this.et);

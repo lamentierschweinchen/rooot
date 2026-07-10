@@ -4,18 +4,31 @@
  * callback from server.ts rather than knowing about WebSocket directly.
  */
 import type { ServerMsg, StandsStateMsg } from '@contracts/crowd';
+import type { MomentFeeling } from '@contracts/sentiment';
 import { MatchState } from './match-state';
 import { applySnapshot, readSnapshot, writeSnapshot, SNAPSHOT_INTERVAL_MS } from './snapshot';
 
 export const STANDS_TICK_HZ = 4;
 export const STANDS_TICK_MS = 1000 / STANDS_TICK_HZ;
 
+/** Hooks into server.ts's sentiment accumulators (registry.ts doesn't own them
+ * — server.ts constructs them lazily, keyed by matchId, from fixture identity).
+ * Optional: a registry with no hooks just skips the moments field (harmless —
+ * applySnapshot/writeSnapshot both treat it as "none"). */
+export interface MomentsPersistenceHooks {
+  get(matchId: string): MomentFeeling[];
+  restore(matchId: string, moments: MomentFeeling[]): void;
+}
+
 export class MatchRegistry {
   private readonly matches = new Map<string, MatchState>();
   private tickTimer: NodeJS.Timeout | null = null;
   private snapshotTimer: NodeJS.Timeout | null = null;
 
-  constructor(private readonly broadcast: (matchId: string, msg: ServerMsg) => void) {}
+  constructor(
+    private readonly broadcast: (matchId: string, msg: ServerMsg) => void,
+    private readonly moments?: MomentsPersistenceHooks,
+  ) {}
 
   getOrCreate(matchId: string): MatchState {
     let m = this.matches.get(matchId);
@@ -45,13 +58,15 @@ export class MatchRegistry {
   loadSnapshot(): void {
     const snap = readSnapshot();
     if (!snap) return;
-    applySnapshot(snap, (matchId) => this.getOrCreate(matchId));
-    console.log(`[stands:registry] restored ${snap.matches.length} match(es) from snapshot`);
+    const restoreMoments = this.moments ? (matchId: string, moments: MomentFeeling[]) => this.moments!.restore(matchId, moments) : undefined;
+    applySnapshot(snap, (matchId) => this.getOrCreate(matchId), restoreMoments);
+    console.log(`[stands:registry] restored ${snap.matches.length} match(es) from snapshot (v${snap.version ?? 1})`);
   }
 
   start(): void {
     this.tickTimer = setInterval(() => this.tick(), STANDS_TICK_MS);
-    this.snapshotTimer = setInterval(() => writeSnapshot(this.matches), SNAPSHOT_INTERVAL_MS);
+    const getMoments = this.moments ? (matchId: string) => this.moments!.get(matchId) : undefined;
+    this.snapshotTimer = setInterval(() => writeSnapshot(this.matches, getMoments), SNAPSHOT_INTERVAL_MS);
   }
 
   stop(): void {

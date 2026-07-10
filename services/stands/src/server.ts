@@ -10,6 +10,7 @@
  */
 import { createServer } from 'node:http';
 import { mkdirSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
 import { WebSocket, WebSocketServer } from 'ws';
 import type { CallMsg, CallReceiptMsg, CheerEchoMsg, ClientMsg, MomentKind, MomentOpenMsg, MomentResultMsg, RoomStateMsg, ServerMsg, Side } from '@contracts/crowd';
 import { FEELING_PALETTES } from '@contracts/crowd';
@@ -17,6 +18,7 @@ import type { FeedMsg } from '@contracts/feed';
 import { REACT_WINDOW_MS, RollingCounter, SWING_DELTA_MIN } from './decay';
 import { MatchRegistry } from './registry';
 import { anchorRecordHash, relayCall } from './relay';
+import { DATA_DIR } from './snapshot';
 import { SentimentAccumulator } from './sentiment/accumulator';
 import { fixtureInfo } from './sentiment/teams';
 
@@ -254,18 +256,34 @@ function closeMomentNow(matchId: string, momentId: string): void {
 
 /* ── sentiment record (docs/SENTIMENT.md) ─────────────────────────────── */
 const accumulators = new Map<string, SentimentAccumulator>();
-function feedSentiment(matchId: string, msg: ServerMsg | FeedMsg): void {
+/** The one place a match's SentimentAccumulator is created — used both by the
+ * live feed path (feedSentiment) and by snapshot restore (registry's moments
+ * hook, below), so a restart-restored accumulator and a freshly-fed one are
+ * always the SAME instance per matchId. Unknown fixture -> null (no team
+ * identity to record against — never a placeholder). */
+function getOrCreateAccumulator(matchId: string): SentimentAccumulator | null {
   let acc = accumulators.get(matchId);
   if (!acc) {
     const fx = fixtureInfo(matchId);
-    if (!fx) return; // unknown fixture — no team identity to record against
+    if (!fx) return null;
     acc = new SentimentAccumulator(matchId, fx);
     accumulators.set(matchId, acc);
   }
+  return acc;
+}
+
+function feedSentiment(matchId: string, msg: ServerMsg | FeedMsg): void {
+  const acc = getOrCreateAccumulator(matchId);
+  if (!acc) return; // unknown fixture — no team identity to record against
   acc.onFeed(msg);
 }
 
-const SENTIMENT_DIR = process.env.SENTIMENT_DIR ?? '/tmp/rooot-sentiment';
+/** Full-time crystallization, persisted on the SAME durable dir the restart
+ * snapshot uses (Task 3 — volume-ready: /data on Fly when the volume is
+ * mounted, /tmp otherwise). One timestamped file per crystallization — never
+ * overwritten by a later match — except the async anchor-tx-sig fill-in
+ * below, which updates THIS SAME file (it's the same crystallization event,
+ * just completing its on-chain anchor a little later). */
 function crystallizeSentiment(matchId: string, match: ReturnType<MatchRegistry['get']>): void {
   const acc = accumulators.get(matchId);
   if (!acc || !match) return;
@@ -274,15 +292,17 @@ function crystallizeSentiment(matchId: string, match: ReturnType<MatchRegistry['
       { consensus: match.consensus(), rooted: match.counts() },
       { serial: 1, editionSize: null, caption: matchId },
     );
-    mkdirSync(SENTIMENT_DIR, { recursive: true });
-    writeFileSync(`${SENTIMENT_DIR}/${matchId}.json`, JSON.stringify(record, null, 2));
+    const dir = path.join(DATA_DIR, 'sentiment');
+    const filePath = path.join(dir, `${matchId}-${Date.now()}.json`);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(filePath, JSON.stringify(record, null, 2));
     broadcastToMatch(matchId, { type: 'sentiment', record } as unknown as ServerMsg);
-    console.log(`[sentiment] crystallized ${matchId}: ${record.headline} (hash ${record.provenance.recordHash.slice(0, 12)})`);
+    console.log(`[sentiment] crystallized ${matchId}: ${record.headline} (hash ${record.provenance.recordHash.slice(0, 12)}) -> ${filePath}`);
     // anchor the hash on-chain (best-effort) → persist + re-emit with the txSig.
     void anchorRecordHash(matchId, record.provenance.recordHash).then((sig: string | null) => {
       if (!sig) return;
       record.provenance.anchorTxSig = sig;
-      writeFileSync(`${SENTIMENT_DIR}/${matchId}.json`, JSON.stringify(record, null, 2));
+      writeFileSync(filePath, JSON.stringify(record, null, 2));
       broadcastToMatch(matchId, { type: 'sentiment', record } as unknown as ServerMsg);
     });
   } catch (err) {
@@ -458,7 +478,17 @@ function replaySnapshot(ws: WebSocket, matchId: string): void {
   }
 }
 
-const registry = new MatchRegistry((matchId, msg) => broadcastToMatch(matchId, msg));
+const registry = new MatchRegistry(
+  (matchId, msg) => broadcastToMatch(matchId, msg),
+  {
+    // Task 3: the felt-moment history lives on the SentimentAccumulator, which
+    // this file owns (registry.ts doesn't know about sentiment at all) — so the
+    // registry's snapshot read/write goes through these two hooks instead of
+    // reaching into `accumulators` directly.
+    get: (matchId) => accumulators.get(matchId)?.getMoments() ?? [],
+    restore: (matchId, moments) => { getOrCreateAccumulator(matchId)?.restoreMoments(moments); },
+  },
+);
 
 function isValidSide(v: unknown): v is Side {
   return v === 'home' || v === 'away';

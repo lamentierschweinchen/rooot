@@ -112,6 +112,11 @@ export class MatchState {
   private readonly predictions = new Map<string, { home: number; away: number; atMs: number }>();
   /** predictions lock at kickoff — a claim on the future locks when it starts. */
   private predictLocked = false;
+  /** anonId -> this fan's resolved verdict, set once at FULL_TIME (docs/MECHANISMS.md
+   * §2 → FORESIGHT). Populated by resolvePredictions; snapshotted (services/stands/src/
+   * snapshot.ts) so a verdict survives a restart, and replayed into a fan's hello once
+   * it exists (server.ts handleHello) — a verdict is personal, never broadcast. */
+  private readonly verdicts = new Map<string, PredictVerdictMsg>();
   /** presence refcount: anonId -> number of open sockets that have adopted it.
    * A ground visit can open several sockets for one fan (tabs/iframes); this
    * must survive any ONE of them closing (post-mortem: a Set-based presence
@@ -204,6 +209,13 @@ export class MatchState {
     return true;
   }
 
+  /** Snapshot restore only (services/stands/src/snapshot.ts): install a fan's
+   * prior prediction directly, bypassing the lock check — the lock itself is
+   * restored separately via lockPredictions() so restore order doesn't matter. */
+  restorePrediction(anonId: string, home: number, away: number, atMs: number): void {
+    this.predictions.set(anonId, { home, away, atMs });
+  }
+
   /** Lock predictions (call at kickoff — FIRST_HALF). Idempotent. */
   lockPredictions(): void {
     this.predictLocked = true;
@@ -239,23 +251,44 @@ export class MatchState {
     };
   }
 
-  /** Resolve every prediction against the final score → verdicts. */
+  /** Resolve every prediction against the final score → verdicts. Also stores
+   * each one (anonId -> verdict) so a late joiner/reconnect can be caught up
+   * later via verdictFor — see handleHello in server.ts. */
   resolvePredictions(finalHome: number, finalAway: number): PredictVerdictMsg[] {
     const out: PredictVerdictMsg[] = [];
     const finalOutcome = Math.sign(finalHome - finalAway);
     for (const [anonId, p] of this.predictions) {
       const exact = p.home === finalHome && p.away === finalAway;
       const outcome = Math.sign(p.home - p.away) === finalOutcome;
-      out.push({
+      const v: PredictVerdictMsg = {
         type: 'predictVerdict',
         matchId: this.matchId,
         anonId,
         predicted: { home: p.home, away: p.away },
         final: { home: finalHome, away: finalAway },
         verdict: exact ? 'exact' : outcome ? 'outcome' : 'wrong',
-      });
+      };
+      this.verdicts.set(anonId, v);
+      out.push(v);
     }
     return out;
+  }
+
+  /** A fan's resolved verdict, if their prediction has been graded — present
+   * only after FULL_TIME AND only for a fan who actually predicted (a fan with
+   * no prediction gets undefined here, never a synthesized verdict). */
+  verdictFor(anonId: string): PredictVerdictMsg | undefined {
+    return this.verdicts.get(anonId);
+  }
+
+  /** Snapshot restore only: install an already-computed verdict directly — the
+   * final score isn't known again at restore time, only the prior result is. */
+  restoreVerdict(anonId: string, v: PredictVerdictMsg): void {
+    this.verdicts.set(anonId, v);
+  }
+
+  verdictCount(): number {
+    return this.verdicts.size;
   }
 
   predictionCount(): number {
@@ -423,12 +456,18 @@ export class MatchState {
     return this.connected.size > 0;
   }
 
+  /** Everything snapshot.ts persists for restart continuity. Deliberately
+   * excludes roar/pulse rolling counters (snapshot.ts doc comment) and the
+   * activeMoment window (a live drama window shouldn't resurrect mid-air). */
   snapshot() {
     return {
       matchId: this.matchId,
       rooted: Array.from(this.rooted.entries()),
       connectedCount: this.connected.size,
       roomCount: this.rooms.size,
+      predictions: Array.from(this.predictions.entries()),
+      predictLocked: this.predictLocked,
+      verdicts: Array.from(this.verdicts.entries()),
     };
   }
 }
