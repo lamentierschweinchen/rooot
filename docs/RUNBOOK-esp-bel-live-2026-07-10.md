@@ -62,8 +62,12 @@ ws.on('message', d => { try { const m=JSON.parse(d); kinds[m.type]=(kinds[m.type
 setTimeout(() => { console.log('kinds:', kinds); if(last) console.log('market: ESP', last.pHome, 'draw', last.pDraw, 'BEL', last.pAway); ws.close(); process.exit(0); }, 12000);
 ws.on('error', e => { console.log('WS ERROR', e.message); process.exit(1); });"
 ```
-GREEN = `odds` count ≥ 1 in 12s and a sane de-vigged triple (sums ≈ 1). RED = zero odds → escalate
-coordinator (feed) after checking `curl -s https://rooot-stands.fly.dev/health`.
+GREEN = `odds` count ≥ 1 in 12s and a sane de-vigged triple (sums ≈ 1). RED = zero odds → FIRST check
+`feedState` (add `if(m.type==='feedState')console.log(m)` to the probe) and the service uptime: after
+ANY restart, TxLINE's SSE takes up to ~2 minutes to reattach — zero odds with `feedState: connected`
+or uptime < 120s is a warm-up, not an outage (verified live 2026-07-10 ~18:07 UTC: two silent probes
+during warm-up, then 56 ticks/12s). Only escalate coordinator if silence persists past ~3 minutes
+with upstream ticking.
 
 **4.2 Production honesty smoke (write-proof, safe against prod):**
 ```
