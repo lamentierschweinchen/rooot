@@ -49,7 +49,8 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .them .nm{font-weight:800;font-size:8px;letter-spacing:.12em;color:var(--them);white-space:nowrap}
 .them .mini{display:flex;gap:2px;flex:1;overflow:hidden}
 .them .mini i{width:7px;height:7px;background:var(--them);opacity:.42;flex:none;transition:opacity .12s,box-shadow .12s}
-.them .mini i.hot{opacity:1;box-shadow:0 0 5px var(--them)}
+.them .mini i:nth-child(3n){background:var(--themsec,var(--them))}   /* the kit's second colour in the far stand — identity, never data */
+.them .mini i.hot{opacity:1;box-shadow:0 0 5px var(--themsec,var(--them))}
 .them .ct{font-weight:700;font-size:7.5px;letter-spacing:.06em;color:var(--sub);white-space:nowrap}
 
 /* the centre — the lens you dial to */
@@ -114,12 +115,13 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 <script>
 var PARAMS=new URLSearchParams(location.search);
 var DEMO=PARAMS.get('demo')==='1', LIVE=PARAMS.get('live')==='1';
-var MATCH_ID=PARAMS.get('match')||(LIVE?'18209181':'18202783');
+var MATCH_ID=PARAMS.get('match')||(LIVE?'18218149':'18202783');
 var FIXTURES={
   '18202783':{home:{tri:'SUI',name:'SUI',color:'#D52B1E'},away:{tri:'COL',name:'COL',color:'#E8B10A'}},
-  '18209181':{home:{tri:'FRA',name:'FRA',color:'#0055A4'},away:{tri:'MAR',name:'MAR',color:'#C1272D'}}
+  '18209181':{home:{tri:'FRA',name:'FRA',color:'#0055A4'},away:{tri:'MAR',name:'MAR',color:'#C1272D'}},
+  '18218149':{home:{tri:'ESP',name:'ESP',color:'#AA151B',sec:'#F1BF00'},away:{tri:'BEL',name:'BEL',color:'#1A1A18',sec:'#FDDA24'}}
 };
-var FX=FIXTURES[MATCH_ID]||FIXTURES['18209181'];
+var FX=FIXTURES[MATCH_ID]||FIXTURES['18218149'];
 var PASS=null; try{ PASS=JSON.parse(localStorage.getItem('rooot.pass')||'null'); }catch(e){}
 var byq=function(s){return document.querySelector(s);}, el=function(i){return document.getElementById(i);};
 var wrap=el('wrap'), dial=el('dial'), lens=el('lens');
@@ -181,6 +183,7 @@ function wireLive(){
   var you=sideKey==='home'?FX.home:FX.away, them=other==='home'?FX.home:FX.away;
   byq('.cabbtn').setAttribute('href','cabinet.html?live=1&match='+encodeURIComponent(MATCH_ID));
   document.documentElement.style.setProperty('--you',you.color); document.documentElement.style.setProperty('--them',them.color);
+  document.documentElement.style.setProperty('--yousec',you.sec||you.color); document.documentElement.style.setProperty('--themsec',them.sec||them.color);
   el('hT').textContent=FX.home.tri; el('aT').textContent=FX.away.tri; el('hT').style.color=FX.home.color; el('aT').style.color=FX.away.color;
   el('themNm').textContent=them.tri+' · THEIR END'; el('youNm').textContent=you.tri+' · YOUR END';
   el('spec').textContent='LIVE CROWD + MATCH WIRE · ANONYMOUS TEST SEAT';

@@ -22,8 +22,8 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 
 /* ===== an END is a committed colour FIELD — a terrace of real people ===== */
 .end{position:relative;flex:1;overflow:hidden}
-.end.them{--fld:var(--them);--fldink:#1A1815}
-.end.you{--fld:var(--you);--fldink:#F3ECDB;flex:1.16;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.end.them{--fld:var(--them);--fldsec:var(--themsec,var(--them));--fldink:#1A1815}
+.end.you{--fld:var(--you);--fldsec:var(--yousec,var(--you));--fldink:#F3ECDB;flex:1.16;cursor:pointer;-webkit-tap-highlight-color:transparent}
 /* the field glows brighter as the end roars (the roar IS the field, no gauge) */
 .end::after{content:"";position:absolute;left:0;right:0;height:78%;pointer-events:none;
   background:radial-gradient(120% 100% at 50% var(--gy), var(--fld), transparent 72%);opacity:calc(var(--r,0)*.62);transition:opacity .22s;z-index:2}
@@ -39,9 +39,10 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
   background-image:radial-gradient(circle,rgba(26,24,21,.5) 0.9px,transparent 1.3px);background-size:4.5px 4.5px;
   opacity:.32;mix-blend-mode:multiply}
 .tile{width:100%;padding-bottom:100%;border-radius:1px;background:var(--fld);opacity:.18;transition:opacity .16s}
+.tile.k{background:var(--fldsec)}   /* the kit's second colour scattered through the crowd — identity, never data */
 .tile.lit{opacity:.5}
-.tile.flash{opacity:1 !important;box-shadow:0 0 6px var(--fld)}
-.tile.you{opacity:1 !important;background:var(--card);box-shadow:0 0 0 2px var(--fld),0 0 9px var(--fld);z-index:3;border-radius:2px}
+.tile.flash{opacity:1 !important;box-shadow:0 0 6px var(--fldsec)}
+.tile.you{opacity:1 !important;background:var(--card);box-shadow:0 0 0 2px var(--fldsec),0 0 9px var(--fldsec);z-index:3;border-radius:2px}
 
 /* the end's header floats over the crowd (a scrim keeps it legible) */
 .ehdr{position:absolute;left:0;right:0;z-index:4;display:flex;align-items:baseline;justify-content:space-between;padding:9px 14px 16px;
@@ -80,6 +81,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .ccscore .ccd{font-weight:700;color:var(--sub);font-size:13px}
 .ccaff{font-weight:700;font-size:7.5px;letter-spacing:.03em;color:var(--sub)}
 .ccaff b{color:var(--ink);font-weight:800}
+.ccscore .ccwait{font-weight:800;font-size:9.5px;letter-spacing:.16em;color:var(--sub)}   /* silence, not zeros — small print, never score type */
 .moment{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:var(--card);gap:2px}
 .moment.on{display:flex}
 .moment .big{font-weight:900;font-size:25px;letter-spacing:.02em;line-height:1}
@@ -204,7 +206,7 @@ body.embed .backg,body.embed .foot{display:none}
     <div class="matchbar"><span class="h">SUI</span> <span id="scH">0</span>–<span id="scA">0</span> <span class="a">COL</span>
       <span class="cl" id="clock">0'</span><span class="rp"><span class="d"></span>REPLAY</span></div>
     <div class="crowdcall" id="crowdcall">
-      <div><span class="cclbl">THE CROWD CALLS</span> <span class="ccmkt">· vs market SUI 44·28·28</span></div>
+      <div><span class="cclbl">FAN PREDICTIONS</span> <span class="ccmkt">· vs market SUI 44·28·28</span></div>
       <div class="ccscore"><b class="h">SUI 2.1</b><span class="ccd">–</span><b class="a">1.8 COL</b></div>
       <div class="ccaff">your end <b>2.4–1.4</b> · their end <b>1.5–2.1</b></div>
     </div>
@@ -298,12 +300,13 @@ var PASS=null; try{ PASS=JSON.parse(localStorage.getItem('rooot.pass')||'null');
 if(/[?&]embed=1/.test(location.search))document.body.classList.add('embed');   // nested as the ground's STANDS lens
 var PARAMS=new URLSearchParams(location.search);
 var DEMO=PARAMS.get('demo')==='1', LIVE=PARAMS.get('live')==='1';   // demo uses the baked engine; live uses the real stands wire
-var MATCH_ID=PARAMS.get('match')||(LIVE?'18209181':'18202783');
+var MATCH_ID=PARAMS.get('match')||(LIVE?'18218149':'18202783');
 var FIXTURES={
   '18202783':{home:{tri:'SUI',name:'SWITZERLAND',color:'#D52B1E'},away:{tri:'COL',name:'COLOMBIA',color:'#E8B10A'}},
-  '18209181':{home:{tri:'FRA',name:'FRANCE',color:'#0055A4'},away:{tri:'MAR',name:'MOROCCO',color:'#C1272D'}}
+  '18209181':{home:{tri:'FRA',name:'FRANCE',color:'#0055A4'},away:{tri:'MAR',name:'MOROCCO',color:'#C1272D'}},
+  '18218149':{home:{tri:'ESP',name:'SPAIN',color:'#AA151B',sec:'#F1BF00'},away:{tri:'BEL',name:'BELGIUM',color:'#1A1A18',sec:'#FDDA24'}}
 };
-var FX=FIXTURES[MATCH_ID]||FIXTURES['18209181'], HOME_TRI=FX.home.tri, AWAY_TRI=FX.away.tri, YOU_TEAM=FX.home, THEM_TEAM=FX.away;
+var FX=FIXTURES[MATCH_ID]||FIXTURES['18218149'], HOME_TRI=FX.home.tri, AWAY_TRI=FX.away.tri, YOU_TEAM=FX.home, THEM_TEAM=FX.away;
 var M={t:0,score:[0,0],rY:0,rT:0,run:true,lastMs:0,fired:{},await:null,dur:92,xp:0,reads:{h:0,a:0},pred:null,predShown:{},predResolved:{}};
 var SPEED=1.3; // match-minutes per second (slowed so events + calls are catchable)
 
@@ -313,7 +316,8 @@ function mosaic(node,seats,litPct,youIdx){var h='';
   for(var i=0;i<seats;i++){
     var g=(0.70+0.30*(((i*61+i*i*7)%17)/17));            // per-tile grain — a wall of people, not a flat grid
     var lit=(i===youIdx)||(((i*73+i*i*17)%100)<litPct);  // scattered empty seats; density = the real count
-    var cls='tile'+(lit?' lit':'')+(i===youIdx?' you':'');
+    var kit=((i*29+i*i*13)%5)===0;                       // ~1 in 5 wears the kit's second colour (fixed scatter, hue only)
+    var cls='tile'+(lit?' lit':'')+(kit?' k':'')+(i===youIdx?' you':'');
     h+='<span class="'+cls+'" data-g="'+g.toFixed(2)+'"></span>';
   }
   node.innerHTML=h;
@@ -518,12 +522,19 @@ function fmtMean(g){return g&&g.mean?g.mean.home.toFixed(1)+'–'+g.mean.away.to
 function ccUpdate(c){ var cc=el('crowdcall'); if(!cc)return;
   if(c.all){ var b=cc.querySelectorAll('.ccscore b');
     if(Array.isArray(c.all)){ if(b[0])b[0].textContent=HOME_TRI+' '+c.all[0]; if(b[1])b[1].textContent=c.all[1]+' '+AWAY_TRI; }
-    else if(c.all.mean){ if(b[0])b[0].textContent=HOME_TRI+' '+c.all.mean.home.toFixed(1); if(b[1])b[1].textContent=c.all.mean.away.toFixed(1)+' '+AWAY_TRI; }
+    else if(c.all.mean){ var ccs=cc.querySelector('.ccscore');
+      if(!c.all.n){ if(ccs)ccs.innerHTML='<b class="ccwait">THE CROWD IS ARRIVING</b>'; }   // n:0 = silence, never zeros
+      else if(ccs)ccs.innerHTML='<b style="color:'+FX.home.color+'">'+HOME_TRI+' '+c.all.mean.home.toFixed(1)+'</b><span class="ccd">–</span><b style="color:'+FX.away.color+'">'+c.all.mean.away.toFixed(1)+' '+AWAY_TRI+'</b>';
+    }
   }
   if(c.market){ marketUpdate(Array.isArray(c.market)?{home:c.market[0],draw:c.market[1],away:c.market[2]}:c.market); }
   if(c.byRoot&&c.byRoot.home&&c.byRoot.away){ var aff=cc.querySelector('.ccaff'); if(aff){
     if(Array.isArray(c.byRoot.home))aff.innerHTML='your end <b>'+c.byRoot.home[0]+'–'+c.byRoot.home[1]+'</b> · their end <b>'+c.byRoot.away[0]+'–'+c.byRoot.away[1]+'</b>';
-    else aff.innerHTML=FX.home.tri+' end <b>'+fmtMean(c.byRoot.home)+'</b> · '+FX.away.tri+' end <b>'+fmtMean(c.byRoot.away)+'</b>';
+    else { var parts=[];   // an end with no predictions stays silent
+      if(c.byRoot.home.n)parts.push(FX.home.tri+' end <b>'+fmtMean(c.byRoot.home)+'</b>');
+      if(c.byRoot.away.n)parts.push(FX.away.tri+' end <b>'+fmtMean(c.byRoot.away)+'</b>');
+      aff.innerHTML=parts.join(' · ');
+    }
   } }
 }
 function marketUpdate(m){
@@ -535,15 +546,18 @@ function applyFixture(sideKey){
   HOME_TRI=FX.home.tri; AWAY_TRI=FX.away.tri;
   document.documentElement.style.setProperty('--you',YOU_TEAM.color);
   document.documentElement.style.setProperty('--them',THEM_TEAM.color);
+  document.documentElement.style.setProperty('--yousec',YOU_TEAM.sec||YOU_TEAM.color);
+  document.documentElement.style.setProperty('--themsec',THEM_TEAM.sec||THEM_TEAM.color);
   var mh=document.querySelector('.matchbar .h'), ma=document.querySelector('.matchbar .a');
   if(mh)mh.textContent=HOME_TRI; if(ma)ma.textContent=AWAY_TRI;
   var youHdr=document.querySelector('.end.you .ehdr .nm b'), themHdr=document.querySelector('.end.them .ehdr .nm b');
   if(youHdr)youHdr.textContent=YOU_TEAM.name; if(themHdr)themHdr.textContent=THEM_TEAM.name;
   var skh=document.querySelector('.sk-sc .h'), ska=document.querySelector('.sk-sc .a');
   if(skh)skh.textContent=HOME_TRI; if(ska)ska.textContent=AWAY_TRI;
-  var cc=el('crowdcall'), bs=cc&&cc.querySelectorAll('.ccscore b');
-  if(bs&&bs[0])bs[0].textContent=HOME_TRI+' 0.0'; if(bs&&bs[1])bs[1].textContent='0.0 '+AWAY_TRI;
-  var aff=cc&&cc.querySelector('.ccaff'); if(aff)aff.innerHTML=FX.home.tri+' end <b>0.0–0.0</b> · '+FX.away.tri+' end <b>0.0–0.0</b>';
+  // no predictions yet → silence, never zeros-as-data (owner copy, 10 Jul: short)
+  var cc=el('crowdcall');
+  var ccs=cc&&cc.querySelector('.ccscore'); if(ccs)ccs.innerHTML='<b class="ccwait">THE CROWD IS ARRIVING</b>';
+  var aff=cc&&cc.querySelector('.ccaff'); if(aff)aff.innerHTML='';
   el('skLine').innerHTML='YOU STOOD IN <b>THE '+YOU_TEAM.name+' END</b>';
   var rp=document.querySelector('.matchbar .rp'); if(rp)rp.lastChild.textContent=LIVE?'LIVE':'REPLAY';
   var ccl=document.querySelector('.ccmkt'); if(ccl)ccl.textContent='· vs market '+HOME_TRI+' waiting';
