@@ -35,7 +35,20 @@ These are BET vs BELIEVE vs HAPPEN made explicit. Wire them labeled, market ≠ 
 
 **Post-mortem product question (unresolved):** every fan predicted in line with their allegiance — "choose your end, then predict" harvests passion but **no doubt / contrarian belief**. Consider decoupling the sequence, or explicitly capturing conviction/doubt, so the gap includes disagreement, not just tribalism. *Owner call.*
 
-## 2 · IN-GAME / LIVE PREDICTION — "mini-preds" (conversation-only, NEEDS OWNER DETAIL)
+## 2 · IN-GAME / LIVE PREDICTION — "mini-preds" (OWNER-ELEVATED 2026-07-10: build to experience)
+
+> **Owner (2026-07-10 evening):** "the v2 in-game predictions are actually something i'd like to have
+> or at least explore (need to experience this in-game so i can judge the mechanism) — it's also data
+> produced that we can use which is potentially valuable and unique." Judgment mode: he judges by
+> EXPERIENCING it during a real match, not from a spec. Coordinator's proposed v1 (pending his nod):
+> **NEXT GOAL** — during live play a fan calls which end scores next (or "no more goals"); stamps the
+> live de-vigged market triple at call time (BET), aggregates the crowd's split with n (BELIEVE),
+> resolves on the next wire goal or FT (HAPPEN); per-fan verdict + crowd tally; persists into the
+> SentimentRecord. Chosen for: always-relevant, naturally repeating, resolvable within minutes, and
+> the cleanest first feeder for Foresight Alpha (§1.3) and Courage-Adjusted Calls (§1.4). Target:
+> server mechanism + minimal Design seam built the day after the ESP–BEL gate night; owner experiences
+> it live at the next fixture (NOR–ENG Jul 11 or ARG–SUI Jul 12). Tonight's SentimentRecord/persistence
+> substrate (post-mortem blocker #1) already accommodates it additively.
 
 Today prediction is **pre-match only** (side + scoreline, locked at kickoff). The full version is **live, in-game prediction** — recorded only as the open question "**mini-preds?**" (`COORDINATOR-TODO.md:31`, gating the crowd-frame wiring alongside "gamification? crescendo?"). This lived largely in conversation and is **NOT specced**. Known shape of the idea:
 
