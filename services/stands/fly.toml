@@ -32,6 +32,15 @@ primary_region = "iad"
   #   LIVE ingest:          TXLINE_ENABLE=1,       TXLINE_FIXTURES=<id[,id]>
   # Left unset here so the same image can do either without a rebuild.
 
+# Durable volume (Task 3 — restart/redeploy continuity): mounted at /data, the
+# service's data-dir resolution (services/stands/src/snapshot.ts) picks this up
+# automatically (STANDS_DATA_DIR unset -> /data if it exists + is writable).
+# Requires `fly volumes create stands_data --region iad --size 1` first — the
+# coordinator holds this section until that volume exists.
+[mounts]
+  source = "stands_data"
+  destination = "/data"
+
 [http_service]
   internal_port = 8080
   force_https = true
