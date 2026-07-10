@@ -57,7 +57,17 @@ try {
   console.warn(`[stands:snapshot] could not create data dir for ${SNAPSHOT_PATH}: ${String(err)}`);
 }
 
-export const SNAPSHOT_INTERVAL_MS = Number(process.env.STANDS_SNAPSHOT_INTERVAL_MS ?? 30_000);
+/** Fix 3 (review M1): a malformed/empty STANDS_SNAPSHOT_INTERVAL_MS (e.g. "")
+ * makes Number(...) yield NaN, and setInterval coerces NaN to ~1ms — disk
+ * hammering. Clamp: non-finite or under 1s falls back to the 30s default;
+ * any finite value >= 1000 is trusted as-is (a deliberately fast interval for
+ * local dev/testing is still allowed, just not sub-1s). */
+function resolveSnapshotIntervalMs(): number {
+  const raw = Number(process.env.STANDS_SNAPSHOT_INTERVAL_MS ?? 30_000);
+  return Number.isFinite(raw) && raw >= 1000 ? raw : 30_000;
+}
+
+export const SNAPSHOT_INTERVAL_MS = resolveSnapshotIntervalMs();
 
 /** Bump when the persisted shape changes. applySnapshot stays tolerant of a
  * file with a lower (or absent = v1) version — every v2+ field is optional on
