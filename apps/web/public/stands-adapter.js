@@ -109,6 +109,7 @@
         break;
       case 'consensus': if (m.matchId === matchId) fire(cb.consensus, m); break;
       case 'predictVerdict': if (m.matchId === matchId && m.anonId === me) fire(cb.verdict, m); break;
+      case 'welcome': if (m.matchId === matchId && m.anonId === me) window.__stands.fanNo = m.fanNo; break;
       case 'moment': if (m.matchId === matchId) fire(cb.moment, m); break;
       case 'momentResult': if (m.matchId === matchId) fire(cb.momentResult, m); break;
       case 'cheerEcho': if (m.matchId === matchId) fire(cb.cheerEcho, { side: m.side, atMs: m.atMs }); break;
