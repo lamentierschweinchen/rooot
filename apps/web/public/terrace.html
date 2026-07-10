@@ -99,7 +99,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .split .sr.h .sn{color:var(--you)}.split .sr.a .sn{color:var(--them)}
 .split .sb{position:relative;flex:1;height:16px;background:var(--paper);border:1.5px solid var(--ink);overflow:hidden}
 .split .sf{position:absolute;top:0;bottom:0;left:0;display:flex;align-items:center;padding-left:7px;font-weight:800;font-size:8px;letter-spacing:.07em;color:var(--card);white-space:nowrap}
-.split .sr.h .sf{background:var(--you)}.split .sr.a .sf{background:var(--them);color:var(--ink)}
+.split .sr.h .sf{background:var(--you);color:var(--youInk,var(--card))}.split .sr.a .sf{background:var(--them);color:var(--themInk,var(--ink))}
 .split .sc2{font-weight:700;font-size:7.5px;color:var(--sub);white-space:nowrap;min-width:58px;text-align:right}
 
 /* mini-prediction pop-up (optional, dismissible) — light, Bauhaus dress */
@@ -139,6 +139,8 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .pk.feel{display:flex;flex-direction:column;align-items:center;gap:1px;padding:3px 4px;background:none;border:1.5px solid transparent}
 .pk.feel img{width:34px;height:34px;object-fit:contain;display:block}
 .pk.feel span{font-weight:800;font-size:6.5px;letter-spacing:.02em;color:var(--sub)}
+.pk.feel.on{border-color:var(--ink);border-radius:3px;background:var(--card)}
+.pk.pkx{padding:6px 9px;color:var(--sub);border-color:var(--line);align-self:center}   /* dismiss — lurking stays complete */
 .pk.feel.on{background:var(--card);border-color:var(--ink)}
 .pk.feel.on span{color:var(--ink)}
 
@@ -273,13 +275,13 @@ body.embed .backg,body.embed .foot{display:none}
 <script src="stats-adapter.js"></script>
 <script>
 var FEELINGS=[
-  {k:'JOY',img:'plate/gens/react/joy.png'},
-  {k:'HOPE',img:'plate/gens/react/hope.png'},
-  {k:'ANGER',img:'plate/gens/react/anger.png'},
-  {k:'HEARTBREAK',img:'plate/gens/react/heartbreak.png'},
-  {k:'PRIDE',img:'plate/gens/react/pride.png'},
-  {k:'RELIEF',img:'plate/gens/react/relief.png'}
-];   // socketed pop-art reaction emblems (NERVES/DISBELIEF trimmed)
+  {k:'JOY',img:'plate/gens/reactions/joy.png'},
+  {k:'MUSCLE',img:'plate/gens/reactions/muscle.png'},
+  {k:'HEARTBREAK',img:'plate/gens/reactions/heartbreak.png'},
+  {k:'RELIEF',img:'plate/gens/reactions/relief.png'},
+  {k:'ANGER',img:'plate/gens/reactions/anger.png'},
+  {k:'HOPE',img:'plate/gens/reactions/hope.png'}
+];   // the owner's pop set — ONE emblem language everywhere (tray + reveal + the card)
 var FEELIMG={}; FEELINGS.forEach(function(f){FEELIMG[f.k]=f.img;});
 // scripted match timeline (match-minutes). k: kind, side: h(ome=you)/a(way=them)
 var EVENTS=[
@@ -298,7 +300,7 @@ var EVENTS=[
 // how each end tends to feel per event (sample dominant), + a sample share/count
 var REACT={
   'chance-h':{you:['HOPE',52,4300],them:['HOPE',44,6200]},
-  'chance-a':{you:['HOPE',58,4800],them:['PRIDE',49,6900]},
+  'chance-a':{you:['HOPE',58,4800],them:['MUSCLE',49,6900]},
   'goal-h':{you:['JOY',71,5850],them:['HEARTBREAK',80,11300]},
   'goal-a':{you:['HEARTBREAK',74,6100],them:['JOY',77,10900]},
   'card-a':{you:['RELIEF',46,3800],them:['ANGER',68,9600]}
@@ -394,22 +396,20 @@ function pick(label,isV){
   var p=el('picker');
   [].forEach.call(p.querySelectorAll('.pk'),function(c){c.classList.toggle('on',c.textContent===label);});
   M.await.picked=true;M.await.mine=label;
-  if(DEMO&&window.__stands&&M.await.momentId){window.__stands.momentReact(M.await.momentId,label); M.reacts[label]=(M.reacts[label]||0)+1;}   // your read → the live crowd (counted for the card)
+  if(window.__stands&&window.__stands.momentReact&&M.await.momentId){window.__stands.momentReact(M.await.momentId,label); M.reacts[label]=(M.reacts[label]||0)+1;}   // always sent — never demo-gated
   var ctx=M.await;
-  setTimeout(function(){ p.classList.remove('on');reveal(ctx,label,isV);el('taphint').style.opacity=''; if(M.await===ctx)M.await=null; },560);
+  setTimeout(function(){ p.classList.remove('on');
+    if(isV){ el('moment').classList.remove('on'); el('crowdcall').style.opacity='1'; el('taphint').style.opacity=''; }   // no fabricated reveal — counts render only from the wire
+    else reveal(ctx,label,false);
+    if(!isV)el('taphint').style.opacity='';
+    if(M.await===ctx)M.await=null; },560);
 }
 
 function reveal(ctx,mine,isV){
   var s=el('split');
-  if(isV){
-    var hc=ctx.home||'PENALTY', ac=ctx.away||'NEVER', withEnd=(mine===hc);
-    setSR('h',hc,80, withEnd?'you + 6,730':'6,730 · you said '+mine);
-    setSR('a',ac,74,'9,900 of their end');
-  } else {
-    var ev=ctx.ev, r=REACT[ev.k+'-'+ev.side]; if(!r){return;}
-    setSR('h',mine||r.you[0],r.you[1],'you + '+(r.you[2]).toLocaleString());
-    setSR('a',r.them[0],r.them[1],(r.them[2]).toLocaleString());
-  }
+  var ev=ctx.ev, r=REACT[ev.k+'-'+ev.side]; if(!r){return;}   // specimen sample table — scripted world only, never the live path
+  setSR('h',mine||r.you[0],r.you[1],'you + '+(r.you[2]).toLocaleString());
+  setSR('a',r.them[0],r.them[1],(r.them[2]).toLocaleString());
   el('moment').classList.remove('on'); s.classList.add('on');
   setTimeout(function(){ s.classList.remove('on'); el('crowdcall').style.opacity='1'; },5200);
 }
@@ -599,6 +599,10 @@ function applyFixture(sideKey){
   document.documentElement.style.setProperty('--themsec',THEM_TEAM.sec||THEM_TEAM.color);
   document.documentElement.style.setProperty('--yousec2',YOU_TEAM.sec2||YOU_TEAM.sec||YOU_TEAM.color);
   document.documentElement.style.setProperty('--themsec2',THEM_TEAM.sec2||THEM_TEAM.sec||THEM_TEAM.color);
+  // type on a team-colour ground must contrast it (§C-7) — near-ink teams get cream, light teams keep ink
+  var teamInk=function(hex){var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return (0.2126*r+0.7152*g+0.0722*b)<140?'var(--card)':'var(--ink)';};
+  document.documentElement.style.setProperty('--youInk',teamInk(YOU_TEAM.color));
+  document.documentElement.style.setProperty('--themInk',teamInk(THEM_TEAM.color));
   var mh=document.querySelector('.matchbar .h'), ma=document.querySelector('.matchbar .a');
   if(mh)mh.textContent=HOME_TRI; if(ma)ma.textContent=AWAY_TRI;
   var youHdr=document.querySelector('.end.you .ehdr .nm b'), themHdr=document.querySelector('.end.them .ehdr .nm b');
@@ -633,6 +637,8 @@ function wireLive(){
     if(window.__stands.onCheer)window.__stands.onCheer(function(e){
       ripple(e.side===sideKey?tilesYou:tilesThem,1);   // ONE seat flickers — someone, right now (never volume; roar carries that)
     });
+    if(window.__stands.onMoment)window.__stands.onMoment(openMoment);   // T6: live windows open on the terrace (premiere had 6 windows, 0 subscribers)
+    if(window.__stands.onMomentResult)window.__stands.onMomentResult(function(r){ revealFromWire(r,sideKey); });
     var yi=youIdxNow();   // the adapter arrives async in live — re-seat once the real anonId exists
     if(yi!==YOU_IDX){ YOU_IDX=yi; mosaic(el('tilesYou'),396,96,YOU_IDX); }
   }
@@ -646,14 +652,81 @@ function wireLive(){
   }
   return wireLive.didStands&&wireLive.didStats;
 }
-function openMoment(w){ if(!w||w.kind!=='verdict')return;
+// ── the pulse, on the live moment schema — every kind opens a feeling window (T6) ──
+var MOMENT_TITLE={goal:'GOAL',possible:'CHECKING…','var':'VAR CHECK',red:'RED CARD',penalty:'PENALTY','near-miss':'SO CLOSE',swing:"IT'S TURNING",'full-time':'FULL TIME'};
+var TOKEN_EMB={euphoria:'joy',pride:'muscle',anguish:'heartbreak',rage:'anger',fury:'anger',prayer:'hope',tension:'hope'};   // schema tokens → emblem names; vocabulary settles with the coordinator
+function embFor(tok){ var t=String(tok||'').toLowerCase(); if(TOKEN_EMB[t])return TOKEN_EMB[t]; return FEELIMG[t.toUpperCase()]?t:null; }
+function openMoment(w){ if(!w)return;
+  if(Array.isArray(w.palette)){   // live schema: {momentId, kind, side|null, minute, opensAtMs, closesAtMs, palette[6]}
+    el('crowdcall').style.opacity='0';
+    var mo=el('moment'); mo.className='moment on'+(w.kind==='goal'?' goal':'');
+    el('momentBig').textContent=MOMENT_TITLE[w.kind]||String(w.kind).toUpperCase();
+    var tri=w.side?(w.side==='home'?HOME_TRI:AWAY_TRI):null;
+    el('momentMin').textContent=(w.minute!=null?w.minute:Math.floor(M.t))+"'"+(tri?' · '+tri:'');
+    M.await={momentId:w.momentId,kind:w.kind,tri:tri,live:true,picked:false};
+    showTokenTray(w.palette);
+    clearTimeout(M._momT);
+    var ttl=(w.closesAtMs&&w.closesAtMs>Date.now())?Math.min(w.closesAtMs-Date.now(),90000):45000;
+    M._momT=setTimeout(closeMoment,ttl);   // the window expires with its moment — never parks into full time
+    return;
+  }
+  // legacy demo verdict window (baked replay drives the old shape)
+  if(w.kind!=='verdict')return;
   el('crowdcall').style.opacity='0';
-  var mo=el('moment'); mo.className='moment on'; el('momentMin').textContent=Math.floor(M.t)+"'";
+  var mo2=el('moment'); mo2.className='moment on'; el('momentMin').textContent=Math.floor(M.t)+"'";
   var pair; if(w.palette==='pen'){el('momentBig').textContent='PENALTY?';pair=['PENALTY','NEVER'];}
   else {el('momentBig').textContent='VAR CHECK';pair=['GOAL','NO GOAL'];}
   M.await={momentId:w.momentId,home:pair[0],away:pair[1],q:(w.palette==='pen'?'WAS IT A PENALTY?':'DID IT COUNT?')};
   showPicker(pair);
-  setTimeout(function(){ if(!el('split').classList.contains('on') && !(M.await&&!M.await.picked)){ mo.classList.remove('on'); el('crowdcall').style.opacity='1'; } },4200);
+  setTimeout(function(){ if(!el('split').classList.contains('on') && !(M.await&&!M.await.picked)){ mo2.classList.remove('on'); el('crowdcall').style.opacity='1'; } },4200);
+}
+function closeMoment(){ clearTimeout(M._momT); el('picker').classList.remove('on'); el('moment').classList.remove('on');
+  el('crowdcall').style.opacity='1'; el('taphint').style.opacity=''; M.await=null; }
+function showTokenTray(tokens){
+  var p=el('picker'); p.innerHTML='';
+  el('taphint').style.opacity='0';
+  var t=document.createElement('div'); t.className='pt';
+  t.textContent=(M.await&&M.await.tri)?M.await.tri+' — HOW DOES IT FEEL?':'HOW DOES IT FEEL?';
+  var pks=document.createElement('div'); pks.className='pks';
+  tokens.forEach(function(tok){
+    var emb=embFor(tok), b=document.createElement('div');
+    if(emb){ b.className='pk feel'; b.innerHTML='<img src="plate/gens/reactions/'+emb+'.png" alt="'+tok+'"><span>'+String(tok).toUpperCase()+'</span>'; }
+    else { b.className='pk'; b.textContent=String(tok).toUpperCase(); }   // unmapped token → word chip (never invents an emblem)
+    b.onclick=function(ev){ev.stopPropagation();pickToken(tok,b);};
+    pks.appendChild(b);
+  });
+  var x=document.createElement('div'); x.className='pk pkx'; x.textContent='✕';
+  x.onclick=function(ev){ev.stopPropagation();closeMoment();};
+  pks.appendChild(x);
+  p.appendChild(t); p.appendChild(pks); p.classList.add('on');
+}
+function pickToken(tok,chip){
+  var p=el('picker');
+  [].forEach.call(p.querySelectorAll('.pk'),function(c){c.classList.remove('on');}); chip.classList.add('on');
+  if(M.await&&M.await.momentId&&window.__stands&&window.__stands.momentReact){
+    window.__stands.momentReact(M.await.momentId,tok);   // always sent — last-write-wins until the window closes
+    M.reacts[tok]=(M.reacts[tok]||0)+1;                  // counted for the card
+  }
+  if(M.await)M.await.picked=true;
+  // no local reveal — the split renders only from the wire's momentResult
+}
+function revealFromWire(r,sideKey){
+  if(!r||!r.home||!r.away)return;
+  clearTimeout(M._momT);
+  var my=sideKey||'home', other=my==='home'?'away':'home';
+  fillSplit('H',r[my],'YOUR END'); fillSplit('A',r[other],'THEIR END');
+  el('picker').classList.remove('on'); el('moment').classList.remove('on');
+  var s=el('split'); s.classList.add('on');
+  setTimeout(function(){ s.classList.remove('on'); el('crowdcall').style.opacity='1'; el('taphint').style.opacity=''; M.await=null; },5200);
+}
+function fillSplit(slot,d,label){
+  var f=el('split'+slot+'f'), c=el('split'+slot+'c'), im=el('split'+slot+'e'), nm=el('split'+slot+'n');
+  if(nm)nm.textContent=label;
+  if(!d||!d.n){ if(f){f.textContent='QUIET';f.style.width='28%';} if(c)c.textContent='0'; if(im)im.style.display='none'; return; }   // a silent end is honestly quiet, never zeros-as-mood
+  if(f){ f.textContent=String(d.top||'').toUpperCase(); f.style.width=Math.max(28,Math.round((d.pct||0)*100))+'%'; }
+  if(c)c.textContent=d.n;
+  var emb=embFor(d.top);
+  if(im){ if(emb){im.src='plate/gens/reactions/'+emb+'.png';im.style.display='';} else im.style.display='none'; }
 }
 function wireDemo(){ if(!window.__match||!window.__stands)return false;
   var mySide=(PASS&&PASS.side==='a')?'away':'home', other=mySide==='home'?'away':'home';
