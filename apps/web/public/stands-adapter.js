@@ -54,7 +54,7 @@
   var lastTriple = null;                 // live de-vigged market, for the predict stamp
   var trailing = null;                   // side currently behind → faith
   var lastScore = { home: 0, away: 0 };
-  var cb = { state: [], consensus: [], verdict: [], moment: [], momentResult: [], market: [] };
+  var cb = { state: [], consensus: [], verdict: [], moment: [], momentResult: [], market: [], cheerEcho: [] };
   function fire(list, v) { for (var i = 0; i < list.length; i++) { try { list[i](v); } catch (e) {} } }
 
   function send(m) {
@@ -84,6 +84,7 @@
     onVerdict: function (fn) { cb.verdict.push(fn); },               // your prediction verdict at FT
     onMoment: function (fn) { cb.moment.push(fn); },                 // a drama window opens (kind, side, palette, closesAtMs)
     onMomentResult: function (fn) { cb.momentResult.push(fn); },     // the split reveal
+    onCheer: function (fn) { cb.cheerEcho.push(fn); },               // a single accepted cheer landed — {side, atMs}, discrete (not the roar)
     onMarket: function (fn) { cb.market.push(fn); if (lastTriple) try { fn(lastTriple); } catch (e) {} },
   };
   function flushCheer() { cheerTimer = null; var n = pendingCheer; pendingCheer = 0; if (n > 0 && mySide) send({ type: 'cheer', matchId: matchId, side: mySide, n: n, atMs: Date.now() }); }
@@ -101,6 +102,7 @@
       case 'predictVerdict': if (m.matchId === matchId && m.anonId === me) fire(cb.verdict, m); break;
       case 'moment': if (m.matchId === matchId) fire(cb.moment, m); break;
       case 'momentResult': if (m.matchId === matchId) fire(cb.momentResult, m); break;
+      case 'cheerEcho': if (m.matchId === matchId) fire(cb.cheerEcho, { side: m.side, atMs: m.atMs }); break;
       case 'odds': {
         var t = m.tick;
         if (t && t.period !== 'et') {

@@ -261,6 +261,17 @@ export interface MomentResultMsg {
   closedAtMs: number;
 }
 
+/** One accepted cheer, fanned out discretely so a single fan's tap is visible
+ * within one tick (post-mortem: low-volume roar smoothed to invisible). Honest:
+ * emitted 1:1 with server-ACCEPTED cheer messages (post-throttle), carries no
+ * count, and is capped — the roar rate remains the volume signal. */
+export interface CheerEchoMsg {
+  type: 'cheerEcho';
+  matchId: string;
+  side: Side;
+  atMs: number;
+}
+
 export type ServerMsg =
   | StandsStateMsg
   | CallReceiptMsg
@@ -268,4 +279,5 @@ export type ServerMsg =
   | ConsensusMsg
   | PredictVerdictMsg
   | MomentOpenMsg
-  | MomentResultMsg;
+  | MomentResultMsg
+  | CheerEchoMsg;
