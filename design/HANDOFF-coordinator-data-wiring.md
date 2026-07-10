@@ -73,7 +73,7 @@ AlbumScarf = {
   home, away,            // tricodes — 'SUI','COL'
   score,                 // final, e.g. '1–1'   (NOT the prediction)
   call,                  // the fan's locked call, e.g. 'SUI 2–1'  (string is fine)
-  result,                // 'hit' | 'miss' | 'neutral'  (call vs final)
+  result,                // 3-STATE (post-mortem): 'exact' (scoreline) | 'outcome' (right winner/draw, wrong score) | 'wrong'
   comp,                  // 'GROUP F'
   date,                  // "04 JUL '26"
   serial,                // edition Nº, '009'
@@ -89,7 +89,7 @@ you already do.
 ### 4 · record & next — I derive / de-scope, no endpoint needed
 
 - **record** (MATCHES LIVED · CALLS MADE · NAILED · LOUDEST NIGHT): I derive `lived`/`calls` = scarf count,
-  `nailed` = scarves with `result:'hit'`, from `__album.scarves` — honest, straight off the real relics. So
+  `nailed` = scarves with `result:'exact'`, from `__album.scarves` — honest, straight off the real relics. So
   **no `/seat/me` record fields needed.** `LOUDEST NIGHT` has no on-chain source yet → I show `—` until a
   per-match cheer-peak attribute exists (a nice *later* mint field; not MVP).
 - **next**: no fixtures source exists, so `__album.next = null` and I render the generic "TAKE YOUR PLACE ·
@@ -111,15 +111,35 @@ window.__album = {
   record:{ lived:12, calls:34, nailed:21, loudestNight:'ARG' },   // demo carries a curated fuller record; real fans → record:null and I derive it
   next:{ home:'SPA', away:'BEL', kickoff:"SAT 20:00", side:'SPAIN' },
   scarves:[
-    { asset:'d1', home:'ARG', away:'CPV', score:'3–2', call:'ARG 3–2', result:'hit',  comp:'WORLD CUP', date:"08 JUL '26", serial:'014', matchId:'x', image:null },
-    { asset:'d2', home:'SUI', away:'COL', score:'1–1', call:'SUI 2–1', result:'miss', comp:'GROUP F',   date:"04 JUL '26", serial:'009', matchId:'x', image:null },
-    { asset:'d3', home:'BRA', away:'NOR', score:'0–1', call:'the upset', result:'hit', comp:'GROUP C',   date:"01 JUL '26", serial:'003', matchId:'x', image:null }
+    { asset:'d1', home:'ARG', away:'CPV', score:'3–2', call:'ARG 3–2', result:'exact',   comp:'WORLD CUP', date:"08 JUL '26", serial:'014', matchId:'x', image:null },
+    { asset:'d2', home:'SUI', away:'COL', score:'1–1', call:'SUI 2–1', result:'wrong',   comp:'GROUP F',   date:"04 JUL '26", serial:'009', matchId:'x', image:null },
+    { asset:'d3', home:'BRA', away:'NOR', score:'0–1', call:'the upset', result:'outcome', comp:'GROUP C',  date:"01 JUL '26", serial:'003', matchId:'x', image:null }
   ], on(){} };
 ```
 
 **Done when:** `cabinet.html?demo=1` renders from `__album`/`__seat` (I'll re-map my resolver to the fields
 above), and a genuinely empty `__album` shows my first-run state. I verify at runtime + screenshot the
 same day the stub lands.
+
+## Post-mortem (9 Jul) — data shapes the OTHER design blockers need
+
+The design blockers are mine to render, but three need data from you — flagging while you ingest so we
+build to one shape. Propose your real shapes back; these are just what the surfaces consume:
+
+1. **Sample size (n).** Every crowd mean/% must show its n (post-mortem: five predictions must read
+   `n=5`, not an authoritative %). Expose the prediction count with the means, e.g.
+   `__stands.calls = { home:{n,mean}, away:{n,mean}, all:{n,mean} }` — the STANDS crowd-call panel will label it.
+2. **Feeling-token moments (Pulse).** The terrace picker still expects the obsolete `verdict` kind and
+   only fires under `DEMO`. Give me the **current moment schema** the server emits so I can build the honest
+   live moment prompt + split reveal around it: `__loom.moment = { id, at, tokens:[{key,label}] }` + `react(id,key)`,
+   or tell me the real shape. (Wire it for live, not just `DEMO`.)
+3. **One-cheer-visible roar.** A single remote cheer must pop within one tick without implying a crowd —
+   I need a **discrete** signal, not just a smoothed rate: `__stands.onCheer(fn)` per received cheer (or a
+   `roar.delta`). The terrace scaled low volumes into invisible changes; a per-cheer event fixes that on my side.
+
+And a heads-up, not an ask: the **cabinet is now honest on live** — the lukas sample renders ONLY under
+`?demo=1`; a live seat with no `__seat`/`__album` shows the empty state, never fake data (`a327b40`). So the
+cabinet won't mis-render during a live match regardless of when your interface lands.
 
 ## Not blocking
 - Seven virtue pins → real counters: post-MVP in your spec §9. Pins stay sample; empty seat shows all locked.
