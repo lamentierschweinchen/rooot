@@ -583,3 +583,16 @@ right now — owner call on who.
 - T1 recipe deviation (logged at check-in): gate flag key `SPA` (asset truth), not `ESP`.
 - For the coordinator (receipt in data-shapes margin): `odds` carries no matchId — room-blind at the
   adapter; observed cross-room print at 15:19.
+
+**2026-07-10 · CHECK-IN #3 (owner, ~16:45) — verdicts + NEW DIRECTIVE:**
+1. **Copy law (canon):** plain words first, copy pass later; "fan predictions" not "calls".
+   Verdict labels → ✓ EXACT SCORE / ≈ RIGHT RESULT / ✗ WRONG (terrace committed `2c92aa6`;
+   cabinet's 3 strings handed via loom margin — file mid-flight).
+2. **NEW: THE STANDS CARD supersedes the terrace scarf-card as the stands' keep.** Owner
+   direction: the thing you keep from the stands = the literal colored card fans hold up to form
+   the collective pattern (tifo card), carrying the fan's stats — mostly personal, partly
+   collective. Data-first, then design. Loom keeps the scarf (the match); stands keeps the card
+   (your night). Sketch gate opened: v1 front-led (the held card) vs v2 data-led (printed back) —
+   in design/checkins/2026-07-10/strip-card-sketches.png. T15's KEEP-writes and the cabinet rail
+   will carry this object once gated.
+3. T3 pulled forward pre-freeze (built, driven, frames captured — commit pending owner's pixels).
