@@ -81,7 +81,7 @@
   var DEMO = q.get('demo') === '1';   // live by default; demo only when explicitly asked
   var LIVE = q.get('live') === '1';
   if (!DEMO && !LIVE && q.get('matchread') !== '1') return;   // private prototype defaults to demo; explicit live/demo=0 opts out
-  var matchId = q.get('match') || (LIVE ? '18209181' : '18202783');
+  var explicitMatch = q.get('match');   // ?match= always wins — never touches the manifest
   var wsBase = q.get('ws') || (LIVE ? 'wss://rooot-stands.fly.dev/' : null);
   var state = initialState();
   var subs = [];
@@ -113,5 +113,25 @@
       root.__demoFeed.start(onMsg);
     }
   }
-  connectFeed(matchId, wsBase, function (m) { try { state = reduceMatch(state, m); publish(); } catch (err) {} });
+  function bootFeed(matchId) { connectFeed(matchId, wsBase, function (m) { try { state = reduceMatch(state, m); publish(); } catch (err) {} }); }
+  // Shared fixture-manifest resolution (mirrors loom-adapter.js/stands-adapter.js/
+  // stats-adapter.js — script-order-independent, one fetch total via the same
+  // window.__fixtureReady ||= fetch(...) idiom): (1) ?match= wins outright; (2) the
+  // manifest's matchId, raced against a timeout so a hung fetch never blocks the
+  // socket; (3) the FRA–MAR live-test literal, last resort. Only the LIVE default
+  // goes through the manifest — the demo/prototype default ('18202783', the baked
+  // SUI–COL recording plate/demo-suicol.js plays) is untouched: it has nothing to
+  // do with tonight's fixture, and ?demo=1 must stay byte-identical to today.
+  function resolveMatchId(explicit, cb) {
+    if (explicit) { cb(explicit); return; }
+    window.__fixtureReady = window.__fixtureReady || fetch('/fixture.json')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function () { return null; });
+    var done = false;
+    function finish(id) { if (done) return; done = true; cb(id); }
+    window.__fixtureReady.then(function (fx) { finish((fx && fx.matchId) || '18209181'); }, function () { finish('18209181'); });
+    setTimeout(function () { finish('18209181'); }, 1500);
+  }
+  if (LIVE) resolveMatchId(explicitMatch, bootFeed);
+  else bootFeed(explicitMatch || '18202783');
 })(typeof window !== 'undefined' ? window : this);
