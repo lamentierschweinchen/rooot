@@ -564,3 +564,22 @@ right now — owner call on who.
   another lane's (loom). ✓
 - Coordinator-lane items appear only as dependencies, loom items only as seams. ✓
 - No placeholder steps: every code step shows code; every option is written out. ✓
+
+---
+
+## EXECUTION LOG (design-executor margin — owner verdicts are canon, logged once)
+
+**2026-07-10 · CHECK-IN #1 (T1+T2) — owner verdicts:**
+1. BEL flat black "looks weird" → **secondary colors for both teams in the stands** (not a lightened
+   primary). Landed: `sec` on fixture 18218149 (ESP `#F1BF00` · BEL `#FDDA24`), ~1-in-5 kit-tile
+   scatter in both terrace ends + ground far-stand cells; hue only, density/brightness stay data.
+2. Somber question → resolved by (1).
+3. n:0 guard pulled forward (owner: right instinct, copy was "horribly verbose") — **voice law
+   logged: the noun is "predictions", not "calls"** (panel label now FAN PREDICTIONS); n:0 line is
+   exactly **THE CROWD IS ARRIVING**; per-end lines silent at n:0. T4's sketch still owns the panel.
+4. Gate pre-data bar → KISS: **GAME STARTS AT <kick time>** (from FX.kick), not wire-speak.
+5. Loom `/live` line: **owner is working the loom himself; lands when done** — re-raise before the
+   20:30 freeze if not in. My hand-off note sits in HANDOFF-loom-object.md margin.
+- T1 recipe deviation (logged at check-in): gate flag key `SPA` (asset truth), not `ESP`.
+- For the coordinator (receipt in data-shapes margin): `odds` carries no matchId — room-blind at the
+  adapter; observed cross-room print at 15:19.
