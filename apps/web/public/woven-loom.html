@@ -267,6 +267,7 @@ body.embed .wrap{padding:6px 8px 8px}
   // weave (a miss is a heartbeat too), corners keep the rhythm; offsides/safe free kicks/injuries
   // are referee admin — they live in THE BOOK and THE COUNT, not on the scarf.
   var CORE={goal:1,save:1,block:1,miss:1,wood:1,corner:1,freekick:1,yc:1,rc:1,sub:1,'var':1};   // freekick = only the ones that CAME TO something (adapter's led-to-danger correlation; ~6-10/match)
+  var TILESET=({a:{f:'loom-tile-a',w:166,h:55},b:{f:'loom-tile-b',w:160,h:114},c:{f:'loom-tile-c',w:160,h:114}})[Q.get('tile')]||{f:'loom-weave',w:48,h:32};   // L16 ground samples (owner-generated)
   var BREATH=Q.get('breath')||'calm';  // the loom's life: calm (default) · alive (louder) · still (dead loom — comparison only)
   var BR={calm:{trav:3.0,hb:[0.66,0.24,2.4],sh:[0.045,0.032,3.6]},
           alive:{trav:1.9,hb:[0.52,0.38,1.7],sh:[0.075,0.055,2.6]},
@@ -433,8 +434,8 @@ body.embed .wrap{padding:6px 8px 8px}
     // THE GROUND IS BAKED, NOT DRAWN (the sticker is the bar): real thread crowns, seats,
     // lifted warp, grain and fuzz live in two pre-woven raster tiles (assets/loom-weave-*.png,
     // light + shadow alpha) — the loom-proto lineage move, honest pre-baked physics
-    svg+='<defs><pattern id="wlight" width="48" height="32" patternUnits="userSpaceOnUse"><image href="assets/loom-weave-light.png" width="48" height="32"/></pattern>';
-    svg+='<pattern id="wdark" width="48" height="32" patternUnits="userSpaceOnUse"><image href="assets/loom-weave-dark.png" width="48" height="32"/></pattern>';
+    svg+='<defs><pattern id="wlight" width="'+TILESET.w+'" height="'+TILESET.h+'" patternUnits="userSpaceOnUse"><image href="assets/'+TILESET.f+'-light.png" width="'+TILESET.w+'" height="'+TILESET.h+'"/></pattern>';
+    svg+='<pattern id="wdark" width="'+TILESET.w+'" height="'+TILESET.h+'" patternUnits="userSpaceOnUse"><image href="assets/'+TILESET.f+'-dark.png" width="'+TILESET.w+'" height="'+TILESET.h+'"/></pattern>';
     // the weft rows, dyed — referenced per band with that band's LIGHT thread via currentColor
     svg+='<pattern id="tone" width="6" height="4" patternUnits="userSpaceOnUse"><rect y="0" width="6" height="1.9" fill="currentColor"/></pattern>';
     // no cloth has laser-cut edges — the silhouette itself carries a hand-width of wobble

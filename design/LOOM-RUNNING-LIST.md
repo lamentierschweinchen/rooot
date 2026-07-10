@@ -37,13 +37,14 @@ Counts from the two real fixtures (what would actually sit on one scarf):
 | cards | ~5 | 2 | **KEEP** (the book matters) |
 | subs | ~5 (dedup) | 0 in bundle | **KEEP** (the bench story) |
 | VAR | 2 | 1 | **KEEP** (the held breath) |
-| corners | 24 | 17 | cut — texture, not story; lives in the cord + THE COUNT |
-| off-target/blocked | ~20 | 17 | cut — the wall/terrace plates own these |
+| corners | 24 | 17 | **KEEP, lighter weight** (owner: the match's breathing rhythm) |
+| off-target/blocked | ~20 | 17 | **KEEP** (owner: "def want" — a gasp is a heartbeat too) |
 | offsides | ~5 | 5 | cut — THE BOOK's row |
-| danger free kicks | ~10 | 6 | cut — the cord already surges; the shot that follows weaves |
+| free kicks that came to something | 8 | 6 | **KEEP** (led-to-danger correlation; typed Attack is wire-flaky: 54/107 arrive untyped) |
+| safe/attacking FKs, injuries, throw-ins | ~100+ | ~30 | cut — would drown the cloth |
 
-→ a match carries **~20–25 marks** instead of ~65: every one earns its place, the goals stay king,
-and chipless (L11) stays legible at phone width.
+→ **~50–60 marks a match, one every ~2′** (owner's final call, "alive, not full"): the loom is
+one way to WATCH the game, in and post match; the goals stay king at 2.7×, everything else smaller.
 
 ## L16 — GROUND TILE SAMPLES (owner generates, I socket + A/B) — three prompts, copy-paste
 
@@ -71,8 +72,13 @@ no folds, no wrinkles, no labels, no border, the texture filling the entire fram
 > wool, photographed flat and straight-on with perfectly even shadowless lighting, square 2048px,
 > edges continuing perfectly when tiled, no folds, no labels, no border, texture filling the whole frame.
 
-Drop results in `design/generations/` (any names); I derive light/dark alpha pairs, socket behind
-`?tile=a|b|c`, and screenshot the three side by side for the verdict.
+**SOCKETED (2026-07-10 evening):** the owner's three samples (`design/generations/cloth samples/`)
+are derived into light/dark pairs (`assets/loom-tile-{a,b,c}-*.png`) and live behind `?tile=a|b|c`.
+Evidence: `loom-object/95-tile-{a,b,c}.png` + closeups. **My read: A — THE TERRACE KNIT — wins**:
+the garter ridges tinted in team ink finally read KNITTED SCARF, not generic cloth; b/c are clean
+but characterless at phone scale. Note for production: A carries a faint mirror-tile seam
+(dev-grade seamlessing) — if blessed, I re-derive it with edge-blend instead of mirror. Default
+ground stays the baked weave until the owner calls it.
 
 ## L10 — GOOOL sticker, generation prompt (copy-paste)
 
