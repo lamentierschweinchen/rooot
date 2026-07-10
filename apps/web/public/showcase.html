@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ROOOT — the walkthrough</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#E6DBC2">
 <style>
 @font-face{font-family:'Anybody';src:url(plate/fonts/anybody.woff2) format('woff2');font-weight:400 700;font-display:swap}
 @font-face{font-family:'Anybody';src:url(plate/fonts/anybody900.woff2) format('woff2');font-weight:800 900;font-display:swap}
@@ -77,6 +79,18 @@ body{min-height:100vh;
 .foot .sig{font-weight:800;font-size:8px;letter-spacing:.16em;color:var(--sub);white-space:nowrap}
 @media(max-width:900px){ .stage{gap:26px} .device{width:min(398px,calc(80vh * 398 / 812),100%)} .guide{max-width:none} }
 @media(max-width:430px){ .page{padding-left:16px;padding-right:16px} }
+/* the page assembles like a print pass — colour bar wipes in, then the sheet rises in registration */
+@keyframes scRise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes scWipe{from{opacity:.35;transform:scaleX(0)}to{opacity:1;transform:scaleX(1)}}
+.hostband{transform-origin:left center;animation:scWipe .6s cubic-bezier(.2,.75,.25,1) both}
+.hero .brand{animation:scRise .6s ease-out both;animation-delay:.12s}
+.hero .thesis{animation:scRise .6s ease-out both;animation-delay:.24s}
+.hero .tag{animation:scRise .55s ease-out both;animation-delay:.36s}
+.stage .phone{animation:scRise .7s ease-out both;animation-delay:.44s}
+.guide .gsec{animation:scRise .6s ease-out both}
+.guide .gsec:nth-child(1){animation-delay:.52s}.guide .gsec:nth-child(2){animation-delay:.62s}
+.guide .gsec:nth-child(3){animation-delay:.72s}.guide .gsec:nth-child(4){animation-delay:.82s}
+.foot{animation:scRise .6s ease-out both;animation-delay:.7s}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;scroll-behavior:auto !important}}
 </style>
 </head>
