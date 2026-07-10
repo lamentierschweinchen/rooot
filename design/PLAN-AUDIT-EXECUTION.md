@@ -608,3 +608,10 @@ right now — owner call on who.
 - MINUTES WATCHED spelled out. BEL is tricolor: black field + yellow AND red flecks
   (sec2 #C8102E) on terrace/ground/card. Bespoke card pass next (real type, texture, owner-gen
   moment emblems once tokens settle).
+
+**2026-07-10 ~20:45 · WAVE 0 CLOSED.** T1/T2/T3/T4/T5/T7 + THE CARD (new owner directive,
+supersedes the scarf-card as the stands keep) + emblems + accuracy 0–100 + fan-serial pre-wire:
+all committed pre-freeze and deployed. T6 (pulse on the live schema, emblems as chips) built,
+verified, committed `be25c9b` POST-freeze — LOCAL ONLY, tomorrow deploys unless the owner calls
+live-severity. Remaining Wave 1 queue unchanged (T8–T17); the card's bespoke pass and the
+T6 token-vocabulary alignment (with the coordinator) are the next design units.
