@@ -154,20 +154,31 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .scarf{position:relative;width:100%;max-width:330px;background:var(--card);border:2.5px solid var(--ink);box-shadow:0 18px 46px rgba(0,0,0,.4);
   transform:translateY(16px) scale(.96);transition:transform .6s cubic-bezier(.2,1,.3,1)}
 .keepsake.on .scarf{transform:none}
-.scarf .band{display:flex;height:8px}
-.scarf .band i{flex:1}.scarf .band .h{background:var(--you)}.scarf .band .a{background:var(--them)}.scarf .band .g{background:var(--gold)}
-.scarf .sk-tifo{display:grid;grid-template-columns:repeat(26,1fr);gap:1.5px;padding:12px;background:var(--paper)}
-.scarf .sk-tifo span{width:100%;padding-bottom:100%;border-radius:1px;background:var(--you)}
-.scarf .sk-body{padding:14px 16px 16px;text-align:center}
-.scarf .sk-ft{font-weight:900;font-size:12px;letter-spacing:.18em;color:var(--gold)}
-.scarf .sk-sc{font-weight:900;font-size:24px;letter-spacing:.02em;margin:2px 0 6px}
-.scarf .sk-sc .h{color:var(--you)}.scarf .sk-sc .a{color:var(--them)}
-.scarf .sk-line{font-weight:800;font-size:8.5px;letter-spacing:.06em;color:var(--ink)}
-.scarf .sk-call{margin-top:7px;font-weight:800;font-size:8px;letter-spacing:.04em;color:var(--sub)}
-.scarf .sk-call b{color:var(--you)}
-.scarf .sk-line b{color:var(--gold)}
-.scarf .sk-prov{margin-top:11px;padding-top:9px;border-top:1px solid var(--line);display:flex;justify-content:space-between;font-weight:700;font-size:6.6px;letter-spacing:.06em;color:var(--sub)}
-.scarf .sk-keep{margin-top:12px;width:100%;padding:11px;background:var(--ink);color:var(--card);border:none;font-family:var(--disp);font-weight:900;font-size:11px;letter-spacing:.12em;cursor:pointer}
+/* THE CARD — the one you held up in the stands; your end's colours, your seat, your numbers */
+.scarf{padding:7px}
+.k-face{position:relative;background:var(--you);height:300px;border:1.5px solid var(--ink);overflow:hidden}
+.k-face .kt{position:absolute;inset:5px;display:grid;grid-template-columns:repeat(11,1fr);gap:2px;align-content:start}
+.k-face .kt span{aspect-ratio:1;background:var(--you);border-radius:1px;opacity:.55;filter:brightness(1.25)}
+.k-face .kt span.k{background:var(--yousec,var(--you));opacity:.8;filter:none}
+.k-face .kt span.k2{background:var(--yousec2,var(--yousec,var(--you)));opacity:.85;filter:none}
+.k-face .kt span.you{background:var(--card);opacity:1;filter:none;outline:2px solid var(--yousec,var(--card));border-radius:2px}
+.k-seat{position:absolute;left:0;right:0;bottom:0;padding:9px 11px;display:flex;justify-content:space-between;align-items:baseline;
+  background:linear-gradient(0deg,rgba(26,24,21,.92) 30%,transparent);color:var(--card)}
+.k-seat b{font-size:13px;letter-spacing:.08em}
+.k-seat span{font-size:7.5px;letter-spacing:.16em;color:var(--yousec,var(--card))}
+.krow{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border:1.5px solid var(--ink);border-top:none}
+.krow .l{color:var(--sub);font-size:7.5px;letter-spacing:.18em;font-weight:800}
+.krow b{font-weight:900;font-size:12px;letter-spacing:.04em}
+.kfinal{background:var(--ink);color:var(--card)}
+.kfinal .l{color:rgba(243,236,219,.6)}
+.kfinal b{font-size:15px}
+.kmoms{display:flex;justify-content:space-between;gap:4px;padding:8px 10px;border:1.5px solid var(--ink);border-top:none}
+.kmoms .mom{display:flex;align-items:center;gap:4px}
+.kmoms .g{width:16px;height:16px;border:1.5px solid var(--ink);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:900;background:var(--card)}
+.kmoms small{font-weight:900;font-size:9.5px}
+.kmoms .mom.off{opacity:.22}
+.k-prov{display:flex;justify-content:space-between;padding:7px 3px 2px;font-weight:700;font-size:6.6px;letter-spacing:.14em;color:var(--sub)}
+.scarf .sk-keep{margin-top:7px;width:100%;padding:11px;background:var(--ink);color:var(--card);border:none;font-family:var(--disp);font-weight:900;font-size:11px;letter-spacing:.12em;cursor:pointer}
 
 /* honesty footer */
 .foot{flex:none;padding:5px 14px;text-align:center;font-weight:700;font-size:7px;letter-spacing:.11em;color:var(--sub);background:var(--paper);border-top:1px solid var(--line);z-index:6}
@@ -235,19 +246,18 @@ body.embed .backg,body.embed .foot{display:none}
     <div class="picker" id="picker"></div>
   </div>
 
-  <!-- full-time keepsake: the stand settles into the scarf -->
+  <!-- full-time: THE CARD — the one you held up, your numbers printed on it -->
   <div class="keepsake" id="keepsake">
     <div class="scarf">
-      <div class="band"><i class="h"></i><i class="a"></i><i class="g"></i></div>
-      <div class="sk-tifo" id="skTifo"></div>
-      <div class="sk-body">
-        <div class="sk-ft">FULL TIME</div>
-        <div class="sk-sc"><span class="h">SUI</span> <span id="skH">0</span>–<span id="skA">0</span> <span class="a">COL</span></div>
-        <div class="sk-line" id="skLine">YOU STOOD IN <b>THE SWISS END</b></div>
-        <div class="sk-call" id="skCall" style="display:none"></div>
-        <div class="sk-prov"><span>YOUR STAND · WOVEN FROM REAL COUNTS</span><span>Nº —</span></div>
-        <button class="sk-keep" id="skKeep">THE STAND IS YOURS — KEEP IT</button>
-      </div>
+      <div class="k-face"><div class="kt" id="skTifo"></div>
+        <div class="k-seat"><b id="kEnd">—</b><span id="kSeat">—</span></div></div>
+      <div class="krow kfinal"><span class="l">FULL TIME</span><b id="kScore">—</b></div>
+      <div class="krow" id="kPredRow"><span class="l">YOU PREDICTED</span><b id="kPred">—</b></div>
+      <div class="krow"><span class="l">CHEERS</span><b id="kCheers">0</b></div>
+      <div class="kmoms" id="kMoms"></div>
+      <div class="krow"><span class="l">MINUTES WATCHED</span><b id="kMins">0</b></div>
+      <div class="k-prov"><span id="kFx">—</span><span>Nº —</span></div>
+      <button class="sk-keep" id="skKeep">KEEP IT</button>
     </div>
   </div>
 
@@ -308,7 +318,8 @@ var FIXTURES={
   '18218149':{home:{tri:'ESP',name:'SPAIN',color:'#AA151B',sec:'#F1BF00'},away:{tri:'BEL',name:'BELGIUM',color:'#1A1A18',sec:'#FDDA24',sec2:'#C8102E'}}
 };
 var FX=FIXTURES[MATCH_ID]||FIXTURES['18218149'], HOME_TRI=FX.home.tri, AWAY_TRI=FX.away.tri, YOU_TEAM=FX.home, THEM_TEAM=FX.away;
-var M={t:0,score:[0,0],rY:0,rT:0,run:true,lastMs:0,fired:{},await:null,dur:92,xp:0,reads:{h:0,a:0},pred:null,predShown:{},predResolved:{}};
+var M={t:0,score:[0,0],rY:0,rT:0,run:true,lastMs:0,fired:{},await:null,dur:92,xp:0,reads:{h:0,a:0},pred:null,predShown:{},predResolved:{},
+  cheerN:0,reacts:{},vSec:0};   // the card's honest counters — your own actions, counted locally
 var SPEED=1.3; // match-minutes per second (slowed so events + calls are catchable)
 
 // ---- the tifo: build the seats (density = count, brightness = roar) ----
@@ -324,8 +335,12 @@ function mosaic(node,seats,litPct,youIdx){var h='';
   node.innerHTML=h;
 }
 // sample seating: a near-full house (real wiring maps counts.home/away → lit %)
+// your seat is assigned from your anonId — stable per fan, real on your card
+function youIdxNow(){try{var a=window.__stands&&window.__stands.anonId;if(!a)return 47;
+  var n=0;for(var i=0;i<a.length;i++)n=(n*31+a.charCodeAt(i))>>>0;return n%396;}catch(e){return 47;}}
+var YOU_IDX=youIdxNow();
 mosaic(el('tilesThem'),352,95,-1);
-mosaic(el('tilesYou'),396,96,47);        // tile 47 (a front-row seat) is YOU
+mosaic(el('tilesYou'),396,96,YOU_IDX);
 var tilesYou=el('tilesYou').children, tilesThem=el('tilesThem').children;
 
 // the field brightens with the roar; each lit tile keeps its grain, the YOU tile stays bright
@@ -345,7 +360,8 @@ function liveRoarLevel(v){return v>0?Math.min(1,0.28+v*1.6):0;}   // one real ta
 function bumpEnd(node,list,k){ if(!node)return; node.classList.remove('surge'); void node.offsetWidth; node.classList.add('surge'); ripple(list,k||7); setTimeout(function(){node.classList.remove('surge');},520); }
 
 // your tap = roar (your end surges — the field, not a gauge)
-function tap(){ if((DEMO||LIVE)&&window.__stands){window.__stands.cheer();} else {M.rY=Math.min(1,M.rY+0.16);} ripple(tilesYou,6);var e=el('youEnd');e.classList.remove('surge');void e.offsetWidth;e.classList.add('surge');}
+function tap(){ if((DEMO||LIVE)&&window.__stands){window.__stands.cheer(); M.cheerN++;} else {M.rY=Math.min(1,M.rY+0.16);} ripple(tilesYou,6);var e=el('youEnd');e.classList.remove('surge');void e.offsetWidth;e.classList.add('surge');}
+setInterval(function(){ if(document.visibilityState==='visible'&&!M._ft)M.vSec+=10; },10000);   // minutes watched = visible time until FT
 el('youEnd').addEventListener('pointerdown',function(e){ if(e.target.closest('.pk')||e.target.closest('.sk-keep'))return; tap(); });
 
 // picker
@@ -375,7 +391,7 @@ function pick(label,isV){
   var p=el('picker');
   [].forEach.call(p.querySelectorAll('.pk'),function(c){c.classList.toggle('on',c.textContent===label);});
   M.await.picked=true;M.await.mine=label;
-  if(DEMO&&window.__stands&&M.await.momentId)window.__stands.momentReact(M.await.momentId,label);   // your read → the live crowd
+  if(DEMO&&window.__stands&&M.await.momentId){window.__stands.momentReact(M.await.momentId,label); M.reacts[label]=(M.reacts[label]||0)+1;}   // your read → the live crowd (counted for the card)
   var ctx=M.await;
   setTimeout(function(){ p.classList.remove('on');reveal(ctx,label,isV);el('taphint').style.opacity=''; if(M.await===ctx)M.await=null; },560);
 }
@@ -448,27 +464,43 @@ function showCheckpoint(){
 }
 el('predX').onclick=dismissPred;
 
-// full time = the keepsake: your end's terrace settles into the scarf
+// full time = THE CARD: the one you held up, your numbers printed on it (owner values, 10 Jul)
 function showKeepsake(){
-  var sk=el('skTifo'); if(sk && !sk.childElementCount){ var h=''; for(var i=0;i<156;i++){ h+='<span></span>'; } sk.innerHTML=h; }
   var vm=M.verdictMsg;
   if(vm&&vm.final)M.score=[vm.final.home,vm.final.away];   // the wire's settled final beats a late-join's stale 0-0
-  el('skH').textContent=M.score[0]; el('skA').textContent=M.score[1];
-  var won=M.score[0]>M.score[1], drew=M.score[0]===M.score[1];
-  el('skLine').innerHTML='YOU STOOD IN <b>THE '+YOU_TEAM.name+' END</b>'+(won?' · AND IT SANG':(drew?' · TILL THE LAST':' · AND SANG ANYWAY'));
-  var sc=el('skCall');
-  // accuracy 0–100 (owner, 10 Jul): 50 for the right result + 25 per team's goals, −10 per goal off
+  var kt=el('skTifo');
+  if(kt&&!kt.childElementCount){ var h='',KC=88,ki=YOU_IDX%KC;   // your end at card scale — same scatter, your seat bright
+    for(var i=0;i<KC;i++){ var k=((i*29+i*i*13)%5)===0;
+      h+='<span class="'+(i===ki?'you':k?(((i*7)%2)?'k':'k2'):'')+'"></span>'; }
+    kt.innerHTML=h; }
+  el('kEnd').textContent=YOU_TEAM.name+' END';
+  el('kSeat').textContent='ROW '+(Math.floor(YOU_IDX/22)+1)+' · SEAT '+(YOU_IDX%22+1<10?'0':'')+(YOU_IDX%22+1);
+  el('kScore').textContent=HOME_TRI+' '+M.score[0]+'–'+M.score[1]+' '+AWAY_TRI;
+  // accuracy 0–100 (owner formula): 50 for the right result + 25 per team's goals, −10 per goal off
   var accScore=function(p,f){ var r=Math.sign(p.home-p.away)===Math.sign(f.home-f.away)?50:0;
     var g=function(a,b){return Math.max(0,25-10*Math.abs(a-b));}; return r+g(p.home,f.home)+g(p.away,f.away); };
-  if(vm&&vm.predicted&&vm.final){
-    sc.innerHTML='YOU PREDICTED <b>'+HOME_TRI+' '+vm.predicted.home+'–'+vm.predicted.away+' '+AWAY_TRI+'</b> · <b>'+accScore(vm.predicted,vm.final)+'/100</b>';
-    sc.style.display='block';
-  } else if(PASS && PASS.call){ var p={home:PASS.call.h,away:PASS.call.a}, f={home:M.score[0],away:M.score[1]};
-    sc.innerHTML='YOU PREDICTED <b>'+HOME_TRI+' '+p.home+'–'+p.away+' '+AWAY_TRI+'</b> · <b>'+accScore(p,f)+'/100</b>'; sc.style.display='block';
-  } else { sc.style.display='none'; }
+  var p=vm&&vm.predicted?vm.predicted:(PASS&&PASS.call?{home:PASS.call.h,away:PASS.call.a}:null);
+  var f=vm&&vm.final?vm.final:{home:M.score[0],away:M.score[1]};
+  if(p){ el('kPred').textContent=HOME_TRI+' '+p.home+'–'+p.away+' '+AWAY_TRI+' · '+accScore(p,f)+'% ACCURACY'; }
+  else el('kPredRow').style.display='none';
+  el('kCheers').textContent=M.cheerN;
+  var MK=['▲','●','◆','✕','▼','◈'], toks=Object.keys(M.reacts), mh='';   // placeholder marks — bespoke emblems from the owner's gen loop
+  for(var s=0;s<6;s++){ var n=s<toks.length?M.reacts[toks[s]]:0;
+    mh+='<span class="mom'+(n?'':' off')+'"><span class="g">'+MK[s]+'</span><small>'+n+'</small></span>'; }
+  el('kMoms').innerHTML=mh;
+  el('kMins').textContent=Math.floor(M.vSec/60);
+  var MON=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'], d=new Date();
+  el('kFx').textContent=HOME_TRI+'–'+AWAY_TRI+' · '+d.getDate()+' '+MON[d.getMonth()]+' '+d.getFullYear();
   setTimeout(function(){ el('keepsake').classList.add('on'); },900);
 }
-el('skKeep').onclick=function(){ el('keepsake').classList.remove('on'); };
+el('skKeep').onclick=function(){
+  // the keep is a real local record — the cabinet reads it when the album reconciliation lands
+  try{ localStorage.setItem('rooot.kept.'+MATCH_ID, JSON.stringify({matchId:MATCH_ID,home:HOME_TRI,away:AWAY_TRI,
+    final:{h:M.score[0],a:M.score[1]}, pred:PASS&&PASS.call||null, cheers:M.cheerN, reacts:M.reacts,
+    mins:Math.floor(M.vSec/60), seat:YOU_IDX, ts:Date.now()})); }catch(e){}
+  var b=el('skKeep'); b.textContent='KEPT ✓'; b.disabled=true;
+  setTimeout(function(){ el('keepsake').classList.remove('on'); },700);
+};
 
 // fire an event
 function fire(ev){
@@ -563,13 +595,10 @@ function applyFixture(sideKey){
   if(mh)mh.textContent=HOME_TRI; if(ma)ma.textContent=AWAY_TRI;
   var youHdr=document.querySelector('.end.you .ehdr .nm b'), themHdr=document.querySelector('.end.them .ehdr .nm b');
   if(youHdr)youHdr.textContent=YOU_TEAM.name; if(themHdr)themHdr.textContent=THEM_TEAM.name;
-  var skh=document.querySelector('.sk-sc .h'), ska=document.querySelector('.sk-sc .a');
-  if(skh)skh.textContent=HOME_TRI; if(ska)ska.textContent=AWAY_TRI;
   // no predictions yet → silence, never zeros-as-data (owner copy, 10 Jul: short)
   var cc=el('crowdcall');
   var ccs=cc&&cc.querySelector('.ccscore'); if(ccs)ccs.innerHTML='<b class="ccwait">THE CROWD IS ARRIVING</b>';
   var aff=cc&&cc.querySelector('.ccaff'); if(aff)aff.innerHTML='';
-  el('skLine').innerHTML='YOU STOOD IN <b>THE '+YOU_TEAM.name+' END</b>';
   var rp=document.querySelector('.matchbar .rp'); if(rp)rp.lastChild.textContent=LIVE?'LIVE':'REPLAY';
   var ccl=document.querySelector('.ccmkt'); if(ccl)ccl.textContent='· vs market '+HOME_TRI+' waiting';
 }
@@ -598,6 +627,8 @@ function wireLive(){
     if(window.__stands.onCheer)window.__stands.onCheer(function(e){
       ripple(e.side===sideKey?tilesYou:tilesThem,1);   // ONE seat flickers — someone, right now (never volume; roar carries that)
     });
+    var yi=youIdxNow();   // the adapter arrives async in live — re-seat once the real anonId exists
+    if(yi!==YOU_IDX){ YOU_IDX=yi; mosaic(el('tilesYou'),396,96,YOU_IDX); }
   }
   if(window.__statsAdapter&&!wireLive.didStats){
     wireLive.didStats=true;
