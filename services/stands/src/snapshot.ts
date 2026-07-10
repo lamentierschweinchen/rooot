@@ -2,13 +2,15 @@
  * Restart continuity: every 30s (STANDS_SNAPSHOT_INTERVAL_MS), dump a small
  * JSON snapshot of match state (rooted anonId->side, room membership,
  * predictions, predictLocked, verdicts, felt-moment history, per-fan night
- * stats) to disk; on boot, reload it if present — volume-ready
+ * stats) PLUS one registry-global field (THE FAN SERIAL — anonId->fanNo, not
+ * per-match) to disk; on boot, reload it if present — volume-ready
  * (STANDS_DATA_DIR / a mounted /data survives restarts/redeploys; /tmp does
  * not). Weekend scale — this is not meant to survive a crash mid-write, just
  * a clean restart/redeploy without losing who-rooted-for-whom, who-predicted-
- * what, who-already-saw-their-verdict, and each fan's accumulated card
- * (THE STANDS CARD substrate — write-only tonight, see match-state.ts's
- * FanStats doc comment).
+ * what, who-already-saw-their-verdict, each fan's accumulated card (THE
+ * STANDS CARD substrate — write-only tonight, see match-state.ts's FanStats
+ * doc comment), and each fan's global first-come serial (design/
+ * HANDOFF-2026-07-10-fan-serial.md, see MatchRegistry.fanNoFor).
  *
  * Deliberately NOT snapshotting roar/pulse rolling counters — those are
  * seconds-old by nature and honestly should reset to silence on restart
@@ -80,8 +82,13 @@ export const SNAPSHOT_INTERVAL_MS = resolveSnapshotIntervalMs();
  * file with a lower (or absent = v1) version — every v2+ field is optional on
  * read and defaults rather than fabricates. v3 adds fanStats (THE STANDS CARD
  * substrate) — absent on a v1/v2 file, which defaults to no stats for every
- * fan, never a fabricated zeroed row. */
-export const SNAPSHOT_VERSION = 3;
+ * fan, never a fabricated zeroed row. v4 adds `fans` (THE FAN SERIAL,
+ * design/HANDOFF-2026-07-10-fan-serial.md) — a top-level, REGISTRY-GLOBAL
+ * field (not per-match, unlike everything else here) — absent on a v1/v2/v3
+ * file, which defaults to an empty registry: numbering then starts fresh at
+ * 1, never fabricated retroactively for fans who connected before this
+ * shipped. */
+export const SNAPSHOT_VERSION = 4;
 
 interface SnapshotRoomMember {
   anonId: string;
@@ -119,10 +126,27 @@ interface SnapshotMatch {
   fanStats?: Array<[string, FanStats]>;
 }
 
+/** v4+. THE FAN SERIAL (design/HANDOFF-2026-07-10-fan-serial.md) — a
+ * REGISTRY-GLOBAL counter + map (not per-match; lives at the top level of
+ * SnapshotFile, not inside SnapshotMatch — see the field below). `nextFanNo`
+ * is persisted explicitly for a human reading the file, but applySnapshot
+ * treats it as a tolerant floor, not the sole truth: MatchRegistry.
+ * restoreFanSerial always re-derives at least `max(numbers) + 1`, so a
+ * corrupt/stale `nextFanNo` on disk can never cause a serial to be reissued. */
+interface SnapshotFans {
+  nextFanNo: number;
+  /** anonId -> fanNo, global first-come ordinal. */
+  numbers: Array<[string, number]>;
+}
+
 interface SnapshotFile {
   version?: number; // absent = v1
   savedAtMs: number;
   matches: SnapshotMatch[];
+  /** v4+. Absent on a v1/v2/v3 file — applySnapshot leaves the registry
+   * empty (numbering starts fresh at 1), never fabricates a fan's serial
+   * retroactively. */
+  fans?: SnapshotFans;
 }
 
 /**
@@ -145,6 +169,7 @@ export function writeSnapshot(
   matches: Map<string, MatchState>,
   getMoments?: (matchId: string) => MomentFeeling[],
   isResolved?: (matchId: string) => boolean,
+  fanSerial?: { nextFanNo: number; numbers: Array<[string, number]> },
 ): void {
   const file: SnapshotFile = {
     version: SNAPSHOT_VERSION,
@@ -166,6 +191,7 @@ export function writeSnapshot(
         fanStats: snap.fanStats,
       };
     }),
+    fans: fanSerial,
   };
   try {
     writeFileAtomic(SNAPSHOT_PATH, JSON.stringify(file));
@@ -227,12 +253,18 @@ export function readSnapshot(): SnapshotFile | null {
  * file (or the rare match that reached FULL_TIME with zero predictions, so
  * `resolved` may be absent on a pre-this-fix snapshot) is "restored with any
  * verdicts at all".
+ *
+ * `restoreFanSerial`, if given, is called ONCE (not per-match — THE FAN
+ * SERIAL is registry-global, design/HANDOFF-2026-07-10-fan-serial.md) when
+ * `snap.fans` is present. Absent on a v1/v2/v3 file — the registry stays at
+ * its default empty state (numbering starts fresh at 1), never fabricated.
  */
 export function applySnapshot(
   snap: SnapshotFile,
   getOrCreate: (matchId: string) => MatchState,
   restoreMoments?: (matchId: string, moments: MomentFeeling[]) => void,
   markResolved?: (matchId: string) => void,
+  restoreFanSerial?: (nextFanNo: number, numbers: Array<[string, number]>) => void,
 ): void {
   for (const sm of snap.matches) {
     const match = getOrCreate(sm.matchId);
@@ -251,4 +283,5 @@ export function applySnapshot(
     const hadVerdicts = (sm.verdicts?.length ?? 0) > 0;
     if (markResolved && (sm.resolved === true || hadVerdicts)) markResolved(sm.matchId);
   }
+  if (restoreFanSerial && snap.fans) restoreFanSerial(snap.fans.nextFanNo ?? 1, snap.fans.numbers ?? []);
 }

@@ -81,6 +81,7 @@ import { WebSocket } from 'ws';
 import type { ClientMsg, PredictVerdictMsg, ServerMsg } from '@contracts/crowd';
 import { CHEER_BUCKET_CAPACITY, CHEER_MAX_BATCH } from '../decay';
 import type { FanStats } from '../match-state';
+import { SNAPSHOT_VERSION } from '../snapshot';
 
 function log(tag: string, msg: string): void {
   console.log(`[restart-persistence-check:${tag}] ${msg}`);
@@ -805,7 +806,11 @@ async function scenarioFanStatsRestart(): Promise<void> {
     log('fanstats-boot2', `up on port ${boot2.port}`);
     await sleep(200);
     const restoredLine = boot2.getOutput().split('\n').find((l) => l.includes('[stands:registry] restored'));
-    assert('fanstats boot2 logs a restored-snapshot line (v3)', !!restoredLine && restoredLine.includes('(v3)'), restoredLine ?? '(no matching line)');
+    assert(
+      'fanstats boot2 logs a restored-snapshot line (the CURRENT SNAPSHOT_VERSION — this file was written by this same live codebase, not a hand-crafted historical fixture)',
+      !!restoredLine && restoredLine.includes(`(v${SNAPSHOT_VERSION})`),
+      restoredLine ?? '(no matching line)',
+    );
 
     // NO reconnect yet: boot2's own next periodic write must reproduce the
     // restored row EXACTLY (same cheers/watchMs/reacts/firstSeenMs/lastSeenMs)
@@ -907,14 +912,15 @@ async function scenarioFanStatsV2Tolerance(): Promise<void> {
     );
 
     // wait for this process's own first re-write — attributed by the version
-    // stamp flipping to 3 (only the new writer produces that).
-    const gotV3 = await waitFor(() => readSnapshotFileOn(dataDir)?.version === 3, 4000);
+    // stamp flipping to the CURRENT SNAPSHOT_VERSION (only the new writer
+    // produces that; the hand-written fixture above is pinned at v2).
+    const gotCurrentVersion = await waitFor(() => readSnapshotFileOn(dataDir)?.version === SNAPSHOT_VERSION, 4000);
     const file = readSnapshotFileOn(dataDir);
     const restoredFanRow = fanStatsRowOn(file, matchId, 'v2-fan');
     const observerRow = fanStatsRowOn(file, matchId, 'v2-observer');
     assert(
-      'after the v3 re-write: the restored v2 fan has NO fabricated fanStats row (empty stats, never invented), while the newly-active fan accumulated one normally (open session already folding into watchMs)',
-      gotV3 && restoredFanRow === undefined && !!observerRow && observerRow.watchMs > 0,
+      "after this process's own re-write: the restored v2 fan has NO fabricated fanStats row (empty stats, never invented), while the newly-active fan accumulated one normally (open session already folding into watchMs)",
+      gotCurrentVersion && restoredFanRow === undefined && !!observerRow && observerRow.watchMs > 0,
       `v2FanRow=${JSON.stringify(restoredFanRow)} observerRow=${JSON.stringify(observerRow)}`,
     );
 

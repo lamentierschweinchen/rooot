@@ -12,7 +12,7 @@ import { createServer } from 'node:http';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { WebSocket, WebSocketServer } from 'ws';
-import type { CallMsg, CallReceiptMsg, CheerEchoMsg, ClientMsg, MomentKind, MomentOpenMsg, MomentResultMsg, RoomStateMsg, ServerMsg, Side } from '@contracts/crowd';
+import type { CallMsg, CallReceiptMsg, CheerEchoMsg, ClientMsg, MomentKind, MomentOpenMsg, MomentResultMsg, RoomStateMsg, ServerMsg, Side, WelcomeMsg } from '@contracts/crowd';
 import { FEELING_PALETTES } from '@contracts/crowd';
 import type { FeedMsg } from '@contracts/feed';
 import { REACT_WINDOW_MS, RollingCounter, SWING_DELTA_MIN } from './decay';
@@ -603,7 +603,21 @@ function handleHello(ws: WebSocket, state: ConnState, msg: Extract<ClientMsg, { 
 
   state.matchId = msg.matchId;
   state.anonId = msg.anonId;
-  if (msg.side) match.root(msg.anonId, msg.side);
+  if (msg.side) {
+    match.root(msg.anonId, msg.side);
+    // THE FAN SERIAL (design/HANDOFF-2026-07-10-fan-serial.md, the
+    // coordinator's accepted MARGIN amendment): mints on the first hello
+    // that CARRIES A SIDE — side-less hellos (diagnostics, the write-proof
+    // smoke canary) never reach this branch, so they structurally can never
+    // claim a number; the same anonId re-helloing WITH a side later mints
+    // normally right here. registry.fanNoFor is mint-if-absent / else-return
+    // the SAME number forever, so this is safe to call on every hello, not
+    // just the first — the welcome is resent per-fan (this socket) on every
+    // side-carrying hello/reconnect, same number, forever.
+    const fanNo = registry.fanNoFor(msg.anonId);
+    const welcome: WelcomeMsg = { type: 'welcome', matchId: msg.matchId, anonId: msg.anonId, fanNo };
+    send(ws, welcome);
+  }
 
   const cachedFeedState = lastFeedState.get(msg.matchId);
   if (cachedFeedState) send(ws, cachedFeedState);
