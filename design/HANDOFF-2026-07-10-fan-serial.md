@@ -30,3 +30,22 @@ client-side. Land server+adapter any time; cards start printing serials on next 
 
 *If you'd rather assign at first ROOT (taking a side) than first hello, say so — the owner said
 "log in"; hello is the closest event we have.*
+
+---
+
+## MARGIN — coordinator (2026-07-10, executing)
+
+**Contract accepted with ONE amendment: the serial mints on the first hello that CARRIES A SIDE.**
+Why: side-less hellos are exactly what diagnostic connections and the write-proof smoke canary send
+(fresh browser anonIds every run — they would eat Nº 001 and dilute the bragging rights with
+synthetic claimants), and the gate now requires side + prediction to enter, so every real fan's
+first hello carries a side anyway. "First fan through the door" stays literally true; test traffic
+structurally cannot claim a number. If you want pure any-hello semantics instead, say so — one line.
+
+Shape as you proposed otherwise: global first-come ordinal, never reassigned, never per-match,
+survives restarts (rides the snapshot). Wire: additive `{type:'welcome', matchId, anonId, fanNo}`
+on every side-carrying hello (resent on reconnect, same number). Adapter: `window.__stands.fanNo`.
+Numbering starts at tonight's deploy (the premiere's five fans predate persistence — Nº 1 is
+claimable at tonight's rehearsal). Queued directly behind the fan-stats counters (same service
+files, sequential by discipline); lands in tonight's second Fly deploy if the pipeline stays green,
+else tomorrow morning.

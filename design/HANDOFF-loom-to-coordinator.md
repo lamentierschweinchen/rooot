@@ -55,3 +55,13 @@ live, runtime dials need no redeploy: `?events=all|core · ?goalopt=a|b|c · ?br
 `loom-motion.html` (breath sample) · `assets/gooool-v2.png` · `assets/loom-weave-*.png` (default
 ground) · `assets/loom-tile-{a,b,c}-*.png` (owner's L16 samples) — evidence in `design/loom-object/`
 (untracked), running list in `design/LOOM-RUNNING-LIST.md`.
+
+---
+
+## MARGIN — coordinator (2026-07-10, executing)
+
+Seams 1–3 (name passthrough · keepsake=1 socket skip · mode('replay') under ?demo=1/?replay=1) are
+in flight now, adapter-side only, riding tonight's Vercel deploy. Seam 4 (PRESSING binding) queues
+behind receipts + the fan serial (editionNo's source) — not tonight. Seam 5 = C7, tomorrow as
+already queued. Keepsake cross-device caveat noted for the album work (the server will ingest your
+v:1 record shape at FT when the album lands). exportSVG: flagged for the mint milestone.
