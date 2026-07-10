@@ -67,6 +67,8 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .cheerbar .cl{font-weight:800;font-size:7.5px;letter-spacing:.13em;color:var(--sub);min-width:66px}
 .cheerbar .bar{flex:1;height:9px;background:var(--card);border:1.5px solid var(--ink);overflow:hidden}
 .cheerbar .fill{height:100%;width:0;background:var(--you);transition:width .1s}
+.cheerbar .bar.tick{animation:cbTick .26s ease}   /* one accepted cheer from your end — a single tick, never volume */
+@keyframes cbTick{40%{box-shadow:0 0 0 2.5px var(--yousec,var(--you))}}
 .cheerbar .cv{font-weight:800;font-size:8px;color:var(--sub);min-width:44px;text-align:right}
 .taphint{text-align:center;font-weight:800;font-size:7.5px;letter-spacing:.15em;color:var(--sub);margin-top:7px}
 .cburst{position:absolute;left:50%;top:5px;transform:translateX(-50%) scale(.6);font-weight:900;font-size:24px;color:var(--you);opacity:0;pointer-events:none}
@@ -159,6 +161,9 @@ function flashThem(){
   setTimeout(function(){band.classList.remove('roar');},520);
   for(var i=0;i<mt.children.length;i++){ if(((i*7+Date.now())%3)===0){ var m=mt.children[i]; m.classList.add('hot'); (function(m){setTimeout(function(){m.classList.remove('hot');},260);})(m); } }
 }
+// the discrete echo — ONE person, one flicker (flashThem is the roar's; this is a single cell / a single tick)
+function flashOne(){ var m=mt.children[Math.floor(performance.now()/97)%mt.children.length]; if(!m)return; m.classList.add('hot'); setTimeout(function(){m.classList.remove('hot');},260); }
+function tickYou(){ var b=byq('.cheerbar .bar'); if(!b)return; b.classList.remove('tick'); void b.offsetWidth; b.classList.add('tick'); }
 function loop(now){ var dt=Math.min(.3,(now-lastMs)/1000); lastMs=now; cheer=Math.max(0,cheer-dt*0.3);
   themRoar=Math.max(0,themRoar-dt*0.55); el('themBand').style.setProperty('--roar',themRoar.toFixed(3));
   el('cheerFill').style.width=(cheer*100)+'%'; el('cheerV').textContent=cw(cheer);
@@ -203,6 +208,9 @@ function wireLive(){
         el('themCt').textContent=(s.rooted[other]||0).toLocaleString();
         el('youReads').innerHTML=(s.rooted[sideKey]||0).toLocaleString()+' HERE';
       }
+    });
+    if(window.__stands.onCheer)window.__stands.onCheer(function(e){
+      if(e.side===other)flashOne(); else tickYou();   // one accepted cheer = one flicker; roar carries volume
     });
   }
   if(window.__statsAdapter&&!wireLive.didStats){
