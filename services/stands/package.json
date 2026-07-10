@@ -9,7 +9,8 @@
     "start": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",
     "test:client": "tsx src/dev/test-client.ts",
-    "dryrun:react": "tsx src/dev/react-dryrun.ts"
+    "dryrun:react": "tsx src/dev/react-dryrun.ts",
+    "check:presence-cheer": "tsx src/dev/presence-cheer-check.ts"
   },
   "dependencies": {
     "@metaplex-foundation/mpl-core": "1.10.0",

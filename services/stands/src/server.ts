@@ -11,10 +11,10 @@
 import { createServer } from 'node:http';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { WebSocket, WebSocketServer } from 'ws';
-import type { CallMsg, CallReceiptMsg, ClientMsg, MomentKind, MomentOpenMsg, MomentResultMsg, RoomStateMsg, ServerMsg, Side } from '@contracts/crowd';
+import type { CallMsg, CallReceiptMsg, CheerEchoMsg, ClientMsg, MomentKind, MomentOpenMsg, MomentResultMsg, RoomStateMsg, ServerMsg, Side } from '@contracts/crowd';
 import { FEELING_PALETTES } from '@contracts/crowd';
 import type { FeedMsg } from '@contracts/feed';
-import { REACT_WINDOW_MS, SWING_DELTA_MIN } from './decay';
+import { REACT_WINDOW_MS, RollingCounter, SWING_DELTA_MIN } from './decay';
 import { MatchRegistry } from './registry';
 import { anchorRecordHash, relayCall } from './relay';
 import { SentimentAccumulator } from './sentiment/accumulator';
@@ -491,17 +491,29 @@ function handleHello(ws: WebSocket, state: ConnState, msg: Extract<ClientMsg, { 
     return;
   }
 
+  const match = registry.getOrCreate(msg.matchId);
+
+  // A hello IS crowd presence — even when the socket was already feed-seated by
+  // ?matchId= at connect (that set state.matchId but no crowd identity). Without
+  // this, URL-seated fans never become "present", so isActive()===false and the
+  // 4 Hz tick never broadcasts stands/consensus (Jul 4 post-mortem).
+  //
+  // Presence is a refcount (anonId -> open-socket count), fixing a second
+  // post-mortem: a ground visit opens several sockets for one fan (tabs/
+  // iframes); closing just one used to erase the fan's presence entirely even
+  // with others still open. Touch the refcount only when THIS socket's adopted
+  // identity actually changes (first hello, or an anonId switch) — a re-hello
+  // with the same anonId (side pick, room join) must not double-count, so that
+  // handleClose's single markDisconnected call always undoes exactly what this
+  // socket added.
+  const prevAnonId = state.anonId;
+  if (prevAnonId !== msg.anonId) {
+    if (prevAnonId) match.markDisconnected(prevAnonId);
+    match.markConnected(msg.anonId);
+  }
+
   state.matchId = msg.matchId;
   state.anonId = msg.anonId;
-
-  const match = registry.getOrCreate(msg.matchId);
-  // A hello IS crowd presence — even when the socket was already feed-seated by
-  // ?matchId= at connect (that set state.matchId but no crowd identity). Mark on
-  // EVERY hello (markConnected is keyed by anonId, idempotent). Without this,
-  // URL-seated fans — i.e. every loom-proto client since the Jul 4 feed-seating
-  // fix — never became "present", so isActive()===false and the 4 Hz tick never
-  // broadcast stands/consensus: root/predict silently did nothing on-screen.
-  match.markConnected(msg.anonId);
   if (msg.side) match.root(msg.anonId, msg.side);
 
   const cachedFeedState = lastFeedState.get(msg.matchId);
@@ -526,11 +538,35 @@ function handleHello(ws: WebSocket, state: ConnState, msg: Extract<ClientMsg, { 
   }
 }
 
+/* ── cheer echo — a discrete per-cheer signal (post-mortem: a single remote
+ * fan's cheer was invisible in the smoothed roar rate). Honest: emitted 1:1
+ * with server-ACCEPTED cheer MESSAGES (post-throttle) — one echo per accepted
+ * `cheer` packet, never per tap/token, and it carries no count. Capped so a
+ * flood of accepted cheers can't turn this into its own firehose — the roar
+ * rate remains the volume signal, this is only "someone out there just
+ * cheered." Past the cap: silently drop the echo — never queued, never
+ * synthesized. */
+const CHEER_ECHO_CAP_PER_SEC = 15;
+const cheerEchoCounters = new Map<string, RollingCounter>();
+function emitCheerEcho(matchId: string, side: Side, nowMs: number): void {
+  let counter = cheerEchoCounters.get(matchId);
+  if (!counter) {
+    counter = new RollingCounter(1000);
+    cheerEchoCounters.set(matchId, counter);
+  }
+  if (counter.sum(nowMs) >= CHEER_ECHO_CAP_PER_SEC) return; // at cap — silent drop
+  counter.add(1, nowMs);
+  const echo: CheerEchoMsg = { type: 'cheerEcho', matchId, side, atMs: nowMs };
+  broadcastToMatch(matchId, echo);
+}
+
 function handleCheer(state: ConnState, msg: Extract<ClientMsg, { type: 'cheer' }>): void {
   if (!state.matchId || !state.anonId || state.matchId !== msg.matchId) return;
   if (!isValidSide(msg.side) || typeof msg.n !== 'number') return;
+  const now = Date.now();
   const match = registry.getOrCreate(msg.matchId);
-  match.cheer(state.anonId, msg.side, msg.n);
+  const granted = match.cheer(state.anonId, msg.side, msg.n, now);
+  if (granted > 0) emitCheerEcho(msg.matchId, msg.side, now);
 }
 
 function handleReact(state: ConnState, msg: Extract<ClientMsg, { type: 'react' }>): void {
@@ -608,6 +644,9 @@ function handleClose(ws: WebSocket): void {
   if (!state?.matchId || !state.anonId) return;
   const match = registry.get(state.matchId);
   if (!match) return;
+  // mirrors handleHello's single markConnected call for whichever anonId this
+  // socket currently holds — a feed-only socket never adopted one (state.anonId
+  // stays null, caught by the guard above) and so never counted, unchanged.
   match.markDisconnected(state.anonId);
   const found = match.findRoomOf(state.anonId);
   if (found) {

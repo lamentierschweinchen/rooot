@@ -112,8 +112,15 @@ export class MatchState {
   private readonly predictions = new Map<string, { home: number; away: number; atMs: number }>();
   /** predictions lock at kickoff — a claim on the future locks when it starts. */
   private predictLocked = false;
-  /** connected clients (presence), keyed by anonId — last-hello-wins per anonId. */
-  private readonly connected = new Set<string>();
+  /** presence refcount: anonId -> number of open sockets that have adopted it.
+   * A ground visit can open several sockets for one fan (tabs/iframes); this
+   * must survive any ONE of them closing (post-mortem: a Set-based presence
+   * erased the fan — and could stop stands broadcasts — the moment ANY one of
+   * their sockets closed, even with others still open). `presenceCount()` /
+   * StandsStateMsg.presence stay the map SIZE (distinct anonIds), unaffected
+   * by how many sockets each fan has open — only markConnected/markDisconnected
+   * pairing (one call per socket-adoption) changes. */
+  private readonly connected = new Map<string, number>();
   /** anonId -> token bucket, cheer throttle. */
   private readonly cheerBuckets = new Map<string, TokenBucket>();
   /** anonId -> kind -> last accepted react ms, react throttle. */
@@ -148,12 +155,22 @@ export class MatchState {
 
   /* ── presence + root ─────────────────────────────────────────────── */
 
+  /** The caller (server.ts) must call this exactly once per SOCKET adoption of
+   * anonId — not once per hello message — so a re-hello from the same socket
+   * with the same anonId doesn't inflate the refcount. */
   markConnected(anonId: string): void {
-    this.connected.add(anonId);
+    this.connected.set(anonId, (this.connected.get(anonId) ?? 0) + 1);
   }
 
+  /** The mirror of markConnected: one call per prior adoption (an anonId
+   * switch on the same socket, or that socket closing). Decrements the
+   * refcount and deletes the entry at 0, so presence (map size) only drops
+   * once every socket for that anonId is gone. */
   markDisconnected(anonId: string): void {
-    this.connected.delete(anonId);
+    const n = this.connected.get(anonId);
+    if (n === undefined) return;
+    if (n <= 1) this.connected.delete(anonId);
+    else this.connected.set(anonId, n - 1);
   }
 
   presenceCount(): number {
