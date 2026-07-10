@@ -1,5 +1,19 @@
 # Audit triage — FRESH-EYES-AUDIT into lanes (coordinator, 2026-07-10 ~15:00)
 
+> **PRIORITY OVERRIDE (owner, 2026-07-10 evening — supersedes the "tomorrow" scheduling below and
+> the earlier demo re-bake yes):** *"At the moment I don't care about the demo even a little bit.
+> The only thing I care about is pushing development on what's usable. Sample data is interesting
+> insofar as it can help us with development (e.g. feeding a data feed so we can ensure it is read
+> and displayed correctly). We're not even close to needing to create a demo for judges. We need to
+> push the product."*
+>
+> Applied: **C2, C4, C5 are PARKED** (demo-only). **C1 parked** except any live-surface half.
+> **C3 splits:** the demo re-bake is parked; whether the LIVE adapter passes player names stays
+> relevant (live wire carried scorer names at the premiere — verify tonight in passing). **C7 stays
+> high** — the added-time clock is a live-match problem. The audit's demo/walkthrough findings remain
+> recorded here (nothing lost), but nobody spends time on them until the owner reopens the demo.
+> Sample data (baked SUI–COL replay, canary's local stack) remains sanctioned as dev tooling only.
+
 *Companion to `design/FRESH-EYES-AUDIT.md`. Two clocks tonight: the LIVE gate (kickoff 21:00 CEST —
 the post-mortem Release Gate, live paths) and the DEMO walkthrough (judges, Jul 16). The audit is
 demo-scoped; most findings are demo/seams work. Items marked **LIVE-TONIGHT** are on tonight's real-fan
