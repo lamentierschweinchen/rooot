@@ -174,9 +174,9 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .kfinal b{font-size:15px}
 .kmoms{display:flex;justify-content:space-between;gap:4px;padding:8px 10px;border:1.5px solid var(--ink);border-top:none}
 .kmoms .mom{display:flex;align-items:center;gap:4px}
-.kmoms .g{width:16px;height:16px;border:1.5px solid var(--ink);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:900;background:var(--card)}
+.kmoms img.g{width:24px;height:24px;object-fit:contain;display:block}
 .kmoms small{font-weight:900;font-size:9.5px}
-.kmoms .mom.off{opacity:.22}
+.kmoms .mom.off{opacity:.25;filter:grayscale(1)}
 .k-prov{display:flex;justify-content:space-between;padding:7px 3px 2px;font-weight:700;font-size:6.6px;letter-spacing:.14em;color:var(--sub)}
 .scarf .sk-keep{margin-top:7px;width:100%;padding:11px;background:var(--ink);color:var(--card);border:none;font-family:var(--disp);font-weight:900;font-size:11px;letter-spacing:.12em;cursor:pointer}
 
@@ -256,7 +256,7 @@ body.embed .backg,body.embed .foot{display:none}
       <div class="krow"><span class="l">CHEERS</span><b id="kCheers">0</b></div>
       <div class="kmoms" id="kMoms"></div>
       <div class="krow"><span class="l">MINUTES WATCHED</span><b id="kMins">0</b></div>
-      <div class="k-prov"><span id="kFx">—</span><span>Nº —</span></div>
+      <div class="k-prov"><span id="kFx">—</span><span id="kNo">Nº —</span></div>
       <button class="sk-keep" id="skKeep">KEEP IT</button>
     </div>
   </div>
@@ -484,10 +484,16 @@ function showKeepsake(){
   if(p){ el('kPred').textContent=HOME_TRI+' '+p.home+'–'+p.away+' '+AWAY_TRI+' · '+accScore(p,f)+'% ACCURACY'; }
   else el('kPredRow').style.display='none';
   el('kCheers').textContent=M.cheerN;
-  var MK=['▲','●','◆','✕','▼','◈'], toks=Object.keys(M.reacts), mh='';   // placeholder marks — bespoke emblems from the owner's gen loop
-  for(var s=0;s<6;s++){ var n=s<toks.length?M.reacts[toks[s]]:0;
-    mh+='<span class="mom'+(n?'':' off')+'"><span class="g">'+MK[s]+'</span><small>'+n+'</small></span>'; }
+  // the six emblems (owner's pop set) — count each, grayed unused; T6 aligns the sent-token vocabulary to these names
+  var EMB=['joy','muscle','heartbreak','relief','anger','hope'];
+  var ALIAS={euphoria:'joy',pride:'muscle',anguish:'heartbreak',rage:'anger',fury:'anger',prayer:'hope',tension:'hope'};
+  var cnt={}; for(var tk in M.reacts){ var e=EMB.indexOf(tk)>=0?tk:ALIAS[tk]; if(e)cnt[e]=(cnt[e]||0)+M.reacts[tk]; }
+  var mh='';
+  for(var s=0;s<6;s++){ var n=cnt[EMB[s]]||0;
+    mh+='<span class="mom'+(n?'':' off')+'"><img class="g" src="plate/gens/reactions/'+EMB[s]+'.png" alt="'+EMB[s]+'"><small>'+n+'</small></span>'; }
   el('kMoms').innerHTML=mh;
+  var fn=window.__stands&&window.__stands.fanNo;   // real serial when the wire assigns it (see HANDOFF-fan-serial) — never invented
+  el('kNo').textContent=fn?('Nº '+String(fn).padStart(3,'0')):'Nº —';
   el('kMins').textContent=Math.floor(M.vSec/60);
   var MON=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'], d=new Date();
   el('kFx').textContent=HOME_TRI+'–'+AWAY_TRI+' · '+d.getDate()+' '+MON[d.getMonth()]+' '+d.getFullYear();
@@ -497,7 +503,7 @@ el('skKeep').onclick=function(){
   // the keep is a real local record — the cabinet reads it when the album reconciliation lands
   try{ localStorage.setItem('rooot.kept.'+MATCH_ID, JSON.stringify({matchId:MATCH_ID,home:HOME_TRI,away:AWAY_TRI,
     final:{h:M.score[0],a:M.score[1]}, pred:PASS&&PASS.call||null, cheers:M.cheerN, reacts:M.reacts,
-    mins:Math.floor(M.vSec/60), seat:YOU_IDX, ts:Date.now()})); }catch(e){}
+    mins:Math.floor(M.vSec/60), seat:YOU_IDX, fanNo:(window.__stands&&window.__stands.fanNo)||null, ts:Date.now()})); }catch(e){}
   var b=el('skKeep'); b.textContent='KEPT ✓'; b.disabled=true;
   setTimeout(function(){ el('keepsake').classList.remove('on'); },700);
 };
