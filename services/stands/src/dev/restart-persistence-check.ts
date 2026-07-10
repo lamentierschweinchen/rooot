@@ -47,6 +47,28 @@
  *      NO second crystallize/anchor (sentiment file count + log lines) and no
  *      verdict recompute (the fan's verdict still replays exactly once).
  *
+ * Also proves THE STANDS CARD substrate (match-state.ts's FanStats) across a
+ * REAL restart — write-only tonight (no wire message carries it, so these
+ * scenarios read the PERSISTED SNAPSHOT FILE directly, the same kind of
+ * on-disk evidence sentimentFileCount above already relies on):
+ *
+ *   9. scenarioFanStatsRestart — seeds a real granted-cheer total (8, via the
+ *      deterministic fresh-bucket burst) and leaves a presence session OPEN
+ *      (never gracefully closed) across a real periodic snapshot write, then
+ *      SIGKILLs mid-session. Asserts: the periodic write folded the
+ *      still-open session into watchMs BEFORE the kill; a freshly-booted
+ *      second process restores cheers and watchMs EXACTLY (no live session
+ *      exists yet, so a clean post-restore periodic write reproduces the
+ *      identical totals); and a brand new session for the SAME anonId, once
+ *      it reconnects, ADDS on top of the restored watchMs base rather than
+ *      resetting it or double-folding the already-persisted segment.
+ *   10. scenarioFanStatsV2Tolerance — a hand-written v2-shaped snapshot (real
+ *       predictions/verdicts/moments/resolved fields, but NO fanStats key at
+ *       all — a genuine pre-this-task file looks exactly like this) boots
+ *       clean, rooted state still restores, the restored fan gets NO
+ *       fabricated fanStats row, and a fan newly active in that
+ *       restored-from-v2 match still accumulates fanStats normally.
+ *
  * Usage: tsx src/dev/restart-persistence-check.ts (or: npm run check:restart-persistence)
  */
 import { type ChildProcessByStdio, spawn } from 'node:child_process';
@@ -57,6 +79,8 @@ import type { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import { WebSocket } from 'ws';
 import type { ClientMsg, PredictVerdictMsg, ServerMsg } from '@contracts/crowd';
+import { CHEER_BUCKET_CAPACITY, CHEER_MAX_BATCH } from '../decay';
+import type { FanStats } from '../match-state';
 
 function log(tag: string, msg: string): void {
   console.log(`[restart-persistence-check:${tag}] ${msg}`);
@@ -115,7 +139,16 @@ function bootServer(overrides: Record<string, string | undefined>): Promise<Boot
       if (v === undefined) delete env[k];
       else env[k] = v;
     }
-    const proc = spawn(TSX_BIN, ['src/index.ts'], { cwd: STANDS_ROOT, env, stdio: ['ignore', 'pipe', 'pipe'] });
+    // detached: the child becomes its own process-group leader, so killHard
+    // can SIGKILL the WHOLE group. The tsx .bin shim spawns the REAL node
+    // server as ITS OWN child — a SIGKILL to the shim pid alone ORPHANS the
+    // server, which keeps running (holding "killed" fans' sockets open and
+    // writing snapshots into the dataDir every interval, racing the next
+    // boot's writes). Caught empirically by scenarioFanStatsRestart: the
+    // on-disk watchMs of a SIGKILL'd boot kept growing by exactly one
+    // snapshot interval per write, and `ps` showed one orphaned
+    // `node --import tsx/loader src/index.ts` per prior killHard ever run.
+    const proc = spawn(TSX_BIN, ['src/index.ts'], { cwd: STANDS_ROOT, env, stdio: ['ignore', 'pipe', 'pipe'], detached: true });
     const chunks: string[] = [];
     let settled = false;
     const timeout = setTimeout(() => {
@@ -151,7 +184,16 @@ function killHard(proc: ChildProcessByStdio<null, Readable, Readable>): Promise<
       return;
     }
     proc.once('exit', () => resolve());
-    proc.kill('SIGKILL');
+    // SIGKILL the whole process GROUP (negative pid; the child is a group
+    // leader via detached:true in bootServer) — the tsx shim AND the real
+    // node server it spawned both die, faithfully simulating a machine death.
+    // Killing only proc.pid left the server alive as an orphan (see the
+    // bootServer comment).
+    try {
+      process.kill(-proc.pid!, 'SIGKILL');
+    } catch {
+      proc.kill('SIGKILL'); // group already gone — fall back to the shim pid
+    }
   });
 }
 
@@ -600,6 +642,25 @@ async function scenarioDoubleAnchorGuardOnRestart(): Promise<void> {
     assert('boot1: exactly ONE "[sentiment] crystallized" log line', crystallizedLines1.length === 1, `lines=${JSON.stringify(crystallizedLines1)}`);
     assert('boot1: exactly ONE sentiment record file on disk', sentimentFileCount(dataDir) === 1, `count=${sentimentFileCount(dataDir)}`);
 
+    // THE STANDS CARD (fanStats): the IMMEDIATE post-FT snapshot (Fix 1's
+    // registry.snapshotNow, fired synchronously inside the FULL_TIME branch)
+    // must NATURALLY carry fanStats — same single write path as the periodic
+    // timer, nothing reimplemented. Attribution: the file on disk right now
+    // must carry resolved:true, which no pre-FT write can (the next periodic
+    // write is ~0.6s away at this point; the FT snapshotNow already landed
+    // synchronously before the verdict even reached the ws client above).
+    // The fan hello'd + predicted but never cheered — so cheers MUST be 0
+    // (nothing invented), while their still-open presence session has been
+    // folded into watchMs by the write itself.
+    const ftFile = readSnapshotFileOn(dataDir);
+    const ftMatchEntry = ftFile?.matches.find((m) => m.matchId === matchId);
+    const ftRow = fanStatsRowOn(ftFile, matchId, anonId);
+    assert(
+      'boot1: the IMMEDIATE post-FT snapshot (resolved:true on disk) naturally carries fanStats — the predicting fan has a row with the open session folded into watchMs and cheers exactly 0 (never cheered, nothing fabricated)',
+      ftMatchEntry?.resolved === true && !!ftRow && ftRow.watchMs > 0 && ftRow.cheers === 0 && ftRow.reacts === 0,
+      `resolved=${ftMatchEntry?.resolved} row=${JSON.stringify(ftRow)}`,
+    );
+
     // the resolved verdict + predictLocked are already on disk (Fix 1's
     // immediate post-FT write) — this is just a settle margin before the hard
     // kill, not a wait for the periodic timer.
@@ -657,6 +718,213 @@ async function scenarioDoubleAnchorGuardOnRestart(): Promise<void> {
   }
 }
 
+/* ── THE STANDS CARD substrate (fanStats) — on-disk snapshot readers ──────
+ * fanStats is WRITE-ONLY tonight: no wire message carries it, so these
+ * scenarios verify it the only honest way available from outside the
+ * process — by reading the real persisted snapshot file, the same on-disk
+ * evidence sentimentFileCount above already relies on. */
+interface SnapshotFileOnDisk {
+  version?: number;
+  savedAtMs: number;
+  matches: Array<{
+    matchId: string;
+    rooted?: Array<[string, string]>;
+    resolved?: boolean;
+    fanStats?: Array<[string, FanStats]>;
+  }>;
+}
+
+function readSnapshotFileOn(dataDir: string): SnapshotFileOnDisk | null {
+  const p = path.join(dataDir, 'rooot-stands-snapshot.json');
+  if (!existsSync(p)) return null;
+  try {
+    return JSON.parse(readFileSync(p, 'utf8')) as SnapshotFileOnDisk;
+  } catch {
+    return null; // mid-rename read — treat as not-yet-readable; pollers retry
+  }
+}
+
+function fanStatsRowOn(file: SnapshotFileOnDisk | null, matchId: string, anonId: string): FanStats | undefined {
+  const m = file?.matches.find((x) => x.matchId === matchId);
+  return m?.fanStats?.find(([id]) => id === anonId)?.[1];
+}
+
+/**
+ * Scenario 9 — fanStats survives a REAL restart; an in-progress session at
+ * snapshot time is folded WITHOUT double-count. Same child-process discipline
+ * as every other scenario here: nothing can persist via shared memory.
+ *
+ *   boot1: fan hellos (opens a presence session), fires one CHEER_MAX_BATCH
+ *          burst on a fresh TokenBucket (granted EXACTLY
+ *          CHEER_BUCKET_CAPACITY, deterministically — created + drawn in one
+ *          synchronous handleCheer call, no refill window), then HOLDS the
+ *          socket open across ≥1 periodic snapshot write and gets SIGKILLed
+ *          MID-SESSION (the socket is never closed, so markDisconnected's
+ *          fold never runs — whatever watchMs is on disk got there through
+ *          snapshot()'s open-session checkpoint alone).
+ *   boot2: restores; with NO reconnect, its own next periodic write must
+ *          reproduce the restored row EXACTLY (nothing re-folded, no session
+ *          fabricated for a fan with zero live sockets). Then the same fan
+ *          reconnects for a real new session — the new total must ADD on top
+ *          of the restored base (never reset, never double-fold the
+ *          already-persisted segment), with firstSeenMs surviving from boot1.
+ */
+async function scenarioFanStatsRestart(): Promise<void> {
+  const dataDir = mkdtempSync(path.join(tmpdir(), 'rooot-fanstats-restart-'));
+  const matchId = `fanstats-restart-${Date.now()}`;
+  const anonId = 'fanstats-restart-fan';
+  log('fanstats', `dataDir=${dataDir} matchId=${matchId}`);
+  try {
+    // ── boot1: seed cheers + an OPEN session, snapshot periodically, SIGKILL mid-session ──
+    const boot1 = await bootServer({ STANDS_DATA_DIR: dataDir, STANDS_SNAPSHOT_INTERVAL_MS: '1200' });
+    log('fanstats-boot1', `up on port ${boot1.port}`);
+    const url1 = `ws://127.0.0.1:${boot1.port}`;
+    const fan = await connect(url1);
+    const sessionStartMs = Date.now();
+    send(fan, { type: 'hello', matchId, anonId, side: 'home' });
+    await sleep(150);
+    send(fan, { type: 'cheer', matchId, side: 'home', n: CHEER_MAX_BATCH, atMs: Date.now() });
+    // hold the socket OPEN across at least one 1200ms periodic write (writes
+    // land ~1.2s/~2.4s after boot; the hello was ~0.2s in) — then kill with
+    // the session still open.
+    await sleep(2600);
+    const preKillElapsed = Date.now() - sessionStartMs;
+    await killHard(boot1.proc); // SIGKILL — the fan's socket was NEVER closed; no disconnect fold ever ran
+    log('fanstats-boot1', `hard-killed MID-SESSION (SIGKILL) after ~${preKillElapsed}ms`);
+
+    const fileAfterKill = readSnapshotFileOn(dataDir);
+    const rowAfterKill = fanStatsRowOn(fileAfterKill, matchId, anonId);
+    assert(
+      `boot1: the periodic write folded the still-OPEN session into watchMs before the kill (cheers === granted ${CHEER_BUCKET_CAPACITY}, not sent ${CHEER_MAX_BATCH}; 0 < watchMs <= real elapsed ${preKillElapsed}ms)`,
+      !!rowAfterKill && rowAfterKill.cheers === CHEER_BUCKET_CAPACITY && rowAfterKill.watchMs > 800 && rowAfterKill.watchMs <= preKillElapsed,
+      `row=${JSON.stringify(rowAfterKill)}`,
+    );
+
+    // ── boot2: fresh process, same dir — restore must be EXACT, then additive ──
+    const boot2 = await bootServer({ STANDS_DATA_DIR: dataDir, STANDS_SNAPSHOT_INTERVAL_MS: '1200' });
+    log('fanstats-boot2', `up on port ${boot2.port}`);
+    await sleep(200);
+    const restoredLine = boot2.getOutput().split('\n').find((l) => l.includes('[stands:registry] restored'));
+    assert('fanstats boot2 logs a restored-snapshot line (v3)', !!restoredLine && restoredLine.includes('(v3)'), restoredLine ?? '(no matching line)');
+
+    // NO reconnect yet: boot2's own next periodic write must reproduce the
+    // restored row EXACTLY (same cheers/watchMs/reacts/firstSeenMs/lastSeenMs)
+    // — a fan with zero live sockets accrues nothing, and the already-folded
+    // segment is never folded again. Attribute the re-write by savedAtMs.
+    const savedAtBefore = fileAfterKill?.savedAtMs ?? 0;
+    const gotRewrite = await waitFor(() => (readSnapshotFileOn(dataDir)?.savedAtMs ?? 0) > savedAtBefore, 4000);
+    const rowAfterReboot = fanStatsRowOn(readSnapshotFileOn(dataDir), matchId, anonId);
+    assert(
+      'boot2 (no reconnect): a fresh periodic write reproduces the restored row EXACTLY — no double-count, no fabricated session, restore returned only the persisted totals',
+      gotRewrite && JSON.stringify(rowAfterReboot) === JSON.stringify(rowAfterKill),
+      `before=${JSON.stringify(rowAfterKill)} after=${JSON.stringify(rowAfterReboot)}`,
+    );
+
+    // the SAME fan reconnects — a genuinely new session must ADD on top.
+    const url2 = `ws://127.0.0.1:${boot2.port}`;
+    const fan2 = await connect(url2);
+    const reconnectMs = Date.now();
+    send(fan2, { type: 'hello', matchId, anonId, side: 'home' });
+    await sleep(700);
+    await closeAndWait(fan2); // clean disconnect — folds the ~700ms session
+    const reconnectElapsed = Date.now() - reconnectMs;
+    const base = rowAfterKill?.watchMs ?? 0;
+    const gotNewTotal = await waitFor(() => (fanStatsRowOn(readSnapshotFileOn(dataDir), matchId, anonId)?.watchMs ?? 0) > base, 4000);
+    const rowFinal = fanStatsRowOn(readSnapshotFileOn(dataDir), matchId, anonId);
+    assert(
+      `boot2: a NEW session for the same anonId ADDS on top of the restored base (${base}ms + ~700ms), never resets it or re-folds the persisted segment; firstSeenMs survives from boot1`,
+      gotNewTotal &&
+        !!rowFinal &&
+        !!rowAfterKill &&
+        rowFinal.watchMs >= base + 500 &&
+        rowFinal.watchMs <= base + reconnectElapsed + 200 &&
+        rowFinal.firstSeenMs === rowAfterKill.firstSeenMs &&
+        rowFinal.cheers === CHEER_BUCKET_CAPACITY,
+      `final=${JSON.stringify(rowFinal)} base=${base} reconnectElapsed=${reconnectElapsed}`,
+    );
+
+    await killHard(boot2.proc);
+  } finally {
+    rmSync(dataDir, { recursive: true, force: true });
+  }
+}
+
+/**
+ * Scenario 10 — v2 tolerance: a hand-written v2-shaped snapshot (real
+ * predictions/verdicts/moments/resolved fields, but NO fanStats key at all —
+ * a genuine pre-this-task file looks exactly like this) must boot clean,
+ * restore its v2 fields, fabricate NO fanStats row for the restored fan, and
+ * still accumulate fanStats normally for a fan newly active in that match.
+ */
+async function scenarioFanStatsV2Tolerance(): Promise<void> {
+  const dataDir = mkdtempSync(path.join(tmpdir(), 'rooot-fanstats-v2-'));
+  const matchId = 'v2-legacy-fanstats-match';
+  try {
+    const v2Snapshot = {
+      version: 2,
+      savedAtMs: Date.now(),
+      matches: [
+        {
+          matchId,
+          rooted: [['v2-fan', 'home']],
+          rooms: [],
+          predictions: [['v2-fan', { home: 1, away: 0, atMs: Date.now() - 60_000 }]],
+          predictLocked: false,
+          verdicts: [],
+          moments: [],
+          resolved: false,
+          // deliberately NO fanStats key — the exact shape a real v2 file has
+        },
+      ],
+    };
+    writeFileSync(path.join(dataDir, 'rooot-stands-snapshot.json'), JSON.stringify(v2Snapshot));
+    log('fanstats-v2', `hand-wrote a v2-shaped snapshot (no fanStats key) at ${dataDir}`);
+
+    const boot = await bootServer({ STANDS_DATA_DIR: dataDir, STANDS_SNAPSHOT_INTERVAL_MS: '1200' });
+    await sleep(200);
+    const restoredLine = boot.getOutput().split('\n').find((l) => l.includes('[stands:registry] restored'));
+    assert('a v2 file (no fanStats key) boots without crashing and logs it as v2', !!restoredLine && restoredLine.includes('(v2)'), restoredLine ?? '(no matching line)');
+
+    const url = `ws://127.0.0.1:${boot.port}`;
+    const observer = await connect(`${url}/?matchId=${encodeURIComponent(matchId)}`);
+    const seen: { consensusN: number; standsHome: number } = { consensusN: -1, standsHome: -1 };
+    observer.on('message', (raw) => {
+      let m: ServerMsg;
+      try {
+        m = JSON.parse(raw.toString()) as ServerMsg;
+      } catch {
+        return;
+      }
+      if (m.type === 'consensus' && m.matchId === matchId) seen.consensusN = m.all.n;
+      if (m.type === 'stands' && m.matchId === matchId) seen.standsHome = m.counts.home;
+    });
+    send(observer, { type: 'hello', matchId, anonId: 'v2-observer' });
+    await sleep(400);
+    assert(
+      'the v2 fields still restore alongside the absent fanStats (rooted home=1 live, consensus n=1 replayed on join)',
+      seen.standsHome === 1 && seen.consensusN === 1,
+      `standsHome=${seen.standsHome} consensusN=${seen.consensusN}`,
+    );
+
+    // wait for this process's own first re-write — attributed by the version
+    // stamp flipping to 3 (only the new writer produces that).
+    const gotV3 = await waitFor(() => readSnapshotFileOn(dataDir)?.version === 3, 4000);
+    const file = readSnapshotFileOn(dataDir);
+    const restoredFanRow = fanStatsRowOn(file, matchId, 'v2-fan');
+    const observerRow = fanStatsRowOn(file, matchId, 'v2-observer');
+    assert(
+      'after the v3 re-write: the restored v2 fan has NO fabricated fanStats row (empty stats, never invented), while the newly-active fan accumulated one normally (open session already folding into watchMs)',
+      gotV3 && restoredFanRow === undefined && !!observerRow && observerRow.watchMs > 0,
+      `v2FanRow=${JSON.stringify(restoredFanRow)} observerRow=${JSON.stringify(observerRow)}`,
+    );
+
+    await closeAndWait(observer);
+    await killHard(boot.proc);
+  } finally {
+    rmSync(dataDir, { recursive: true, force: true });
+  }
+}
+
 function approx(a: number, b: number, eps = 1e-9): boolean {
   return Math.abs(a - b) < eps;
 }
@@ -684,6 +952,8 @@ async function main(): Promise<void> {
   await scenarioV1Tolerance();
   await scenarioAtomicSnapshotWrite();
   await scenarioDoubleAnchorGuardOnRestart();
+  await scenarioFanStatsRestart();
+  await scenarioFanStatsV2Tolerance();
 
   console.log('\n──────────── SUMMARY ────────────');
   const failed = assertions.filter((x) => !x.pass);
@@ -696,11 +966,13 @@ async function main(): Promise<void> {
 }
 
 // two extra scenarios (8 real SIGKILL trials + two full child-process replay
-// boots) push real wall-clock well past the original 40s budget.
+// boots) pushed real wall-clock well past the original 40s budget; the two
+// fanStats scenarios (three more child boots + real held-open sessions and
+// periodic-write waits) add ~15s more on top.
 const watchdog = setTimeout(() => {
-  console.error('[restart-persistence-check] watchdog: hung for 90s, forcing exit');
+  console.error('[restart-persistence-check] watchdog: hung for 150s, forcing exit');
   process.exit(1);
-}, 90_000);
+}, 150_000);
 
 main()
   .then(() => {
