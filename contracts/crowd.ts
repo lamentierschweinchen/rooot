@@ -272,6 +272,18 @@ export interface CheerEchoMsg {
   atMs: number;
 }
 
+/** Sent on every side-carrying hello: the fan's global first-come serial
+ * ("Nº 001 = the first fan through the door"). Minted once at the first
+ * side-carrying hello ever seen for this anonId; the same number is resent
+ * on every reconnect, forever. Side-less hellos (diagnostics, canary smoke)
+ * never mint and never receive it. */
+export interface WelcomeMsg {
+  type: 'welcome';
+  matchId: string;
+  anonId: string;
+  fanNo: number;
+}
+
 export type ServerMsg =
   | StandsStateMsg
   | CallReceiptMsg
@@ -280,4 +292,5 @@ export type ServerMsg =
   | PredictVerdictMsg
   | MomentOpenMsg
   | MomentResultMsg
-  | CheerEchoMsg;
+  | CheerEchoMsg
+  | WelcomeMsg;

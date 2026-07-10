@@ -34,15 +34,44 @@ export interface ResolvedPersistenceHooks {
   restore(matchId: string): void;
 }
 
+/** Hooks into server.ts's `openedTriggerIds` moment-open dedup Set (post-
+ * mortem fix — fanStats review follow-up: openedTriggerIds is in-memory-only,
+ * keyed by matchId -> Set<trigger sourceId>, so a restart used to re-arm it
+ * and let a re-dispatched historical trigger — TxLINE's seedSnapshot on live
+ * boot, or a REPLAY_FILE restart, which always plays from line 0 — reopen an
+ * already-run drama moment (a "ghost window"); a fan reacting to it corrupts
+ * their PERSISTED fanStats.reacts through a fully "legitimate" accept path).
+ * Mirrors ResolvedPersistenceHooks exactly, except the payload is the per-
+ * match array of trigger ids rather than a single boolean — same shape
+ * MomentsPersistenceHooks uses for its per-match array. `restore` runs during
+ * registry.loadSnapshot(), BEFORE index.ts starts TXLINE/REPLAY ingest — same
+ * boot-ordering guarantee ResolvedPersistenceHooks relies on. */
+export interface OpenedTriggersPersistenceHooks {
+  get(matchId: string): string[];
+  restore(matchId: string, triggerIds: string[]): void;
+}
+
 export class MatchRegistry {
   private readonly matches = new Map<string, MatchState>();
   private tickTimer: NodeJS.Timeout | null = null;
   private snapshotTimer: NodeJS.Timeout | null = null;
 
+  /** THE FAN SERIAL (design/HANDOFF-2026-07-10-fan-serial.md, the
+   * coordinator's accepted MARGIN amendment) — a GLOBAL (registry-level, NOT
+   * per-match), persistent, first-come ordinal per fan (anonId). Nº 1 = the
+   * first hello this service EVER received that carried a side. Owned here
+   * directly (unlike moments/resolved below, which are hooks into
+   * server.ts-owned objects) because this class already is the one global
+   * object in the process — there is no other module to hook into. Never
+   * reassigned; survives restarts via the snapshot (fanNoFor/restoreFanSerial). */
+  private nextFanNo = 1;
+  private readonly fanNumbers = new Map<string, number>(); // anonId -> fanNo
+
   constructor(
     private readonly broadcast: (matchId: string, msg: ServerMsg) => void,
     private readonly moments?: MomentsPersistenceHooks,
     private readonly resolved?: ResolvedPersistenceHooks,
+    private readonly openedTriggers?: OpenedTriggersPersistenceHooks,
   ) {}
 
   getOrCreate(matchId: string): MatchState {
@@ -70,6 +99,46 @@ export class MatchRegistry {
     return n;
   }
 
+  /* ── THE FAN SERIAL — global, first-come, persistent (registry.ts doc
+   * comment above) ────────────────────────────────────────────────────── */
+
+  /** Mint-if-absent, else return the SAME number forever — never reassigned.
+   * Server RECEIPT ORDER (the order this is first CALLED for a given anonId)
+   * is the ordering truth; Node's single-threaded message handling naturally
+   * serializes this across concurrent connections, so no lock is needed.
+   * Callers decide WHO reaches this (server.ts only calls it for a
+   * side-carrying hello, per the coordinator's amendment) — this method
+   * itself has no opinion on that, it only mints-or-returns for whatever
+   * anonId it's given. */
+  fanNoFor(anonId: string): number {
+    let n = this.fanNumbers.get(anonId);
+    if (n === undefined) {
+      n = this.nextFanNo++;
+      this.fanNumbers.set(anonId, n);
+    }
+    return n;
+  }
+
+  /** Snapshot restore only: reinstall a persisted anonId->fanNo map and
+   * counter directly — never mints a NEW number here. Tolerant of a
+   * `nextFanNo` that undercounts the restored entries (belt-and-braces,
+   * mirrors applySnapshot's resolved-flag fallback below): the live counter
+   * always ends up at least one past the highest restored serial, so a
+   * corrupt/stale `nextFanNo` on disk can never cause a number to be
+   * reissued. */
+  restoreFanSerial(nextFanNo: number, numbers: Array<[string, number]>): void {
+    for (const [anonId, fanNo] of numbers) this.fanNumbers.set(anonId, fanNo);
+    let maxSeen = 0;
+    for (const fanNo of this.fanNumbers.values()) if (fanNo > maxSeen) maxSeen = fanNo;
+    this.nextFanNo = Math.max(nextFanNo, maxSeen + 1, 1);
+  }
+
+  /** For snapshot writing — a plain-value read, not a hook (this class owns
+   * the fan-serial data directly; see the doc comment on the fields above). */
+  fanSerialSnapshot(): { nextFanNo: number; numbers: Array<[string, number]> } {
+    return { nextFanNo: this.nextFanNo, numbers: Array.from(this.fanNumbers.entries()) };
+  }
+
   loadSnapshot(): void {
     const snap = readSnapshot();
     if (!snap) return;
@@ -79,7 +148,20 @@ export class MatchRegistry {
     // ingest, so the very first re-delivered FULL_TIME (live seedSnapshot
     // replay, or a REPLAY_FILE restart replaying from 0) is already a no-op.
     const markResolved = this.resolved ? (matchId: string) => this.resolved!.restore(matchId) : undefined;
-    applySnapshot(snap, (matchId) => this.getOrCreate(matchId), restoreMoments, markResolved);
+    // same pre-arm, same boot-ordering guarantee, for the moment-open dedup
+    // Set — the very first re-dispatched historical trigger must already be
+    // deduped, not just the first re-delivered FULL_TIME.
+    const restoreOpenedTriggers = this.openedTriggers
+      ? (matchId: string, triggerIds: string[]) => this.openedTriggers!.restore(matchId, triggerIds)
+      : undefined;
+    applySnapshot(
+      snap,
+      (matchId) => this.getOrCreate(matchId),
+      restoreMoments,
+      markResolved,
+      (nextFanNo, numbers) => this.restoreFanSerial(nextFanNo, numbers),
+      restoreOpenedTriggers,
+    );
     console.log(`[stands:registry] restored ${snap.matches.length} match(es) from snapshot (v${snap.version ?? 1})`);
   }
 
@@ -103,7 +185,8 @@ export class MatchRegistry {
   snapshotNow(): void {
     const getMoments = this.moments ? (matchId: string) => this.moments!.get(matchId) : undefined;
     const isResolved = this.resolved ? (matchId: string) => this.resolved!.get(matchId) : undefined;
-    writeSnapshot(this.matches, getMoments, isResolved);
+    const getOpenedTriggerIds = this.openedTriggers ? (matchId: string) => this.openedTriggers!.get(matchId) : undefined;
+    writeSnapshot(this.matches, getMoments, isResolved, this.fanSerialSnapshot(), getOpenedTriggerIds);
   }
 
   stop(): void {

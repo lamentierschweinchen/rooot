@@ -1,7 +1,8 @@
 /**
  * Per-match aggregation: presence, rooted counts, decayed roar, pulse counts,
- * and rooms (rows) nested inside a match. One MatchState per active matchId;
- * MatchRegistry (registry.ts) owns the map and the 4 Hz broadcast tick.
+ * per-fan night stats, and rooms (rows) nested inside a match. One MatchState
+ * per active matchId; MatchRegistry (registry.ts) owns the map and the 4 Hz
+ * broadcast tick.
  *
  * Honesty mechanics (contracts/crowd.ts, AGENTS.md law #1):
  *  - counts: ROOT is once-per-anonId — a Set, not a counter that can be spammed.
@@ -11,6 +12,9 @@
  *    tokens only, never raw taps.
  *  - pulse: reacts are 1/sec/user/kind (checked via lastReactAtMs), counted in
  *    a 60s RollingCounter per side+kind.
+ *  - fanStats (THE STANDS CARD substrate, write-only tonight — see the
+ *    FanStats interface below): every field is driven by a real,
+ *    server-ACCEPTED action only, same discipline as roar/pulse above.
  */
 import type { ConsensusMsg, MomentEndHist, MomentKind, PredictGroup, PredictVerdictMsg, ReactKind, Side } from '@contracts/crowd';
 import { FEELING_PALETTES } from '@contracts/crowd';
@@ -57,6 +61,33 @@ export interface Member {
   side: Side;
   present: boolean;
   ws: unknown; // WebSocket — kept opaque here to keep this module transport-free
+}
+
+/**
+ * THE STANDS CARD substrate (write-only tonight — no wire message carries this
+ * yet, no surface reads it): one fan's accumulated night in THIS match.
+ * Honesty (AGENTS.md law #1): every field increments ONLY from a real,
+ * server-ACCEPTED action — never synthesized, never double-counted across a
+ * restart (see MatchState's cheer/react/momentReact/markConnected/
+ * markDisconnected and snapshot()'s session fold, below).
+ */
+export interface FanStats {
+  /** Sum of GRANTED cheer tokens (post-throttle) — never the raw tapped/sent
+   * count. A fully-throttled cheer (granted 0) adds nothing. */
+  cheers: number;
+  /** Presence-time: total ms across every open-connection session for this
+   * anonId, folded in on disconnect and checkpointed (not closed) on every
+   * snapshot write. This is presence (an open socket), not proven attention —
+   * record the truth, leave interpretation to a future surface. */
+  watchMs: number;
+  /** Count of DISTINCT drama moments this fan reacted to (the momentReact
+   * accept path) — a re-pick/replacement within the same open moment adds
+   * nothing. */
+  reacts: number;
+  /** First-ever touch (any accepted action) for this anonId in this match. */
+  firstSeenMs: number;
+  /** Most recent touch (connect, cheer, react, predict). */
+  lastSeenMs: number;
 }
 
 const ROOM_MAX_MEMBERS = 11;
@@ -126,6 +157,15 @@ export class MatchState {
    * by how many sockets each fan has open — only markConnected/markDisconnected
    * pairing (one call per socket-adoption) changes. */
   private readonly connected = new Map<string, number>();
+  /** anonId -> wall-clock ms an open presence session started (refcount
+   * 0→1). Deleted when presence really ends (refcount→0, markDisconnected);
+   * checkpointed but kept OPEN by snapshot()'s fold (see FanStats.watchMs doc
+   * + snapshot() below) — never itself persisted (sockets die; deliberately
+   * absent from snapshot(), matching connected/roar/pulse). */
+  private readonly sessionStart = new Map<string, number>();
+  /** anonId -> THE STANDS CARD substrate for this match. Write-only tonight —
+   * see the FanStats interface doc above. */
+  private readonly fanStats = new Map<string, FanStats>();
   /** anonId -> token bucket, cheer throttle. */
   private readonly cheerBuckets = new Map<string, TokenBucket>();
   /** anonId -> kind -> last accepted react ms, react throttle. */
@@ -162,20 +202,34 @@ export class MatchState {
 
   /** The caller (server.ts) must call this exactly once per SOCKET adoption of
    * anonId — not once per hello message — so a re-hello from the same socket
-   * with the same anonId doesn't inflate the refcount. */
-  markConnected(anonId: string): void {
-    this.connected.set(anonId, (this.connected.get(anonId) ?? 0) + 1);
+   * with the same anonId doesn't inflate the refcount. Also touches this
+   * fan's card (a connect is activity) and, ONLY on a genuine 0→1 transition,
+   * opens a watch-time session — a second socket adopting an already-present
+   * anonId must NOT start a second, overlapping session (FanStats.watchMs
+   * doc: one continuous session per anonId, not one per socket). */
+  markConnected(anonId: string, nowMs = Date.now()): void {
+    const n = (this.connected.get(anonId) ?? 0) + 1;
+    this.connected.set(anonId, n);
+    this.touchFanStats(anonId, nowMs);
+    if (n === 1) this.sessionStart.set(anonId, nowMs);
   }
 
   /** The mirror of markConnected: one call per prior adoption (an anonId
    * switch on the same socket, or that socket closing). Decrements the
    * refcount and deletes the entry at 0, so presence (map size) only drops
-   * once every socket for that anonId is gone. */
-  markDisconnected(anonId: string): void {
+   * once every socket for that anonId is gone. ONLY on that real refcount→0
+   * does the open watch-time session fold into FanStats.watchMs — a socket
+   * closing while a SIBLING socket for the same anonId is still open must
+   * leave the session (and watchMs) untouched. */
+  markDisconnected(anonId: string, nowMs = Date.now()): void {
     const n = this.connected.get(anonId);
     if (n === undefined) return;
-    if (n <= 1) this.connected.delete(anonId);
-    else this.connected.set(anonId, n - 1);
+    if (n <= 1) {
+      this.connected.delete(anonId);
+      this.closeSession(anonId, nowMs);
+    } else {
+      this.connected.set(anonId, n - 1);
+    }
   }
 
   presenceCount(): number {
@@ -196,16 +250,81 @@ export class MatchState {
     return { home, away };
   }
 
+  /* ── fan stats — THE STANDS CARD substrate (write-only tonight) ────── */
+
+  /** Create-if-absent (stamping firstSeenMs) and bump lastSeenMs for a real,
+   * accepted touch. Returns the live row so the caller can add to a counter
+   * on top of it. Every call here IS an accepted action — a rejected/
+   * throttled/invalid attempt must never reach this. */
+  private touchFanStats(anonId: string, nowMs: number): FanStats {
+    let fs = this.fanStats.get(anonId);
+    if (!fs) {
+      fs = { cheers: 0, watchMs: 0, reacts: 0, firstSeenMs: nowMs, lastSeenMs: nowMs };
+      this.fanStats.set(anonId, fs);
+    } else {
+      fs.lastSeenMs = nowMs;
+    }
+    return fs;
+  }
+
+  /** Real end of presence (refcount 0): fold the open session into watchMs
+   * and clear it — there is no session left to checkpoint later. A no-op if
+   * this anonId never had an open session tracked here (e.g., a
+   * restored-only fan who never held a live socket in THIS process). */
+  private closeSession(anonId: string, nowMs: number): void {
+    const start = this.sessionStart.get(anonId);
+    if (start === undefined) return;
+    this.sessionStart.delete(anonId);
+    const fs = this.fanStats.get(anonId);
+    if (fs) fs.watchMs += Math.max(0, nowMs - start);
+  }
+
+  /** Checkpoint every OPEN session into watchMs and advance its start to now,
+   * WITHOUT closing it (the socket is still connected) — called from
+   * snapshot() so a hard-killed process loses at most one interval's worth of
+   * watch time, and a restore (which never carries sessionStart, only the
+   * folded watchMs total) can never double-count the part already folded in
+   * here. */
+  private foldOpenSessions(nowMs: number): void {
+    for (const [anonId, start] of this.sessionStart) {
+      const fs = this.fanStats.get(anonId);
+      if (fs) fs.watchMs += Math.max(0, nowMs - start);
+      this.sessionStart.set(anonId, nowMs);
+    }
+  }
+
+  /** THE STANDS CARD substrate for one fan, to date, in this match. A
+   * defensive copy (the live row keeps mutating). Undefined if this anonId
+   * has never had an accepted action recorded. No wire message exposes this
+   * yet — dev-check / future-surface use only. */
+  fanStatsFor(anonId: string): FanStats | undefined {
+    const fs = this.fanStats.get(anonId);
+    return fs ? { ...fs } : undefined;
+  }
+
+  /** Snapshot restore only: install a fan's persisted card directly. No live
+   * session is fabricated — sessionStart stays untouched (empty for this
+   * anonId until a real new connect happens post-restart), matching the
+   * "restore returns only the persisted total" rule (FanStats.watchMs doc). */
+  restoreFanStats(anonId: string, stats: FanStats): void {
+    this.fanStats.set(anonId, { ...stats });
+  }
+
   /* ── predict (the retention spine, docs/MECHANISMS.md §2) ──────────── */
 
   /** Record/replace a fan's predicted scoreline. Ignored once locked (KO).
-   * Clamped to a sane range. Returns false if rejected (locked/invalid). */
-  predict(anonId: string, home: number, away: number, atMs: number): boolean {
+   * Clamped to a sane range. Returns false if rejected (locked/invalid).
+   * `atMs` is the client-asserted moment of the prediction (stored as-is, a
+   * pre-existing field); `nowMs` is the server's own clock, used only to
+   * touch this fan's card (FanStats.lastSeenMs) — kept separate so a fan's
+   * card timeline is never driven by a client-supplied timestamp. */
+  predict(anonId: string, home: number, away: number, atMs: number, nowMs = Date.now()): boolean {
     if (this.predictLocked) return false;
     if (!Number.isFinite(home) || !Number.isFinite(away)) return false;
     const h = Math.max(0, Math.min(19, Math.floor(home)));
     const a = Math.max(0, Math.min(19, Math.floor(away)));
     this.predictions.set(anonId, { home: h, away: a, atMs });
+    this.touchFanStats(anonId, nowMs);
     return true;
   }
 
@@ -311,7 +430,10 @@ export class MatchState {
       this.cheerBuckets.set(anonId, bucket);
     }
     const granted = bucket.take(clamped, nowMs);
-    if (granted > 0) this.roar[side].add(granted, nowMs);
+    if (granted > 0) {
+      this.roar[side].add(granted, nowMs);
+      this.touchFanStats(anonId, nowMs).cheers += granted; // GRANTED only — a zero-grant tap accumulates nothing
+    }
     return granted;
   }
 
@@ -332,6 +454,9 @@ export class MatchState {
     if (nowMs - last < REACT_MIN_INTERVAL_MS) return false;
     perKind.set(kind, nowMs);
     this.pulse[side][kind].add(1, nowMs);
+    // accepted activity — touches lastSeenMs only; FanStats.reacts counts
+    // DISTINCT drama moments (momentReact, below), not pulse taps.
+    this.touchFanStats(anonId, nowMs);
     return true;
   }
 
@@ -376,8 +501,9 @@ export class MatchState {
     const m = this.activeMoment;
     if (!m || m.momentId !== momentId) return false;
     if (!FEELING_PALETTES[m.kind].includes(token)) return false;
+    const fs = this.touchFanStats(anonId, nowMs);
+    if (!m.reacts.has(anonId)) fs.reacts += 1; // DISTINCT moments only — a re-pick in the same open moment adds nothing
     m.reacts.set(anonId, { token, side });
-    void nowMs;
     return true;
   }
 
@@ -458,8 +584,15 @@ export class MatchState {
 
   /** Everything snapshot.ts persists for restart continuity. Deliberately
    * excludes roar/pulse rolling counters (snapshot.ts doc comment) and the
-   * activeMoment window (a live drama window shouldn't resurrect mid-air). */
-  snapshot() {
+   * activeMoment window (a live drama window shouldn't resurrect mid-air).
+   * fanStats IS included — but first, every OPEN watch-time session is
+   * checkpointed (folded into watchMs, start advanced to nowMs) WITHOUT being
+   * closed: the socket is still connected, so a crash right after this call
+   * loses at most one interval's worth of watch time, and — because
+   * sessionStart itself is never persisted — a restore can never fabricate or
+   * double-count the part already folded in here (FanStats.watchMs doc). */
+  snapshot(nowMs = Date.now()) {
+    this.foldOpenSessions(nowMs);
     return {
       matchId: this.matchId,
       rooted: Array.from(this.rooted.entries()),
@@ -468,6 +601,7 @@ export class MatchState {
       predictions: Array.from(this.predictions.entries()),
       predictLocked: this.predictLocked,
       verdicts: Array.from(this.verdicts.entries()),
+      fanStats: Array.from(this.fanStats.entries()),
     };
   }
 }

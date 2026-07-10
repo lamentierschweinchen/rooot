@@ -1,22 +1,31 @@
 /**
  * Restart continuity: every 30s (STANDS_SNAPSHOT_INTERVAL_MS), dump a small
  * JSON snapshot of match state (rooted anonId->side, room membership,
- * predictions, predictLocked, verdicts, felt-moment history) to disk; on boot,
- * reload it if present — volume-ready (STANDS_DATA_DIR / a mounted /data
- * survives restarts/redeploys; /tmp does not). Weekend scale — this is not
- * meant to survive a crash mid-write, just a clean restart/redeploy without
- * losing who-rooted-for-whom, who-predicted-what, and who-already-saw-their-
- * verdict.
+ * predictions, predictLocked, verdicts, felt-moment history, per-fan night
+ * stats) PLUS one registry-global field (THE FAN SERIAL — anonId->fanNo, not
+ * per-match) to disk; on boot, reload it if present — volume-ready
+ * (STANDS_DATA_DIR / a mounted /data survives restarts/redeploys; /tmp does
+ * not). Weekend scale — this is not meant to survive a crash mid-write, just
+ * a clean restart/redeploy without losing who-rooted-for-whom, who-predicted-
+ * what, who-already-saw-their-verdict, each fan's accumulated card (THE
+ * STANDS CARD substrate — write-only tonight, see match-state.ts's FanStats
+ * doc comment), and each fan's global first-come serial (design/
+ * HANDOFF-2026-07-10-fan-serial.md, see MatchRegistry.fanNoFor).
  *
  * Deliberately NOT snapshotting roar/pulse rolling counters — those are
  * seconds-old by nature and honestly should reset to silence on restart
- * rather than resurrect stale decay state.
+ * rather than resurrect stale decay state. fanStats.watchMs is the one
+ * exception to "live/stateful things reset": match-state.ts's snapshot()
+ * folds every OPEN watch-time session into watchMs (and checkpoints its
+ * start to now) before this module ever serializes it, so the accumulated
+ * total survives even though the live session itself — like presence/roar/
+ * pulse — is not persisted.
  */
 import { accessSync, constants as fsConstants, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { PredictVerdictMsg, Side } from '@contracts/crowd';
 import type { MomentFeeling } from '@contracts/sentiment';
-import type { MatchState } from './match-state';
+import type { FanStats, MatchState } from './match-state';
 
 /**
  * Data dir resolution (Task 3 — volume-ready): STANDS_DATA_DIR env wins
@@ -71,8 +80,22 @@ export const SNAPSHOT_INTERVAL_MS = resolveSnapshotIntervalMs();
 
 /** Bump when the persisted shape changes. applySnapshot stays tolerant of a
  * file with a lower (or absent = v1) version — every v2+ field is optional on
- * read and defaults rather than fabricates. */
-export const SNAPSHOT_VERSION = 2;
+ * read and defaults rather than fabricates. v3 adds fanStats (THE STANDS CARD
+ * substrate) — absent on a v1/v2 file, which defaults to no stats for every
+ * fan, never a fabricated zeroed row. v4 adds `fans` (THE FAN SERIAL,
+ * design/HANDOFF-2026-07-10-fan-serial.md) — a top-level, REGISTRY-GLOBAL
+ * field (not per-match, unlike everything else here) — absent on a v1/v2/v3
+ * file, which defaults to an empty registry: numbering then starts fresh at
+ * 1, never fabricated retroactively for fans who connected before this
+ * shipped. v5 adds `openedTriggerIds` (per match) — post-mortem fix:
+ * server.ts's moment-open dedup Set was in-memory-only, so a restart used to
+ * re-arm it and let a re-dispatched historical trigger (TxLINE's
+ * seedSnapshot on live boot, or a REPLAY_FILE restart replaying from 0)
+ * re-open an already-run drama moment — a "ghost window" whose react a
+ * connected fan could double-count into their PERSISTED fanStats.reacts.
+ * Absent on a v1/v2/v3/v4 file — applySnapshot defaults to none, never
+ * fabricates. Same shape/tolerance discipline as `resolved` below. */
+export const SNAPSHOT_VERSION = 5;
 
 interface SnapshotRoomMember {
   anonId: string;
@@ -103,12 +126,41 @@ interface SnapshotMatch {
    * also derives resolved-ness from a non-empty verdicts map as a tolerant
    * fallback. */
   resolved?: boolean;
+  /** v3+. Absent on a v1/v2 file — applySnapshot defaults to none for every
+   * fan, never fabricates a zeroed row. THE STANDS CARD substrate
+   * (match-state.ts's FanStats doc comment) — write-only tonight, no wire
+   * message carries this yet. */
+  fanStats?: Array<[string, FanStats]>;
+  /** v5+. Absent on a v1/v2/v3/v4 file — applySnapshot defaults to none,
+   * never fabricates. server.ts's moment-open dedup Set (keyed by ledger/
+   * status trigger sourceId — a goal's ledger event id, `${matchId}:ft` for
+   * full-time, etc.) for THIS match — see the SNAPSHOT_VERSION doc comment
+   * above for the "ghost window" bug this closes. Mirrors `resolved` above:
+   * per-match, additive, tolerant. */
+  openedTriggerIds?: string[];
+}
+
+/** v4+. THE FAN SERIAL (design/HANDOFF-2026-07-10-fan-serial.md) — a
+ * REGISTRY-GLOBAL counter + map (not per-match; lives at the top level of
+ * SnapshotFile, not inside SnapshotMatch — see the field below). `nextFanNo`
+ * is persisted explicitly for a human reading the file, but applySnapshot
+ * treats it as a tolerant floor, not the sole truth: MatchRegistry.
+ * restoreFanSerial always re-derives at least `max(numbers) + 1`, so a
+ * corrupt/stale `nextFanNo` on disk can never cause a serial to be reissued. */
+interface SnapshotFans {
+  nextFanNo: number;
+  /** anonId -> fanNo, global first-come ordinal. */
+  numbers: Array<[string, number]>;
 }
 
 interface SnapshotFile {
   version?: number; // absent = v1
   savedAtMs: number;
   matches: SnapshotMatch[];
+  /** v4+. Absent on a v1/v2/v3 file — applySnapshot leaves the registry
+   * empty (numbering starts fresh at 1), never fabricates a fan's serial
+   * retroactively. */
+  fans?: SnapshotFans;
 }
 
 /**
@@ -131,6 +183,11 @@ export function writeSnapshot(
   matches: Map<string, MatchState>,
   getMoments?: (matchId: string) => MomentFeeling[],
   isResolved?: (matchId: string) => boolean,
+  fanSerial?: { nextFanNo: number; numbers: Array<[string, number]> },
+  /** v5 — server.ts's moment-open dedup Set for this match (SNAPSHOT_VERSION
+   * doc comment above: the "ghost window" fix). Optional/undefined-tolerant,
+   * same as getMoments/isResolved above. */
+  getOpenedTriggerIds?: (matchId: string) => string[],
 ): void {
   const file: SnapshotFile = {
     version: SNAPSHOT_VERSION,
@@ -149,8 +206,11 @@ export function writeSnapshot(
         verdicts: snap.verdicts,
         moments: getMoments ? getMoments(m.matchId) : [],
         resolved: isResolved ? isResolved(m.matchId) : undefined,
+        fanStats: snap.fanStats,
+        openedTriggerIds: getOpenedTriggerIds ? getOpenedTriggerIds(m.matchId) : [],
       };
     }),
+    fans: fanSerial,
   };
   try {
     writeFileAtomic(SNAPSHOT_PATH, JSON.stringify(file));
@@ -192,10 +252,13 @@ export function readSnapshot(): SnapshotFile | null {
 
 /**
  * Rehydrate rooted counts, room membership, predictions, the predict lock,
- * and verdicts (not presence/roar/pulse — those are live-connection-only).
- * Tolerant of a v1 file (or a v2 file with a match entry missing some of the
- * newer fields): every v2+ field defaults to its honest empty state rather
- * than being fabricated. `restoreMoments`, if given, is called once per match
+ * verdicts, and each fan's accumulated card (not presence/roar/pulse/live
+ * watch-time sessions — those are live-connection-only; a restored fan's
+ * watchMs is exactly the persisted total, with no session fabricated until a
+ * real new connect happens post-restart — see match-state.ts's FanStats doc).
+ * Tolerant of a v1 file (or a v2/v3 file with a match entry missing some of
+ * the newer fields): every v2+ field defaults to its honest empty state
+ * rather than being fabricated. `restoreMoments`, if given, is called once per match
  * that actually has moment history to restore (the caller — server.ts — owns
  * the sentiment accumulators, snapshot.ts doesn't).
  *
@@ -209,12 +272,28 @@ export function readSnapshot(): SnapshotFile | null {
  * file (or the rare match that reached FULL_TIME with zero predictions, so
  * `resolved` may be absent on a pre-this-fix snapshot) is "restored with any
  * verdicts at all".
+ *
+ * `restoreFanSerial`, if given, is called ONCE (not per-match — THE FAN
+ * SERIAL is registry-global, design/HANDOFF-2026-07-10-fan-serial.md) when
+ * `snap.fans` is present. Absent on a v1/v2/v3 file — the registry stays at
+ * its default empty state (numbering starts fresh at 1), never fabricated.
+ *
+ * `restoreOpenedTriggers`, if given, is called once per match that has
+ * persisted trigger ids (v5+ — SNAPSHOT_VERSION doc comment above) — so the
+ * caller (server.ts, via registry.ts) can pre-arm its openedTriggerIds dedup
+ * guard for THAT match BEFORE any live/replay ingest starts, exactly the same
+ * boot-ordering guarantee `markResolved` relies on above: registry.loadSnapshot()
+ * runs synchronously, before index.ts wires up TXLINE/REPLAY ingest, so the
+ * very first re-dispatched historical trigger is already deduped. Absent on
+ * an older file (or a match with no persisted triggers) — never fabricated.
  */
 export function applySnapshot(
   snap: SnapshotFile,
   getOrCreate: (matchId: string) => MatchState,
   restoreMoments?: (matchId: string, moments: MomentFeeling[]) => void,
   markResolved?: (matchId: string) => void,
+  restoreFanSerial?: (nextFanNo: number, numbers: Array<[string, number]>) => void,
+  restoreOpenedTriggers?: (matchId: string, triggerIds: string[]) => void,
 ): void {
   for (const sm of snap.matches) {
     const match = getOrCreate(sm.matchId);
@@ -228,8 +307,11 @@ export function applySnapshot(
     for (const [anonId, p] of sm.predictions ?? []) match.restorePrediction(anonId, p.home, p.away, p.atMs);
     if (sm.predictLocked) match.lockPredictions();
     for (const [anonId, v] of sm.verdicts ?? []) match.restoreVerdict(anonId, v);
+    for (const [anonId, fs] of sm.fanStats ?? []) match.restoreFanStats(anonId, fs);
     if (restoreMoments && sm.moments && sm.moments.length > 0) restoreMoments(sm.matchId, sm.moments);
+    if (restoreOpenedTriggers && sm.openedTriggerIds && sm.openedTriggerIds.length > 0) restoreOpenedTriggers(sm.matchId, sm.openedTriggerIds);
     const hadVerdicts = (sm.verdicts?.length ?? 0) > 0;
     if (markResolved && (sm.resolved === true || hadVerdicts)) markResolved(sm.matchId);
   }
+  if (restoreFanSerial && snap.fans) restoreFanSerial(snap.fans.nextFanNo ?? 1, snap.fans.numbers ?? []);
 }

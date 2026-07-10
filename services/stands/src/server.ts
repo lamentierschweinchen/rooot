@@ -12,7 +12,7 @@ import { createServer } from 'node:http';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { WebSocket, WebSocketServer } from 'ws';
-import type { CallMsg, CallReceiptMsg, CheerEchoMsg, ClientMsg, MomentKind, MomentOpenMsg, MomentResultMsg, RoomStateMsg, ServerMsg, Side } from '@contracts/crowd';
+import type { CallMsg, CallReceiptMsg, CheerEchoMsg, ClientMsg, MomentKind, MomentOpenMsg, MomentResultMsg, RoomStateMsg, ServerMsg, Side, WelcomeMsg } from '@contracts/crowd';
 import { FEELING_PALETTES } from '@contracts/crowd';
 import type { FeedMsg } from '@contracts/feed';
 import { REACT_WINDOW_MS, RollingCounter, SWING_DELTA_MIN } from './decay';
@@ -160,8 +160,27 @@ const openMomentTimers = new Map<string, ReturnType<typeof setTimeout>>();
 /** last de-vigged triple per match — the baseline for swing detection. */
 const lastTriple = new Map<string, { home: number; draw: number; away: number }>();
 /** trigger sources already turned into a moment (a goal re-emits as it upgrades;
- * full-time can repeat) — dedupe so one drama opens exactly one window. */
+ * full-time can repeat) — dedupe so one drama opens exactly one window.
+ * Persisted per match via registry's openedTriggers hooks below (post-mortem
+ * fix, fanStats review follow-up): without this, a restart re-armed an empty
+ * Set here, and TxLINE's seedSnapshot() (or a REPLAY_FILE restart, which
+ * always plays from line 0) re-dispatching a historical goal/card/VAR through
+ * the SAME dispatch path as live traffic could reopen an already-run drama
+ * moment — a "ghost window" whose react corrupted a fan's PERSISTED
+ * fanStats.reacts through a fully "legitimate" accept path. */
 const openedTriggerIds = new Map<string, Set<string>>();
+
+/** Get-or-create this match's trigger-id Set — the one place both the live
+ * dedup check (momentLifecycle below) and snapshot restore touch
+ * openedTriggerIds, so they can never drift out of sync with each other. */
+function openedTriggersFor(matchId: string): Set<string> {
+  let seen = openedTriggerIds.get(matchId);
+  if (!seen) {
+    seen = new Set();
+    openedTriggerIds.set(matchId, seen);
+  }
+  return seen;
+}
 
 interface MomentTrigger {
   kind: MomentKind;
@@ -230,11 +249,7 @@ function momentLifecycle(matchId: string, msg: ServerMsg | FeedMsg): void {
   if (!match) return;
 
   if (trig.sourceId) {
-    let seen = openedTriggerIds.get(matchId);
-    if (!seen) {
-      seen = new Set();
-      openedTriggerIds.set(matchId, seen);
-    }
+    const seen = openedTriggersFor(matchId);
     if (seen.has(trig.sourceId)) return; // already made a moment of this drama
     seen.add(trig.sourceId);
   }
@@ -547,6 +562,24 @@ const registry = new MatchRegistry(
     get: (matchId) => resolvedMatches.has(matchId),
     restore: (matchId) => { resolvedMatches.add(matchId); },
   },
+  {
+    // Post-mortem fix (fanStats review follow-up): openedTriggerIds lives here
+    // (momentLifecycle owns the moment-open dedup) — registry.ts doesn't know
+    // what a "trigger" is, so snapshot persistence of "already opened a moment
+    // for this sourceId" goes through these two hooks, same pattern as
+    // moments/resolved above. `restore` runs during registry.loadSnapshot(),
+    // BEFORE index.ts starts TXLINE/REPLAY ingest, so a restart can never let
+    // a re-dispatched historical trigger (live seedSnapshot replay, or a
+    // REPLAY_FILE restart replaying from line 0) reopen an already-run drama
+    // moment — the ghost-window bug this closes. `get` reads only (never
+    // creates) — the periodic snapshot writer must not fabricate an empty Set
+    // entry for a match that never actually opened a moment.
+    get: (matchId) => Array.from(openedTriggerIds.get(matchId) ?? []),
+    restore: (matchId, triggerIds) => {
+      const seen = openedTriggersFor(matchId);
+      for (const id of triggerIds) seen.add(id);
+    },
+  },
 );
 
 function isValidSide(v: unknown): v is Side {
@@ -603,7 +636,21 @@ function handleHello(ws: WebSocket, state: ConnState, msg: Extract<ClientMsg, { 
 
   state.matchId = msg.matchId;
   state.anonId = msg.anonId;
-  if (msg.side) match.root(msg.anonId, msg.side);
+  if (msg.side) {
+    match.root(msg.anonId, msg.side);
+    // THE FAN SERIAL (design/HANDOFF-2026-07-10-fan-serial.md, the
+    // coordinator's accepted MARGIN amendment): mints on the first hello
+    // that CARRIES A SIDE — side-less hellos (diagnostics, the write-proof
+    // smoke canary) never reach this branch, so they structurally can never
+    // claim a number; the same anonId re-helloing WITH a side later mints
+    // normally right here. registry.fanNoFor is mint-if-absent / else-return
+    // the SAME number forever, so this is safe to call on every hello, not
+    // just the first — the welcome is resent per-fan (this socket) on every
+    // side-carrying hello/reconnect, same number, forever.
+    const fanNo = registry.fanNoFor(msg.anonId);
+    const welcome: WelcomeMsg = { type: 'welcome', matchId: msg.matchId, anonId: msg.anonId, fanNo };
+    send(ws, welcome);
+  }
 
   const cachedFeedState = lastFeedState.get(msg.matchId);
   if (cachedFeedState) send(ws, cachedFeedState);

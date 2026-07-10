@@ -24,6 +24,23 @@
  *       B receives nothing at all — closing the gap where a client had no
  *       field to guard 'odds' by, unlike every other case in its switch.
  *
+ * THE STANDS CARD substrate (write-only tonight — match-state.ts's FanStats;
+ * no wire message carries it, so these scenarios read it via the `registry`
+ * handle `createStandsServer()` returns, the same way (d) drives
+ * broadcastToMatch directly):
+ *   (e) fanStats.cheers accumulates the GRANTED total only (post-throttle),
+ *       never the sent count, a zero-grant cheer adds nothing, and repeated
+ *       grants ADD rather than overwrite.
+ *   (f) fanStats.reacts counts DISTINCT drama moments (the momentReact accept
+ *       path) — a re-pick within the SAME open moment adds nothing; a second,
+ *       different moment adds one more.
+ *   (g) fanStats.watchMs is presence-session time: a single connect→
+ *       disconnect session accrues within tolerance of real elapsed time, and
+ *       two OVERLAPPING sockets for the SAME anonId form exactly ONE
+ *       continuous session (pinned to the FIRST connect, folded only at the
+ *       LAST disconnect) — never double-counted, never reset to a later
+ *       socket's connect time.
+ *
  * Usage: tsx src/dev/presence-cheer-check.ts  (or: npm run check:presence-cheer)
  *
  * This file was written and first run against the PRE-FIX code (Set-based
@@ -32,8 +49,11 @@
  * post-fix form.
  */
 import { WebSocket } from 'ws';
+import { FEELING_PALETTES } from '@contracts/crowd';
 import type { ClientMsg, ServerMsg } from '@contracts/crowd';
 import type { FeedMsg } from '@contracts/feed';
+import { CHEER_BUCKET_CAPACITY, CHEER_MAX_BATCH } from '../decay';
+import type { MatchRegistry } from '../registry';
 
 function log(tag: string, msg: string): void {
   console.log(`[presence-cheer-check:${tag}] ${msg}`);
@@ -305,6 +325,185 @@ async function scenarioOddsMatchIdGuard(url: string, broadcastToMatch: (matchId:
   await closeAndWait(b);
 }
 
+/* ── (e) THE STANDS CARD: fanStats.cheers accumulates the GRANTED total only
+ * ──────────────────────────────────────────────────────────────────────── */
+async function scenarioFanStatsCheers(url: string, registry: MatchRegistry): Promise<void> {
+  const matchId = `fanstats-cheers-check-${Date.now()}`;
+  const anonId = 'fanstats-cheer-fan';
+  log('e', `matchId=${matchId}`);
+
+  const fan = await connect(url);
+  send(fan, { type: 'hello', matchId, anonId, side: 'home' });
+  await settle();
+
+  const match = registry.get(matchId);
+  if (!match) throw new Error('fanstats-cheers: match not found after hello');
+
+  const fsAfterHello = match.fanStatsFor(anonId);
+  assert(
+    'hello alone creates a fanStats row (0 cheers, firstSeenMs stamped)',
+    fsAfterHello?.cheers === 0 && (fsAfterHello?.firstSeenMs ?? 0) > 0,
+    `fanStats=${JSON.stringify(fsAfterHello)}`,
+  );
+
+  // burst #1: a single n=CHEER_MAX_BATCH(10) message on a FRESH per-anonId
+  // TokenBucket (capacity 8, decay.ts) is granted EXACTLY 8, deterministically
+  // — the bucket is created + drawn from synchronously inside one handleCheer
+  // call, so there is no real-clock refill window for jitter to move this.
+  send(fan, { type: 'cheer', matchId, side: 'home', n: CHEER_MAX_BATCH, atMs: Date.now() });
+  await settle();
+  let fs = match.fanStatsFor(anonId);
+  assert(
+    `a ${CHEER_MAX_BATCH}-cheer burst on a fresh bucket accumulates only the GRANTED ${CHEER_BUCKET_CAPACITY}, not the sent ${CHEER_MAX_BATCH}`,
+    fs?.cheers === CHEER_BUCKET_CAPACITY,
+    `fanStats=${JSON.stringify(fs)}`,
+  );
+
+  // burst #2: fired immediately after (bucket now ~empty) — grants 0. A
+  // zero-grant cheer must accumulate NOTHING.
+  send(fan, { type: 'cheer', matchId, side: 'home', n: 5, atMs: Date.now() });
+  await settle();
+  fs = match.fanStatsFor(anonId);
+  assert(
+    'an immediate follow-up cheer against an exhausted bucket grants 0 and accumulates nothing (cheers unchanged)',
+    fs?.cheers === CHEER_BUCKET_CAPACITY,
+    `fanStats=${JSON.stringify(fs)}`,
+  );
+
+  // wait for ~1 token of refill (3/s → ~333ms/token; 450ms comfortably lands
+  // in the [1,2)-token window) then cheer n=1 — grants exactly 1, proving
+  // cheers ACCUMULATES across calls rather than being overwritten.
+  await sleep(450);
+  send(fan, { type: 'cheer', matchId, side: 'home', n: 1, atMs: Date.now() });
+  await settle();
+  fs = match.fanStatsFor(anonId);
+  assert(
+    `a subsequent granted cheer ADDS to the running total (${CHEER_BUCKET_CAPACITY} + 1 = ${CHEER_BUCKET_CAPACITY + 1}), not overwrites it`,
+    fs?.cheers === CHEER_BUCKET_CAPACITY + 1,
+    `fanStats=${JSON.stringify(fs)}`,
+  );
+  assert(
+    'lastSeenMs advanced across the scenario (tracks real activity, not a stamp-once)',
+    !!fs && !!fsAfterHello && fs.lastSeenMs - fsAfterHello.lastSeenMs >= 400,
+    `firstLastSeen=${fsAfterHello?.lastSeenMs} finalLastSeen=${fs?.lastSeenMs}`,
+  );
+
+  await closeAndWait(fan);
+}
+
+/* ── (f) THE STANDS CARD: fanStats.reacts counts DISTINCT drama moments only
+ * ──────────────────────────────────────────────────────────────────────── */
+async function scenarioFanStatsReacts(url: string, registry: MatchRegistry): Promise<void> {
+  const matchId = `fanstats-reacts-check-${Date.now()}`;
+  const anonId = 'fanstats-react-fan';
+  log('f', `matchId=${matchId}`);
+
+  const fan = await connect(url);
+  send(fan, { type: 'hello', matchId, anonId, side: 'home' });
+  await settle();
+
+  // opens the moment directly via the real beginMoment/endMoment methods —
+  // the same functions server.ts's momentLifecycle calls off a real feed
+  // event (mirrors scenario (d)'s precedent of driving real dispatch logic
+  // directly rather than fabricating a full feed simulation). The react
+  // itself still goes through the REAL WS momentReact message → server.ts's
+  // handleMomentReact → match.momentReact — the actual accept path
+  // fanStats.reacts hooks into.
+  const match = registry.getOrCreate(matchId);
+  const momentA = `${matchId}:goal:1`;
+  const paletteA = match.beginMoment(momentA, 'goal', 'home', 10, Date.now());
+  if (!paletteA) throw new Error('fanstats-reacts: failed to open moment A');
+
+  send(fan, { type: 'momentReact', matchId, anonId, momentId: momentA, side: 'home', token: paletteA[0]!, atMs: Date.now() });
+  await settle();
+  let fs = match.fanStatsFor(anonId);
+  assert('reacting to a moment for the first time counts as 1 distinct react', fs?.reacts === 1, `fanStats=${JSON.stringify(fs)}`);
+
+  // re-pick within the SAME open moment — a different token, same momentId.
+  send(fan, { type: 'momentReact', matchId, anonId, momentId: momentA, side: 'home', token: paletteA[1]!, atMs: Date.now() });
+  await settle();
+  fs = match.fanStatsFor(anonId);
+  assert('a re-pick/replacement within the SAME open moment adds nothing (reacts stays 1)', fs?.reacts === 1, `fanStats=${JSON.stringify(fs)}`);
+
+  match.endMoment(momentA, Date.now());
+
+  const momentB = `${matchId}:var:1`;
+  const paletteB = match.beginMoment(momentB, 'var', null, 11, Date.now());
+  if (!paletteB) throw new Error('fanstats-reacts: failed to open moment B');
+
+  send(fan, { type: 'momentReact', matchId, anonId, momentId: momentB, side: 'home', token: paletteB[0]!, atMs: Date.now() });
+  await settle();
+  fs = match.fanStatsFor(anonId);
+  assert('reacting to a SECOND, different moment adds one more distinct react (2)', fs?.reacts === 2, `fanStats=${JSON.stringify(fs)}`);
+
+  match.endMoment(momentB, Date.now());
+  await closeAndWait(fan);
+}
+
+/* ── (g) THE STANDS CARD: fanStats.watchMs is presence-session time; two
+ * overlapping sockets for the same anonId form exactly ONE session ────────
+ * ──────────────────────────────────────────────────────────────────────── */
+async function scenarioFanStatsWatchMs(url: string, registry: MatchRegistry): Promise<void> {
+  // ── single socket: connect → hold ~1.5s → disconnect → watchMs folds ──
+  const matchIdSingle = `fanstats-watchms-single-${Date.now()}`;
+  const anonIdSingle = 'fanstats-watch-single';
+  log('g', `matchIdSingle=${matchIdSingle}`);
+  const matchSingle = registry.getOrCreate(matchIdSingle);
+
+  const fan = await connect(url);
+  const singleStart = Date.now();
+  send(fan, { type: 'hello', matchId: matchIdSingle, anonId: anonIdSingle, side: 'home' });
+  await sleep(1500);
+  await closeAndWait(fan);
+  await settle();
+  const singleElapsed = Date.now() - singleStart;
+  const fsSingle = matchSingle.fanStatsFor(anonIdSingle);
+  assert(
+    `a single connect→disconnect session (held ~1500ms) accrues watchMs within tolerance of the real elapsed time (measured ${singleElapsed}ms)`,
+    !!fsSingle && fsSingle.watchMs > 1300 && fsSingle.watchMs <= singleElapsed + 150,
+    `watchMs=${fsSingle?.watchMs} elapsed=${singleElapsed}`,
+  );
+
+  // ── overlapping sockets, SAME anonId: ONE continuous session, no double-count ──
+  const matchIdOverlap = `fanstats-watchms-overlap-${Date.now()}`;
+  const anonIdOverlap = 'fanstats-watch-overlap';
+  log('g', `matchIdOverlap=${matchIdOverlap}`);
+  const matchOverlap = registry.getOrCreate(matchIdOverlap);
+
+  const s1 = await connect(url);
+  const overlapStart = Date.now();
+  send(s1, { type: 'hello', matchId: matchIdOverlap, anonId: anonIdOverlap, side: 'home' });
+  // s1 holds the session ALONE for a full 800ms before s2 ever joins — a
+  // buggy "session restarts on every connect" would lose this whole leg,
+  // clearly separating a correct total from a buggy one below.
+  await sleep(800);
+
+  const s2 = await connect(url);
+  send(s2, { type: 'hello', matchId: matchIdOverlap, anonId: anonIdOverlap, side: 'home' });
+  await settle();
+
+  await sleep(300); // both sockets open together
+  await closeAndWait(s1); // ONE of two closes — must NOT fold (s2 still open)
+  await settle();
+  const fsMidOverlap = matchOverlap.fanStatsFor(anonIdOverlap);
+  assert(
+    'closing ONE of two overlapping sockets for the same anonId does NOT fold the session yet (watchMs still 0 — the other socket keeps it open)',
+    fsMidOverlap?.watchMs === 0,
+    `watchMs=${fsMidOverlap?.watchMs}`,
+  );
+
+  await sleep(300);
+  await closeAndWait(s2); // the LAST socket closes — now it folds
+  await settle();
+  const overlapElapsed = Date.now() - overlapStart;
+  const fsOverlap = matchOverlap.fanStatsFor(anonIdOverlap);
+  assert(
+    `two overlapping sockets for the SAME anonId form exactly ONE session pinned to the FIRST connect — watchMs (${fsOverlap?.watchMs}ms) tracks the full ~${overlapElapsed}ms window, not reset to the second socket's later connect and not double-counted`,
+    !!fsOverlap && fsOverlap.watchMs > overlapElapsed * 0.75 && fsOverlap.watchMs <= overlapElapsed + 150,
+    `watchMs=${fsOverlap?.watchMs} elapsed=${overlapElapsed}`,
+  );
+}
+
 async function main(): Promise<void> {
   // Set BEFORE importing ../server (transitively ./registry -> ./snapshot,
   // which captures this env var into a module-level constant at import time)
@@ -326,6 +525,9 @@ async function main(): Promise<void> {
     await scenarioRehelloNoDoubleCount(url);
     await scenarioCheerEcho(url);
     await scenarioOddsMatchIdGuard(url, broadcastToMatch);
+    await scenarioFanStatsCheers(url, registry);
+    await scenarioFanStatsReacts(url, registry);
+    await scenarioFanStatsWatchMs(url, registry);
   } finally {
     registry.stop();
     await new Promise<void>((resolve) => httpServer.close(() => resolve()));
@@ -341,10 +543,14 @@ async function main(): Promise<void> {
   }
 }
 
+// the fanStats watchMs scenario (g) alone holds real sockets open for several
+// real seconds (a single ~1.5s session + an ~1.7s overlapping-session pair) on
+// top of the pre-existing scenarios' settle()s — 20s was comfortable before,
+// 45s keeps the same safety margin now.
 const watchdog = setTimeout(() => {
-  console.error('[presence-cheer-check] watchdog: hung for 20s, forcing exit');
+  console.error('[presence-cheer-check] watchdog: hung for 45s, forcing exit');
   process.exit(1);
-}, 20_000);
+}, 45_000);
 
 main()
   .then(() => {

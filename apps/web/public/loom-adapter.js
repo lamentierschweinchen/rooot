@@ -19,6 +19,10 @@
 (function () {
   'use strict';
   var q = new URLSearchParams(location.search);
+  // A kept cloth (?keepsake=1) makes __loom inert (woven-loom.html freezes it at full time) —
+  // no live socket is ever needed, so bail before anything else runs. Earliest cheap exit;
+  // leaves every other activation path (/live, ?site=1, ?demo=1) byte-identical.
+  if (q.get('keepsake') === '1') return;
   var DEMO = q.get('demo') === '1';   // live by default; demo only when explicitly asked
   // Activate on the explicit dev opt-in (?loomfeed=1) OR the clean live front
   // door (rooot.club / /live, served by a rewrite). Direct /loom-proto stays
@@ -81,6 +85,11 @@
   var PRESS = { safe: 0.3, possession: 0.5, attack: 1, danger: 1.5, 'high-danger': 2 };
   // ledger goalKind (Shot|Head|Own) → loom event type (shot|head|own).
   function goalType(gk) { return gk === 'Head' ? 'head' : gk === 'Own' ? 'own' : 'shot'; }
+  // player name for the loom's optional tap-tag (e.g. "23′ · GOAL · ESP / YAMAL"). The wire
+  // packs it onto ev.detail for goal/card/sub ledger events — scorer/booked-player/sub name,
+  // resolved from the SAME wire's roster (contracts/normalize.ts). Absent/empty → undefined,
+  // never an empty string or placeholder: the loom renders honestly without it (law #1).
+  function nameOrUndef(s) { return (typeof s === 'string' && s) ? s : undefined; }
 
   // DEMO boots synchronously with the explicit param or the old literal fallback —
   // no fetch, no timeout, no await (byte-identical to pre-manifest behavior; mirrors
@@ -90,6 +99,11 @@
   waitForLoom(function () {
     var L = window.__loom;
     L.live();
+    // Explicit replay labeling: a recording (?demo=1, or a re-served recording explicitly
+    // flagged ?replay=1 on a ?ws= endpoint) tells the masthead the truth — the adapter has no
+    // way to infer "this is history" from the wire's shape alone, so the operator states it.
+    // Never fires on the real live path. Guarded so an older loom build (no .mode yet) can't throw.
+    if ((DEMO || q.get('replay') === '1') && typeof L.mode === 'function') L.mode('replay');
 
     var minute = 0;            // current match minute (decimal), the live edge
     var haveMinute = false;    // true once the wire ANCHORS a real match minute. Gates the
@@ -327,7 +341,10 @@
             if (ev.confirmed && !firedGoals[ev.id]) {
               firedGoals[ev.id] = true;
               var gs = sideNum(ev.side);
-              L.event({ minute: mPos, kind: 'goal', side: gs, type: goalType(ev.goalKind), et: etPhase, quiet: !!msg._replay });
+              var goalEvt = { minute: mPos, kind: 'goal', side: gs, type: goalType(ev.goalKind), et: etPhase, quiet: !!msg._replay };
+              var gnm = nameOrUndef(ev.detail); // scorer, e.g. "Dembele, Ousmane" (own goals carry "(OG)")
+              if (gnm) goalEvt.name = gnm;
+              L.event(goalEvt);
               report.goal++;
               if (gs) wove[gs]++; // track woven goals for chalk-off reconciliation
               // truth-align: the goal event auto-increments; the row carries the
@@ -347,11 +364,25 @@
             // REPLACE by id, not stack a second mark. Same for cards (empty → named).
             if (WEAVE.shot) L.event({ minute: mPos, kind: 'shot', side: sideNum(ev.side), type: (ev.detail || '').toLowerCase(), id: ev.id });
           } else if (k === 'yellow-card' || k === 'red-card') {
-            if (WEAVE.card) L.event({ minute: mPos, kind: 'card', side: sideNum(ev.side), type: k === 'red-card' ? 'red' : 'yellow', id: ev.id });
+            if (WEAVE.card) {
+              var cardEvt = { minute: mPos, kind: 'card', side: sideNum(ev.side), type: k === 'red-card' ? 'red' : 'yellow', id: ev.id };
+              // booked player's name — arrives on a later re-emit of the same id (normalize.ts: the
+              // first emission is empty, so an early card often weaves nameless and updates in place).
+              var cnm = nameOrUndef(ev.detail);
+              if (cnm) cardEvt.name = cnm;
+              L.event(cardEvt);
+            }
           } else if (k === 'corner') {
             if (WEAVE.corner) L.event({ minute: mPos, kind: 'corner', side: sideNum(ev.side), id: ev.id });
           } else if (k === 'substitution') {
-            if (WEAVE.sub) L.event({ minute: mPos, kind: 'sub', side: sideNum(ev.side), id: ev.id });
+            if (WEAVE.sub) {
+              var subEvt = { minute: mPos, kind: 'sub', side: sideNum(ev.side), id: ev.id };
+              // detail packs "in|out" (same convention stats-adapter.js splits on) — the incoming
+              // player is the sub's headline name.
+              var snm = nameOrUndef((ev.detail || '').split('|')[0]);
+              if (snm) subEvt.name = snm;
+              L.event(subEvt);
+            }
           } else if (k === 'injury') {
             // OFF by default (WEAVE.injury) — noise; still tallied in the stadium stats.
             if (WEAVE.injury) L.event({ minute: mPos, kind: 'injury', side: sideNum(ev.side), id: ev.id });
