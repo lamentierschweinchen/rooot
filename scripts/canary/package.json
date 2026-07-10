@@ -1,0 +1,16 @@
+{
+  "name": "rooot-canary",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ROOOT two-browser release-gate canary. Drives the real gate->ground->stands/loom flow across two (and a third, late-joining) chromium contexts against a running stands service, and separately runs a production-safe read-only smoke check. Own package.json (isolated from the root/apps/web/services/stands trees) so this is disjoint from every other lane's dependencies.",
+  "scripts": {
+    "full": "node run.mjs --mode full",
+    "smoke": "node run.mjs --mode smoke",
+    "postinstall": "playwright install chromium"
+  },
+  "dependencies": {
+    "playwright": "1.48.2",
+    "ws": "8.18.0"
+  }
+}
