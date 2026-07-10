@@ -26,7 +26,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 /* the matchday pass — a content-height object floating on the paper */
 .pass{position:relative;display:flex;flex-direction:column;background:var(--card);box-shadow:0 14px 40px rgba(26,24,21,.22);animation:passArrive .7s cubic-bezier(.22,.9,.28,1) both}
 @keyframes passArrive{from{transform:translateY(22px) scale(.986)}to{transform:none}}   /* the ticket settles onto the paper (transform-only → never hides the gate) */
-@media(prefers-reduced-motion:reduce){.pass{animation:none}}
+@media(prefers-reduced-motion:reduce){.pass{animation:none}.nudge{animation:none}}
 .mast .serial{color:var(--gold);font-weight:800;letter-spacing:.11em}
 .pass::before{content:"";position:absolute;inset:7px;border:1.5px solid var(--ink);pointer-events:none;z-index:5}
 .notch{position:absolute;width:14px;height:14px;background:var(--paper);border-radius:50%;z-index:6}
@@ -64,9 +64,6 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .end.a.on{background:var(--away);color:var(--awaySeg,var(--ink))}
 .end.on .tri,.end.on .nm{color:inherit}.end.on .nm{opacity:.85}.end.on .join{opacity:1;color:inherit}
 .ends.picked .end:not(.on){opacity:.55}
-.neutral{display:block;width:calc(100% - 24px);margin:8px 12px 0;padding:9px;background:none;border:1.5px dashed var(--line);
-  font-family:var(--disp);font-weight:700;font-size:9px;letter-spacing:.16em;color:var(--sub);cursor:pointer;text-transform:uppercase}
-.neutral.on{border-style:solid;border-color:var(--ink);color:var(--ink)}
 
 /* 2 — predict: the scoreline + conviction */
 .score{display:flex;align-items:flex-start;justify-content:center;gap:16px;margin:4px 12px 0}
@@ -75,7 +72,6 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .sc.h .sct{color:var(--home)}.sc.a .sct{color:var(--away)}
 .scn{width:62px;height:62px;border:1.5px solid var(--ink);background:var(--card);font-family:var(--disp);font-weight:900;font-size:36px;line-height:1;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .sc.h .scn{color:var(--home)}.sc.a .scn{color:var(--away)}
-.scm{border:none;background:none;font-family:var(--disp);font-weight:900;font-size:15px;color:var(--sub);cursor:pointer;padding:0 8px;line-height:1}
 .scdash{font-weight:900;font-size:26px;color:var(--ink);align-self:center;transform:translateY(-4px)}
 .schint{text-align:center;font-weight:700;font-size:7.5px;letter-spacing:.14em;color:var(--sub);margin-top:7px;transition:opacity .25s}
 .schint.set{opacity:0}
@@ -85,7 +81,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .conv .pip{flex:1;height:9px;padding:0;background:var(--card);border:1.5px solid var(--line);cursor:pointer;transition:background .15s,border-color .15s}
 .conv .pip.on{background:var(--pick);border-color:var(--ink)}
 .conv .cl{font-weight:800;font-size:8px;letter-spacing:.09em;color:var(--sub);white-space:nowrap;min-width:52px;text-align:right}
-.end:focus-visible,.neutral:focus-visible,.scn:focus-visible,.scm:focus-visible,.pip:focus-visible,.go:focus-visible{
+.end:focus-visible,.scn:focus-visible,.pip:focus-visible,.go:focus-visible{
   outline:2px solid var(--gold);outline-offset:2px;
 }
 
@@ -103,8 +99,10 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 
 /* confirm */
 .go{margin:20px 12px 14px;padding:15px;background:var(--ink);color:var(--card);border:none;font-family:var(--disp);
-  font-weight:900;font-size:13px;letter-spacing:.14em;cursor:pointer;opacity:.32;pointer-events:none;transition:opacity .28s}
-.go.ready{opacity:1;pointer-events:auto}
+  font-weight:900;font-size:13px;letter-spacing:.14em;cursor:pointer;opacity:.32;transition:opacity .28s}
+.go.ready{opacity:1}
+@keyframes nudge{30%{transform:translateX(-4px)}60%{transform:translateX(4px)}}
+.nudge{animation:nudge .28s ease}
 .go.ready:active{transform:translateY(1px)}
 .go small{display:block;font-weight:700;font-size:7.5px;letter-spacing:.2em;opacity:.6;margin-top:3px}
 
@@ -139,13 +137,11 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
         <div class="join">◆ YOU'RE IN</div>
       </button>
     </div>
-    <button class="neutral" id="neutral">— HERE FOR THE FOOTBALL —</button>
-
     <div class="lab"><span class="n">2</span>PREDICT THE<b>SCORE</b></div>
     <div class="score" id="score">
-      <div class="sc h"><div class="sct">SUI</div><button class="scn" data-t="h">0</button><button class="scm" data-t="h">−</button></div>
+      <div class="sc h"><div class="sct">SUI</div><button class="scn" data-t="h">0</button></div>
       <div class="scdash">–</div>
-      <div class="sc a"><div class="sct">COL</div><button class="scn" data-t="a">0</button><button class="scm" data-t="a">−</button></div>
+      <div class="sc a"><div class="sct">COL</div><button class="scn" data-t="a">0</button></div>
     </div>
     <div class="schint">TAP TO SET THE SCORE</div>
     <div class="conv">
@@ -176,7 +172,7 @@ var PARAMS=new URLSearchParams(location.search);
 var DEMO=PARAMS.get('demo')==='1', LIVE=PARAMS.get('live')==='1';
 var MATCH_ID=PARAMS.get('match')||(LIVE?'18218149':'18202783');
 var MODE_Q=DEMO?'&demo=1':(LIVE?'&live=1&match='+encodeURIComponent(MATCH_ID):'&demo=0');
-var ends=document.getElementById('ends'), neutral=document.getElementById('neutral'),
+var ends=document.getElementById('ends'),
     score=document.getElementById('score'), pips=document.getElementById('pips'),
     cl=document.getElementById('cl'), go=document.getElementById('go');
 var CONVLBL={1:'A HUNCH',2:'A LEAN',3:'CONFIDENT',4:'CERTAIN'};
@@ -257,21 +253,12 @@ if(DEMO&&window.__match){ paintMarket(window.__match); if(window.__match.on)wind
     side=el.dataset.side;
     ends.classList.add('picked');
     [].forEach.call(ends.children,function(e){e.classList.toggle('on',e===el);});
-    neutral.classList.remove('on');
     document.documentElement.style.setProperty('--pick',SIDECOL[side]);
     ready();
   };
 });
-neutral.onclick=function(){
-  side='n'; neutral.classList.add('on');
-  ends.classList.remove('picked');
-  [].forEach.call(ends.children,function(e){e.classList.remove('on');});
-  document.documentElement.style.setProperty('--pick','#8C8467');
-  ready();
-};
 function paintScore(){ [].forEach.call(score.querySelectorAll('.scn'),function(n){ n.textContent=sco[n.dataset.t]; }); if(touched){var sh=document.querySelector('.schint'); if(sh)sh.classList.add('set');} }
-[].forEach.call(score.querySelectorAll('.scn'),function(n){ n.onclick=function(){ sco[n.dataset.t]=Math.min(9,sco[n.dataset.t]+1); touched=true; paintScore(); ready(); }; });
-[].forEach.call(score.querySelectorAll('.scm'),function(m){ m.onclick=function(){ sco[m.dataset.t]=Math.max(0,sco[m.dataset.t]-1); touched=true; paintScore(); ready(); }; });
+[].forEach.call(score.querySelectorAll('.scn'),function(n){ n.onclick=function(){ sco[n.dataset.t]=(sco[n.dataset.t]+1)%10; touched=true; paintScore(); ready(); }; });   // tap cycles 0→9→0 (owner D1: tap only, − dies)
 [].forEach.call(pips.children,function(el){
   el.onclick=function(){
     conv=+el.dataset.lv;
@@ -280,7 +267,11 @@ function paintScore(){ [].forEach.call(score.querySelectorAll('.scn'),function(n
   };
 });
 go.onclick=function(){
-  if(!go.classList.contains('ready'))return;
+  if(!go.classList.contains('ready')){
+    var need=!side?ends:score;   // the first unfinished step shakes — feedback, not an error
+    need.classList.remove('nudge'); void need.offsetWidth; need.classList.add('nudge');
+    return;
+  }
   // your pass — persisted, then read by the terrace checkpoint + woven into the keepsakes
   try{ localStorage.setItem('rooot.pass', JSON.stringify({matchId:MATCH_ID, home:FX.home.tri, away:FX.away.tri, side:side, call:sco, conv:conv, ts:Date.now(), live:LIVE})); }catch(e){}
   if((DEMO||LIVE)&&window.__stands){ if(side&&side!=='n')window.__stands.root(side==='h'?'home':'away'); window.__stands.predict(sco.h,sco.a); }   // your seat + call into the live crowd
