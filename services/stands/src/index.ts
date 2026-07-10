@@ -17,7 +17,10 @@
  *   PORT                 ws+http port (default 8787)
  *   DISABLE_PULSE=1       drop react handling
  *   DISABLE_ROOMS=1       drop room/row join + RoomStateMsg
- *   STANDS_SNAPSHOT_PATH  restart-continuity snapshot file (default /tmp/rooot-stands-snapshot.json)
+ *   STANDS_DATA_DIR       durable data dir (default: /data if mounted+writable, else /tmp) —
+ *                          snapshot + sentiment records both live under this dir
+ *   STANDS_SNAPSHOT_PATH  restart-continuity snapshot file (default <STANDS_DATA_DIR>/rooot-stands-snapshot.json)
+ *   STANDS_SNAPSHOT_INTERVAL_MS  how often the snapshot is written (default 30000)
  *
  *   TXLINE_ENABLE=1       turn on live TxLINE ingest
  *   TXLINE_API             base URL (default https://txline-dev.txodds.com)
@@ -84,7 +87,12 @@ function main(): void {
   const { httpServer, port, broadcastToMatch } = createStandsServer();
 
   httpServer.listen(port, () => {
-    console.log(`[stands] listening on :${port} (GET /health, WS upgrade at /)`);
+    // read back the REAL bound port (PORT=0 asks the OS for a free one — `port`
+    // itself would still print "0" in that case, which is what a dev-only
+    // caller needs to discover the actual port a spawned instance bound to).
+    const addr = httpServer.address();
+    const actualPort = addr && typeof addr === 'object' ? addr.port : port;
+    console.log(`[stands] listening on :${actualPort} (GET /health, WS upgrade at /)`);
   });
 
   const routeFeedMsg = (matchId: string, msg: FeedMsg) => broadcastToMatch(matchId, msg);

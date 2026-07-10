@@ -9,7 +9,8 @@
  * cheer/call still work); DISABLE_ROOMS drops roomId join/RoomStateMsg.
  */
 import { createServer } from 'node:http';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
+import path from 'node:path';
 import { WebSocket, WebSocketServer } from 'ws';
 import type { CallMsg, CallReceiptMsg, CheerEchoMsg, ClientMsg, MomentKind, MomentOpenMsg, MomentResultMsg, RoomStateMsg, ServerMsg, Side } from '@contracts/crowd';
 import { FEELING_PALETTES } from '@contracts/crowd';
@@ -17,6 +18,7 @@ import type { FeedMsg } from '@contracts/feed';
 import { REACT_WINDOW_MS, RollingCounter, SWING_DELTA_MIN } from './decay';
 import { MatchRegistry } from './registry';
 import { anchorRecordHash, relayCall } from './relay';
+import { DATA_DIR, writeFileAtomic } from './snapshot';
 import { SentimentAccumulator } from './sentiment/accumulator';
 import { fixtureInfo } from './sentiment/teams';
 
@@ -98,6 +100,10 @@ function predictLifecycle(matchId: string, msg: ServerMsg | FeedMsg): void {
     const fa = snap && snap.score ? snap.score.ev.away : undefined;
     if (typeof fh === 'number' && typeof fa === 'number') {
       resolvedMatches.add(matchId);
+      // per-fan delivery, not a match broadcast — a verdict is personal
+      // (Task 4 point 2: confirmed sendToAnon already scopes to this anonId's
+      // own sockets only). Late joiners/reconnects get theirs via handleHello's
+      // verdictFor(anonId) replay instead of a resend here.
       for (const v of match.resolvePredictions(fh, fa)) sendToAnon(matchId, v.anonId, v);
       crystallizeSentiment(matchId, match); // the record — persist + emit (docs/SENTIMENT.md)
     }
@@ -254,18 +260,34 @@ function closeMomentNow(matchId: string, momentId: string): void {
 
 /* ── sentiment record (docs/SENTIMENT.md) ─────────────────────────────── */
 const accumulators = new Map<string, SentimentAccumulator>();
-function feedSentiment(matchId: string, msg: ServerMsg | FeedMsg): void {
+/** The one place a match's SentimentAccumulator is created — used both by the
+ * live feed path (feedSentiment) and by snapshot restore (registry's moments
+ * hook, below), so a restart-restored accumulator and a freshly-fed one are
+ * always the SAME instance per matchId. Unknown fixture -> null (no team
+ * identity to record against — never a placeholder). */
+function getOrCreateAccumulator(matchId: string): SentimentAccumulator | null {
   let acc = accumulators.get(matchId);
   if (!acc) {
     const fx = fixtureInfo(matchId);
-    if (!fx) return; // unknown fixture — no team identity to record against
+    if (!fx) return null;
     acc = new SentimentAccumulator(matchId, fx);
     accumulators.set(matchId, acc);
   }
+  return acc;
+}
+
+function feedSentiment(matchId: string, msg: ServerMsg | FeedMsg): void {
+  const acc = getOrCreateAccumulator(matchId);
+  if (!acc) return; // unknown fixture — no team identity to record against
   acc.onFeed(msg);
 }
 
-const SENTIMENT_DIR = process.env.SENTIMENT_DIR ?? '/tmp/rooot-sentiment';
+/** Full-time crystallization, persisted on the SAME durable dir the restart
+ * snapshot uses (Task 3 — volume-ready: /data on Fly when the volume is
+ * mounted, /tmp otherwise). One timestamped file per crystallization — never
+ * overwritten by a later match — except the async anchor-tx-sig fill-in
+ * below, which updates THIS SAME file (it's the same crystallization event,
+ * just completing its on-chain anchor a little later). */
 function crystallizeSentiment(matchId: string, match: ReturnType<MatchRegistry['get']>): void {
   const acc = accumulators.get(matchId);
   if (!acc || !match) return;
@@ -274,15 +296,17 @@ function crystallizeSentiment(matchId: string, match: ReturnType<MatchRegistry['
       { consensus: match.consensus(), rooted: match.counts() },
       { serial: 1, editionSize: null, caption: matchId },
     );
-    mkdirSync(SENTIMENT_DIR, { recursive: true });
-    writeFileSync(`${SENTIMENT_DIR}/${matchId}.json`, JSON.stringify(record, null, 2));
+    const dir = path.join(DATA_DIR, 'sentiment');
+    const filePath = path.join(dir, `${matchId}-${Date.now()}.json`);
+    mkdirSync(dir, { recursive: true });
+    writeFileAtomic(filePath, JSON.stringify(record, null, 2));
     broadcastToMatch(matchId, { type: 'sentiment', record } as unknown as ServerMsg);
-    console.log(`[sentiment] crystallized ${matchId}: ${record.headline} (hash ${record.provenance.recordHash.slice(0, 12)})`);
+    console.log(`[sentiment] crystallized ${matchId}: ${record.headline} (hash ${record.provenance.recordHash.slice(0, 12)}) -> ${filePath}`);
     // anchor the hash on-chain (best-effort) → persist + re-emit with the txSig.
     void anchorRecordHash(matchId, record.provenance.recordHash).then((sig: string | null) => {
       if (!sig) return;
       record.provenance.anchorTxSig = sig;
-      writeFileSync(`${SENTIMENT_DIR}/${matchId}.json`, JSON.stringify(record, null, 2));
+      writeFileAtomic(filePath, JSON.stringify(record, null, 2));
       broadcastToMatch(matchId, { type: 'sentiment', record } as unknown as ServerMsg);
     });
   } catch (err) {
@@ -458,7 +482,28 @@ function replaySnapshot(ws: WebSocket, matchId: string): void {
   }
 }
 
-const registry = new MatchRegistry((matchId, msg) => broadcastToMatch(matchId, msg));
+const registry = new MatchRegistry(
+  (matchId, msg) => broadcastToMatch(matchId, msg),
+  {
+    // Task 3: the felt-moment history lives on the SentimentAccumulator, which
+    // this file owns (registry.ts doesn't know about sentiment at all) — so the
+    // registry's snapshot read/write goes through these two hooks instead of
+    // reaching into `accumulators` directly.
+    get: (matchId) => accumulators.get(matchId)?.getMoments() ?? [],
+    restore: (matchId, moments) => { getOrCreateAccumulator(matchId)?.restoreMoments(moments); },
+  },
+  {
+    // Critical fix (post-mortem): resolvedMatches lives here (predictLifecycle
+    // owns the FULL_TIME → resolve+crystallize+anchor guard) — registry.ts
+    // doesn't know about crystallize/anchor at all, so snapshot persistence of
+    // "already resolved" goes through these two hooks, same pattern as moments
+    // above. `restore` runs during registry.loadSnapshot(), BEFORE index.ts
+    // starts TXLINE/REPLAY ingest, so a restart can never re-fire a real
+    // devnet anchor tx for a match that already resolved in a prior process.
+    get: (matchId) => resolvedMatches.has(matchId),
+    restore: (matchId) => { resolvedMatches.add(matchId); },
+  },
+);
 
 function isValidSide(v: unknown): v is Side {
   return v === 'home' || v === 'away';
@@ -518,6 +563,15 @@ function handleHello(ws: WebSocket, state: ConnState, msg: Extract<ClientMsg, { 
 
   const cachedFeedState = lastFeedState.get(msg.matchId);
   if (cachedFeedState) send(ws, cachedFeedState);
+
+  // A fan's full-time verdict is personal (post-mortem #6: a fan who reloaded
+  // after full time got nothing, because the FT send only reached THEN-
+  // connected sockets). If this match has already resolved this fan's
+  // prediction, replay it into THIS hello's catch-up bundle — tagged _replay
+  // like the rest of the join bundle, and idempotent: a re-hello may receive
+  // it again, the client tolerates a repeat reveal.
+  const verdict = match.verdictFor(msg.anonId);
+  if (verdict) sendReplay(ws, verdict);
 
   if (msg.roomId && !DISABLE_ROOMS) {
     const room = match.getOrCreateRoom(msg.roomId);
