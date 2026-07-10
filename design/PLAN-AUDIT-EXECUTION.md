@@ -596,3 +596,15 @@ right now — owner call on who.
    in design/checkins/2026-07-10/strip-card-sketches.png. T15's KEEP-writes and the cabinet rail
    will carry this object once gated.
 3. T3 pulled forward pre-freeze (built, driven, frames captured — commit pending owner's pixels).
+
+**2026-07-10 · CHECK-IN #4 (owner, ~17:15) — card verdicts:**
+- v1 (front-led held card) picked; "we make it collectible."
+- Card values LOCKED (owner list verbatim): Final Score · Your prediction + accuracy score
+  0–100 · Cheers N · Moments as symbols + count each (grayed unused) · Minutes watched ·
+  (in-game prediction accuracy joins when NEXT GOAL ships).
+- **Accuracy formula (canon until owner amends): 50 pts for the right result + 25 pts per
+  team's goal count, −10 per goal off (floor 0). Exact = 100.** Live keepsake line now prints
+  `YOU PREDICTED <call> · N/100` — verdict words dead ("that sucks").
+- MINUTES WATCHED spelled out. BEL is tricolor: black field + yellow AND red flecks
+  (sec2 #C8102E) on terrace/ground/card. Bespoke card pass next (real type, texture, owner-gen
+  moment emblems once tokens settle).
