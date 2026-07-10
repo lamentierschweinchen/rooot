@@ -1,22 +1,29 @@
 /**
  * Restart continuity: every 30s (STANDS_SNAPSHOT_INTERVAL_MS), dump a small
  * JSON snapshot of match state (rooted anonId->side, room membership,
- * predictions, predictLocked, verdicts, felt-moment history) to disk; on boot,
- * reload it if present — volume-ready (STANDS_DATA_DIR / a mounted /data
- * survives restarts/redeploys; /tmp does not). Weekend scale — this is not
- * meant to survive a crash mid-write, just a clean restart/redeploy without
- * losing who-rooted-for-whom, who-predicted-what, and who-already-saw-their-
- * verdict.
+ * predictions, predictLocked, verdicts, felt-moment history, per-fan night
+ * stats) to disk; on boot, reload it if present — volume-ready
+ * (STANDS_DATA_DIR / a mounted /data survives restarts/redeploys; /tmp does
+ * not). Weekend scale — this is not meant to survive a crash mid-write, just
+ * a clean restart/redeploy without losing who-rooted-for-whom, who-predicted-
+ * what, who-already-saw-their-verdict, and each fan's accumulated card
+ * (THE STANDS CARD substrate — write-only tonight, see match-state.ts's
+ * FanStats doc comment).
  *
  * Deliberately NOT snapshotting roar/pulse rolling counters — those are
  * seconds-old by nature and honestly should reset to silence on restart
- * rather than resurrect stale decay state.
+ * rather than resurrect stale decay state. fanStats.watchMs is the one
+ * exception to "live/stateful things reset": match-state.ts's snapshot()
+ * folds every OPEN watch-time session into watchMs (and checkpoints its
+ * start to now) before this module ever serializes it, so the accumulated
+ * total survives even though the live session itself — like presence/roar/
+ * pulse — is not persisted.
  */
 import { accessSync, constants as fsConstants, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { PredictVerdictMsg, Side } from '@contracts/crowd';
 import type { MomentFeeling } from '@contracts/sentiment';
-import type { MatchState } from './match-state';
+import type { FanStats, MatchState } from './match-state';
 
 /**
  * Data dir resolution (Task 3 — volume-ready): STANDS_DATA_DIR env wins
@@ -71,8 +78,10 @@ export const SNAPSHOT_INTERVAL_MS = resolveSnapshotIntervalMs();
 
 /** Bump when the persisted shape changes. applySnapshot stays tolerant of a
  * file with a lower (or absent = v1) version — every v2+ field is optional on
- * read and defaults rather than fabricates. */
-export const SNAPSHOT_VERSION = 2;
+ * read and defaults rather than fabricates. v3 adds fanStats (THE STANDS CARD
+ * substrate) — absent on a v1/v2 file, which defaults to no stats for every
+ * fan, never a fabricated zeroed row. */
+export const SNAPSHOT_VERSION = 3;
 
 interface SnapshotRoomMember {
   anonId: string;
@@ -103,6 +112,11 @@ interface SnapshotMatch {
    * also derives resolved-ness from a non-empty verdicts map as a tolerant
    * fallback. */
   resolved?: boolean;
+  /** v3+. Absent on a v1/v2 file — applySnapshot defaults to none for every
+   * fan, never fabricates a zeroed row. THE STANDS CARD substrate
+   * (match-state.ts's FanStats doc comment) — write-only tonight, no wire
+   * message carries this yet. */
+  fanStats?: Array<[string, FanStats]>;
 }
 
 interface SnapshotFile {
@@ -149,6 +163,7 @@ export function writeSnapshot(
         verdicts: snap.verdicts,
         moments: getMoments ? getMoments(m.matchId) : [],
         resolved: isResolved ? isResolved(m.matchId) : undefined,
+        fanStats: snap.fanStats,
       };
     }),
   };
@@ -192,10 +207,13 @@ export function readSnapshot(): SnapshotFile | null {
 
 /**
  * Rehydrate rooted counts, room membership, predictions, the predict lock,
- * and verdicts (not presence/roar/pulse — those are live-connection-only).
- * Tolerant of a v1 file (or a v2 file with a match entry missing some of the
- * newer fields): every v2+ field defaults to its honest empty state rather
- * than being fabricated. `restoreMoments`, if given, is called once per match
+ * verdicts, and each fan's accumulated card (not presence/roar/pulse/live
+ * watch-time sessions — those are live-connection-only; a restored fan's
+ * watchMs is exactly the persisted total, with no session fabricated until a
+ * real new connect happens post-restart — see match-state.ts's FanStats doc).
+ * Tolerant of a v1 file (or a v2/v3 file with a match entry missing some of
+ * the newer fields): every v2+ field defaults to its honest empty state
+ * rather than being fabricated. `restoreMoments`, if given, is called once per match
  * that actually has moment history to restore (the caller — server.ts — owns
  * the sentiment accumulators, snapshot.ts doesn't).
  *
@@ -228,6 +246,7 @@ export function applySnapshot(
     for (const [anonId, p] of sm.predictions ?? []) match.restorePrediction(anonId, p.home, p.away, p.atMs);
     if (sm.predictLocked) match.lockPredictions();
     for (const [anonId, v] of sm.verdicts ?? []) match.restoreVerdict(anonId, v);
+    for (const [anonId, fs] of sm.fanStats ?? []) match.restoreFanStats(anonId, fs);
     if (restoreMoments && sm.moments && sm.moments.length > 0) restoreMoments(sm.matchId, sm.moments);
     const hadVerdicts = (sm.verdicts?.length ?? 0) > 0;
     if (markResolved && (sm.resolved === true || hadVerdicts)) markResolved(sm.matchId);
