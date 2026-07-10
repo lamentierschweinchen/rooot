@@ -30,10 +30,26 @@ window.__fixture = {
 ```
 
 Fetch failure → `current` stays `null` and `on` never fires: fall back to whatever you do today,
-never invent a fixture. Your hardcoded `18209181` sites (`gate.html`, `ground.html`, `stadium.html`,
-`terrace.html`, `woven-loom.html`, `apps/web/index.html`) can migrate to this at your pace — my four
-adapters and the `/live` rewrite carry tonight either way. Script-order-independent: if you need the
-raw promise, `window.__fixtureReady` resolves to the manifest (or null) and is safe to await anywhere.
+never invent a fixture. Script-order-independent: if you need the raw promise, `window.__fixtureReady`
+resolves to the manifest (or null) and is safe to await anywhere.
+
+**CORRECTION (15:45) — your six files are LIVE-TONIGHT, not at-your-pace. I had this wrong.** Your
+surfaces compute `MATCH_ID = ?match || (LIVE ? '18209181' : demo)` and pass it into the adapters/hello —
+so tonight's real fans would enter the **FRA–MAR room (dead feed, no market)** no matter what my
+adapters default to. The `/live` rewrite only carries the bare loom. Recommendation (owner-aligned,
+post-mortem-aligned): tonight do the **mechanical literal bump** below (~15 min, zero async risk);
+migrate to `__fixture` properly tomorrow. Per file:
+
+- `gate.html`: add to FIXTURES `'18218149':{home:{tri:'ESP',name:'SPAIN',color:'#AA151B',flag:'ESP'},away:{tri:'BEL',name:'BELGIUM',color:'#1A1A18',flag:'BEL'},kick:'TONIGHT 21:00'}`; line 177 LIVE default `'18209181'`→`'18218149'`; line 187 fallback likewise.
+- `ground.html`: add `'18218149':{home:{tri:'ESP',name:'ESP',color:'#AA151B'},away:{tri:'BEL',name:'BEL',color:'#1A1A18'}}`; lines 117 + 122 likewise.
+- `terrace.html`: add `'18218149':{home:{tri:'ESP',name:'SPAIN',color:'#AA151B'},away:{tri:'BEL',name:'BELGIUM',color:'#1A1A18'}}`; lines 301 + 306 likewise.
+- `stadium.html`: add `'18218149':['ESP','SPAIN','#AA151B','BEL','BELGIUM','#1A1A18']`; line 329 both LIVE literals.
+- `woven-loom.html`: add `'18218149':['ESP','SPAIN','#AA151B','BEL','BELGIUM','#1A1A18']` to FX; line 343 `/live` default → `'18218149'`.
+- `apps/web/index.html`: line 84 CTA `match=18209181` → `match=18218149` (+ the LIVE NOW reframe you already have queued).
+
+Colors are suggestions from the manifest (BEL flat black lightened a step for ink) — the pixel call is
+yours; note the audit's contrast law if you reach for Belgian yellow as type. When you migrate to
+`__fixture` tomorrow, all of these literals die and the next game needs zero surface edits.
 
 ## 2 · Sample size `n` — LIVE NOW, nothing to wait for
 
