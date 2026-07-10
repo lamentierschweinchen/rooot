@@ -74,15 +74,17 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .matchbar .rp .d{width:5px;height:5px;border-radius:50%;background:var(--you);animation:pulse 1.3s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 /* the consensus — the scoreline the crowd holds up, BESIDE the market (never blended) */
-.crowdcall{text-align:center;transition:opacity .3s}
-.crowdcall .cclbl{font-weight:800;font-size:7.5px;letter-spacing:.16em;color:var(--sub)}
-.crowdcall .ccmkt{font-weight:700;font-size:7.5px;letter-spacing:.03em;color:var(--gold)}
-.ccscore{display:flex;align-items:baseline;justify-content:center;gap:7px;margin:1px 0}
-.ccscore b{font-weight:900;font-size:20px}.ccscore b.h{color:var(--you)}.ccscore b.a{color:var(--them)}
-.ccscore .ccd{font-weight:700;color:var(--sub);font-size:13px}
-.ccaff{font-weight:700;font-size:7.5px;letter-spacing:.03em;color:var(--sub)}
-.ccaff b{color:var(--ink);font-weight:800}
-.ccscore .ccwait{font-weight:800;font-size:9.5px;letter-spacing:.16em;color:var(--sub)}   /* silence, not zeros — small print, never score type */
+/* the seam's data block — one keylined box, two cells, the centre rule is the crowd/market boundary */
+.crowdcall{transition:opacity .3s}
+.ccbox{display:flex;margin:7px 14px 2px;border:1.5px solid var(--ink);text-align:left;background:var(--card)}
+.ccbox .cell{flex:1;padding:7px 10px 8px;min-width:0}
+.ccbox .cell+.cell{border-left:1.5px solid var(--ink)}
+.ccbox .lb{font-weight:800;font-size:7px;letter-spacing:.18em;color:var(--sub);white-space:nowrap}
+.ccbox .cell.m .lb{color:var(--gold)}
+.ccbox .v{font-weight:900;font-size:12px;letter-spacing:.02em;color:var(--ink);margin-top:3px;white-space:nowrap}
+.ccbox .cell.m .v{color:var(--gold)}
+.ccbox .n{font-weight:800;font-size:7px;letter-spacing:.1em;color:var(--sub);margin-top:2px;white-space:nowrap}
+.ccbox .ccwait{font-weight:800;font-size:8.5px;letter-spacing:.12em;color:var(--sub);white-space:normal;display:block;line-height:1.3}   /* silence, not zeros — wraps inside its cell */
 .moment{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:var(--card);gap:2px}
 .moment.on{display:flex}
 .moment .big{font-weight:900;font-size:25px;letter-spacing:.02em;line-height:1}
@@ -218,9 +220,10 @@ body.embed .backg,body.embed .foot{display:none}
     <div class="matchbar"><span class="h">SUI</span> <span id="scH">0</span>–<span id="scA">0</span> <span class="a">COL</span>
       <span class="cl" id="clock">0'</span><span class="rp"><span class="d"></span>REPLAY</span></div>
     <div class="crowdcall" id="crowdcall">
-      <div><span class="cclbl">FAN PREDICTIONS</span> <span class="ccmkt">· vs market SUI 44·28·28</span></div>
-      <div class="ccscore"><b class="h">SUI 2.1</b><span class="ccd">–</span><b class="a">1.8 COL</b></div>
-      <div class="ccaff">your end <b>2.4–1.4</b> · their end <b>1.5–2.1</b></div>
+      <div class="ccbox">
+        <div class="cell c"><div class="lb">FAN PREDICTIONS</div><div class="v" id="ccCrowd"><span class="ccwait">THE CROWD IS ARRIVING</span></div><div class="n" id="ccCrowdN">NONE YET</div></div>
+        <div class="cell m"><div class="lb">THE MARKET</div><div class="v" id="ccMkt">—</div><div class="n" id="ccMktN">WAITING</div></div>
+      </div>
     </div>
     <div class="moment" id="moment"><div class="big" id="momentBig">GOAL</div><div class="min" id="momentMin">23'</div></div>
     <div class="split" id="split">
@@ -565,27 +568,26 @@ function step(now){
 requestAnimationFrame(function(t){M.lastMs=t;step(t);});
 
 // ===== ?demo=1 — drive THE STANDS off the real crowd-sim (__stands) + match (__match) engine =====
-function fmtMean(g){return g&&g.mean?g.mean.home.toFixed(1)+'–'+g.mean.away.toFixed(1):'0.0–0.0';}
-function ccUpdate(c){ var cc=el('crowdcall'); if(!cc)return;
-  if(c.all){ var b=cc.querySelectorAll('.ccscore b');
-    if(Array.isArray(c.all)){ if(b[0])b[0].textContent=HOME_TRI+' '+c.all[0]; if(b[1])b[1].textContent=c.all[1]+' '+AWAY_TRI; }
-    else if(c.all.mean){ var ccs=cc.querySelector('.ccscore');
-      if(!c.all.n){ if(ccs)ccs.innerHTML='<b class="ccwait">THE CROWD IS ARRIVING</b>'; }   // n:0 = silence, never zeros
-      else if(ccs)ccs.innerHTML='<b style="color:'+FX.home.color+'">'+HOME_TRI+' '+c.all.mean.home.toFixed(1)+'</b><span class="ccd">–</span><b style="color:'+FX.away.color+'">'+c.all.mean.away.toFixed(1)+' '+AWAY_TRI+'</b>';
+// the box's two cells: crowd = the aggregate predicted score (owner call, 10 Jul) · market = the leader
+function ccUpdate(c){ var cv=el('ccCrowd'), cn=el('ccCrowdN'); if(!cv)return;
+  if(c.all){
+    if(Array.isArray(c.all)){   // demo shape: pre-formatted mean pair from the sim
+      cv.textContent=HOME_TRI+' '+c.all[0]+' – '+c.all[1]+' '+AWAY_TRI;
+      if(cn)cn.textContent='SIMULATED CROWD';
+    } else if(c.all.mean){
+      if(!c.all.n){ cv.innerHTML='<span class="ccwait">THE CROWD IS ARRIVING</span>'; if(cn)cn.textContent='NONE YET'; }   // n:0 = silence, never zeros
+      else { cv.textContent=HOME_TRI+' '+c.all.mean.home.toFixed(1)+' – '+c.all.mean.away.toFixed(1)+' '+AWAY_TRI;
+        if(cn)cn.textContent='FROM '+c.all.n+' FAN'+(c.all.n===1?'':'S'); }
     }
   }
   if(c.market){ marketUpdate(Array.isArray(c.market)?{home:c.market[0],draw:c.market[1],away:c.market[2]}:c.market); }
-  if(c.byRoot&&c.byRoot.home&&c.byRoot.away){ var aff=cc.querySelector('.ccaff'); if(aff){
-    if(Array.isArray(c.byRoot.home))aff.innerHTML='your end <b>'+c.byRoot.home[0]+'–'+c.byRoot.home[1]+'</b> · their end <b>'+c.byRoot.away[0]+'–'+c.byRoot.away[1]+'</b>';
-    else { var parts=[];   // an end with no predictions stays silent
-      if(c.byRoot.home.n)parts.push(FX.home.tri+' end <b>'+fmtMean(c.byRoot.home)+'</b>');
-      if(c.byRoot.away.n)parts.push(FX.away.tri+' end <b>'+fmtMean(c.byRoot.away)+'</b>');
-      aff.innerHTML=parts.join(' · ');
-    }
-  } }
 }
 function marketUpdate(m){
-  var cc=el('crowdcall'), mk=cc&&cc.querySelector('.ccmkt'); if(mk&&m)mk.textContent='· vs market '+HOME_TRI+' '+Math.round(m.home*100)+'·'+Math.round(m.draw*100)+'·'+Math.round(m.away*100);
+  var mv=el('ccMkt'), mn=el('ccMktN'); if(!mv||!m)return;
+  var h=Math.round(m.home*100), d=Math.round(m.draw*100), a=Math.round(m.away*100);
+  var rows=[[h,HOME_TRI],[d,'DRAW'],[a,AWAY_TRI]].sort(function(x,y){return y[0]-x[0];});
+  mv.textContent=rows[0][1]+' '+rows[0][0]+'%';
+  if(mn)mn.textContent=rows[1][1]+' '+rows[1][0]+' · '+rows[2][1]+' '+rows[2][0];
 }
 function applyFixture(sideKey){
   sideKey=sideKey||'home';
@@ -602,11 +604,9 @@ function applyFixture(sideKey){
   var youHdr=document.querySelector('.end.you .ehdr .nm b'), themHdr=document.querySelector('.end.them .ehdr .nm b');
   if(youHdr)youHdr.textContent=YOU_TEAM.name; if(themHdr)themHdr.textContent=THEM_TEAM.name;
   // no predictions yet → silence, never zeros-as-data (owner copy, 10 Jul: short)
-  var cc=el('crowdcall');
-  var ccs=cc&&cc.querySelector('.ccscore'); if(ccs)ccs.innerHTML='<b class="ccwait">THE CROWD IS ARRIVING</b>';
-  var aff=cc&&cc.querySelector('.ccaff'); if(aff)aff.innerHTML='';
+  var cv=el('ccCrowd'); if(cv)cv.innerHTML='<span class="ccwait">THE CROWD IS ARRIVING</span>';
+  var cn=el('ccCrowdN'); if(cn)cn.textContent='NONE YET';
   var rp=document.querySelector('.matchbar .rp'); if(rp)rp.lastChild.textContent=LIVE?'LIVE':'REPLAY';
-  var ccl=document.querySelector('.ccmkt'); if(ccl)ccl.textContent='· vs market '+HOME_TRI+' waiting';
 }
 function wireLive(){
   if(!LIVE)return true;
