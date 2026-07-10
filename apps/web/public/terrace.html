@@ -456,12 +456,12 @@ function showKeepsake(){
   var won=M.score[0]>M.score[1], drew=M.score[0]===M.score[1];
   el('skLine').innerHTML='YOU STOOD IN <b>THE '+YOU_TEAM.name+' END</b>'+(won?' · AND IT SANG':(drew?' · TILL THE LAST':' · AND SANG ANYWAY'));
   var sc=el('skCall');
-  if(vm&&vm.verdict){   // the wire's 3-state verdict — one language with the cabinet (cabinet.html resTag)
-    var lbl=vm.verdict==='exact'?'✓ NAILED IT':vm.verdict==='outcome'?'≈ RIGHT CALL':'✗ didn’t fall';
-    sc.innerHTML='YOU CALLED <b>'+HOME_TRI+' '+vm.predicted.home+'–'+vm.predicted.away+' '+AWAY_TRI+'</b> · '+lbl;
+  if(vm&&vm.verdict){   // the wire's 3-state verdict — plain words (owner, 10 Jul: call things what they are; copy pass later)
+    var lbl=vm.verdict==='exact'?'✓ EXACT SCORE':vm.verdict==='outcome'?'≈ RIGHT RESULT':'✗ WRONG';
+    sc.innerHTML='YOU PREDICTED <b>'+HOME_TRI+' '+vm.predicted.home+'–'+vm.predicted.away+' '+AWAY_TRI+'</b> · '+lbl;
     sc.style.display='block';
   } else if(PASS && PASS.call){ var hit=(PASS.call.h===M.score[0]&&PASS.call.a===M.score[1]);
-    sc.innerHTML='YOU CALLED <b>'+HOME_TRI+' '+PASS.call.h+'–'+PASS.call.a+' '+AWAY_TRI+'</b> · '+(hit?'✓ CALLED IT':'THE GAME HAD OTHER IDEAS'); sc.style.display='block';
+    sc.innerHTML='YOU PREDICTED <b>'+HOME_TRI+' '+PASS.call.h+'–'+PASS.call.a+' '+AWAY_TRI+'</b> · '+(hit?'✓ EXACT SCORE':'✗ WRONG'); sc.style.display='block';
   } else { sc.style.display='none'; }
   setTimeout(function(){ el('keepsake').classList.add('on'); },900);
 }
