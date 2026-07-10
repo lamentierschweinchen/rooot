@@ -85,9 +85,25 @@ export class MatchRegistry {
 
   start(): void {
     this.tickTimer = setInterval(() => this.tick(), STANDS_TICK_MS);
+    this.snapshotTimer = setInterval(() => this.snapshotNow(), SNAPSHOT_INTERVAL_MS);
+  }
+
+  /** Immediate, out-of-band snapshot write — reuses the EXACT SAME write path
+   * + hooks the periodic interval uses (writeSnapshot + the moments/resolved
+   * hooks), so there is only ever one persistence code path. Fix 1 (review
+   * I1): server.ts's predictLifecycle calls this right after a match resolves
+   * + crystallizes at FULL_TIME, instead of waiting up to SNAPSHOT_INTERVAL_MS
+   * for the next periodic tick — a machine death within that window used to
+   * restore a snapshot with predictions but no verdicts/resolved flag, so a
+   * re-delivered FULL_TIME on boot could double-fire crystallize+anchor (the
+   * exact class of bug the resolved-snapshot guard above closes). writeSnapshot
+   * never throws on its own (it catches internally and logs); this is still a
+   * best-effort, fire-and-forget write, same as the interval's — callers on a
+   * critical path should guard the call anyway rather than assume that. */
+  snapshotNow(): void {
     const getMoments = this.moments ? (matchId: string) => this.moments!.get(matchId) : undefined;
     const isResolved = this.resolved ? (matchId: string) => this.resolved!.get(matchId) : undefined;
-    this.snapshotTimer = setInterval(() => writeSnapshot(this.matches, getMoments, isResolved), SNAPSHOT_INTERVAL_MS);
+    writeSnapshot(this.matches, getMoments, isResolved);
   }
 
   stop(): void {

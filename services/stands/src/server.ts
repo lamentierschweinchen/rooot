@@ -56,19 +56,51 @@ function sendReplay(ws: WebSocket, msg: ServerMsg | FeedMsg): void {
   ws.send(JSON.stringify({ ...msg, _replay: true }));
 }
 
+/**
+ * Fix 4 (design-lane wire probe): the FeedMsg variants that carry no fixture
+ * identity of their own — odds was the one caught live (a screenshot of
+ * market ticks briefly rendering under the PREVIOUS fixture's labels during a
+ * transition), so stands-adapter.js's switch had nothing to guard 'odds' by,
+ * unlike every ServerMsg case (which already carries matchId). Audited the
+ * rest of the feed union the same way: score/status/ledger/feedState are
+ * equally bare; spell/lineup already carry fixtureId and fixtureInfo IS the
+ * fixture identity, so those three are left alone. */
+const STAMPABLE_FEED_TYPES = new Set(['odds', 'score', 'status', 'ledger', 'feedState']);
+
+/** Stamp matchId onto the feed types above, once, at the ONE chokepoint that
+ * already has matchId in hand for every message it sends (broadcastToMatch is
+ * room-scoped by construction). Never overwrites an already-present matchId
+ * (defensive; no producer sets one today). Used for the live send AND fed
+ * into rememberForJoin below, so the join-snapshot cache (and therefore a
+ * late joiner's replay) carries the SAME stamped reference — one stamp, every
+ * delivery path covered, no separate touch point needed at replay time. */
+function withMatchId(matchId: string, msg: ServerMsg | FeedMsg): ServerMsg | FeedMsg {
+  switch (msg.type) {
+    case 'odds':
+    case 'score':
+    case 'status':
+    case 'ledger':
+    case 'feedState':
+      return msg.matchId ? msg : { ...msg, matchId };
+    default:
+      return msg;
+  }
+}
+
 /** Broadcast to every connection currently in matchId's room. */
 function broadcastToMatch(matchId: string, msg: ServerMsg | FeedMsg): void {
-  const payload = JSON.stringify(msg);
+  const stamped = withMatchId(matchId, msg);
+  const payload = JSON.stringify(stamped);
   for (const [ws, state] of conns) {
     if (state.matchId === matchId && ws.readyState === WebSocket.OPEN) ws.send(payload);
   }
-  rememberForJoin(matchId, msg); // snapshot the match state for mid-match joiners
-  feedSentiment(matchId, msg); // accumulate the sentiment record (docs/SENTIMENT.md)
-  predictLifecycle(matchId, msg); // lock at KO, resolve at FT (docs/MECHANISMS.md §2)
+  rememberForJoin(matchId, stamped); // snapshot the match state for mid-match joiners
+  feedSentiment(matchId, stamped); // accumulate the sentiment record (docs/SENTIMENT.md)
+  predictLifecycle(matchId, stamped); // lock at KO, resolve at FT (docs/MECHANISMS.md §2)
   // REACT drama windows (docs/MECHANISMS.md §4) — isolated: this new layer must
   // NEVER be able to break the core crowd/feed broadcast above.
   try {
-    momentLifecycle(matchId, msg);
+    momentLifecycle(matchId, stamped);
   } catch (err) {
     console.warn(`[moment] lifecycle error on ${matchId}: ${String(err)}`);
   }
@@ -106,6 +138,18 @@ function predictLifecycle(matchId: string, msg: ServerMsg | FeedMsg): void {
       // verdictFor(anonId) replay instead of a resend here.
       for (const v of match.resolvePredictions(fh, fa)) sendToAnon(matchId, v.anonId, v);
       crystallizeSentiment(matchId, match); // the record — persist + emit (docs/SENTIMENT.md)
+      // Fix 1 (review I1): snapshot IMMEDIATELY instead of waiting up to 30s
+      // for the periodic timer — a machine death in that window would restore
+      // predictions with no verdicts/resolved flag, letting a re-delivered
+      // FULL_TIME on boot double-fire crystallize+anchor. Reuses the identical
+      // write path + hooks the interval uses (registry.snapshotNow()); guarded
+      // the same way the interval write effectively is — must never throw
+      // into the FT branch.
+      try {
+        registry.snapshotNow();
+      } catch (err) {
+        console.warn(`[stands] immediate post-FT snapshot failed for ${matchId}: ${String(err)}`);
+      }
     }
   }
 }

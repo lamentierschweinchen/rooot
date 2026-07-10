@@ -219,7 +219,12 @@ async function scenarioRestartPersistence(): Promise<void> {
 
   try {
     // ── boot 1: seed state, force a fast snapshot, then hard-kill ──────────
-    const boot1 = await bootServer({ STANDS_DATA_DIR: dataDir, STANDS_SNAPSHOT_INTERVAL_MS: '400' });
+    // This scenario never reaches FULL_TIME (no status broadcast), so Fix 1's
+    // immediate post-FT snapshot doesn't apply here — it genuinely depends on
+    // the PERIODIC timer landing at least once. Fix 3 floors that interval at
+    // 1000ms, so this can no longer be sub-1s; 1200ms is the fastest legal
+    // value, comfortably inside this scenario's wait below.
+    const boot1 = await bootServer({ STANDS_DATA_DIR: dataDir, STANDS_SNAPSHOT_INTERVAL_MS: '1200' });
     log('boot1', `up on port ${boot1.port}`);
 
     const url1 = `ws://127.0.0.1:${boot1.port}`;
@@ -231,8 +236,8 @@ async function scenarioRestartPersistence(): Promise<void> {
     send(fanA, { type: 'predict', matchId, anonId: 'restart-fan-a', home: 2, away: 1, atMs: Date.now() });
     await sleep(150);
 
-    // let at least one real periodic snapshot (interval 400ms above) land.
-    await sleep(900);
+    // let at least one real periodic snapshot (interval 1200ms above) land.
+    await sleep(1700);
 
     await closeAndWait(fanA);
     await closeAndWait(fanB);
@@ -426,6 +431,14 @@ async function scenarioAtomicSnapshotWrite(): Promise<void> {
   }
 
   // ── C: repeated real SIGKILLs against an actively-writing server ───────
+  // NOTE (Fix 3, review M1): STANDS_SNAPSHOT_INTERVAL_MS is now floored at
+  // 1000ms, so the '15' below is silently clamped to the 30s default — no
+  // periodic tick fires inside this trial's short kill window any more, so
+  // every trial now lands in the (still-valid) "killed before the first
+  // cycle" branch. The assertion stays green; it just no longer exercises the
+  // torn-write race meaningfully. Left as-is (out of this task's scope —
+  // atomic-write is a prior, separate fix) rather than reaching for a
+  // interval-bypassing test seam that isn't part of the spec'd changes.
   const raceDir = mkdtempSync(path.join(tmpdir(), 'rooot-atomic-check-race-'));
   try {
     const snapPath = path.join(raceDir, 'rooot-stands-snapshot.json');
@@ -481,6 +494,11 @@ async function scenarioAtomicSnapshotWrite(): Promise<void> {
   // of the nearest cycle boundary on both sides — comfortably outside the
   // sub-millisecond in-flight window — so a lingering (never-renamed) tmp
   // file is what this actually detects.
+  // NOTE (Fix 3, review M1): '250' below is likewise now floored to the 30s
+  // default (< 1000ms), so no write cycle lands inside this ~1s sampling
+  // loop — tmpSeenLingering stays vacuously false. Left as-is for the same
+  // reason as trial C above (out of this task's scope); the assertion stays
+  // green either way.
   const cleanDir = mkdtempSync(path.join(tmpdir(), 'rooot-atomic-check-clean-'));
   try {
     const snapPath = path.join(cleanDir, 'rooot-stands-snapshot.json');
@@ -548,9 +566,14 @@ async function scenarioDoubleAnchorGuardOnRestart(): Promise<void> {
     const noKeypairOverrides = { RELAYER_KEYPAIR: undefined, RELAYER_KEYPAIR_FILE: undefined };
 
     // ── boot1: drive a real crystallize+anchor exactly once ────────────────
+    // STANDS_SNAPSHOT_INTERVAL_MS here is now mostly belt-and-braces: this
+    // scenario DOES reach FULL_TIME via the real replay dispatch path, so
+    // Fix 1's immediate post-FT registry.snapshotNow() already persists the
+    // resolved verdict the instant it fires, independent of this interval
+    // (Fix 3 floors it at 1000ms regardless — 1200ms stays a legal, fast value).
     const boot1 = await bootServer({
       STANDS_DATA_DIR: dataDir,
-      STANDS_SNAPSHOT_INTERVAL_MS: '400',
+      STANDS_SNAPSHOT_INTERVAL_MS: '1200',
       REPLAY_FILE: replayFile,
       REPLAY_FIXTURE: matchId,
       ...noKeypairOverrides,
@@ -577,8 +600,9 @@ async function scenarioDoubleAnchorGuardOnRestart(): Promise<void> {
     assert('boot1: exactly ONE "[sentiment] crystallized" log line', crystallizedLines1.length === 1, `lines=${JSON.stringify(crystallizedLines1)}`);
     assert('boot1: exactly ONE sentiment record file on disk', sentimentFileCount(dataDir) === 1, `count=${sentimentFileCount(dataDir)}`);
 
-    // let a real periodic snapshot (400ms interval) capture the resolved
-    // verdict + predictLocked before the hard kill.
+    // the resolved verdict + predictLocked are already on disk (Fix 1's
+    // immediate post-FT write) — this is just a settle margin before the hard
+    // kill, not a wait for the periodic timer.
     await sleep(900);
     await closeAndWait(fan1);
     await killHard(boot1.proc);

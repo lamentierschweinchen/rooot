@@ -154,7 +154,11 @@ async function main(): Promise<void> {
     // so this check never touches a real local snapshot file, and so phase 2's
     // fresh child process can find the SAME on-disk state afterward.
     process.env.STANDS_DATA_DIR = dataDir;
-    process.env.STANDS_SNAPSHOT_INTERVAL_MS = '400';
+    // Deliberately far longer than this whole scenario's runtime (Fix 3 floors
+    // this at 1000ms anyway) — so the immediate post-FT snapshot assertion
+    // below (Fix 1) can only be explained by registry.snapshotNow(), never by
+    // a coincidental periodic tick.
+    process.env.STANDS_SNAPSHOT_INTERVAL_MS = '20000';
     const { createStandsServer } = await import('../server');
 
     const { httpServer, registry, broadcastToMatch } = createStandsServer();
@@ -180,6 +184,28 @@ async function main(): Promise<void> {
     broadcastToMatch(MATCH_ID, { type: 'status', ev: { tMs: now, phase: 'FIRST_HALF', minute: 0, source: 'replay' } });
     broadcastToMatch(MATCH_ID, { type: 'score', ev: { tMs: now, minute: 90, home: 2, away: 1, source: 'replay' } });
     broadcastToMatch(MATCH_ID, { type: 'status', ev: { tMs: now, phase: 'FULL_TIME', minute: 90, source: 'replay' } });
+
+    // ── Fix 1 (review I1): predictLifecycle's FULL_TIME branch must snapshot
+    // IMMEDIATELY, not wait for the periodic timer. writeSnapshot uses sync fs
+    // calls (writeFileSync + renameSync), so no sleep is needed between the
+    // FULL_TIME broadcast above and this read — by the time broadcastToMatch
+    // returns, registry.snapshotNow() has already run synchronously inside
+    // predictLifecycle. STANDS_SNAPSHOT_INTERVAL_MS is set to 20s above, so
+    // nothing but that immediate write can explain what's on disk right now.
+    const { readSnapshot } = await import('../snapshot');
+    const postFtSnap = readSnapshot();
+    const postFtMatch = postFtSnap?.matches.find((m) => m.matchId === MATCH_ID);
+    assert(
+      'a snapshot exists on disk immediately after FULL_TIME resolves, well before the 20s interval could ever fire',
+      !!postFtSnap && Date.now() - postFtSnap.savedAtMs < 5000,
+      postFtSnap ? `savedAtMs=${postFtSnap.savedAtMs} (${Date.now() - postFtSnap.savedAtMs}ms ago)` : 'snapshot file MISSING',
+    );
+    assert(
+      'that immediate snapshot already carries resolved=true and fan A\'s EXACT verdict — not just the pre-FT predictions',
+      postFtMatch?.resolved === true && !!postFtMatch?.verdicts?.some(([id, v]) => id === 'verdict-fan-a' && v.verdict === 'exact'),
+      `match=${JSON.stringify(postFtMatch)}`,
+    );
+
     await sleep(250);
 
     assert('fan A (predicted 2-1, final 2-1) receives their own EXACT verdict', capA.verdicts.length === 1 && capA.verdicts[0]?.verdict === 'exact', `capA.verdicts=${JSON.stringify(capA.verdicts)}`);
@@ -206,8 +232,10 @@ async function main(): Promise<void> {
     await sleep(200);
     assert('a fresh never-predicted fan hello-ing in gets no verdict either', capC.verdicts.length === 0, `capC.verdicts=${JSON.stringify(capC.verdicts)}`);
 
-    // let a real (fast, 400ms) periodic snapshot write land, capturing the
-    // resolved verdict, before we tear this instance down.
+    // The resolved verdict is already on disk (Fix 1's immediate post-FT
+    // write, asserted above) — this is just a settle margin for the
+    // reconnect/hello traffic above before we tear this instance down, not a
+    // wait for the periodic timer (which is set to 20s and won't fire here).
     await sleep(900);
 
     await closeAndWait(fanA2);

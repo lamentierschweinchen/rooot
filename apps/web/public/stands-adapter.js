@@ -35,9 +35,18 @@
       .then(function (r) { return r.ok ? r.json() : null; })
       .catch(function () { return null; });
     var done = false;
-    function finish(id) { if (done) return; done = true; cb(id); }
-    window.__fixtureReady.then(function (fx) { finish((fx && fx.matchId) || '18209181'); }, function () { finish('18209181'); });
-    setTimeout(function () { finish('18209181'); }, 1500);
+    // fellBack=true only on the genuine fallback paths (fetch failed/timed out/
+    // malformed) — never on a legit manifest read, even one that happens to
+    // resolve to this same literal. Warns exactly once (review I2).
+    function finish(id, fellBack) {
+      if (done) return; done = true;
+      if (fellBack) console.warn('[stands-adapter] fixture manifest unavailable — falling back to 18209181');
+      cb(id);
+    }
+    window.__fixtureReady.then(function (fx) {
+      if (fx && fx.matchId) finish(fx.matchId, false); else finish('18209181', true);
+    }, function () { finish('18209181', true); });
+    setTimeout(function () { finish('18209181', true); }, 1500);
   }
 
   resolveMatchId(explicitMatch, function (matchId) {
@@ -104,6 +113,9 @@
       case 'momentResult': if (m.matchId === matchId) fire(cb.momentResult, m); break;
       case 'cheerEcho': if (m.matchId === matchId) fire(cb.cheerEcho, { side: m.side, atMs: m.atMs }); break;
       case 'odds': {
+        // Fix 4: guard by matchId when the server stamps one; tolerate its
+        // absence (older server) by falling through to prior behavior.
+        if (m.matchId && m.matchId !== matchId) break;
         var t = m.tick;
         if (t && t.period !== 'et') {
           lastTriple = { home: t.pHome, draw: t.pDraw, away: t.pAway };

@@ -47,9 +47,18 @@
       .then(function (r) { return r.ok ? r.json() : null; })
       .catch(function () { return null; });
     var done = false;
-    function finish(id) { if (done) return; done = true; cb(id); }
-    window.__fixtureReady.then(function (fx) { finish((fx && fx.matchId) || '18209181'); }, function () { finish('18209181'); });
-    setTimeout(function () { finish('18209181'); }, 1500);
+    // fellBack=true only on the genuine fallback paths (fetch failed/timed out/
+    // malformed) — never on a legit manifest read, even one that happens to
+    // resolve to this same literal. Warns exactly once (review I2).
+    function finish(id, fellBack) {
+      if (done) return; done = true;
+      if (fellBack) console.warn('[stats-adapter] fixture manifest unavailable — falling back to 18209181');
+      cb(id);
+    }
+    window.__fixtureReady.then(function (fx) {
+      if (fx && fx.matchId) finish(fx.matchId, false); else finish('18209181', true);
+    }, function () { finish('18209181', true); });
+    setTimeout(function () { finish('18209181', true); }, 1500);
   }
 
   // DEMO boots synchronously with the explicit param or the old literal fallback —

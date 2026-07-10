@@ -18,6 +18,11 @@
  *   (c) an accepted cheer from fan A is fanned out to fan B as a discrete
  *       `cheerEcho` carrying the right side — the per-tap signal added
  *       because a single remote cheer was invisible in the smoothed roar.
+ *   (d) (tonight-gate Fix 4) an odds tick driven into match A through the
+ *       real broadcastToMatch dispatch path arrives at a client seated on A
+ *       WITH matchId stamped === A, and a client seated on a DIFFERENT match
+ *       B receives nothing at all — closing the gap where a client had no
+ *       field to guard 'odds' by, unlike every other case in its switch.
  *
  * Usage: tsx src/dev/presence-cheer-check.ts  (or: npm run check:presence-cheer)
  *
@@ -28,6 +33,7 @@
  */
 import { WebSocket } from 'ws';
 import type { ClientMsg, ServerMsg } from '@contracts/crowd';
+import type { FeedMsg } from '@contracts/feed';
 
 function log(tag: string, msg: string): void {
   console.log(`[presence-cheer-check:${tag}] ${msg}`);
@@ -246,6 +252,59 @@ async function scenarioCheerEcho(url: string): Promise<void> {
   await closeAndWait(b);
 }
 
+/* ── (d) Fix 4 (design-lane wire probe): odds ticks carry matchId, so a
+ * client watching a DIFFERENT match never has anything to guard against —
+ * screenshot evidence showed market ticks briefly rendering under the
+ * PREVIOUS fixture's labels during a transition. Drives the tick through
+ * broadcastToMatch directly — the SAME dispatch index.ts's routeFeedMsg uses
+ * for every real TXLINE/replay message (mirrors verdict-replay-check.ts's
+ * established convention for "the real feed dispatch path"). ───────────── */
+async function scenarioOddsMatchIdGuard(url: string, broadcastToMatch: (matchId: string, msg: ServerMsg | FeedMsg) => void): Promise<void> {
+  const matchA = `odds-guard-a-${Date.now()}`;
+  const matchB = `odds-guard-b-${Date.now()}`;
+  log('d', `matchA=${matchA} matchB=${matchB}`);
+
+  // feed-only sockets, URL-seated into two DIFFERENT match rooms — no hello
+  // needed; broadcastToMatch already scopes delivery by state.matchId
+  // server-side (this proves the STAMP, not the room-scoping, which already
+  // existed before Fix 4).
+  const a = await connect(`${url}/?matchId=${encodeURIComponent(matchA)}`);
+  const b = await connect(`${url}/?matchId=${encodeURIComponent(matchB)}`);
+  const seenA: Array<{ type: string; matchId?: string }> = [];
+  const seenB: Array<{ type: string; matchId?: string }> = [];
+  a.on('message', (raw) => {
+    try {
+      const m = JSON.parse(raw.toString());
+      if (m.type === 'odds') seenA.push(m);
+    } catch {
+      /* ignore */
+    }
+  });
+  b.on('message', (raw) => {
+    try {
+      const m = JSON.parse(raw.toString());
+      if (m.type === 'odds') seenB.push(m);
+    } catch {
+      /* ignore */
+    }
+  });
+
+  await sleep(150); // let both URL-seatings settle
+
+  broadcastToMatch(matchA, {
+    type: 'odds',
+    tick: { tMs: Date.now(), minute: 10, pHome: 0.5, pDraw: 0.3, pAway: 0.2, source: 'replay' },
+  });
+
+  const gotA = await waitFor(() => seenA.length > 0, 1500);
+  assert('client A (seated on match A) receives the odds tick, stamped with matchId === A', gotA && seenA[0]?.matchId === matchA, `seenA=${JSON.stringify(seenA)}`);
+  await sleep(300); // give a stray cross-room delivery a real chance to arrive before declaring B clean
+  assert("client B (seated on a DIFFERENT match) receives NOTHING from A's odds tick", seenB.length === 0, `seenB=${JSON.stringify(seenB)}`);
+
+  await closeAndWait(a);
+  await closeAndWait(b);
+}
+
 async function main(): Promise<void> {
   // Set BEFORE importing ../server (transitively ./registry -> ./snapshot,
   // which captures this env var into a module-level constant at import time)
@@ -255,7 +314,7 @@ async function main(): Promise<void> {
   process.env.STANDS_SNAPSHOT_PATH ||= '/tmp/rooot-presence-cheer-check-snapshot.json';
   const { createStandsServer } = await import('../server');
 
-  const { httpServer, registry } = createStandsServer();
+  const { httpServer, registry, broadcastToMatch } = createStandsServer();
   await new Promise<void>((resolve) => httpServer.listen(0, '127.0.0.1', resolve));
   const addr = httpServer.address();
   if (addr === null || typeof addr === 'string') throw new Error('failed to bind an ephemeral port');
@@ -266,6 +325,7 @@ async function main(): Promise<void> {
     await scenarioPresenceRefcount(url);
     await scenarioRehelloNoDoubleCount(url);
     await scenarioCheerEcho(url);
+    await scenarioOddsMatchIdGuard(url, broadcastToMatch);
   } finally {
     registry.stop();
     await new Promise<void>((resolve) => httpServer.close(() => resolve()));
