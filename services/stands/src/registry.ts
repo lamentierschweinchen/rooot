@@ -34,6 +34,23 @@ export interface ResolvedPersistenceHooks {
   restore(matchId: string): void;
 }
 
+/** Hooks into server.ts's `openedTriggerIds` moment-open dedup Set (post-
+ * mortem fix — fanStats review follow-up: openedTriggerIds is in-memory-only,
+ * keyed by matchId -> Set<trigger sourceId>, so a restart used to re-arm it
+ * and let a re-dispatched historical trigger — TxLINE's seedSnapshot on live
+ * boot, or a REPLAY_FILE restart, which always plays from line 0 — reopen an
+ * already-run drama moment (a "ghost window"); a fan reacting to it corrupts
+ * their PERSISTED fanStats.reacts through a fully "legitimate" accept path).
+ * Mirrors ResolvedPersistenceHooks exactly, except the payload is the per-
+ * match array of trigger ids rather than a single boolean — same shape
+ * MomentsPersistenceHooks uses for its per-match array. `restore` runs during
+ * registry.loadSnapshot(), BEFORE index.ts starts TXLINE/REPLAY ingest — same
+ * boot-ordering guarantee ResolvedPersistenceHooks relies on. */
+export interface OpenedTriggersPersistenceHooks {
+  get(matchId: string): string[];
+  restore(matchId: string, triggerIds: string[]): void;
+}
+
 export class MatchRegistry {
   private readonly matches = new Map<string, MatchState>();
   private tickTimer: NodeJS.Timeout | null = null;
@@ -54,6 +71,7 @@ export class MatchRegistry {
     private readonly broadcast: (matchId: string, msg: ServerMsg) => void,
     private readonly moments?: MomentsPersistenceHooks,
     private readonly resolved?: ResolvedPersistenceHooks,
+    private readonly openedTriggers?: OpenedTriggersPersistenceHooks,
   ) {}
 
   getOrCreate(matchId: string): MatchState {
@@ -130,12 +148,19 @@ export class MatchRegistry {
     // ingest, so the very first re-delivered FULL_TIME (live seedSnapshot
     // replay, or a REPLAY_FILE restart replaying from 0) is already a no-op.
     const markResolved = this.resolved ? (matchId: string) => this.resolved!.restore(matchId) : undefined;
+    // same pre-arm, same boot-ordering guarantee, for the moment-open dedup
+    // Set — the very first re-dispatched historical trigger must already be
+    // deduped, not just the first re-delivered FULL_TIME.
+    const restoreOpenedTriggers = this.openedTriggers
+      ? (matchId: string, triggerIds: string[]) => this.openedTriggers!.restore(matchId, triggerIds)
+      : undefined;
     applySnapshot(
       snap,
       (matchId) => this.getOrCreate(matchId),
       restoreMoments,
       markResolved,
       (nextFanNo, numbers) => this.restoreFanSerial(nextFanNo, numbers),
+      restoreOpenedTriggers,
     );
     console.log(`[stands:registry] restored ${snap.matches.length} match(es) from snapshot (v${snap.version ?? 1})`);
   }
@@ -160,7 +185,8 @@ export class MatchRegistry {
   snapshotNow(): void {
     const getMoments = this.moments ? (matchId: string) => this.moments!.get(matchId) : undefined;
     const isResolved = this.resolved ? (matchId: string) => this.resolved!.get(matchId) : undefined;
-    writeSnapshot(this.matches, getMoments, isResolved, this.fanSerialSnapshot());
+    const getOpenedTriggerIds = this.openedTriggers ? (matchId: string) => this.openedTriggers!.get(matchId) : undefined;
+    writeSnapshot(this.matches, getMoments, isResolved, this.fanSerialSnapshot(), getOpenedTriggerIds);
   }
 
   stop(): void {

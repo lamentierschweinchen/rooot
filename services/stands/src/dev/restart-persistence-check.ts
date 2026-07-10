@@ -69,6 +69,22 @@
  *       fabricated fanStats row, and a fan newly active in that
  *       restored-from-v2 match still accumulates fanStats normally.
  *
+ * Also proves openedTriggerIds (server.ts's moment-open dedup Set) survives a
+ * REAL restart — tonight-gate fixlet, fanStats review follow-up:
+ *
+ *   11. scenarioMomentDedupOnRestart — drives a fabricated match through the
+ *       REAL replay dispatch path to fire ONE goal ledger event (opening a
+ *       drama moment), has a connected fan react to it (the real momentReact
+ *       accept path), kills and reboots as a FRESH child process pointed at
+ *       the same dataDir with the SAME replay file — reproducing the actual
+ *       bug (REPLAY mode always plays from line 0, so the identical goal
+ *       event re-dispatches with the identical ledger event id) — and asserts
+ *       the second delivery opens NO second moment, a momentReact against the
+ *       now-dead momentId is silently rejected, and on-disk fanStats.reacts
+ *       for that fan stays at exactly 1 (never a duplicate +1 from a ghost
+ *       window). Also checks the persisted openedTriggerIds array directly
+ *       (white-box, on top of the behavioral black-box checks above).
+ *
  * Usage: tsx src/dev/restart-persistence-check.ts (or: npm run check:restart-persistence)
  */
 import { type ChildProcessByStdio, spawn } from 'node:child_process';
@@ -79,6 +95,7 @@ import type { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import { WebSocket } from 'ws';
 import type { ClientMsg, PredictVerdictMsg, ServerMsg } from '@contracts/crowd';
+import { FEELING_PALETTES } from '@contracts/crowd';
 import { CHEER_BUCKET_CAPACITY, CHEER_MAX_BATCH } from '../decay';
 import type { FanStats } from '../match-state';
 import { SNAPSHOT_VERSION } from '../snapshot';
@@ -200,6 +217,7 @@ function killHard(proc: ChildProcessByStdio<null, Readable, Readable>): Promise<
 
 type StandsMsg = Extract<ServerMsg, { type: 'stands' }>;
 type ConsensusMsg = Extract<ServerMsg, { type: 'consensus' }>;
+type MomentOpenCapture = Extract<ServerMsg, { type: 'moment' }>;
 
 function attachVerdictCapture(ws: WebSocket, matchId: string): { verdicts: PredictVerdictMsg[] } {
   const state = { verdicts: [] as PredictVerdictMsg[] };
@@ -252,6 +270,29 @@ function sentimentFileCount(dataDir: string): number {
   const dir = path.join(dataDir, 'sentiment');
   if (!existsSync(dir)) return 0;
   return readdirSync(dir).filter((f) => f.startsWith(`${ANCHOR_CHECK_FIXTURE_ID}-`) && f.endsWith('.json')).length;
+}
+
+/**
+ * Hand-built minimal REPLAY_FILE fixture for the moment-open dedup check
+ * (openedTriggerIds persistence): one early PRE status line — so a connecting
+ * fan has time to hello into the match (registry.getOrCreate) before anything
+ * fires — followed by exactly ONE goal ledger line, the single hard trigger
+ * this scenario dedupes across a restart. `receivedAtMs` is baked into the
+ * file ONCE, at build time (not recomputed per boot), so replaying the SAME
+ * file a second time — REPLAY mode always plays from line 0, the same bug
+ * class buildAnchorCheckReplayFixture/scenarioDoubleAnchorGuardOnRestart
+ * above exploits — reproduces the EXACT SAME ledger event id
+ * (contracts/normalize.ts: `${fixtureKey}:goal-${tMs}`) both times: the
+ * precondition for the dedup guard to have anything to prove.
+ */
+function buildMomentDedupReplayFixture(matchId: string): string {
+  const base = Date.now();
+  const fid = Number(matchId);
+  const lines = [
+    { at: base, env: { FixtureId: fid, Participant1IsHome: true, Action: 'status', StatusId: 1, Data: { StatusId: 1 } } }, // PRE — gives the fan time to hello before the goal fires
+    { at: base + 2000, env: { FixtureId: fid, Participant1IsHome: true, Action: 'goal', Participant: 1, Score: { Participant1: { Total: { Goals: 1 } }, Participant2: { Total: { Goals: 0 } } }, Clock: { Running: true, Seconds: 600 } } }, // the ONE trigger — a real ledger 'goal' event, hard:true, sourceId=ev.id
+  ];
+  return lines.map(({ at, env }) => JSON.stringify({ receivedAtMs: at, event: 'message', data: JSON.stringify(env) })).join('\n') + '\n';
 }
 
 /* ── the scenario ─────────────────────────────────────────────────────── */
@@ -732,6 +773,7 @@ interface SnapshotFileOnDisk {
     rooted?: Array<[string, string]>;
     resolved?: boolean;
     fanStats?: Array<[string, FanStats]>;
+    openedTriggerIds?: string[];
   }>;
 }
 
@@ -748,6 +790,14 @@ function readSnapshotFileOn(dataDir: string): SnapshotFileOnDisk | null {
 function fanStatsRowOn(file: SnapshotFileOnDisk | null, matchId: string, anonId: string): FanStats | undefined {
   const m = file?.matches.find((x) => x.matchId === matchId);
   return m?.fanStats?.find(([id]) => id === anonId)?.[1];
+}
+
+/** THE openedTriggerIds persistence (server.ts's moment-open dedup Set,
+ * snapshot.ts SNAPSHOT_VERSION v5 doc comment) — also write-only-to-disk
+ * today (no wire message exposes it), read here the same honest way as
+ * fanStatsRowOn above. */
+function openedTriggerIdsOn(file: SnapshotFileOnDisk | null, matchId: string): string[] {
+  return file?.matches.find((x) => x.matchId === matchId)?.openedTriggerIds ?? [];
 }
 
 /**
@@ -931,6 +981,154 @@ async function scenarioFanStatsV2Tolerance(): Promise<void> {
   }
 }
 
+/**
+ * Scenario 11 — openedTriggerIds survives a REAL restart (tonight-gate
+ * fixlet, fanStats review follow-up): server.ts's moment-open dedup Set was
+ * in-memory-only, so a restart re-armed it and let a re-dispatched historical
+ * trigger reopen an already-run drama moment (a "ghost window"), corrupting a
+ * fan's PERSISTED fanStats.reacts through the real momentReact accept path.
+ * Proven over TWO real child-process boots sharing one dataDir + the SAME
+ * REPLAY_FILE — identical discipline to scenarioDoubleAnchorGuardOnRestart
+ * above (REPLAY mode always plays from line 0, which is exactly what makes a
+ * restart re-dispatch the SAME trigger envelope through the real ingest path):
+ *
+ *   boot1: the real replay dispatch path fires ONE goal ledger event; a fan
+ *          hello'd into the match beforehand receives the resulting
+ *          MomentOpenMsg and reacts to it via the real WS momentReact message
+ *          → server.ts's handleMomentReact → match.momentReact accept path.
+ *          Asserted via the on-disk snapshot (fanStats AND openedTriggerIds
+ *          are both write-only — no wire message carries either — so this
+ *          reads the persisted file directly, the same honest evidence
+ *          fanStatsRowOn above already relies on). Hard-killed after a real
+ *          periodic snapshot lands.
+ *   boot2: a FRESH child process, SAME dataDir + SAME replay file. A fan
+ *          hello'd into the match (registry.loadSnapshot() already restored
+ *          this MatchState before ingest starts — the boot-ordering guarantee
+ *          under test) watches for a SECOND `moment` broadcast as the replay
+ *          re-dispatches the IDENTICAL goal event (same file-baked
+ *          receivedAtMs -> same ledger event id -> same deterministic
+ *          momentId) from line 0 again. Asserts: no second `moment` message
+ *          ever arrives, a momentReact sent against that now-dead momentId is
+ *          silently rejected (no active window exists in this fresh
+ *          process — match.momentReact's `m.momentId !== momentId` guard,
+ *          since `m` itself is null here), and the on-disk fanStats.reacts
+ *          for that fan stays at exactly 1 — never 2.
+ */
+async function scenarioMomentDedupOnRestart(): Promise<void> {
+  const dataDir = mkdtempSync(path.join(tmpdir(), 'rooot-moment-dedup-check-'));
+  const fixtureDir = mkdtempSync(path.join(tmpdir(), 'rooot-moment-dedup-fixture-'));
+  const matchId = String(Date.now()); // a clean numeric string — round-trips through FixtureId:number -> fixtureKey:String() unchanged, which REPLAY_FIXTURE routing requires
+  const anonId = 'moment-dedup-fan';
+  try {
+    const replayFile = path.join(fixtureDir, 'synthetic-goal.jsonl');
+    writeFileSync(replayFile, buildMomentDedupReplayFixture(matchId));
+    log('moment-dedup', `dataDir=${dataDir} matchId=${matchId} replayFile=${replayFile}`);
+
+    // ── boot1: the real dispatch path opens ONE moment; a fan reacts to it ──
+    const boot1 = await bootServer({ STANDS_DATA_DIR: dataDir, STANDS_SNAPSHOT_INTERVAL_MS: '1200', REPLAY_FILE: replayFile, REPLAY_FIXTURE: matchId });
+    log('boot1', `up on port ${boot1.port} (replaying ${replayFile})`);
+
+    const url1 = `ws://127.0.0.1:${boot1.port}`;
+    const fan1 = await connect(url1);
+    const moments1: MomentOpenCapture[] = [];
+    fan1.on('message', (raw) => {
+      let m: ServerMsg;
+      try {
+        m = JSON.parse(raw.toString()) as ServerMsg;
+      } catch {
+        return;
+      }
+      if (m.type === 'moment' && m.matchId === matchId) moments1.push(m);
+    });
+    send(fan1, { type: 'hello', matchId, anonId, side: 'home' });
+    await sleep(150); // let the hello land (registry.getOrCreate) well before the goal line fires at +2000ms
+
+    const gotFirstOpen = await waitFor(() => moments1.length >= 1, 5000);
+    assert(
+      'boot1: the real goal ledger event opens exactly one moment',
+      gotFirstOpen && moments1.length === 1 && moments1[0]?.kind === 'goal',
+      `moments=${JSON.stringify(moments1)}`,
+    );
+    const momentId = moments1[0]?.momentId;
+    assert('boot1: the opened moment carries a momentId', typeof momentId === 'string' && momentId.length > 0, `momentId=${momentId}`);
+
+    const token = FEELING_PALETTES.goal[0]!;
+    send(fan1, { type: 'momentReact', matchId, momentId: momentId!, anonId, side: 'home', token, atMs: Date.now() });
+    await sleep(1500); // let the react land + at least one more 1200ms periodic write land after it
+
+    const fileAfterReact = readSnapshotFileOn(dataDir);
+    const rowAfterReact = fanStatsRowOn(fileAfterReact, matchId, anonId);
+    assert(
+      'boot1: the accepted momentReact is on disk as fanStats.reacts === 1 before the kill',
+      rowAfterReact?.reacts === 1,
+      `row=${JSON.stringify(rowAfterReact)}`,
+    );
+    const triggersAfterReact = openedTriggerIdsOn(fileAfterReact, matchId);
+    assert(
+      "boot1: the snapshot persists openedTriggerIds for this match, including the goal's sourceId (== momentId)",
+      triggersAfterReact.includes(momentId!),
+      `openedTriggerIds=${JSON.stringify(triggersAfterReact)}`,
+    );
+
+    await closeAndWait(fan1);
+    await killHard(boot1.proc);
+    log('boot1', 'hard-killed (SIGKILL)');
+
+    // ── boot2: a FRESH child process, SAME dataDir + SAME replay file — the
+    // actual bug scenario (REPLAY mode always plays from line 0 again) ──────
+    const boot2 = await bootServer({ STANDS_DATA_DIR: dataDir, STANDS_SNAPSHOT_INTERVAL_MS: '1200', REPLAY_FILE: replayFile, REPLAY_FIXTURE: matchId });
+    log('boot2', `up on port ${boot2.port} (re-replaying the SAME fixture from line 0 — the ghost-window scenario)`);
+    await sleep(200); // let loadSnapshot()'s log line land before we grep it
+    const restoredLine = boot2.getOutput().split('\n').find((l) => l.includes('[stands:registry] restored'));
+    assert('boot2 logs a restored-snapshot line', !!restoredLine, restoredLine ?? '(no matching line)');
+
+    const url2 = `ws://127.0.0.1:${boot2.port}`;
+    const fan2 = await connect(url2);
+    const moments2: MomentOpenCapture[] = [];
+    fan2.on('message', (raw) => {
+      let m: ServerMsg;
+      try {
+        m = JSON.parse(raw.toString()) as ServerMsg;
+      } catch {
+        return;
+      }
+      if (m.type === 'moment' && m.matchId === matchId) moments2.push(m);
+    });
+    send(fan2, { type: 'hello', matchId, anonId, side: 'home' });
+
+    // give the replay's SAME ~2000ms-delayed goal line every chance to
+    // re-fire, plus comfortable margin — assert it produced NO second
+    // `moment` broadcast (the dedup guard, pre-armed from the restored
+    // snapshot BEFORE replay ingest started, silently absorbed it).
+    await sleep(3500);
+    assert(
+      'boot2: the re-dispatched (identical) goal trigger opens NO second moment — openedTriggerIds survived the restart',
+      moments2.length === 0,
+      `moments=${JSON.stringify(moments2)}`,
+    );
+
+    // the ghost react: same momentId as boot1's (now long-closed, never
+    // reopened) window — must be silently rejected, since no active window
+    // exists in this fresh process at all.
+    send(fan2, { type: 'momentReact', matchId, momentId: momentId!, anonId, side: 'home', token, atMs: Date.now() });
+    await sleep(1500); // let a fresh periodic write land after the rejected react attempt
+
+    const fileAfterGhost = readSnapshotFileOn(dataDir);
+    const rowAfterGhost = fanStatsRowOn(fileAfterGhost, matchId, anonId);
+    assert(
+      'boot2: a momentReact against the dead momentId is rejected — fanStats.reacts stays at 1, never 2 (no ghost-window double-count)',
+      rowAfterGhost?.reacts === 1,
+      `row=${JSON.stringify(rowAfterGhost)}`,
+    );
+
+    await closeAndWait(fan2);
+    await killHard(boot2.proc);
+  } finally {
+    rmSync(dataDir, { recursive: true, force: true });
+    rmSync(fixtureDir, { recursive: true, force: true });
+  }
+}
+
 function approx(a: number, b: number, eps = 1e-9): boolean {
   return Math.abs(a - b) < eps;
 }
@@ -960,6 +1158,7 @@ async function main(): Promise<void> {
   await scenarioDoubleAnchorGuardOnRestart();
   await scenarioFanStatsRestart();
   await scenarioFanStatsV2Tolerance();
+  await scenarioMomentDedupOnRestart();
 
   console.log('\n──────────── SUMMARY ────────────');
   const failed = assertions.filter((x) => !x.pass);
@@ -974,11 +1173,13 @@ async function main(): Promise<void> {
 // two extra scenarios (8 real SIGKILL trials + two full child-process replay
 // boots) pushed real wall-clock well past the original 40s budget; the two
 // fanStats scenarios (three more child boots + real held-open sessions and
-// periodic-write waits) add ~15s more on top.
+// periodic-write waits) add ~15s more on top; scenarioMomentDedupOnRestart
+// (two more child boots + a ~2s-delayed replay trigger waited out twice, plus
+// settle margins) adds ~15s more still.
 const watchdog = setTimeout(() => {
-  console.error('[restart-persistence-check] watchdog: hung for 150s, forcing exit');
+  console.error('[restart-persistence-check] watchdog: hung for 165s, forcing exit');
   process.exit(1);
-}, 150_000);
+}, 165_000);
 
 main()
   .then(() => {

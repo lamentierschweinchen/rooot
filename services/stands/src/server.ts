@@ -160,8 +160,27 @@ const openMomentTimers = new Map<string, ReturnType<typeof setTimeout>>();
 /** last de-vigged triple per match — the baseline for swing detection. */
 const lastTriple = new Map<string, { home: number; draw: number; away: number }>();
 /** trigger sources already turned into a moment (a goal re-emits as it upgrades;
- * full-time can repeat) — dedupe so one drama opens exactly one window. */
+ * full-time can repeat) — dedupe so one drama opens exactly one window.
+ * Persisted per match via registry's openedTriggers hooks below (post-mortem
+ * fix, fanStats review follow-up): without this, a restart re-armed an empty
+ * Set here, and TxLINE's seedSnapshot() (or a REPLAY_FILE restart, which
+ * always plays from line 0) re-dispatching a historical goal/card/VAR through
+ * the SAME dispatch path as live traffic could reopen an already-run drama
+ * moment — a "ghost window" whose react corrupted a fan's PERSISTED
+ * fanStats.reacts through a fully "legitimate" accept path. */
 const openedTriggerIds = new Map<string, Set<string>>();
+
+/** Get-or-create this match's trigger-id Set — the one place both the live
+ * dedup check (momentLifecycle below) and snapshot restore touch
+ * openedTriggerIds, so they can never drift out of sync with each other. */
+function openedTriggersFor(matchId: string): Set<string> {
+  let seen = openedTriggerIds.get(matchId);
+  if (!seen) {
+    seen = new Set();
+    openedTriggerIds.set(matchId, seen);
+  }
+  return seen;
+}
 
 interface MomentTrigger {
   kind: MomentKind;
@@ -230,11 +249,7 @@ function momentLifecycle(matchId: string, msg: ServerMsg | FeedMsg): void {
   if (!match) return;
 
   if (trig.sourceId) {
-    let seen = openedTriggerIds.get(matchId);
-    if (!seen) {
-      seen = new Set();
-      openedTriggerIds.set(matchId, seen);
-    }
+    const seen = openedTriggersFor(matchId);
     if (seen.has(trig.sourceId)) return; // already made a moment of this drama
     seen.add(trig.sourceId);
   }
@@ -546,6 +561,24 @@ const registry = new MatchRegistry(
     // devnet anchor tx for a match that already resolved in a prior process.
     get: (matchId) => resolvedMatches.has(matchId),
     restore: (matchId) => { resolvedMatches.add(matchId); },
+  },
+  {
+    // Post-mortem fix (fanStats review follow-up): openedTriggerIds lives here
+    // (momentLifecycle owns the moment-open dedup) — registry.ts doesn't know
+    // what a "trigger" is, so snapshot persistence of "already opened a moment
+    // for this sourceId" goes through these two hooks, same pattern as
+    // moments/resolved above. `restore` runs during registry.loadSnapshot(),
+    // BEFORE index.ts starts TXLINE/REPLAY ingest, so a restart can never let
+    // a re-dispatched historical trigger (live seedSnapshot replay, or a
+    // REPLAY_FILE restart replaying from line 0) reopen an already-run drama
+    // moment — the ghost-window bug this closes. `get` reads only (never
+    // creates) — the periodic snapshot writer must not fabricate an empty Set
+    // entry for a match that never actually opened a moment.
+    get: (matchId) => Array.from(openedTriggerIds.get(matchId) ?? []),
+    restore: (matchId, triggerIds) => {
+      const seen = openedTriggersFor(matchId);
+      for (const id of triggerIds) seen.add(id);
+    },
   },
 );
 

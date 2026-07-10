@@ -87,8 +87,15 @@ export const SNAPSHOT_INTERVAL_MS = resolveSnapshotIntervalMs();
  * field (not per-match, unlike everything else here) — absent on a v1/v2/v3
  * file, which defaults to an empty registry: numbering then starts fresh at
  * 1, never fabricated retroactively for fans who connected before this
- * shipped. */
-export const SNAPSHOT_VERSION = 4;
+ * shipped. v5 adds `openedTriggerIds` (per match) — post-mortem fix:
+ * server.ts's moment-open dedup Set was in-memory-only, so a restart used to
+ * re-arm it and let a re-dispatched historical trigger (TxLINE's
+ * seedSnapshot on live boot, or a REPLAY_FILE restart replaying from 0)
+ * re-open an already-run drama moment — a "ghost window" whose react a
+ * connected fan could double-count into their PERSISTED fanStats.reacts.
+ * Absent on a v1/v2/v3/v4 file — applySnapshot defaults to none, never
+ * fabricates. Same shape/tolerance discipline as `resolved` below. */
+export const SNAPSHOT_VERSION = 5;
 
 interface SnapshotRoomMember {
   anonId: string;
@@ -124,6 +131,13 @@ interface SnapshotMatch {
    * (match-state.ts's FanStats doc comment) — write-only tonight, no wire
    * message carries this yet. */
   fanStats?: Array<[string, FanStats]>;
+  /** v5+. Absent on a v1/v2/v3/v4 file — applySnapshot defaults to none,
+   * never fabricates. server.ts's moment-open dedup Set (keyed by ledger/
+   * status trigger sourceId — a goal's ledger event id, `${matchId}:ft` for
+   * full-time, etc.) for THIS match — see the SNAPSHOT_VERSION doc comment
+   * above for the "ghost window" bug this closes. Mirrors `resolved` above:
+   * per-match, additive, tolerant. */
+  openedTriggerIds?: string[];
 }
 
 /** v4+. THE FAN SERIAL (design/HANDOFF-2026-07-10-fan-serial.md) — a
@@ -170,6 +184,10 @@ export function writeSnapshot(
   getMoments?: (matchId: string) => MomentFeeling[],
   isResolved?: (matchId: string) => boolean,
   fanSerial?: { nextFanNo: number; numbers: Array<[string, number]> },
+  /** v5 — server.ts's moment-open dedup Set for this match (SNAPSHOT_VERSION
+   * doc comment above: the "ghost window" fix). Optional/undefined-tolerant,
+   * same as getMoments/isResolved above. */
+  getOpenedTriggerIds?: (matchId: string) => string[],
 ): void {
   const file: SnapshotFile = {
     version: SNAPSHOT_VERSION,
@@ -189,6 +207,7 @@ export function writeSnapshot(
         moments: getMoments ? getMoments(m.matchId) : [],
         resolved: isResolved ? isResolved(m.matchId) : undefined,
         fanStats: snap.fanStats,
+        openedTriggerIds: getOpenedTriggerIds ? getOpenedTriggerIds(m.matchId) : [],
       };
     }),
     fans: fanSerial,
@@ -258,6 +277,15 @@ export function readSnapshot(): SnapshotFile | null {
  * SERIAL is registry-global, design/HANDOFF-2026-07-10-fan-serial.md) when
  * `snap.fans` is present. Absent on a v1/v2/v3 file — the registry stays at
  * its default empty state (numbering starts fresh at 1), never fabricated.
+ *
+ * `restoreOpenedTriggers`, if given, is called once per match that has
+ * persisted trigger ids (v5+ — SNAPSHOT_VERSION doc comment above) — so the
+ * caller (server.ts, via registry.ts) can pre-arm its openedTriggerIds dedup
+ * guard for THAT match BEFORE any live/replay ingest starts, exactly the same
+ * boot-ordering guarantee `markResolved` relies on above: registry.loadSnapshot()
+ * runs synchronously, before index.ts wires up TXLINE/REPLAY ingest, so the
+ * very first re-dispatched historical trigger is already deduped. Absent on
+ * an older file (or a match with no persisted triggers) — never fabricated.
  */
 export function applySnapshot(
   snap: SnapshotFile,
@@ -265,6 +293,7 @@ export function applySnapshot(
   restoreMoments?: (matchId: string, moments: MomentFeeling[]) => void,
   markResolved?: (matchId: string) => void,
   restoreFanSerial?: (nextFanNo: number, numbers: Array<[string, number]>) => void,
+  restoreOpenedTriggers?: (matchId: string, triggerIds: string[]) => void,
 ): void {
   for (const sm of snap.matches) {
     const match = getOrCreate(sm.matchId);
@@ -280,6 +309,7 @@ export function applySnapshot(
     for (const [anonId, v] of sm.verdicts ?? []) match.restoreVerdict(anonId, v);
     for (const [anonId, fs] of sm.fanStats ?? []) match.restoreFanStats(anonId, fs);
     if (restoreMoments && sm.moments && sm.moments.length > 0) restoreMoments(sm.matchId, sm.moments);
+    if (restoreOpenedTriggers && sm.openedTriggerIds && sm.openedTriggerIds.length > 0) restoreOpenedTriggers(sm.matchId, sm.openedTriggerIds);
     const hadVerdicts = (sm.verdicts?.length ?? 0) > 0;
     if (markResolved && (sm.resolved === true || hadVerdicts)) markResolved(sm.matchId);
   }
