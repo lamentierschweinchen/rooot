@@ -25,8 +25,25 @@
   // the self-contained demo — untouched.
   var SITE = location.pathname === '/' || location.pathname === '/live' || q.get('site') === '1' || DEMO;
   if (q.get('loomfeed') !== '1' && !SITE) return;
-  var matchId = q.get('match') || '18209181'; // FRA–MAR live-test default. TODO(P2): dynamic default so /live auto-follows the live game.
+  var explicitMatch = q.get('match');   // ?match= always wins — never touches the manifest
   var wsBase = q.get('ws') || 'wss://rooot-stands.fly.dev/';
+
+  // Shared fixture-manifest resolution (script-order-independent, one fetch total —
+  // stands-adapter.js/stats-adapter.js/match-read.js each set up the same
+  // window.__fixtureReady ||= fetch(...), so whichever script runs first on a page
+  // does the ONE network fetch): (1) ?match= wins outright; (2) the manifest's
+  // matchId, raced against a timeout so a hung fetch never blocks the socket;
+  // (3) the FRA–MAR live-test literal, last resort.
+  function resolveMatchId(explicit, cb) {
+    if (explicit) { cb(explicit); return; }
+    window.__fixtureReady = window.__fixtureReady || fetch('/fixture.json')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function () { return null; });
+    var done = false;
+    function finish(id) { if (done) return; done = true; cb(id); }
+    window.__fixtureReady.then(function (fx) { finish((fx && fx.matchId) || '18209181'); }, function () { finish('18209181'); });
+    setTimeout(function () { finish('18209181'); }, 1500);
+  }
 
   function waitForLoom(cb) {
     if (window.__loom && typeof window.__loom.live === 'function') return cb();
@@ -56,6 +73,11 @@
   // ledger goalKind (Shot|Head|Own) → loom event type (shot|head|own).
   function goalType(gk) { return gk === 'Head' ? 'head' : gk === 'Own' ? 'own' : 'shot'; }
 
+  // DEMO boots synchronously with the explicit param or the old literal fallback —
+  // no fetch, no timeout, no await (byte-identical to pre-manifest behavior; mirrors
+  // match-read.js's LIVE/non-LIVE split). Only the LIVE path (the connect() transport
+  // below) consults the fixture manifest via resolveMatchId.
+  function boot(matchId) {
   waitForLoom(function () {
     var L = window.__loom;
     L.live();
@@ -377,4 +399,6 @@
       connect();
     }
   });
+  }
+  if (DEMO) { boot(explicitMatch || '18209181'); } else { resolveMatchId(explicitMatch, boot); }
 })();

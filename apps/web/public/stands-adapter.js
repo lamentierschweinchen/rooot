@@ -20,8 +20,27 @@
     || q.get('live') === '1'
     || q.get('site') === '1' || q.get('loomfeed') === '1' || q.get('standsfeed') === '1';
   if (!ON) return;
-  var matchId = q.get('match') || '18209181'; // FRA–MAR live-test default
+  var explicitMatch = q.get('match');   // ?match= always wins — never touches the manifest
   var wsBase = q.get('ws') || 'wss://rooot-stands.fly.dev/';
+
+  // Shared fixture-manifest resolution (script-order-independent, one fetch total —
+  // loom-adapter.js/stats-adapter.js/match-read.js each set up the same
+  // window.__fixtureReady ||= fetch(...), so whichever script runs first on a page
+  // does the ONE network fetch): (1) ?match= wins outright; (2) the manifest's
+  // matchId, raced against a timeout so a hung fetch never blocks the socket;
+  // (3) the FRA–MAR live-test literal, last resort.
+  function resolveMatchId(explicit, cb) {
+    if (explicit) { cb(explicit); return; }
+    window.__fixtureReady = window.__fixtureReady || fetch('/fixture.json')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function () { return null; });
+    var done = false;
+    function finish(id) { if (done) return; done = true; cb(id); }
+    window.__fixtureReady.then(function (fx) { finish((fx && fx.matchId) || '18209181'); }, function () { finish('18209181'); });
+    setTimeout(function () { finish('18209181'); }, 1500);
+  }
+
+  resolveMatchId(explicitMatch, function (matchId) {
 
   var ANON_KEY = 'rooot.anonId';
   function anonId() {
@@ -112,4 +131,5 @@
     ws.onerror = function () { try { ws.close(); } catch (_) {} };
   }
   connect();
+  });
 })();
