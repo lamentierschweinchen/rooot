@@ -100,6 +100,10 @@ function predictLifecycle(matchId: string, msg: ServerMsg | FeedMsg): void {
     const fa = snap && snap.score ? snap.score.ev.away : undefined;
     if (typeof fh === 'number' && typeof fa === 'number') {
       resolvedMatches.add(matchId);
+      // per-fan delivery, not a match broadcast — a verdict is personal
+      // (Task 4 point 2: confirmed sendToAnon already scopes to this anonId's
+      // own sockets only). Late joiners/reconnects get theirs via handleHello's
+      // verdictFor(anonId) replay instead of a resend here.
       for (const v of match.resolvePredictions(fh, fa)) sendToAnon(matchId, v.anonId, v);
       crystallizeSentiment(matchId, match); // the record — persist + emit (docs/SENTIMENT.md)
     }
@@ -548,6 +552,15 @@ function handleHello(ws: WebSocket, state: ConnState, msg: Extract<ClientMsg, { 
 
   const cachedFeedState = lastFeedState.get(msg.matchId);
   if (cachedFeedState) send(ws, cachedFeedState);
+
+  // A fan's full-time verdict is personal (post-mortem #6: a fan who reloaded
+  // after full time got nothing, because the FT send only reached THEN-
+  // connected sockets). If this match has already resolved this fan's
+  // prediction, replay it into THIS hello's catch-up bundle — tagged _replay
+  // like the rest of the join bundle, and idempotent: a re-hello may receive
+  // it again, the client tolerates a repeat reveal.
+  const verdict = match.verdictFor(msg.anonId);
+  if (verdict) sendReplay(ws, verdict);
 
   if (msg.roomId && !DISABLE_ROOMS) {
     const room = match.getOrCreateRoom(msg.roomId);
