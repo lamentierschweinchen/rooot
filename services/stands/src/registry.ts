@@ -20,6 +20,20 @@ export interface MomentsPersistenceHooks {
   restore(matchId: string, moments: MomentFeeling[]): void;
 }
 
+/** Hooks into server.ts's `resolvedMatches` guard (Critical fix — post-mortem:
+ * a match already resolved — FULL_TIME crystallize+anchor already fired —
+ * must never re-fire after a restart; resolvedMatches is in-memory-only, so
+ * without this it re-arms on every boot). Mirrors MomentsPersistenceHooks:
+ * registry.ts doesn't know what "resolved" MEANS (that's server.ts's
+ * crystallize/anchor pipeline) — it only ferries the flag through snapshot
+ * write/restore via these two callbacks. `get` lets writeSnapshot persist
+ * which matches THIS process has already resolved; `restore` re-arms the
+ * guard for a match restored with prior resolution. */
+export interface ResolvedPersistenceHooks {
+  get(matchId: string): boolean;
+  restore(matchId: string): void;
+}
+
 export class MatchRegistry {
   private readonly matches = new Map<string, MatchState>();
   private tickTimer: NodeJS.Timeout | null = null;
@@ -28,6 +42,7 @@ export class MatchRegistry {
   constructor(
     private readonly broadcast: (matchId: string, msg: ServerMsg) => void,
     private readonly moments?: MomentsPersistenceHooks,
+    private readonly resolved?: ResolvedPersistenceHooks,
   ) {}
 
   getOrCreate(matchId: string): MatchState {
@@ -59,14 +74,20 @@ export class MatchRegistry {
     const snap = readSnapshot();
     if (!snap) return;
     const restoreMoments = this.moments ? (matchId: string, moments: MomentFeeling[]) => this.moments!.restore(matchId, moments) : undefined;
-    applySnapshot(snap, (matchId) => this.getOrCreate(matchId), restoreMoments);
+    // pre-arm the resolved guard for every match restored already-resolved —
+    // this runs BEFORE start() and BEFORE index.ts wires up TXLINE/REPLAY
+    // ingest, so the very first re-delivered FULL_TIME (live seedSnapshot
+    // replay, or a REPLAY_FILE restart replaying from 0) is already a no-op.
+    const markResolved = this.resolved ? (matchId: string) => this.resolved!.restore(matchId) : undefined;
+    applySnapshot(snap, (matchId) => this.getOrCreate(matchId), restoreMoments, markResolved);
     console.log(`[stands:registry] restored ${snap.matches.length} match(es) from snapshot (v${snap.version ?? 1})`);
   }
 
   start(): void {
     this.tickTimer = setInterval(() => this.tick(), STANDS_TICK_MS);
     const getMoments = this.moments ? (matchId: string) => this.moments!.get(matchId) : undefined;
-    this.snapshotTimer = setInterval(() => writeSnapshot(this.matches, getMoments), SNAPSHOT_INTERVAL_MS);
+    const isResolved = this.resolved ? (matchId: string) => this.resolved!.get(matchId) : undefined;
+    this.snapshotTimer = setInterval(() => writeSnapshot(this.matches, getMoments, isResolved), SNAPSHOT_INTERVAL_MS);
   }
 
   stop(): void {

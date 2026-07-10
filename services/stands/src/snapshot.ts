@@ -12,7 +12,7 @@
  * seconds-old by nature and honestly should reset to silence on restart
  * rather than resurrect stale decay state.
  */
-import { accessSync, constants as fsConstants, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { accessSync, constants as fsConstants, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { PredictVerdictMsg, Side } from '@contracts/crowd';
 import type { MomentFeeling } from '@contracts/sentiment';
@@ -44,6 +44,19 @@ function resolveDataDir(): string {
 export const DATA_DIR = resolveDataDir();
 
 export const SNAPSHOT_PATH = process.env.STANDS_SNAPSHOT_PATH ?? path.join(DATA_DIR, 'rooot-stands-snapshot.json');
+
+// Ensure the snapshot's directory exists ONCE at startup (a fresh volume mount
+// or a custom STANDS_DATA_DIR may not have it yet) — writeSnapshot used to
+// mkdir on every periodic write (every 30s, forever), which is needless
+// syscall churn once the dir is known to exist. Best-effort: a failure here
+// must not block boot (readSnapshot/writeSnapshot both already tolerate a
+// missing/bad dir on their own, logging rather than throwing).
+try {
+  mkdirSync(path.dirname(SNAPSHOT_PATH), { recursive: true });
+} catch (err) {
+  console.warn(`[stands:snapshot] could not create data dir for ${SNAPSHOT_PATH}: ${String(err)}`);
+}
+
 export const SNAPSHOT_INTERVAL_MS = Number(process.env.STANDS_SNAPSHOT_INTERVAL_MS ?? 30_000);
 
 /** Bump when the persisted shape changes. applySnapshot stays tolerant of a
@@ -70,6 +83,16 @@ interface SnapshotMatch {
    * (contracts/sentiment.ts MomentFeeling) — so a full-time crystallization
    * after a mid-match restart still carries moments felt before it. */
   moments?: MomentFeeling[];
+  /** v2+. Explicit "this match already resolved (crystallize + anchor already
+   * fired in a prior process)" flag — post-mortem fix: resolvedMatches is
+   * in-memory-only in server.ts, so a restart used to re-arm it and let a
+   * replayed FULL_TIME (live seedSnapshot OR a REPLAY_FILE restart, which
+   * always plays from 0) double-fire a REAL devnet anchor tx + a duplicate
+   * SentimentRecord for the same match. Absent on an older file, or for a
+   * match resolved with zero predictions on THIS field alone — applySnapshot
+   * also derives resolved-ness from a non-empty verdicts map as a tolerant
+   * fallback. */
+  resolved?: boolean;
 }
 
 interface SnapshotFile {
@@ -78,7 +101,27 @@ interface SnapshotFile {
   matches: SnapshotMatch[];
 }
 
-export function writeSnapshot(matches: Map<string, MatchState>, getMoments?: (matchId: string) => MomentFeeling[]): void {
+/**
+ * Atomic write (Critical fix — post-mortem: `writeFileSync(SNAPSHOT_PATH,…)`
+ * truncated the file in place, so a SIGKILL mid-write left invalid JSON on
+ * disk and the NEXT boot's readSnapshot() silently returned null — losing
+ * every previously-good persisted match). Write to `${filePath}.tmp` first,
+ * then rename(2) over the target: rename is atomic on POSIX within the same
+ * directory/filesystem, so a kill at ANY point can only ever leave the OLD
+ * complete file or the NEW complete file at `filePath` — never a torn one.
+ * Exported so server.ts's sentiment-record writes use the same pattern.
+ */
+export function writeFileAtomic(filePath: string, data: string): void {
+  const tmpPath = `${filePath}.tmp`;
+  writeFileSync(tmpPath, data);
+  renameSync(tmpPath, filePath);
+}
+
+export function writeSnapshot(
+  matches: Map<string, MatchState>,
+  getMoments?: (matchId: string) => MomentFeeling[],
+  isResolved?: (matchId: string) => boolean,
+): void {
   const file: SnapshotFile = {
     version: SNAPSHOT_VERSION,
     savedAtMs: Date.now(),
@@ -95,25 +138,44 @@ export function writeSnapshot(matches: Map<string, MatchState>, getMoments?: (ma
         predictLocked: snap.predictLocked,
         verdicts: snap.verdicts,
         moments: getMoments ? getMoments(m.matchId) : [],
+        resolved: isResolved ? isResolved(m.matchId) : undefined,
       };
     }),
   };
   try {
-    // volume-ready: make sure the target dir exists before the first write
-    // (a fresh mount / a custom STANDS_DATA_DIR may not have it yet).
-    mkdirSync(path.dirname(SNAPSHOT_PATH), { recursive: true });
-    writeFileSync(SNAPSHOT_PATH, JSON.stringify(file));
+    writeFileAtomic(SNAPSHOT_PATH, JSON.stringify(file));
   } catch (err) {
     console.warn(`[stands:snapshot] write failed: ${String(err)}`);
   }
 }
 
-/** Best-effort read; returns null if absent/corrupt (never throws — a bad snapshot must not block boot). */
+/**
+ * Best-effort read; returns null if absent/corrupt (never throws — a bad
+ * snapshot must not block boot). Logs which case it was — an operator
+ * watching Fly logs must be able to tell "first-ever boot, nothing to
+ * restore" apart from "there WAS state and we couldn't read it" (Important
+ * fix — this used to be silent for both, e.g. a torn write from the old
+ * non-atomic writeFileSync looked identical to a fresh volume).
+ */
 export function readSnapshot(): SnapshotFile | null {
+  let raw: string;
   try {
-    const raw = readFileSync(SNAPSHOT_PATH, 'utf8');
+    raw = readFileSync(SNAPSHOT_PATH, 'utf8');
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+      console.log(`[stands:snapshot] no snapshot file at ${SNAPSHOT_PATH} — fresh start`);
+    } else {
+      console.warn(`[stands:snapshot] could not read ${SNAPSHOT_PATH}: ${String(err)} — starting fresh`);
+    }
+    return null;
+  }
+  try {
     return JSON.parse(raw) as SnapshotFile;
-  } catch {
+  } catch (err) {
+    // never log `raw` (could be arbitrarily large / in principle carry stray
+    // secrets if something else ever wrote to this path) — the path alone is
+    // enough for an operator to go look.
+    console.warn(`[stands:snapshot] CORRUPT snapshot at ${SNAPSHOT_PATH} (${String(err)}) — starting fresh; previously persisted state is lost`);
     return null;
   }
 }
@@ -126,11 +188,23 @@ export function readSnapshot(): SnapshotFile | null {
  * than being fabricated. `restoreMoments`, if given, is called once per match
  * that actually has moment history to restore (the caller — server.ts — owns
  * the sentiment accumulators, snapshot.ts doesn't).
+ *
+ * `markResolved`, if given, is called once per match that was already
+ * resolved (FULL_TIME crystallize + anchor already fired) in a PRIOR process
+ * — so the caller (server.ts, via registry.ts) can pre-arm its resolvedMatches
+ * guard BEFORE any live/replay ingest starts, and a re-delivered FULL_TIME
+ * after a restart becomes a no-op instead of double-firing a real devnet
+ * anchor tx + a duplicate SentimentRecord (Critical fix — post-mortem).
+ * Prefers the explicit v2+ `resolved` flag; tolerant fallback for an older
+ * file (or the rare match that reached FULL_TIME with zero predictions, so
+ * `resolved` may be absent on a pre-this-fix snapshot) is "restored with any
+ * verdicts at all".
  */
 export function applySnapshot(
   snap: SnapshotFile,
   getOrCreate: (matchId: string) => MatchState,
   restoreMoments?: (matchId: string, moments: MomentFeeling[]) => void,
+  markResolved?: (matchId: string) => void,
 ): void {
   for (const sm of snap.matches) {
     const match = getOrCreate(sm.matchId);
@@ -145,5 +219,7 @@ export function applySnapshot(
     if (sm.predictLocked) match.lockPredictions();
     for (const [anonId, v] of sm.verdicts ?? []) match.restoreVerdict(anonId, v);
     if (restoreMoments && sm.moments && sm.moments.length > 0) restoreMoments(sm.matchId, sm.moments);
+    const hadVerdicts = (sm.verdicts?.length ?? 0) > 0;
+    if (markResolved && (sm.resolved === true || hadVerdicts)) markResolved(sm.matchId);
   }
 }

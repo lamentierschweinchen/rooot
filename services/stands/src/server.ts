@@ -9,7 +9,7 @@
  * cheer/call still work); DISABLE_ROOMS drops roomId join/RoomStateMsg.
  */
 import { createServer } from 'node:http';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { WebSocket, WebSocketServer } from 'ws';
 import type { CallMsg, CallReceiptMsg, CheerEchoMsg, ClientMsg, MomentKind, MomentOpenMsg, MomentResultMsg, RoomStateMsg, ServerMsg, Side } from '@contracts/crowd';
@@ -18,7 +18,7 @@ import type { FeedMsg } from '@contracts/feed';
 import { REACT_WINDOW_MS, RollingCounter, SWING_DELTA_MIN } from './decay';
 import { MatchRegistry } from './registry';
 import { anchorRecordHash, relayCall } from './relay';
-import { DATA_DIR } from './snapshot';
+import { DATA_DIR, writeFileAtomic } from './snapshot';
 import { SentimentAccumulator } from './sentiment/accumulator';
 import { fixtureInfo } from './sentiment/teams';
 
@@ -299,14 +299,14 @@ function crystallizeSentiment(matchId: string, match: ReturnType<MatchRegistry['
     const dir = path.join(DATA_DIR, 'sentiment');
     const filePath = path.join(dir, `${matchId}-${Date.now()}.json`);
     mkdirSync(dir, { recursive: true });
-    writeFileSync(filePath, JSON.stringify(record, null, 2));
+    writeFileAtomic(filePath, JSON.stringify(record, null, 2));
     broadcastToMatch(matchId, { type: 'sentiment', record } as unknown as ServerMsg);
     console.log(`[sentiment] crystallized ${matchId}: ${record.headline} (hash ${record.provenance.recordHash.slice(0, 12)}) -> ${filePath}`);
     // anchor the hash on-chain (best-effort) → persist + re-emit with the txSig.
     void anchorRecordHash(matchId, record.provenance.recordHash).then((sig: string | null) => {
       if (!sig) return;
       record.provenance.anchorTxSig = sig;
-      writeFileSync(filePath, JSON.stringify(record, null, 2));
+      writeFileAtomic(filePath, JSON.stringify(record, null, 2));
       broadcastToMatch(matchId, { type: 'sentiment', record } as unknown as ServerMsg);
     });
   } catch (err) {
@@ -491,6 +491,17 @@ const registry = new MatchRegistry(
     // reaching into `accumulators` directly.
     get: (matchId) => accumulators.get(matchId)?.getMoments() ?? [],
     restore: (matchId, moments) => { getOrCreateAccumulator(matchId)?.restoreMoments(moments); },
+  },
+  {
+    // Critical fix (post-mortem): resolvedMatches lives here (predictLifecycle
+    // owns the FULL_TIME → resolve+crystallize+anchor guard) — registry.ts
+    // doesn't know about crystallize/anchor at all, so snapshot persistence of
+    // "already resolved" goes through these two hooks, same pattern as moments
+    // above. `restore` runs during registry.loadSnapshot(), BEFORE index.ts
+    // starts TXLINE/REPLAY ingest, so a restart can never re-fire a real
+    // devnet anchor tx for a match that already resolved in a prior process.
+    get: (matchId) => resolvedMatches.has(matchId),
+    restore: (matchId) => { resolvedMatches.add(matchId); },
   },
 );
 

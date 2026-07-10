@@ -29,16 +29,34 @@
  *      moments keys) and confirm a FOURTH child boots on it without crashing,
  *      restores rooted state, and fabricates nothing for the absent fields.
  *
+ * Also proves the tonight-gate reviewer fixes (same "real child process,
+ * nothing shared" discipline as above):
+ *
+ *   7. scenarioAtomicSnapshotWrite — Critical #1 (atomic write): a corrupt
+ *      snapshot logs a distinct CORRUPT line and still boots clean; a missing
+ *      snapshot logs a distinct fresh-start line; 8 real SIGKILLs landed at
+ *      randomized offsets against a server writing every 15ms leave the file
+ *      on disk either absent or fully valid JSON, never torn — and a normal
+ *      run leaves no `.tmp` residue.
+ *   8. scenarioDoubleAnchorGuardOnRestart — Critical #2 (resolvedMatches
+ *      re-arms on restart → double devnet anchor): drives a fabricated match
+ *      to FULL_TIME via REPLAY_FILE (the real ingest dispatch path), kills
+ *      and reboots as a FRESH child process pointed at the same dataDir with
+ *      the SAME replay file — reproducing the actual bug (REPLAY mode always
+ *      plays from line 0) — and asserts the second FULL_TIME delivery fires
+ *      NO second crystallize/anchor (sentiment file count + log lines) and no
+ *      verdict recompute (the fan's verdict still replays exactly once).
+ *
  * Usage: tsx src/dev/restart-persistence-check.ts (or: npm run check:restart-persistence)
  */
 import { type ChildProcessByStdio, spawn } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import type { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import { WebSocket } from 'ws';
-import type { ClientMsg, ServerMsg } from '@contracts/crowd';
+import type { ClientMsg, PredictVerdictMsg, ServerMsg } from '@contracts/crowd';
 
 function log(tag: string, msg: string): void {
   console.log(`[restart-persistence-check:${tag}] ${msg}`);
@@ -139,6 +157,59 @@ function killHard(proc: ChildProcessByStdio<null, Readable, Readable>): Promise<
 
 type StandsMsg = Extract<ServerMsg, { type: 'stands' }>;
 type ConsensusMsg = Extract<ServerMsg, { type: 'consensus' }>;
+
+function attachVerdictCapture(ws: WebSocket, matchId: string): { verdicts: PredictVerdictMsg[] } {
+  const state = { verdicts: [] as PredictVerdictMsg[] };
+  ws.on('message', (raw) => {
+    let m: ServerMsg;
+    try {
+      m = JSON.parse(raw.toString()) as ServerMsg;
+    } catch {
+      return;
+    }
+    if (m.type === 'predictVerdict' && m.matchId === matchId) state.verdicts.push(m);
+  });
+  return state;
+}
+
+/**
+ * A REAL fixture id (services/stands/src/sentiment/teams.ts FIXTURE_INFO) —
+ * crystallizeSentiment bails silently (getOrCreateAccumulator returns null)
+ * for any matchId fixtureInfo() doesn't recognize, so a synthetic
+ * `check-${Date.now()}`-style id (the pattern the other scenarios in this
+ * file use) would never produce a sentiment file at all, making the
+ * double-anchor-guard scenario below unable to observe anything. ARG–CPV
+ * (Jul 3) is used purely as a valid identity; the score/events below are
+ * entirely fabricated for this check, in an isolated temp dataDir.
+ */
+const ANCHOR_CHECK_FIXTURE_ID = '18175918';
+
+/**
+ * Hand-built minimal REPLAY_FILE fixture (live-wire envelope shapes per
+ * contracts/normalize.ts): PRE → (gap) → FIRST_HALF (locks predictions) →
+ * goal (the final score) → FULL_TIME. Deliberately tiny/synthetic rather than
+ * a real recorded fixtures/*.jsonl file, so this check controls exact timing
+ * (a comfortable window to connect + predict before kickoff locks) and
+ * finishes in ~3s instead of replaying a full 90'+ match.
+ */
+function buildAnchorCheckReplayFixture(home: number, away: number): string {
+  const base = Date.now();
+  const fid = Number(ANCHOR_CHECK_FIXTURE_ID);
+  const lines = [
+    { at: base, env: { FixtureId: fid, Participant1IsHome: true, Action: 'status', StatusId: 1, Data: { StatusId: 1 } } }, // PRE
+    { at: base + 2000, env: { FixtureId: fid, Participant1IsHome: true, Action: 'status', StatusId: 2, Data: { StatusId: 2 }, Clock: { Running: true, Seconds: 0 } } }, // FIRST_HALF — locks predictions
+    { at: base + 2300, env: { FixtureId: fid, Participant1IsHome: true, Action: 'goal', Participant: 1, Score: { Participant1: { Total: { Goals: home } }, Participant2: { Total: { Goals: away } } }, Clock: { Running: true, Seconds: 3000 } } }, // the final score
+    { at: base + 2600, env: { FixtureId: fid, Participant1IsHome: true, Action: 'status', StatusId: 5, Data: { StatusId: 5 }, Clock: { Running: false, Seconds: 5400 } } }, // FULL_TIME (decided in 90)
+  ];
+  return lines.map(({ at, env }) => JSON.stringify({ receivedAtMs: at, event: 'message', data: JSON.stringify(env) })).join('\n') + '\n';
+}
+
+/** count of `${ANCHOR_CHECK_FIXTURE_ID}-*.json` files under `${dataDir}/sentiment/` — crystallizeSentiment writes exactly one per firing. */
+function sentimentFileCount(dataDir: string): number {
+  const dir = path.join(dataDir, 'sentiment');
+  if (!existsSync(dir)) return 0;
+  return readdirSync(dir).filter((f) => f.startsWith(`${ANCHOR_CHECK_FIXTURE_ID}-`) && f.endsWith('.json')).length;
+}
 
 /* ── the scenario ─────────────────────────────────────────────────────── */
 async function scenarioRestartPersistence(): Promise<void> {
@@ -310,6 +381,258 @@ async function scenarioV1Tolerance(): Promise<void> {
   }
 }
 
+/**
+ * Critical fix #1 (atomic snapshot write) — empirical coverage:
+ *   A. a CORRUPT snapshot file logs a distinct line naming the path (not
+ *      silent, not confused with a fresh start) and the server still boots.
+ *   B. a MISSING snapshot file (first-ever boot) logs a distinct fresh-start
+ *      line — never mistaken for corruption.
+ *   C. repeated real SIGKILLs landed at randomized offsets against a server
+ *      writing a real snapshot every 15ms: the file on disk afterward is
+ *      EVERY time either absent or fully valid JSON — never torn/truncated
+ *      (the exact failure mode of the pre-fix in-place writeFileSync) — and a
+ *      final clean cycle leaves no `.tmp` residue behind.
+ */
+async function scenarioAtomicSnapshotWrite(): Promise<void> {
+  // ── A: corrupt file ──────────────────────────────────────────────────
+  const corruptDir = mkdtempSync(path.join(tmpdir(), 'rooot-atomic-check-corrupt-'));
+  try {
+    const snapPath = path.join(corruptDir, 'rooot-stands-snapshot.json');
+    writeFileSync(snapPath, '{"version":2,"savedAtMs":123,"matches":[{"match'); // deliberately truncated — simulates a torn mid-write
+    const boot = await bootServer({ STANDS_DATA_DIR: corruptDir, STANDS_SNAPSHOT_INTERVAL_MS: '30000' });
+    await sleep(200);
+    const out = boot.getOutput();
+    const corruptLine = out.split('\n').find((l) => l.includes('[stands:snapshot]') && l.toUpperCase().includes('CORRUPT'));
+    assert('a corrupt snapshot file logs a distinct CORRUPT line naming the path', !!corruptLine && corruptLine.includes(snapPath), corruptLine ?? '(no matching line)');
+    assert('the server still boots cleanly despite the corrupt file (no crash — a bad snapshot must not block boot)', boot.port > 0, `port=${boot.port}`);
+    const restoredLine = out.split('\n').find((l) => l.includes('[stands:registry] restored'));
+    assert('a corrupt file restores ZERO matches — never fabricated (no "restored N" line at all)', !restoredLine, restoredLine ?? '(correctly absent)');
+    await killHard(boot.proc);
+  } finally {
+    rmSync(corruptDir, { recursive: true, force: true });
+  }
+
+  // ── B: fresh start (no file at all) ─────────────────────────────────
+  const freshDir = mkdtempSync(path.join(tmpdir(), 'rooot-atomic-check-fresh-'));
+  try {
+    const boot = await bootServer({ STANDS_DATA_DIR: freshDir, STANDS_SNAPSHOT_INTERVAL_MS: '30000' });
+    await sleep(200);
+    const out = boot.getOutput();
+    const freshLine = out.split('\n').find((l) => l.includes('[stands:snapshot]') && l.includes('fresh start'));
+    assert('boot with no snapshot file at all logs a distinct fresh-start line (not CORRUPT, not silent)', !!freshLine, freshLine ?? '(no matching line)');
+    await killHard(boot.proc);
+  } finally {
+    rmSync(freshDir, { recursive: true, force: true });
+  }
+
+  // ── C: repeated real SIGKILLs against an actively-writing server ───────
+  const raceDir = mkdtempSync(path.join(tmpdir(), 'rooot-atomic-check-race-'));
+  try {
+    const snapPath = path.join(raceDir, 'rooot-stands-snapshot.json');
+    const tmpPath = `${snapPath}.tmp`;
+    const TRIALS = 8;
+    let survivedIntact = 0;
+    for (let i = 0; i < TRIALS; i++) {
+      // no match/fan needed — the snapshot timer fires (and writes a real,
+      // if empty, snapshot) on its own interval regardless of active matches.
+      const boot = await bootServer({ STANDS_DATA_DIR: raceDir, STANDS_SNAPSHOT_INTERVAL_MS: '15' });
+      // jittered short delay before killing — across trials this samples many
+      // different phase-offsets relative to the 15ms write cycle, maximizing
+      // the chance at least one trial's kill lands mid-write.
+      await sleep(20 + Math.floor(Math.random() * 30));
+      await killHard(boot.proc); // SIGKILL — no graceful shutdown, exactly the bug report's scenario
+      if (existsSync(snapPath)) {
+        try {
+          JSON.parse(readFileSync(snapPath, 'utf8')); // must be COMPLETE valid JSON — never torn
+          survivedIntact++;
+        } catch (err) {
+          log('atomic-race', `trial ${i}: snapshot file exists but failed to parse — TORN WRITE — ${String(err)}`);
+        }
+      } else {
+        survivedIntact++; // killed before the first cycle ever landed — absent is fine too, not corruption
+      }
+    }
+    assert(
+      `every one of ${TRIALS} SIGKILL-mid-run trials (15ms snapshot interval, randomized kill offset) left the snapshot file either absent or fully valid JSON — never torn/truncated`,
+      survivedIntact === TRIALS,
+      `survivedIntact=${survivedIntact}/${TRIALS}`,
+    );
+
+  } finally {
+    rmSync(raceDir, { recursive: true, force: true });
+  }
+
+  // one final CLEAN run (no kill), in its OWN fresh dir — deliberately
+  // separate from raceDir above: reusing that dir here risked a false
+  // positive from a STALE .tmp left behind by one of the 8 kill trials
+  // still sitting on disk before THIS run's own first write cycle ever
+  // fires, which would look like "lingering" but is really leftover from a
+  // prior (and already-tolerated) kill trial. Confirms the tmp+rename write
+  // path never leaves its scratch file LINGERING BETWEEN cycles (as opposed
+  // to the tmp path transiently existing for the sub-millisecond duration of
+  // its own legitimate write — that's expected and fine, and a tight poll
+  // aliased to the write cadence WILL occasionally catch it: a standalone
+  // diagnostic confirmed the tmp file is observable for well under 1ms while
+  // being written, size 0, mid-syscall — that is not a bug). Checked WHILE
+  // the server is still alive and cycling (killing first would just
+  // reintroduce the kill-mid-write race for what's meant to be the
+  // no-kill/steady-state case). Snapshot interval is deliberately much
+  // longer (250ms) than the write itself, and each sample lands ~130ms clear
+  // of the nearest cycle boundary on both sides — comfortably outside the
+  // sub-millisecond in-flight window — so a lingering (never-renamed) tmp
+  // file is what this actually detects.
+  const cleanDir = mkdtempSync(path.join(tmpdir(), 'rooot-atomic-check-clean-'));
+  try {
+    const snapPath = path.join(cleanDir, 'rooot-stands-snapshot.json');
+    const tmpPath = `${snapPath}.tmp`;
+    const boot = await bootServer({ STANDS_DATA_DIR: cleanDir, STANDS_SNAPSHOT_INTERVAL_MS: '250' });
+    let tmpSeenLingering = false;
+    for (let i = 0; i < 4; i++) {
+      await sleep(130); // ~130ms clear of the 250ms cycle boundary on both sides
+      if (existsSync(tmpPath)) tmpSeenLingering = true;
+      await sleep(120); // land back near the NEXT boundary + margin before the following check's 130ms
+    }
+    await killHard(boot.proc);
+    assert(
+      'no .tmp file LINGERS between cycles during normal (non-killed) operation, sampled well clear of any write-in-flight instant, in an otherwise-untouched dir — every write completed its rename before the next sample',
+      !tmpSeenLingering,
+      `tmpPath=${tmpPath} seenLingering=${tmpSeenLingering}`,
+    );
+  } finally {
+    rmSync(cleanDir, { recursive: true, force: true });
+  }
+}
+
+/**
+ * Critical fix #2 (resolvedMatches re-arms on restart → double devnet
+ * anchor) — empirical coverage, via the REAL entrypoint over TWO genuine
+ * child-process boots sharing one STANDS_DATA_DIR:
+ *
+ *   boot1: REPLAY_FILE drives a fabricated match (a real fixtureId so
+ *          crystallizeSentiment actually fires — see ANCHOR_CHECK_FIXTURE_ID)
+ *          through PRE → FIRST_HALF → goal → FULL_TIME, the SAME dispatch
+ *          path index.ts's routeFeedMsg uses for TXLINE/REPLAY ingest. A fan
+ *          predicts the exact final score. Assert: exactly one verdict, one
+ *          sentiment file, one "[sentiment] crystallized" log line.
+ *   boot2: a FRESH child process, SAME dataDir, SAME REPLAY_FILE — this is
+ *          the actual bug: REPLAY mode always plays from line 0 (replay.ts),
+ *          so boot2 independently re-delivers PRE → FIRST_HALF → goal →
+ *          FULL_TIME through the real ingest path all over again. Assert the
+ *          guard (pre-armed from the restored snapshot, BEFORE replay starts)
+ *          makes this a no-op: ZERO new "[sentiment] crystallized" lines,
+ *          the sentiment file count UNCHANGED, and a fresh hello for the same
+ *          fan still gets their (stored, not recomputed) verdict exactly once.
+ *
+ * Devnet isolation: relay.ts's anchorRecordHash only ever attempts a real
+ * transaction if relayer() can load a keypair (RELAYER_KEYPAIR env or
+ * RELAYER_KEYPAIR_FILE, default ../../.secrets/rooot-devnet.json). This repo
+ * has no .secrets/ checked in (confirmed absent in this worktree) and this
+ * check explicitly strips both env vars for the child (see bootServer
+ * overrides below) — so relayer() always fails to load a key and
+ * anchorRecordHash always returns null WITHOUT ever calling
+ * sendAndConfirmTransaction. This is the SAME implicit no-op the other
+ * checks in this file (and verdict-replay-check.ts) already rely on by
+ * simply never setting those env vars; this check just makes it explicit and
+ * force-strips ambient env as a belt-and-braces guarantee.
+ */
+async function scenarioDoubleAnchorGuardOnRestart(): Promise<void> {
+  const dataDir = mkdtempSync(path.join(tmpdir(), 'rooot-anchor-guard-check-'));
+  const fixtureDir = mkdtempSync(path.join(tmpdir(), 'rooot-anchor-guard-fixture-'));
+  const matchId = ANCHOR_CHECK_FIXTURE_ID;
+  const anonId = 'anchor-guard-fan';
+  try {
+    const replayFile = path.join(fixtureDir, 'synthetic-fulltime.jsonl');
+    writeFileSync(replayFile, buildAnchorCheckReplayFixture(2, 1));
+    log('anchor-guard', `dataDir=${dataDir} matchId=${matchId} replayFile=${replayFile}`);
+
+    const noKeypairOverrides = { RELAYER_KEYPAIR: undefined, RELAYER_KEYPAIR_FILE: undefined };
+
+    // ── boot1: drive a real crystallize+anchor exactly once ────────────────
+    const boot1 = await bootServer({
+      STANDS_DATA_DIR: dataDir,
+      STANDS_SNAPSHOT_INTERVAL_MS: '400',
+      REPLAY_FILE: replayFile,
+      REPLAY_FIXTURE: matchId,
+      ...noKeypairOverrides,
+    });
+    log('boot1', `up on port ${boot1.port} (replaying ${replayFile})`);
+
+    const url1 = `ws://127.0.0.1:${boot1.port}`;
+    const fan1 = await connect(url1);
+    const cap1 = attachVerdictCapture(fan1, matchId);
+    send(fan1, { type: 'hello', matchId, anonId, side: 'home' });
+    await sleep(150);
+    // predict the EXACT final score (2-1) — well within the fixture's ~2s
+    // pre-kickoff window (see buildAnchorCheckReplayFixture).
+    send(fan1, { type: 'predict', matchId, anonId, home: 2, away: 1, atMs: Date.now() });
+
+    // wait for the fixture's PRE(0) → FIRST_HALF(+2000) → goal(+2300) →
+    // FULL_TIME(+2600) to fully play out, plus a buffer for crystallize.
+    const gotFirstVerdict = await waitFor(() => cap1.verdicts.length >= 1, 5000);
+    assert('boot1: fan receives their EXACT verdict once the fixture reaches FULL_TIME', gotFirstVerdict && cap1.verdicts[0]?.verdict === 'exact', `verdicts=${JSON.stringify(cap1.verdicts)}`);
+
+    await sleep(300); // let crystallizeSentiment's synchronous write (right before the log line) land
+    const out1SoFar = boot1.getOutput();
+    const crystallizedLines1 = out1SoFar.split('\n').filter((l) => l.includes('[sentiment] crystallized') && l.includes(matchId));
+    assert('boot1: exactly ONE "[sentiment] crystallized" log line', crystallizedLines1.length === 1, `lines=${JSON.stringify(crystallizedLines1)}`);
+    assert('boot1: exactly ONE sentiment record file on disk', sentimentFileCount(dataDir) === 1, `count=${sentimentFileCount(dataDir)}`);
+
+    // let a real periodic snapshot (400ms interval) capture the resolved
+    // verdict + predictLocked before the hard kill.
+    await sleep(900);
+    await closeAndWait(fan1);
+    await killHard(boot1.proc);
+    log('boot1', 'hard-killed (SIGKILL)');
+
+    // ── boot2: a FRESH child process, SAME dataDir + SAME replay file — the
+    // actual bug scenario (REPLAY mode always plays from line 0) ───────────
+    const boot2 = await bootServer({
+      STANDS_DATA_DIR: dataDir,
+      STANDS_SNAPSHOT_INTERVAL_MS: '30000',
+      REPLAY_FILE: replayFile,
+      REPLAY_FIXTURE: matchId,
+      ...noKeypairOverrides,
+    });
+    log('boot2', `up on port ${boot2.port} (re-replaying the SAME fixture from line 0 — the bug scenario)`);
+    await sleep(200);
+    const restoredLine = boot2.getOutput().split('\n').find((l) => l.includes('[stands:registry] restored'));
+    assert('boot2 logs a restored-snapshot line', !!restoredLine, restoredLine ?? '(no matching line)');
+
+    // let boot2's OWN independent replay run the full PRE→FIRST_HALF→goal→
+    // FULL_TIME sequence again (same ~2.6s shape as boot1) plus a buffer.
+    await sleep(3200);
+
+    const out2 = boot2.getOutput();
+    const crystallizedLines2 = out2.split('\n').filter((l) => l.includes('[sentiment] crystallized') && l.includes(matchId));
+    assert(
+      'boot2: the re-delivered FULL_TIME (replay restarting from line 0) produces ZERO new "[sentiment] crystallized" lines — the guard, not a mock, suppressed it',
+      crystallizedLines2.length === 0,
+      `lines=${JSON.stringify(crystallizedLines2)}`,
+    );
+    assert('boot2: sentiment file count on disk is UNCHANGED (still exactly 1 — no second record, no second anchor tx)', sentimentFileCount(dataDir) === 1, `count=${sentimentFileCount(dataDir)}`);
+
+    // verdict recompute check: a fresh hello for the SAME fan must still get
+    // their verdict exactly once, sourced from the restored (not recomputed)
+    // verdicts map.
+    const url2 = `ws://127.0.0.1:${boot2.port}`;
+    const fan2 = await connect(url2);
+    const cap2 = attachVerdictCapture(fan2, matchId);
+    send(fan2, { type: 'hello', matchId, anonId, side: 'home' });
+    await sleep(250);
+    assert(
+      'boot2: re-hello for the same fan replays their EXACT verdict exactly once (stored, not recomputed over restored state)',
+      cap2.verdicts.length === 1 && cap2.verdicts[0]?.verdict === 'exact' && cap2.verdicts[0].predicted.home === 2 && cap2.verdicts[0].predicted.away === 1,
+      `verdicts=${JSON.stringify(cap2.verdicts)}`,
+    );
+
+    await closeAndWait(fan2);
+    await killHard(boot2.proc);
+  } finally {
+    rmSync(dataDir, { recursive: true, force: true });
+    rmSync(fixtureDir, { recursive: true, force: true });
+  }
+}
+
 function approx(a: number, b: number, eps = 1e-9): boolean {
   return Math.abs(a - b) < eps;
 }
@@ -335,6 +658,8 @@ function waitFor(predicate: () => boolean, timeoutMs: number): Promise<boolean> 
 async function main(): Promise<void> {
   await scenarioRestartPersistence();
   await scenarioV1Tolerance();
+  await scenarioAtomicSnapshotWrite();
+  await scenarioDoubleAnchorGuardOnRestart();
 
   console.log('\n──────────── SUMMARY ────────────');
   const failed = assertions.filter((x) => !x.pass);
@@ -346,10 +671,12 @@ async function main(): Promise<void> {
   }
 }
 
+// two extra scenarios (8 real SIGKILL trials + two full child-process replay
+// boots) push real wall-clock well past the original 40s budget.
 const watchdog = setTimeout(() => {
-  console.error('[restart-persistence-check] watchdog: hung for 40s, forcing exit');
+  console.error('[restart-persistence-check] watchdog: hung for 90s, forcing exit');
   process.exit(1);
-}, 40_000);
+}, 90_000);
 
 main()
   .then(() => {
