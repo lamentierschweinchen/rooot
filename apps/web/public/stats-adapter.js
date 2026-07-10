@@ -52,7 +52,11 @@
     setTimeout(function () { finish('18209181'); }, 1500);
   }
 
-  resolveMatchId(explicitMatch, function (matchId) {
+  // DEMO boots synchronously with the explicit param or the old literal fallback —
+  // no fetch, no timeout, no await (byte-identical to pre-manifest behavior; mirrors
+  // match-read.js's LIVE/non-LIVE split). Only the LIVE path (the connect() transport
+  // below) consults the fixture manifest via resolveMatchId.
+  function boot(matchId) {
 
   // PRESS weights (match the loom) — for the TERRITORY proxy (danger-weighted).
   var PRESS = { safe: 0.3, possession: 0.5, attack: 1, danger: 1.5, 'high-danger': 2 };
@@ -259,5 +263,6 @@
   } else {
     connect();
   }
-  });
+  }
+  if (DEMO) { boot(explicitMatch || '18209181'); } else { resolveMatchId(explicitMatch, boot); }
 })();

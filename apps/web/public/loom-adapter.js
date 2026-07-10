@@ -73,7 +73,11 @@
   // ledger goalKind (Shot|Head|Own) → loom event type (shot|head|own).
   function goalType(gk) { return gk === 'Head' ? 'head' : gk === 'Own' ? 'own' : 'shot'; }
 
-  resolveMatchId(explicitMatch, function (matchId) {
+  // DEMO boots synchronously with the explicit param or the old literal fallback —
+  // no fetch, no timeout, no await (byte-identical to pre-manifest behavior; mirrors
+  // match-read.js's LIVE/non-LIVE split). Only the LIVE path (the connect() transport
+  // below) consults the fixture manifest via resolveMatchId.
+  function boot(matchId) {
   waitForLoom(function () {
     var L = window.__loom;
     L.live();
@@ -395,5 +399,6 @@
       connect();
     }
   });
-  });
+  }
+  if (DEMO) { boot(explicitMatch || '18209181'); } else { resolveMatchId(explicitMatch, boot); }
 })();
