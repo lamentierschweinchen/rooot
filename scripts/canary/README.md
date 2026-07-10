@@ -234,15 +234,55 @@ is the only one a real `WebSocket` may reach from any page in the run;
 anything else gets a stub that never opens a real connection (see the `?ws=`
 gap above).
 
+**Both of these are proven, not just described, on every run.** None of the
+three smoke routes (`/`, `/live`, `/cabinet`) load `stands-adapter.js` (the
+app's only WebSocket sender), so a purely passive smoke run never actually
+attempts a write — the "outgoing frames never leave the allowlist" row would
+read identically whether the block in `lib/wsTap.mjs` existed or not. The
+**`smoke: write-block self-test`** step (`lib/smokeMode.mjs`'s
+`runWriteBlockSelfTest`) closes that gap: it opens its own WebSocket to this
+run's actual `--ws` target from inside a page and deliberately attempts a
+disallowed `cheer` frame and a `hello` **with** a `side`, then asserts —
+reading the tap's own `window.__canary` accounting, the same ledger the
+passive check reads — that both landed in `blockedSends` and neither ever
+reached `sends` (which only ever gains an entry when the native `send()` was
+actually called). Every route's `loads clean` check also asserts the loaded
+page's `document.title` against the real title in that route's own HTML file
+before it will PASS — a route that silently served the wrong page (see
+"local vite dev vs production routing" below) reports **SKIPPED** with the
+routing reason instead of a vacuous PASS.
+
 ## Host safety (full mode)
 
-`--mode full` refuses to start at all — before opening a browser, before any
-network call — if either `--web` or `--ws`'s hostname is `rooot.club` (or a
-subdomain) or `*.fly.dev` (`lib/cli.mjs`'s `isProdHost`/
-`assertFullModeHostSafety`, called first thing in `run.mjs`). Full mode
-performs real `root`/`predict`/`cheer` writes; it must be structurally
-incapable of reaching production, not just discouraged from it by
-convention.
+`--mode full` accepts **only structurally-local targets** — an allowlist, not
+a production blocklist. It refuses to start at all — before opening a
+browser, before any network call — unless both `--web` and `--ws`'s hostname
+(after un-bracketing IPv6 and stripping any trailing dot) is one of:
+`localhost`, `127.0.0.0/8`, `::1`, `*.local`, `*.localhost`, or a private
+range (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`) — see
+`lib/cli.mjs`'s `isLocalHost`/`assertFullModeHostSafety`, called first thing
+in `run.mjs`. Full mode performs real `root`/`predict`/`cheer` writes; it
+must be structurally incapable of reaching a non-local host, not just
+discouraged from it by convention.
+
+**Why inversion, not a blocklist.** An earlier version refused by hostname
+*suffix* (`rooot.club` / `*.fly.dev`) — a blocklist has to recognize every
+form an offending host could take, and it didn't: a trailing-dot FQDN
+(`rooot.club.`, `rooot-stands.fly.dev.` — valid DNS syntax; the WHATWG URL
+parser preserves the dot rather than stripping it) or an IP literal that
+happens to resolve to production (decimal `66.241.125.55`, or a hex/octal
+per-octet form like `0x42.0x42.0x42.0x42` — the URL parser normalizes these
+to plain dotted-decimal, but a plain-decimal literal was never on the
+suffix list to begin with) both sail past a suffix match untouched. Worse,
+`lib/wsTap.mjs`'s runtime host guard pins its "only host any page may reach"
+from this exact same `--ws` string — so a blocklist bypass at the CLI layer
+silently defeats the runtime guard too, since the guard's job is to block
+hosts *other than* the one it was told to trust, and it was told to trust the
+disguised production host. Inversion removes the recognition problem
+entirely: a hostname is allowed only if it's *provably* local; a public IP or
+hostname that happens to **be** production is refused because it fails that
+positive test, whether or not it is ever recognized as production. There is
+no longer a residual bypass class to enumerate.
 
 ## The seven flow steps (full mode)
 

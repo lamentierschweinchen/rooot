@@ -74,4 +74,13 @@ async function main() {
   process.exit(report.exitCode());
 }
 
-main();
+main().catch((err) => {
+  // Belt-and-suspenders: every step-level failure is already caught and
+  // recorded inside runFull/runSmoke, and the mode dispatch above that is
+  // also wrapped -- but report.writeFile()/printTable() and everything else
+  // after that point are not. Without this, a throw there would surface as
+  // an unhandled promise rejection instead of a deliberate, printed, nonzero
+  // exit -- see scripts/canary review finding (minor).
+  console.error('canary: fatal error outside any step:', err && err.stack ? err.stack : String(err));
+  process.exit(1);
+});
