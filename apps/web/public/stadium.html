@@ -39,19 +39,15 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
 .board .bsc{display:block;font-weight:900;font-size:14px;letter-spacing:.05em}
 .board .bmin{display:block;font-weight:700;font-size:7px;letter-spacing:.13em;color:#E8B10A;margin-top:2px}
 
-/* interactive hotspots on the stadium */
-.hot{position:absolute;transform:translate(-50%,-50%);z-index:4;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;-webkit-tap-highlight-color:transparent}
-.hot .ring{position:relative;width:48px;height:48px;border-radius:50%;border:2.5px solid var(--card);display:flex;align-items:center;justify-content:center;background:rgba(26,24,21,.34)}
-.hot .ring::after{content:"";position:absolute;inset:-2.5px;border-radius:50%;border:2.5px solid var(--gold);animation:halo 2s ease-out infinite;opacity:0}
+/* interactive hotspots — the PLACE ITSELF glows (owner, 11 Jul: no glyphs, no rings; the glow sits on the landmark) */
+.hot{position:absolute;transform:translate(-50%,-50%);z-index:4;cursor:pointer;-webkit-tap-highlight-color:transparent;
+  min-width:34px;min-height:30px;border-radius:8px;
+  box-shadow:0 0 10px 1px rgba(199,154,56,.28);}
+.hot::after{content:"";position:absolute;inset:0;border-radius:inherit;border:2px solid var(--gold);animation:halo 2.2s ease-out infinite;opacity:0}
 @keyframes halo{0%{transform:scale(1);opacity:.9}100%{transform:scale(1.7);opacity:0}}
-.hot .n{font-weight:900;font-size:20px;color:var(--card);line-height:1}
-.hot .ic{font-size:19px;color:var(--card);line-height:1}
-.hot .ring .wic{width:31px;height:31px;object-fit:contain;filter:brightness(0) invert(1);opacity:.94}   /* whistle = THE BOOK's mark, keyed to a cream silhouette to match the glyph hotspots */
-.hot .cap{display:none}   /* owner: the spots on the pitch self-explain — show, don't tell (Jul 7). Symbol + position + count carry it. */
-.hot.sm .ring{width:40px;height:40px}
-.hot.xs .ring{width:30px;height:30px}.hot.xs .cap{font-size:8px}
-.hot.soon .ring{border-style:dashed;background:rgba(26,24,21,.24)}
-.hot.soon .ring::after{border-color:var(--card);animation-duration:2.6s}
+.hot .cap{display:none}   /* owner: the place self-explains — position IS the label (Jul 7 + Jul 11) */
+.hot.soon{box-shadow:none}
+.hot.soon::after{border-style:dashed;border-color:var(--card);animation-duration:2.6s}
 .toast{position:absolute;bottom:70px;left:50%;transform:translateX(-50%) translateY(10px);z-index:11;font-weight:800;font-size:10px;letter-spacing:.13em;color:var(--ink);background:var(--card);padding:9px 16px;border-radius:3px;box-shadow:0 6px 18px rgba(26,24,21,.2);opacity:0;transition:opacity .25s,transform .25s;pointer-events:none}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .tiphint{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);z-index:5;font-weight:700;font-size:9px;letter-spacing:.16em;color:var(--sub);background:var(--card);padding:7px 14px;border-radius:2px;box-shadow:0 4px 14px rgba(26,24,21,.15)}
@@ -191,14 +187,18 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
       <canvas class="stad" id="stadcanvas" width="760" height="1079"></canvas>
       <div class="board" id="board"><span class="bsc" id="bSc">0–0</span><span class="bmin" id="bMin"></span></div>
       <div class="pnum a" id="pA">—</div><div class="pnum h" id="pH">—</div>
-      <div class="hot goal" data-place="goal" style="left:49.8%;top:23%"><div class="ring"><span class="n" id="hGA">0</span></div><span class="cap" id="capA">GOAL</span></div>
-      <div class="hot goal" data-place="goal" style="left:49.8%;top:78%"><div class="ring"><span class="n" id="hGH">0</span></div><span class="cap" id="capH">GOAL</span></div>
-      <div class="hot sm" data-place="arc" style="left:70%;top:25.5%"><div class="ring"><span class="n" id="hC">0</span></div><span class="cap">SET PIECES</span></div>
-      <div class="hot sm" data-place="control" style="left:49.8%;top:50.5%"><div class="ring"><span class="ic">◑</span></div><span class="cap">CONTROL</span></div>
-      <div class="hot sm" data-place="book" style="left:27%;top:47%"><div class="ring"><img class="wic" src="plate/gens/whistle.png" alt=""></div><span class="cap">THE BOOK</span></div>
-      <div class="hot sm" data-place="bench" style="left:79%;top:50%"><div class="ring"><span class="ic">⇅</span></div><span class="cap">THE BENCH</span></div>
-      <div class="hot sm" data-place="stands" style="left:50%;top:90%"><div class="ring"><span class="ic">◍</span></div><span class="cap">THE STANDS</span></div>
-      <div class="hot xs" data-place="odds" style="left:61%;top:9.5%"><div class="ring"><span class="ic" style="font-size:9px;letter-spacing:0">1X2</span></div><span class="cap">THE MARKET</span></div>
+      <!-- each glow sits ON its landmark in the art: mouths, one corner arc, centre circle,
+           the fourth official between the dugouts (the book lives with them), the two dugout
+           boxes, the near stand, the scoreboard. No glyphs — the place is the label. -->
+      <div class="hot" data-place="goal" style="left:49.8%;top:21.4%;width:26%;height:5.2%;border-radius:7px" aria-label="the goal mouth"><span class="cap" id="capA">GOAL</span></div>
+      <div class="hot" data-place="goal" style="left:49.8%;top:79.7%;width:26%;height:5.2%;border-radius:7px" aria-label="the goal mouth"><span class="cap" id="capH">GOAL</span></div>
+      <div class="hot" data-place="arc" style="left:73.2%;top:21.9%;width:10%;height:6%;border-radius:50%" aria-label="set pieces"><span class="cap">SET PIECES</span></div>
+      <div class="hot" data-place="control" style="left:49.8%;top:50.5%;width:17%;height:12.2%;border-radius:50%" aria-label="control"><span class="cap">CONTROL</span></div>
+      <div class="hot" data-place="book" style="left:26.8%;top:50.6%;width:7%;height:5.5%;border-radius:50%" aria-label="the book"><span class="cap">THE BOOK</span></div>
+      <div class="hot" data-place="bench" style="left:80.3%;top:41.7%;width:9.5%;height:11.5%;border-radius:6px" aria-label="the bench"><span class="cap">THE BENCH</span></div>
+      <div class="hot" data-place="bench" style="left:80.3%;top:60.2%;width:9.5%;height:11.5%;border-radius:6px" aria-label="the bench"><span class="cap">THE BENCH</span></div>
+      <div class="hot" data-place="stands" style="left:50%;top:89.6%;width:34%;height:7.5%;border-radius:16px" aria-label="the stands"><span class="cap">THE STANDS</span></div>
+      <div class="hot" data-place="odds" style="left:49.5%;top:12.6%;width:21%;height:7.5%;border-radius:6px" aria-label="the market"><span class="cap">THE MARKET</span></div>
     </div>
   </div>
 
@@ -542,11 +542,8 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     el('bSc').textContent=hg+'–'+ag;
     // the pitch itself becomes the two team colours (canvas recolour), split by infringement — home toward the away/top goal
     lastHp=hp; if(repaint)repaint();
-    // hotspot counts (tendencies)
-    el('hGA').textContent=(hs.onTarget||0)+(hs.offTarget||0)+(hs.blocked||0); // home shooting the away (top) goal
-    el('hGH').textContent=(as.onTarget||0)+(as.offTarget||0)+(as.blocked||0);
-    el('capA').textContent=AWAY.tri+' GOAL';el('capH').textContent=HOME.tri+' GOAL';
-    el('hC').textContent=(h.corners||0)+(a.corners||0)+(h.freeKicks||0)+(a.freeKicks||0);
+    // hotspot count badges died with the glyph rings (owner, 11 Jul) — the cards carry the numbers
+    var _capA=el('capA'),_capH=el('capH'); if(_capA)_capA.textContent=AWAY.tri+' GOAL'; if(_capH)_capH.textContent=HOME.tri+' GOAL';
     // detail: goal-mouth — the shot-map hero + the symbol · count register
     placeShots(h,a);
     el('gH').textContent=HOME.tri;el('gA').textContent=AWAY.tri;
