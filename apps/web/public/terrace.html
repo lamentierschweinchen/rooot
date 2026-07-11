@@ -119,7 +119,9 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .popt.on{background:var(--ink);color:var(--card)}
 .popt.win{background:var(--verde);color:var(--card)}
 .popt.lose{opacity:.32}
+.popt.dis{opacity:.32;pointer-events:none}
 .pmkt{font-weight:800;font-size:8px;letter-spacing:.04em;color:var(--gold);margin-top:9px}
+.pmkt.ng{color:var(--sub)}   /* NEXT GOAL's live split is a crowd count, never the market's gold register */
 .pbar{height:5px;background:var(--paper);border:2px solid var(--ink);margin-top:9px;overflow:hidden}
 .pfill{height:100%;width:100%;background:var(--gold)}
 .pres{font-weight:900;font-size:11px;margin-top:8px}
@@ -211,10 +213,10 @@ body.embed .backg,body.embed .foot{display:none}
 
   <!-- mini-prediction pop-up (optional, dismissible) -->
   <div class="pred" id="pred">
-    <div class="ph"><span class="pl" id="predL">● QUICK CALL — NO STAKE</span><button class="px" id="predX">×</button></div>
+    <div class="ph"><span class="pl" id="predL"></span><button class="px" id="predX">×</button></div>
     <div class="pstripe"><i></i><i></i><i></i></div>
     <div class="pbody">
-      <div class="pq" id="predQ">NEXT CORNER?</div>
+      <div class="pq" id="predQ"></div>
       <div class="popts" id="predOpts"></div>
       <div class="pmkt" id="predMkt"></div>
       <div class="pbar"><div class="pfill" id="predBar"></div></div>
@@ -660,6 +662,7 @@ function wireLive(){
     });
     if(window.__stands.onMoment)window.__stands.onMoment(openMoment);   // T6: live windows open on the terrace (premiere had 6 windows, 0 subscribers)
     if(window.__stands.onMomentResult)window.__stands.onMomentResult(function(r){ revealFromWire(r,sideKey); });
+    ngInit();   // NEXT GOAL — the card slot, live only (§7 of the tonight handoff)
     var yi=youIdxNow();   // the adapter arrives async in live — re-seat once the real anonId exists
     if(yi!==YOU_IDX){ YOU_IDX=yi; mosaic(el('tilesYou'),396,96,YOU_IDX); }
   }
@@ -668,10 +671,68 @@ function wireLive(){
     window.__statsAdapter.onStats(function(st){
       if(!st)return;
       M.score=[st.home.goals||0,st.away.goals||0]; el('scH').textContent=M.score[0]; el('scA').textContent=M.score[1];
-      if(typeof st.minute==='number')M.t=st.minute;
+      if(typeof st.minute==='number'){ M.t=st.minute; ngEnable(); }   // a minute on the clock is kickoff status the page can already see
     });
   }
   return wireLive.didStands&&wireLive.didStats;
+}
+
+// ── NEXT GOAL — the live in-game call (LIVE only; DEMO/specimen never call wireLive()).
+// Contract: design/HANDOFF-2026-07-10-tonight-data-shapes.md §7. Copy law (owner, 11 Jul):
+// the label is the thing itself — no explainers, no register lines, no confirmation prose.
+var ngEnabled=false, ngMyCall=null;
+function ngFmtSide(s){ return s==='home'?HOME_TRI:s==='away'?AWAY_TRI:null; }
+function ngEnable(){
+  if(ngEnabled)return; ngEnabled=true;
+  var opts=el('predOpts'); if(opts)[].forEach.call(opts.children,function(c){c.classList.remove('dis');});
+}
+function ngTap(call,btn){
+  if(!ngEnabled)return;
+  ngMyCall=call;
+  [].forEach.call(el('predOpts').children,function(c){c.classList.toggle('on',c===btn);});
+  if(window.__stands&&window.__stands.nextGoal)window.__stands.nextGoal(call);
+}
+// the crowd's live split — counts with n, never a percentage; n:0 is honest silence, never zeros
+function ngOnState(s){
+  ngEnable();
+  var mv=el('predMkt'); if(!mv)return;
+  if(!s||!s.open||!s.open.n){ mv.textContent=''; return; }
+  var o=s.open;
+  mv.textContent=HOME_TRI+' '+(o.home||0)+' · '+AWAY_TRI+' '+(o.away||0)+' · NO MORE '+(o.none||0)+' — '+o.n+' CALLS IN';
+}
+// your personal verdict, one line, the thing itself — then the card settles back to the open state
+function ngOnVerdict(v){
+  ngEnable(); if(!v)return;
+  var happened=v.happened==='none'?'NO MORE GOALS':(ngFmtSide(v.happened)+' SCORED');
+  var callTxt=v.call==='none'?'NO MORE':ngFmtSide(v.call);
+  var rs=el('predRes'); if(!rs)return;
+  rs.className='pres '+(v.outcome==='correct'?'win':'lose');
+  rs.textContent=happened+' · YOU CALLED '+callTxt+' '+(v.outcome==='correct'?'✓':'✗');
+  ngMyCall=null;
+  [].forEach.call(el('predOpts').children,function(c){c.classList.remove('on');});
+  clearTimeout(ngOnVerdict._t);
+  ngOnVerdict._t=setTimeout(function(){ rs.textContent=''; rs.className='pres'; },8000);
+}
+function ngInit(){
+  if(ngInit._done)return; ngInit._done=true;
+  var key='rooot.ng.dismissed.'+MATCH_ID, dismissed=false;
+  try{dismissed=sessionStorage.getItem(key)==='1';}catch(e){}
+  if(dismissed)return;
+  el('predL').textContent='NEXT GOAL?';
+  el('predL').style.marginLeft='24px';   // clears the back-button circle (top:7/left:9/26px) that sits over the card's header bar
+  el('predQ').style.display='none';
+  var barWrap=el('predBar').parentElement; if(barWrap)barWrap.style.display='none';
+  el('predMkt').classList.add('ng');
+  var opts=el('predOpts'); opts.innerHTML='';
+  [['home',HOME_TRI],['away',AWAY_TRI],['none','NO MORE']].forEach(function(pair){
+    var b=document.createElement('div'); b.className='popt'+(ngEnabled?'':' dis'); b.textContent=pair[1];
+    b.onclick=function(){ ngTap(pair[0],b); };
+    opts.appendChild(b);
+  });
+  el('predX').onclick=function(){ try{sessionStorage.setItem(key,'1');}catch(e){} el('pred').classList.remove('on'); };
+  el('pred').classList.add('on');
+  if(window.__stands.onNextGoal)window.__stands.onNextGoal(ngOnState);
+  if(window.__stands.onNextGoalVerdict)window.__stands.onNextGoalVerdict(ngOnVerdict);
 }
 // ── the pulse, on the live moment schema — every kind opens a feeling window (T6) ──
 var MOMENT_TITLE={goal:'GOAL',possible:'CHECKING…','var':'VAR CHECK',red:'RED CARD',penalty:'PENALTY','near-miss':'SO CLOSE',swing:"IT'S TURNING",'full-time':'FULL TIME'};
