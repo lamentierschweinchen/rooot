@@ -765,7 +765,24 @@ function wireDemo(){ if(!window.__match||!window.__stands)return false;
   return true;
 }
 if(DEMO){ if(!wireDemo()){ var _wt=setInterval(function(){ if(wireDemo())clearInterval(_wt); },200); } }
-if(LIVE){ if(!wireLive()){ var _liveTerrace=setInterval(function(){ if(wireLive())clearInterval(_liveTerrace); },160); } }
+// T16 fixture resolution (same idiom as stadium.html / stands-adapter): explicit ?match= wins
+// outright → else, on live, the __fixture manifest raced against ~1500ms → else today's literal.
+// Fixes the standalone live terrace theming the previous fixture over tonight's wire.
+function fxFromManifest(mf){ function side(t){ return {tri:t.code,name:(t.name||t.code).toUpperCase(),color:(t.colors&&t.colors[0])||'#8C8467',sec:(t.colors&&t.colors[1])||null}; }
+  return {home:side(mf.home),away:side(mf.away)}; }
+function startLive(){ if(!wireLive()){ var _liveTerrace=setInterval(function(){ if(wireLive())clearInterval(_liveTerrace); },160); } }
+if(LIVE){
+  if(PARAMS.get('match')){ startLive(); }
+  else{
+    var _fxDone=false;
+    var _fxGo=function(id,fx){ if(_fxDone)return; _fxDone=true;
+      if(id&&id!==MATCH_ID){ MATCH_ID=id; FX=fx||FIXTURES[id]||FX; HOME_TRI=FX.home.tri; AWAY_TRI=FX.away.tri; YOU_TEAM=FX.home; THEM_TEAM=FX.away; }
+      startLive(); };
+    window.__fixtureReady=window.__fixtureReady||fetch('/fixture.json').then(function(r){return r.ok?r.json():null;}).catch(function(){return null;});
+    window.__fixtureReady.then(function(mf){ if(mf&&mf.matchId&&mf.home&&mf.away)_fxGo(mf.matchId,FIXTURES[mf.matchId]||fxFromManifest(mf)); else _fxGo(null); },function(){ _fxGo(null); });
+    setTimeout(function(){ _fxGo(null); },1500);
+  }
+}
 
 // verification helpers: jump the replay clock, force a roar / prediction
 window.__jump=function(min){ M.t=min-0.1; for(var i=0;i<EVENTS.length;i++){ if(EVENTS[i].t<min-0.1)M.fired[i]=true; else M.fired[i]=false; } };

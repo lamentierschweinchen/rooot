@@ -618,7 +618,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     dots.innerHTML=CARDS.map(function(c){return '<i data-go="'+c[0]+'" title="'+c[1]+'"'+(c[0]===place?' class="on"':'')+'></i>';}).join('');
   }
   function open(place,origin){
-    if(place==='stands'){ location.href='terrace.html'+(DEMO?'?demo=1':''); return; }   // the stands lead INTO the stands
+    if(place==='stands'){ location.href='terrace.html'+(DEMO?'?demo=1':(LIVE?'?live=1&match='+encodeURIComponent(mid):'')); return; }   // the stands lead INTO the stands — carrying the resolved fixture
     var sh=el('sheet-'+place);
     if(!sh){ toast((SOON[place]||place.toUpperCase())+' · NEXT'); return; }
     if(openSheet && openSheet!==sh){ openSheet.style.transformOrigin='50% 50%'; openSheet.classList.remove('open'); }
