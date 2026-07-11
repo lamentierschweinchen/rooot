@@ -15,7 +15,7 @@ import { WebSocket, WebSocketServer } from 'ws';
 import type { CallMsg, CallReceiptMsg, CheerEchoMsg, ClientMsg, MomentKind, MomentOpenMsg, MomentResultMsg, RoomStateMsg, ServerMsg, Side, WelcomeMsg } from '@contracts/crowd';
 import { FEELING_PALETTES } from '@contracts/crowd';
 import type { FeedMsg } from '@contracts/feed';
-import { REACT_WINDOW_MS, RollingCounter, SWING_DELTA_MIN } from './decay';
+import { REACT_WINDOW_MS, RollingCounter, SWING_DELTA_MIN, SWING_WINDOW_MS } from './decay';
 import { MatchRegistry } from './registry';
 import { anchorRecordHash, relayCall } from './relay';
 import { DATA_DIR, writeFileAtomic } from './snapshot';
@@ -87,6 +87,19 @@ function withMatchId(matchId: string, msg: ServerMsg | FeedMsg): ServerMsg | Fee
   }
 }
 
+/** Full diagnostic detail for a caught error — the stack when available, not
+ * just String(err) (which for a real Error gives only "Error: message", no
+ * trace). Pulse post-mortem (Jul 9 FRA-MAR, Jul 10 ESP-BEL — two identical
+ * "zero moments all match" nights): the ONE catch block guarding moments only
+ * ever logged String(err), so IF it had ever fired, Fly logs would carry no
+ * stack to diagnose from. Root cause was never conclusively reproduced
+ * locally despite driving the real captured wire data end-to-end through the
+ * real dispatch path (detectMoment/momentLifecycle proved correct against
+ * it) — this ensures a repeat is diagnosable from logs alone. */
+function errDetail(err: unknown): string {
+  return err instanceof Error && err.stack ? err.stack : String(err);
+}
+
 /** Broadcast to every connection currently in matchId's room. */
 function broadcastToMatch(matchId: string, msg: ServerMsg | FeedMsg): void {
   const stamped = withMatchId(matchId, msg);
@@ -94,15 +107,42 @@ function broadcastToMatch(matchId: string, msg: ServerMsg | FeedMsg): void {
   for (const [ws, state] of conns) {
     if (state.matchId === matchId && ws.readyState === WebSocket.OPEN) ws.send(payload);
   }
-  rememberForJoin(matchId, stamped); // snapshot the match state for mid-match joiners
-  feedSentiment(matchId, stamped); // accumulate the sentiment record (docs/SENTIMENT.md)
-  predictLifecycle(matchId, stamped); // lock at KO, resolve at FT (docs/MECHANISMS.md §2)
-  // REACT drama windows (docs/MECHANISMS.md §4) — isolated: this new layer must
-  // NEVER be able to break the core crowd/feed broadcast above.
+  // Each side-effect below is independently isolated (its own try/catch) — a
+  // fault in ONE (e.g. rememberForJoin) must never silently prevent ANOTHER
+  // (e.g. momentLifecycle) from running for the SAME message. Before this fix
+  // only momentLifecycle was isolated: an exception thrown by rememberForJoin/
+  // feedSentiment/predictLifecycle would propagate OUT of broadcastToMatch
+  // entirely — uncaught here — skipping every side-effect declared AFTER it
+  // (including moment detection) for that one message, with nothing logged
+  // under a `[moment]`-prefixed line to point at. A prime suspect for the Jul
+  // 9/10 "zero moments" incidents (docs/POSTMORTEM-fra-mar-2026-07-09.md, the
+  // ESP-BEL Pulse recurrence in docs/NOTES-esp-bel-2026-07-10.md) that static
+  // analysis + full realistic replay of the real captured match could not
+  // conclusively reproduce — this closes the gap regardless of whether it was
+  // the exact trigger, matching this broadcast fan-out's own stated intent
+  // ("this new layer must NEVER be able to break the core... broadcast").
+  try {
+    rememberForJoin(matchId, stamped); // snapshot the match state for mid-match joiners
+  } catch (err) {
+    console.warn(`[stands] rememberForJoin error on ${matchId}: ${errDetail(err)}`);
+  }
+  try {
+    feedSentiment(matchId, stamped); // accumulate the sentiment record (docs/SENTIMENT.md)
+  } catch (err) {
+    console.warn(`[sentiment] feed error on ${matchId}: ${errDetail(err)}`);
+  }
+  try {
+    predictLifecycle(matchId, stamped); // lock at KO, resolve at FT (docs/MECHANISMS.md §2)
+  } catch (err) {
+    console.warn(`[predict] lifecycle error on ${matchId}: ${errDetail(err)}`);
+  }
+  // REACT drama windows (docs/MECHANISMS.md §4) — isolated: this layer must
+  // NEVER be able to break the core crowd/feed broadcast above, nor be broken
+  // BY it (see the isolation note above).
   try {
     momentLifecycle(matchId, stamped);
   } catch (err) {
-    console.warn(`[moment] lifecycle error on ${matchId}: ${String(err)}`);
+    console.warn(`[moment] lifecycle error on ${matchId}: ${errDetail(err)}`);
   }
 }
 
@@ -137,7 +177,17 @@ function predictLifecycle(matchId: string, msg: ServerMsg | FeedMsg): void {
       // own sockets only). Late joiners/reconnects get theirs via handleHello's
       // verdictFor(anonId) replay instead of a resend here.
       for (const v of match.resolvePredictions(fh, fa)) sendToAnon(matchId, v.anonId, v);
-      crystallizeSentiment(matchId, match); // the record — persist + emit (docs/SENTIMENT.md)
+      // pass the SAME known-good final score used above to resolve verdicts
+      // (fh/fa, sourced from joinSnapshots' cached score — proven reliable,
+      // it's what the resolved-verdict path already depends on) straight into
+      // crystallization, rather than trusting the accumulator's OWN
+      // independently-tracked `this.final` (fed by a separate 'score'
+      // case in accumulator.ts's onFeed). Folded fix: the crystallized
+      // record's finalScore came out empty despite the match reaching FT
+      // 2-1 on the wire — two parallel trackers of "the final score" can
+      // drift; this collapses onto the one already proven correct instead of
+      // trying to root-cause the second tracker's own gap.
+      crystallizeSentiment(matchId, match, { home: fh, away: fa }); // the record — persist + emit (docs/SENTIMENT.md)
       // Fix 1 (review I1): snapshot IMMEDIATELY instead of waiting up to 30s
       // for the periodic timer — a machine death in that window would restore
       // predictions with no verdicts/resolved flag, letting a re-delivered
@@ -157,8 +207,15 @@ function predictLifecycle(matchId: string, msg: ServerMsg | FeedMsg): void {
 /* ── REACT / the Pulse — drama moments (docs/MECHANISMS.md §4) ─────────── */
 /** per-match close timer for the one open window. */
 const openMomentTimers = new Map<string, ReturnType<typeof setTimeout>>();
-/** last de-vigged triple per match — the baseline for swing detection. */
-const lastTriple = new Map<string, { home: number; draw: number; away: number }>();
+/** rolling window of recent de-vigged triples per match — the baseline for
+ * WINDOWED swing detection (folded fix, decay.ts's SWING_WINDOW_MS doc
+ * comment: a consecutive-tick comparison is invisible on a high-tick feed).
+ * Oldest-first; entries older than SWING_WINDOW_MS are dropped off the front
+ * as new ticks arrive, so "the window's start" is always ~SWING_WINDOW_MS of
+ * real wire time ago, never an artifact of tick rate. Keyed by the tick's own
+ * wire timestamp (tick.tMs), not Date.now() — correct under both live speed
+ * and a REPLAY_FILE running faster/slower than real time. */
+const tripleWindow = new Map<string, Array<{ tMs: number; triple: { home: number; draw: number; away: number } }>>();
 /** trigger sources already turned into a moment (a goal re-emits as it upgrades;
  * full-time can repeat) — dedupe so one drama opens exactly one window.
  * Persisted per match via registry's openedTriggers hooks below (post-mortem
@@ -226,12 +283,22 @@ export function detectMoment(matchId: string, msg: ServerMsg | FeedMsg): MomentT
   if (msg.type === 'odds') {
     const t = msg.tick;
     const cur = { home: t.pHome, draw: t.pDraw, away: t.pAway };
-    const prev = lastTriple.get(matchId);
-    lastTriple.set(matchId, cur);
-    if (!prev) return null;
-    const dH = Math.abs(cur.home - prev.home);
-    const dD = Math.abs(cur.draw - prev.draw);
-    const dA = Math.abs(cur.away - prev.away);
+    const nowMs = t.tMs;
+    let win = tripleWindow.get(matchId);
+    if (!win) {
+      win = [];
+      tripleWindow.set(matchId, win);
+    }
+    // age out anything older than the window BEFORE reading "the window's
+    // start" — so the oldest surviving entry is always ~SWING_WINDOW_MS ago,
+    // not whatever happened to be first in a long-lived array.
+    while (win.length > 0 && nowMs - win[0]!.tMs > SWING_WINDOW_MS) win.shift();
+    const start = win.length > 0 ? win[0]!.triple : null;
+    win.push({ tMs: nowMs, triple: cur });
+    if (!start) return null; // no baseline old enough yet — first tick(s) of a fresh window
+    const dH = Math.abs(cur.home - start.home);
+    const dD = Math.abs(cur.draw - start.draw);
+    const dA = Math.abs(cur.away - start.away);
     const deltaMax = Math.max(dH, dD, dA);
     if (deltaMax < SWING_DELTA_MIN) return null; // below the noise floor — not a moment
     const toward: Side | null = deltaMax === dH ? 'home' : deltaMax === dA ? 'away' : null;
@@ -245,8 +312,23 @@ function momentLifecycle(matchId: string, msg: ServerMsg | FeedMsg): void {
   if (DISABLE_MOMENTS) return;
   const trig = detectMoment(matchId, msg);
   if (!trig) return;
-  const match = registry.get(matchId);
-  if (!match) return;
+  // getOrCreate (NOT get): a drama trigger is a property of the FEED, not of
+  // whether any fan has helloed yet — matches handleHello/handleCheer/
+  // handlePredict's use of getOrCreate elsewhere in this file (Pulse
+  // post-mortem: `.get()` here meant a match with no crowd presence yet
+  // silently dropped every trigger for its whole life, with nothing logged;
+  // predictLifecycle a few lines up has the identical shape and was never
+  // changed — it's already proven safe by the FULL_TIME resolve+crystallize
+  // path succeeding live, and staying on `.get()` there keeps this change
+  // surgical to the actually-reported-broken layer).
+  const match = registry.getOrCreate(matchId);
+
+  if (trig.hard) {
+    // unconditional breadcrumb for hard triggers only (goal/red/var/full-time
+    // — rare, never per-tick) — so a repeat of "zero moments all match" is
+    // instantly diagnosable from Fly logs alone: was the trigger even seen?
+    console.log(`[moment] hard trigger seen: ${matchId} ${trig.kind}@${trig.minute ?? '?'}' sourceId=${trig.sourceId ?? 'null'}`);
+  }
 
   if (trig.sourceId) {
     const seen = openedTriggersFor(matchId);
@@ -347,13 +429,23 @@ function feedSentiment(matchId: string, msg: ServerMsg | FeedMsg): void {
  * overwritten by a later match — except the async anchor-tx-sig fill-in
  * below, which updates THIS SAME file (it's the same crystallization event,
  * just completing its on-chain anchor a little later). */
-function crystallizeSentiment(matchId: string, match: ReturnType<MatchRegistry['get']>): void {
+function crystallizeSentiment(
+  matchId: string,
+  match: ReturnType<MatchRegistry['get']>,
+  /** The known-good final score (predictLifecycle's own resolvePredictions
+   * input) — see the call-site comment. Optional so callers without one
+   * (none today; kept optional to match SentimentAccumulator.crystallize's
+   * own optional 3rd param) fall back to the accumulator's live-tracked
+   * total. */
+  finalScore?: { home: number; away: number },
+): void {
   const acc = accumulators.get(matchId);
   if (!acc || !match) return;
   try {
     const record = acc.crystallize(
       { consensus: match.consensus(), rooted: match.counts() },
       { serial: 1, editionSize: null, caption: matchId },
+      finalScore,
     );
     const dir = path.join(DATA_DIR, 'sentiment');
     const filePath = path.join(dir, `${matchId}-${Date.now()}.json`);
