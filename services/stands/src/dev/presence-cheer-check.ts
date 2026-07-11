@@ -70,9 +70,9 @@ function assert(desc: string, pass: boolean, detail: string): void {
   log(pass ? 'PASS' : 'FAIL', `${desc} — ${detail}`);
 }
 
-function connect(url: string): Promise<WebSocket> {
+function connect(url: string, options?: WebSocket.ClientOptions): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(url);
+    const ws = new WebSocket(url, options);
     ws.once('open', () => resolve(ws));
     ws.once('error', reject);
   });
@@ -504,6 +504,82 @@ async function scenarioFanStatsWatchMs(url: string, registry: MatchRegistry): Pr
   );
 }
 
+/* ── (h) F1b: ws keepalive — a real interval, ping/pong, real termination ──
+ * Drives the REAL heartbeatTick on a short WS_HEARTBEAT_INTERVAL_MS (set by
+ * main(), below, BEFORE ../server is imported — server.ts reads it once,
+ * into a module-level constant, at import time). One client answers pings
+ * normally (ws's default `autoPong: true` — no extra code needed) and must
+ * survive comfortably past 2 heartbeat rounds; a second client is opened
+ * with `autoPong: false` (a real ws client option — it receives the ping
+ * frame but the library will NOT auto-send a pong back) and must be
+ * terminated within ~2 rounds, with its presence/session closing exactly
+ * like any other disconnect — proven the same way scenario (a) proves
+ * presence is a refcount: a third, independent observer socket watching the
+ * SAME match's `stands` ticks. ────────────────────────────────────────── */
+async function scenarioWsKeepalive(url: string, intervalMs: number): Promise<void> {
+  const matchId = `ws-keepalive-check-${Date.now()}`;
+  log('h', `matchId=${matchId} intervalMs=${intervalMs}`);
+
+  const o = await connect(url);
+  const obs = attachStandsObserver(o, matchId);
+  send(o, { type: 'hello', matchId, anonId: 'keepalive-observer', side: 'home' });
+  await settle();
+  assert('baseline presence is 1 (observer only)', obs.latest?.presence === 1, `presence=${obs.latest?.presence}`);
+
+  // healthy: the ws client's OWN default behaviour (autoPong: true) answers
+  // the server's ping with a pong automatically — no handler needed here.
+  const healthy = await connect(url);
+  let healthyClosed = false;
+  healthy.once('close', () => {
+    healthyClosed = true;
+  });
+  send(healthy, { type: 'hello', matchId, anonId: 'keepalive-healthy', side: 'home' });
+
+  // silent: autoPong:false — the server's ping arrives but is never answered,
+  // so this connection can never prove itself alive to heartbeatTick.
+  const silent = await connect(url, { autoPong: false });
+  let silentClosed = false;
+  silent.once('close', () => {
+    silentClosed = true;
+  });
+  send(silent, { type: 'hello', matchId, anonId: 'keepalive-silent', side: 'away' });
+
+  await settle();
+  assert(
+    'presence is 3 once observer + healthy + silent have all hello-d',
+    obs.latest?.presence === 3,
+    `presence=${obs.latest?.presence}`,
+  );
+
+  // Worst case, a connection lands JUST after a heartbeat tick: its first
+  // ping waits almost a full round, and — since it's already too late to
+  // answer that one — termination lands at the round after, ~2 full
+  // intervals later. 2.5x clears that worst case with margin; well short of
+  // 3x, so a correctly-answering client is never at any real risk either.
+  await sleep(intervalMs * 2.5);
+
+  assert(
+    'the healthy (pong-answering) client is still open past 2 heartbeat rounds',
+    !healthyClosed && healthy.readyState === WebSocket.OPEN,
+    `readyState=${healthy.readyState} closed=${healthyClosed}`,
+  );
+  assert(
+    'the silent (pong-suppressed) client was terminated by heartbeatTick within ~2 rounds',
+    silentClosed,
+    `readyState=${silent.readyState} closed=${silentClosed}`,
+  );
+
+  const dropped = await waitFor(() => obs.latest?.presence === 2, 1000);
+  assert(
+    "ws.terminate() on the silent client runs the SAME close handling as a normal disconnect — the observer's presence count drops from 3 to 2 (silent's session closes; observer + healthy remain)",
+    dropped,
+    `presence=${obs.latest?.presence}`,
+  );
+
+  await closeAndWait(healthy);
+  await closeAndWait(o);
+}
+
 async function main(): Promise<void> {
   // Set BEFORE importing ../server (transitively ./registry -> ./snapshot,
   // which captures this env var into a module-level constant at import time)
@@ -511,6 +587,13 @@ async function main(): Promise<void> {
   // import is required here since static imports are hoisted ahead of any
   // other top-level code in the module, including this assignment.
   process.env.STANDS_SNAPSHOT_PATH ||= '/tmp/rooot-presence-cheer-check-snapshot.json';
+  // F1b ws-keepalive (scenario h): same reasoning — server.ts reads
+  // WS_HEARTBEAT_INTERVAL_MS into a module-level constant at import time, so
+  // a short interval must be set before the dynamic import too. 5000ms is
+  // the server's own clamp floor (WS_HEARTBEAT_INTERVAL_MS doc, server.ts) —
+  // the fastest a real deployment could ever run it, so scenario (h) below
+  // exercises the real production code path, not a check-only shortcut.
+  process.env.WS_HEARTBEAT_INTERVAL_MS ||= '5000';
   const { createStandsServer } = await import('../server');
 
   const { httpServer, registry, broadcastToMatch } = createStandsServer();
@@ -528,6 +611,7 @@ async function main(): Promise<void> {
     await scenarioFanStatsCheers(url, registry);
     await scenarioFanStatsReacts(url, registry);
     await scenarioFanStatsWatchMs(url, registry);
+    await scenarioWsKeepalive(url, Number(process.env.WS_HEARTBEAT_INTERVAL_MS));
   } finally {
     registry.stop();
     await new Promise<void>((resolve) => httpServer.close(() => resolve()));
@@ -543,14 +627,14 @@ async function main(): Promise<void> {
   }
 }
 
-// the fanStats watchMs scenario (g) alone holds real sockets open for several
-// real seconds (a single ~1.5s session + an ~1.7s overlapping-session pair) on
-// top of the pre-existing scenarios' settle()s — 20s was comfortable before,
-// 45s keeps the same safety margin now.
+// scenario (h) (ws keepalive, F1b) adds ~2.5 heartbeat rounds at the server's
+// 5s clamp floor (~12.5s) plus its own settle()/waitFor() margin, on top of
+// everything (a)-(g) already needed — 45s was comfortable before, 90s keeps
+// the same safety margin now.
 const watchdog = setTimeout(() => {
-  console.error('[presence-cheer-check] watchdog: hung for 45s, forcing exit');
+  console.error('[presence-cheer-check] watchdog: hung for 90s, forcing exit');
   process.exit(1);
-}, 45_000);
+}, 90_000);
 
 main()
   .then(() => {

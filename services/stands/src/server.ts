@@ -33,6 +33,21 @@ const DISABLE_MOMENTS = process.env.DISABLE_MOMENTS === '1';
 const HELLO_MAX_PER_WINDOW = 5;
 const HELLO_WINDOW_MS = 10_000;
 
+/** Standard ws keepalive (ws docs, "How to detect and close broken
+ * connections"): heartbeatTick (below) pings every connection on this
+ * interval and terminates any that failed to pong since the PREVIOUS round.
+ * Fix F1b (post-mortem): with no ping/pong at all, Fly's proxy was silently
+ * dropping long-lived idle-ish sockets (the live monitor's tap, fans'
+ * idle-ish connections) ~every 30min, feeding last night's reconnect churn.
+ * Env-tunable so the dev check can run a real multi-round test in seconds
+ * instead of minutes; clamped so a bad env value can't busy-loop the server. */
+function wsHeartbeatIntervalMs(): number {
+  const raw = process.env.WS_HEARTBEAT_INTERVAL_MS;
+  const n = raw !== undefined ? Number(raw) : 30_000;
+  return Number.isFinite(n) ? Math.max(5_000, n) : 30_000;
+}
+const WS_HEARTBEAT_INTERVAL_MS = wsHeartbeatIntervalMs();
+
 const START_MS = Date.now();
 
 interface ConnState {
@@ -40,6 +55,11 @@ interface ConnState {
   matchId: string | null;
   anonId: string | null;
   helloTimestamps: number[];
+  /** ws keepalive (heartbeatTick below): true once a pong — or the initial
+   * connect — has been seen since the last heartbeat round; the next round
+   * flips it false when it pings, and terminates the connection if it's
+   * still false the round AFTER that. */
+  isAlive: boolean;
 }
 
 const conns = new Map<WebSocket, ConnState>();
@@ -892,6 +912,26 @@ function handleClose(ws: WebSocket): void {
   }
 }
 
+/** One keepalive round (WS_HEARTBEAT_INTERVAL_MS doc above): terminate any
+ * connection that hasn't proven itself alive (a pong) since the round
+ * before this one, then arm every survivor for the NEXT round with a fresh
+ * ping. ws.terminate() destroys the underlying socket, which still emits
+ * 'close' exactly like a normal disconnect — handleClose is already wired to
+ * that event in createStandsServer below, so a terminated connection's
+ * presence decrement / session close runs through the SAME path a real
+ * client-initiated close does, never a separate one. */
+function heartbeatTick(): void {
+  for (const [ws, state] of conns) {
+    if (ws.readyState !== WebSocket.OPEN) continue; // already closing — its own 'close'/'error' listener will clean up
+    if (!state.isAlive) {
+      ws.terminate();
+      continue;
+    }
+    state.isAlive = false;
+    ws.ping();
+  }
+}
+
 function handleMessage(ws: WebSocket, state: ConnState, raw: string): void {
   let msg: ClientMsg;
   try {
@@ -937,7 +977,7 @@ export function createStandsServer() {
   const wss = new WebSocketServer({ server: httpServer });
 
   wss.on('connection', (ws: WebSocket, req) => {
-    const state: ConnState = { ws, matchId: null, anonId: null, helloTimestamps: [] };
+    const state: ConnState = { ws, matchId: null, anonId: null, helloTimestamps: [], isAlive: true };
     // FEED SEATING BY URL (caught live at CAN-MAR, Jul 4): broadcastToMatch
     // filters on state.matchId, which only hello set — so a feed-only client
     // (LiveSource watches; it has no crowd identity to hello with) received
@@ -961,12 +1001,20 @@ export function createStandsServer() {
     ws.on('message', (data) => handleMessage(ws, state, data.toString()));
     ws.on('close', () => handleClose(ws));
     ws.on('error', () => handleClose(ws));
+    ws.on('pong', () => {
+      state.isAlive = true; // proof of life for heartbeatTick, below
+    });
   });
+
+  const heartbeatTimer = setInterval(heartbeatTick, WS_HEARTBEAT_INTERVAL_MS);
 
   registry.loadSnapshot();
   registry.start();
 
-  httpServer.on('close', () => registry.stop());
+  httpServer.on('close', () => {
+    registry.stop();
+    clearInterval(heartbeatTimer);
+  });
 
   return { httpServer, wss, registry, port: PORT, broadcastToMatch };
 }
