@@ -413,15 +413,21 @@ watching does not mean unattended discipline.
 - the service down more than 5 minutes (health genuinely unreachable — NOT the SSE warm-up rule in
   §4.1, which is expected and not an outage),
 - an honesty violation visible to real fans (fabricated data rendering as if it were real),
-- a data-loss signature (snapshot or crystallize errors in the logs).
+- a data-loss signature (snapshot or crystallize errors in the logs),
+- **the client-hang tripwire fires twice in a row** (below) — last night's worst incident was a
+  14-minute page hang with health green the whole time; health alone cannot see it.
+
+**The client-hang tripwire (coordinator addendum):** the write-proof smoke canary drives REAL pages
+headlessly — a systemic client hang shows up as its page rows timing out (goto / document-idle
+failures), no human phone required. During game 2, run the smoke (§4.2, with `--match 18222446`)
+after every goal alert and roughly every 30 minutes between events. One failed run = re-run
+immediately; two consecutive runs with page rows failing/timing out on live routes = wake condition.
+Log every run's table line either way.
 
 **Everything else — log it, capture the evidence, hand it to the morning.** That includes: Pulse still
-dead, a rough UI edge, a transient stall that self-resolves, or a ground-page hang that doesn't clear
-on its own (like last night's — log it in detail, screenshot, note duration; it does not meet any of
-the four conditions above unless it coincides with one of them). When in doubt, it is very likely not
-one of the four — the bar tonight is deliberately narrow. If you're unsure whether something you're
-seeing crosses one of the four thresholds, treat "unsure" as "log it, don't wake him," and flag the
-ambiguous case prominently in the morning notes so the threshold itself can be sharpened next time.
+dead, a rough UI edge, a transient stall that self-resolves. When in doubt outside the five conditions,
+treat "unsure" as "log it, don't wake him," and flag the ambiguous case prominently in the morning
+notes so the threshold itself can be sharpened next time.
 
 Match-watch content otherwise follows §7 (kickoff beat, goals, scores gap, presence sanity, moments,
 error handling) at whatever depth you can sustain solo overnight — score/status/goal logging is not
