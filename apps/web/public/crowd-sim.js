@@ -124,12 +124,62 @@
   function connectFeed(matchId, wsBase, onMsg) {
     if (wsBase) {
       var url = wsBase + (wsBase.indexOf('?') >= 0 ? '&' : '?') + 'matchId=' + encodeURIComponent(matchId);
-      (function connect() {
-        var ws; try { ws = new WebSocket(url); } catch (e) { setTimeout(connect, 1000); return; }
-        ws.onmessage = function (e) { var m; try { m = JSON.parse(e.data); } catch (_) { return; } try { onMsg(m); } catch (err) {} };
-        ws.onclose = function () { setTimeout(connect, 1000); };
-        ws.onerror = function () { try { ws.close(); } catch (_) {} };
-      })();
+      var ws = null, backoff = 1000, connecting = false, reconnectTimer = null, openedAtMs = 0, watchdogTimer = null;
+      // Single-flight + reconnect discipline (see stands-adapter.js for the full incident
+      // rationale). The original loop here had no backoff at all (flat 1s retry forever) and
+      // no single-flight guard — the exact pre-fix bug the other four adapters carried before
+      // being fixed (review I1). This transport is reachable only behind explicit ?ws= plus
+      // ?demo=1/?crowdsim=1, never tonight's fan path — this port is hygiene closing the
+      // incident class everywhere, not just where it was actually observed. `connecting`
+      // guards against two concurrent attempts, `reconnectTimer` against more than one
+      // pending reconnect, backoff (1s→30s) resets to 1s only once a connection has stayed
+      // open >=5s.
+      function scheduleReconnect() {
+        if (reconnectTimer || connecting) return;
+        reconnectTimer = setTimeout(function () { reconnectTimer = null; connect(); }, backoff);
+      }
+      function connect() {
+        if (connecting) return;
+        if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+        connecting = true;
+        var sock;
+        try { sock = new WebSocket(url); } catch (e) { connecting = false; scheduleReconnect(); return; }
+        ws = sock;
+        // Connect-attempt watchdog (review I4): on flaky mobile networks — tonight's exact
+        // threat model — new WebSocket() can sit forever without ever firing open, error, or
+        // close, leaving `connecting` stuck true and this adapter dead with no retry: a fan's
+        // page hangs silently. ~10s after an attempt starts, if neither open nor close has
+        // fired, abandon it — best-effort close() (its own close callback, if it ever arrives,
+        // is a no-op by then, see the `connecting` guard in onSockClose below) then force the
+        // same close-path bookkeeping onclose runs, so backoff still escalates (never resets —
+        // openedAtMs is still 0) and exactly one reconnect gets scheduled. Cleared on both open
+        // and close so a socket that behaves normally never trips it.
+        watchdogTimer = setTimeout(function () {
+          watchdogTimer = null;
+          if (sock !== ws) return; // stale handler guard — should be unreachable under single-flight
+          try { sock.close(); } catch (_) {}
+          onSockClose();
+        }, 10000);
+        sock.onopen = function () {
+          if (sock !== ws) return; // stale handler guard — should be unreachable under single-flight
+          if (watchdogTimer) { clearTimeout(watchdogTimer); watchdogTimer = null; }
+          if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+          openedAtMs = Date.now();
+        };
+        sock.onmessage = function (e) { var m; try { m = JSON.parse(e.data); } catch (_) { return; } try { onMsg(m); } catch (err) {} };
+        function onSockClose() {
+          if (sock !== ws || !connecting) return;
+          if (watchdogTimer) { clearTimeout(watchdogTimer); watchdogTimer = null; }
+          connecting = false;
+          var stayedOpen = openedAtMs > 0 && (Date.now() - openedAtMs) >= 5000;
+          backoff = stayedOpen ? 1000 : Math.min(backoff * 2, 30000);
+          openedAtMs = 0;
+          scheduleReconnect();
+        }
+        sock.onclose = onSockClose;
+        sock.onerror = function () { try { sock.close(); } catch (_) {} };
+      }
+      connect();
     } else if (DEMO && root.__demoFeed) {
       root.__demoFeed.start(onMsg);
     }

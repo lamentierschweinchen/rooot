@@ -437,7 +437,7 @@
     // so market/spell-tick calls (L.odds/L.pressure/L.possession) and the event stream
     // (L.event) are both left exactly as they were. Only the transport below changes.
     var url = wsBase + (wsBase.indexOf('?') >= 0 ? '&' : '?') + 'matchId=' + encodeURIComponent(matchId);
-    var backoff = 1000, ws = null, connecting = false, reconnectTimer = null, openedAtMs = 0;
+    var backoff = 1000, ws = null, connecting = false, reconnectTimer = null, openedAtMs = 0, watchdogTimer = null;
     // Single-flight + reconnect discipline (see stands-adapter.js for the full incident
     // rationale): `connecting` guards against two concurrent attempts (opening OR open);
     // `reconnectTimer` guards against more than one pending reconnect; backoff (1s→30s)
@@ -454,8 +454,24 @@
       var sock;
       try { sock = new WebSocket(url); } catch (e) { connecting = false; scheduleReconnect(); return; }
       ws = sock;
+      // Connect-attempt watchdog (review I4): on flaky mobile networks — tonight's exact
+      // threat model — new WebSocket() can sit forever without ever firing open, error, or
+      // close, leaving `connecting` stuck true and this adapter dead with no retry: a fan's
+      // page hangs silently. ~10s after an attempt starts, if neither open nor close has
+      // fired, abandon it — best-effort close() (its own close callback, if it ever arrives,
+      // is a no-op by then, see the `connecting` guard in onSockClose below) then force the
+      // same close-path bookkeeping onclose runs, so backoff still escalates (never resets —
+      // openedAtMs is still 0) and exactly one reconnect gets scheduled. Cleared on both open
+      // and close so a socket that behaves normally never trips it.
+      watchdogTimer = setTimeout(function () {
+        watchdogTimer = null;
+        if (sock !== ws) return; // stale handler guard — should be unreachable under single-flight
+        try { sock.close(); } catch (_) {}
+        onSockClose();
+      }, 10000);
       sock.onopen = function () {
         if (sock !== ws) return; // stale handler guard — should be unreachable under single-flight
+        if (watchdogTimer) { clearTimeout(watchdogTimer); watchdogTimer = null; }
         if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
         openedAtMs = Date.now();
         console.log('[loom-adapter] live wire open →', matchId);
@@ -464,14 +480,16 @@
         var msg; try { msg = JSON.parse(e.data); } catch (_) { return; }
         try { onFeed(msg); } catch (err) { console.warn('[loom-adapter] translate error', err); }
       };
-      sock.onclose = function () {
-        if (sock !== ws) return;
+      function onSockClose() {
+        if (sock !== ws || !connecting) return;
+        if (watchdogTimer) { clearTimeout(watchdogTimer); watchdogTimer = null; }
         connecting = false;
         var stayedOpen = openedAtMs > 0 && (Date.now() - openedAtMs) >= 5000;
         backoff = stayedOpen ? 1000 : Math.min(backoff * 2, 30000);
         openedAtMs = 0;
         scheduleReconnect();
-      };
+      }
+      sock.onclose = onSockClose;
       sock.onerror = function () { try { sock.close(); } catch (_) {} };
     }
     // under ?demo=1 with no explicit ?ws, weave the baked serverless feed (demo-feed.js) —
