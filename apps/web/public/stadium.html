@@ -35,16 +35,23 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
 .stadwrap .stad{width:100%;display:block}
 .pnum{position:absolute;transform:translate(-50%,-50%);font-weight:900;color:var(--card);z-index:2;text-shadow:0 1px 5px rgba(26,24,21,.65),0 0 2px rgba(26,24,21,.55)}
 .pnum.a{left:49.8%;top:38%;font-size:25px}.pnum.h{left:49.8%;top:63%;font-size:25px}
-.board{position:absolute;left:50%;top:12.1%;transform:translate(-50%,-50%);z-index:3;pointer-events:none;text-align:center;color:#F3ECDB;text-shadow:0 1px 2px #000;line-height:1}
+.board{position:absolute;left:49.4%;top:13.9%;transform:translate(-50%,-50%);z-index:3;pointer-events:none;text-align:center;color:#F3ECDB;text-shadow:0 1px 2px #000;line-height:1}   /* centred on the art's black rect (x 41.8–56.9%, y 10.9–16.9%) — the numbers sit solidly on the black */
 .board .bsc{display:block;font-weight:900;font-size:14px;letter-spacing:.05em}
 .board .bmin{display:block;font-weight:700;font-size:7px;letter-spacing:.13em;color:#E8B10A;margin-top:2px}
 
-/* interactive hotspots — the PLACE ITSELF glows (owner, 11 Jul: no glyphs, no rings; the glow sits on the landmark) */
+/* interactive hotspots (owner, 11 Jul, precise): DOTS on the point-places (benches, goals,
+   all four corners, the scoreboard point) · soft ZONE glows on the areas (kickoff circle,
+   the sideline, the stands ring). Everything subtle; the hit area stays >=40px. */
 .hot{position:absolute;transform:translate(-50%,-50%);z-index:4;cursor:pointer;-webkit-tap-highlight-color:transparent;
-  min-width:34px;min-height:30px;border-radius:8px;
-  box-shadow:0 0 7px 0 rgba(199,154,56,.15);}
-.hot::after{content:"";position:absolute;inset:0;border-radius:inherit;border:1.5px solid var(--gold);animation:halo 2.6s ease-out infinite;opacity:0}
-.hot.ring-all{z-index:2;box-shadow:none}   /* the stands ARE the whole bowl — one breath around the rim */
+  width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.hot::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--gold);
+  box-shadow:0 0 7px 1.5px rgba(199,154,56,.45),inset 0 0 0 1px rgba(26,24,21,.3);animation:dotb 2.8s ease-in-out infinite}
+@keyframes dotb{0%,100%{opacity:.5}50%{opacity:.95}}
+.hot.zone::before{width:100%;height:100%;background:radial-gradient(closest-side,rgba(199,154,56,.16),rgba(199,154,56,.05) 62%,transparent);
+  box-shadow:none;border-radius:inherit;border:1px solid rgba(199,154,56,.3)}
+.hot.ring-all{z-index:2;box-shadow:0 0 9px 0 rgba(199,154,56,.12)}   /* the stands ARE the whole bowl — one quiet breath around the rim */
+.hot.ring-all::before{display:none}
+.hot.ring-all::after{content:"";position:absolute;inset:0;border-radius:inherit;border:1.5px solid var(--gold);animation:halo 3s ease-out infinite;opacity:0}
 .pitchzone{position:absolute;left:50%;top:50.5%;transform:translate(-50%,-50%);width:50%;height:61%;z-index:3}   /* bare pitch swallows taps (as before) — it is not the stands */
 @keyframes halo{0%{transform:scale(1);opacity:.5}100%{transform:scale(1.22);opacity:0}}
 .hot .cap{display:none}   /* owner: the place self-explains — position IS the label (Jul 7 + Jul 11) */
@@ -189,19 +196,20 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
       <canvas class="stad" id="stadcanvas" width="760" height="1079"></canvas>
       <div class="board" id="board"><span class="bsc" id="bSc">0–0</span><span class="bmin" id="bMin"></span></div>
       <div class="pnum a" id="pA">—</div><div class="pnum h" id="pH">—</div>
-      <!-- each glow sits ON its landmark in the art: mouths, one corner arc, centre circle,
-           the fourth official between the dugouts (the book lives with them), the two dugout
-           boxes, the near stand, the scoreboard. No glyphs — the place is the label. -->
-      <div class="hot" data-place="goal" style="left:49.8%;top:21.4%;width:26%;height:5.2%;border-radius:7px" aria-label="the goal mouth"><span class="cap" id="capA">GOAL</span></div>
-      <div class="hot" data-place="goal" style="left:49.8%;top:79.7%;width:26%;height:5.2%;border-radius:7px" aria-label="the goal mouth"><span class="cap" id="capH">GOAL</span></div>
-      <div class="hot" data-place="arc" style="left:73.2%;top:21.9%;width:10%;height:6%;border-radius:50%" aria-label="set pieces"><span class="cap">SET PIECES</span></div>
-      <div class="hot" data-place="control" style="left:49.8%;top:50.5%;width:17%;height:12.2%;border-radius:50%" aria-label="control"><span class="cap">CONTROL</span></div>
-      <div class="hot" data-place="book" style="left:26.8%;top:50.6%;width:7%;height:5.5%;border-radius:50%" aria-label="the book"><span class="cap">THE BOOK</span></div>
-      <div class="hot" data-place="bench" style="left:80.3%;top:41.7%;width:9.5%;height:11.5%;border-radius:6px" aria-label="the bench"><span class="cap">THE BENCH</span></div>
-      <div class="hot" data-place="bench" style="left:80.3%;top:60.2%;width:9.5%;height:11.5%;border-radius:6px" aria-label="the bench"><span class="cap">THE BENCH</span></div>
+      <!-- dots on the point-places, zone glows on the areas — the place is the label -->
+      <div class="hot" data-place="goal" style="left:49.8%;top:21.3%" aria-label="the goal mouth"><span class="cap" id="capA">GOAL</span></div>
+      <div class="hot" data-place="goal" style="left:49.8%;top:79.8%" aria-label="the goal mouth"><span class="cap" id="capH">GOAL</span></div>
+      <div class="hot" data-place="arc" style="left:26.8%;top:21.7%" aria-label="set pieces"><span class="cap">SET PIECES</span></div>
+      <div class="hot" data-place="arc" style="left:73.4%;top:21.7%" aria-label="set pieces"></div>
+      <div class="hot" data-place="arc" style="left:26.8%;top:79.4%" aria-label="set pieces"></div>
+      <div class="hot" data-place="arc" style="left:73.4%;top:79.4%" aria-label="set pieces"></div>
+      <div class="hot" data-place="bench" style="left:80.3%;top:41.7%" aria-label="the bench"><span class="cap">THE BENCH</span></div>
+      <div class="hot" data-place="bench" style="left:80.3%;top:60.2%" aria-label="the bench"><span class="cap">THE BENCH</span></div>
+      <div class="hot" data-place="odds" style="left:55.4%;top:11.9%" aria-label="the market"><span class="cap">THE MARKET</span></div>
+      <div class="hot zone" data-place="control" style="left:49.8%;top:50.5%;width:17%;height:12.2%;border-radius:50%" aria-label="control"><span class="cap">CONTROL</span></div>
+      <div class="hot zone" data-place="book" style="left:26.8%;top:50.6%;width:9%;height:6.5%;border-radius:50%" aria-label="the book"><span class="cap">THE BOOK</span></div>
       <div class="hot ring-all" data-place="stands" style="left:50%;top:50.4%;width:97%;height:96%;border-radius:43%" aria-label="the stands"><span class="cap">THE STANDS</span></div>
       <div class="pitchzone" aria-hidden="true"></div>
-      <div class="hot" data-place="odds" style="left:49.5%;top:12.6%;width:21%;height:7.5%;border-radius:6px" aria-label="the market"><span class="cap">THE MARKET</span></div>
     </div>
   </div>
 
