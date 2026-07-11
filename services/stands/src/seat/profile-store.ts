@@ -11,7 +11,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { DATA_DIR } from '../snapshot';
+import { DATA_DIR, writeFileAtomic } from '../snapshot';
 
 export interface Profile { pubkey: string; sides: string[]; since: number; displayName: string | null; }
 const DIR = process.env.ROOOT_SEAT_DIR || path.join(DATA_DIR, 'seat');
@@ -35,6 +35,9 @@ export function loadProfile(pubkey: string): Profile {
 export function saveProfile(pubkey: string, patch: Partial<Profile>): Profile {
   fs.mkdirSync(DIR, { recursive: true });
   const next = mergeProfile(loadProfile(pubkey), patch);
-  fs.writeFileSync(keyPath(pubkey), JSON.stringify(next));
+  // Atomic (tmp+rename, snapshot.ts's writeFileAtomic — review fix): a SIGKILL mid-write must
+  // leave the OLD complete profile, never a torn file that a later loadProfile silently reads
+  // as "fresh fan" and re-stamps with a new `since`.
+  writeFileAtomic(keyPath(pubkey), JSON.stringify(next));
   return next;
 }
