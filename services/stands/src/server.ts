@@ -109,13 +109,17 @@ function withMatchId(matchId: string, msg: ServerMsg | FeedMsg): ServerMsg | Fee
 
 /** Full diagnostic detail for a caught error — the stack when available, not
  * just String(err) (which for a real Error gives only "Error: message", no
- * trace). Pulse post-mortem (Jul 9 FRA-MAR, Jul 10 ESP-BEL — two identical
- * "zero moments all match" nights): the ONE catch block guarding moments only
- * ever logged String(err), so IF it had ever fired, Fly logs would carry no
- * stack to diagnose from. Root cause was never conclusively reproduced
- * locally despite driving the real captured wire data end-to-end through the
- * real dispatch path (detectMoment/momentLifecycle proved correct against
- * it) — this ensures a repeat is diagnosable from logs alone. */
+ * trace). Pulse post-mortem (Jul 10 ESP-BEL): the server provably opened ZERO
+ * moment windows across a whole live match with three goals — the volume's
+ * persisted openedTriggerIds for 18218149 stayed empty with the dedup
+ * persistence live. (The prior night, Jul 9 FRA-MAR, was DIFFERENT: six
+ * windows opened server-side; the client never subscribed — a client bug,
+ * since fixed.) The catch blocks guarding this pipeline only ever logged
+ * String(err), so IF one had fired that night, Fly logs would carry no stack
+ * to diagnose from. The ESP-BEL server silence was never conclusively
+ * reproduced locally despite driving the real captured wire data end-to-end
+ * through the real dispatch path (detectMoment/momentLifecycle proved correct
+ * against it) — this ensures a repeat is diagnosable from logs alone. */
 function errDetail(err: unknown): string {
   return err instanceof Error && err.stack ? err.stack : String(err);
 }
@@ -135,12 +139,15 @@ function broadcastToMatch(matchId: string, msg: ServerMsg | FeedMsg): void {
   // entirely — uncaught here — skipping every side-effect declared AFTER it
   // (including moment detection) for that one message, with nothing logged
   // under a `[moment]`-prefixed line to point at. A prime suspect for the Jul
-  // 9/10 "zero moments" incidents (docs/POSTMORTEM-fra-mar-2026-07-09.md, the
-  // ESP-BEL Pulse recurrence in docs/NOTES-esp-bel-2026-07-10.md) that static
-  // analysis + full realistic replay of the real captured match could not
-  // conclusively reproduce — this closes the gap regardless of whether it was
-  // the exact trigger, matching this broadcast fan-out's own stated intent
-  // ("this new layer must NEVER be able to break the core... broadcast").
+  // 10 ESP-BEL server-side Pulse silence (openedTriggerIds provably empty on
+  // the volume through three goals — docs/NOTES-esp-bel-2026-07-10.md; the
+  // Jul 9 FRA-MAR night was different: six windows opened server-side, the
+  // client never subscribed — docs/POSTMORTEM-fra-mar-2026-07-09.md, since
+  // fixed client-side) that static analysis + full realistic replay of the
+  // real captured match could not conclusively reproduce — this closes the
+  // gap regardless of whether it was the exact trigger, matching this
+  // broadcast fan-out's own stated intent ("this new layer must NEVER be
+  // able to break the core... broadcast").
   try {
     rememberForJoin(matchId, stamped); // snapshot the match state for mid-match joiners
   } catch (err) {
@@ -218,7 +225,7 @@ function predictLifecycle(matchId: string, msg: ServerMsg | FeedMsg): void {
       try {
         registry.snapshotNow();
       } catch (err) {
-        console.warn(`[stands] immediate post-FT snapshot failed for ${matchId}: ${String(err)}`);
+        console.warn(`[stands] immediate post-FT snapshot failed for ${matchId}: ${errDetail(err)}`);
       }
     }
   }
@@ -384,7 +391,7 @@ function momentLifecycle(matchId: string, msg: ServerMsg | FeedMsg): void {
     try {
       closeMomentNow(matchId, momentId);
     } catch (err) {
-      console.warn(`[moment] close error on ${matchId}: ${String(err)}`);
+      console.warn(`[moment] close error on ${matchId}: ${errDetail(err)}`);
     }
   }, REACT_WINDOW_MS);
   (timer as { unref?: () => void }).unref?.(); // a pending window must not hold the process open
@@ -481,7 +488,7 @@ function crystallizeSentiment(
       broadcastToMatch(matchId, { type: 'sentiment', record } as unknown as ServerMsg);
     });
   } catch (err) {
-    console.warn(`[sentiment] crystallize failed for ${matchId}: ${String(err)}`);
+    console.warn(`[sentiment] crystallize failed for ${matchId}: ${errDetail(err)}`);
   }
 }
 
