@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>SPOT TOOL — place the stadium's invitations</title>
+<meta name="theme-color" content="#E6DBC2">
+<style>
+@font-face{font-family:'Anybody';src:url(plate/fonts/anybody900.woff2) format('woff2');font-weight:800 900;font-display:swap}
+:root{--paper:#E6DBC2;--card:#F3ECDB;--ink:#1A1815;--sub:#8C8467;--gold:#C79A38;--line:#D3C6A6}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:var(--paper);font-family:'Anybody','Arial Black',sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;overscroll-behavior:none}
+.wrap{max-width:440px;margin:0 auto;padding-bottom:190px}
+.mast{display:flex;justify-content:space-between;align-items:baseline;padding:10px 14px 6px}
+.mast b{font-size:14px;letter-spacing:.06em}
+.mast span{font-size:7.5px;letter-spacing:.14em;color:var(--sub);font-weight:800}
+.stage{position:relative;margin:0 8px;touch-action:none}
+.stage img{width:100%;display:block;pointer-events:none;-webkit-user-select:none;user-select:none}
+/* spots */
+.sp{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none}
+.sp.ring{z-index:1}.sp.zone-k{z-index:2}.sp.dot-k{z-index:3}   /* dots above zones above the ring — smallest wins the tap */
+.sp .dot{border-radius:50%;background:var(--gold);box-shadow:0 0 7px 1.5px rgba(199,154,56,.45),inset 0 0 0 1px rgba(26,24,21,.3)}
+.sp .zone{width:100%;height:100%;background:radial-gradient(closest-side,rgba(199,154,56,.16),rgba(199,154,56,.05) 62%,transparent);border:1px solid rgba(199,154,56,.35)}
+.sp.ring .zone{background:none;box-shadow:0 0 9px 0 rgba(199,154,56,.2);border:1.5px solid rgba(199,154,56,.5)}
+.sp.on{z-index:9}
+.sp.on::after{content:attr(data-name);position:absolute;top:-16px;left:50%;transform:translateX(-50%);
+  font-size:7px;font-weight:900;letter-spacing:.12em;color:var(--ink);background:var(--card);border:1px solid var(--ink);
+  padding:1.5px 5px;white-space:nowrap;border-radius:2px}
+.sp.on .dot{outline:2px dashed var(--ink);outline-offset:3px}
+.sp.on .zone{outline:2px dashed var(--ink);outline-offset:2px}
+/* control bar */
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:2px solid var(--ink);z-index:20;
+  max-width:440px;margin:0 auto;padding:8px 12px 12px}
+.chips{display:flex;gap:4px;overflow-x:auto;padding-bottom:7px;-webkit-overflow-scrolling:touch}
+.chips button{font-family:inherit;font-weight:800;font-size:7px;letter-spacing:.08em;padding:4px 7px;border:1.5px solid var(--line);
+  background:var(--card);color:var(--sub);white-space:nowrap;border-radius:2px}
+.chips button.on{border-color:var(--ink);color:var(--ink);background:var(--paper)}
+.rowa{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.rowa .nm{font-weight:900;font-size:11px;letter-spacing:.08em;min-width:86px}
+.kt{display:flex;border:1.5px solid var(--ink)}
+.kt button{font-family:inherit;font-weight:900;font-size:8px;letter-spacing:.1em;padding:5px 9px;background:var(--card);border:none;color:var(--sub)}
+.kt button.on{background:var(--ink);color:var(--card)}
+.kt button+button{border-left:1.5px solid var(--ink)}
+.sl{display:flex;align-items:center;gap:8px;margin:4px 0}
+.sl label{font-weight:800;font-size:7px;letter-spacing:.14em;color:var(--sub);min-width:44px}
+.sl input[type=range]{flex:1;accent-color:#C79A38}
+.sl output{font-weight:900;font-size:9px;min-width:44px;text-align:right}
+.acts{display:flex;gap:8px;margin-top:8px}
+.acts button{flex:1;font-family:inherit;font-weight:900;font-size:10px;letter-spacing:.1em;padding:11px 4px;border:1.5px solid var(--ink);background:var(--ink);color:var(--card);cursor:pointer}
+.acts button.ghost{background:var(--card);color:var(--ink)}
+.acts button:active{transform:translateY(1px)}
+.hint{font-weight:800;font-size:7px;letter-spacing:.12em;color:var(--sub);text-align:center;margin-top:7px}
+.spec{display:none;margin-top:8px;width:100%;height:86px;font:8px/1.4 monospace;border:1.5px solid var(--ink);padding:6px;background:#fff}
+.spec.on{display:block}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="mast"><b>SPOT TOOL</b><span>DRAG A SPOT · SLIDERS SIZE IT · COPY SPEC WHEN DONE</span></div>
+  <div class="stage" id="stage">
+    <img src="plate/gens/stadium-neutral-tall.png" alt="the bowl" draggable="false">
+  </div>
+</div>
+<div class="bar">
+  <div class="chips" id="chips"></div>
+  <div class="rowa">
+    <span class="nm" id="selName">TAP A SPOT</span>
+    <div class="kt" id="kindT" style="visibility:hidden">
+      <button data-k="dot">DOT</button><button data-k="zone">ZONE</button>
+    </div>
+  </div>
+  <div class="sl"><label>SIZE</label><input type="range" id="sSize" min="4" max="30" step="0.5" value="8" disabled><output id="oSize">—</output></div>
+  <div class="sl"><label>WIDTH</label><input type="range" id="sW" min="3" max="100" step="0.5" value="17" disabled><output id="oW">—</output></div>
+  <div class="sl"><label>HEIGHT</label><input type="range" id="sH" min="3" max="100" step="0.5" value="12" disabled><output id="oH">—</output></div>
+  <div class="acts">
+    <button id="copyBtn">COPY SPEC</button>
+    <button class="ghost" id="showBtn">SHOW</button>
+    <button class="ghost" id="resetBtn">RESET</button>
+  </div>
+  <div class="hint" id="hint">CHANGES SAVE ON THIS PHONE · SEND THE SPEC BACK AND THEY GET BAKED IN</div>
+  <textarea class="spec" id="spec" readonly></textarea>
+</div>
+<script>
+'use strict';
+// the shipped layout (fb2af2c) is the starting point — every value editable
+var DEF=[
+ {id:'goal-top',   place:'goal',   kind:'dot', x:49.8,y:21.3,d:8},
+ {id:'goal-bottom',place:'goal',   kind:'dot', x:49.8,y:79.8,d:8},
+ {id:'corner-tl',  place:'arc',    kind:'dot', x:26.8,y:21.7,d:8},
+ {id:'corner-tr',  place:'arc',    kind:'dot', x:73.4,y:21.7,d:8},
+ {id:'corner-bl',  place:'arc',    kind:'dot', x:26.8,y:79.4,d:8},
+ {id:'corner-br',  place:'arc',    kind:'dot', x:73.4,y:79.4,d:8},
+ {id:'bench-top',  place:'bench',  kind:'dot', x:80.3,y:41.7,d:8},
+ {id:'bench-bottom',place:'bench', kind:'dot', x:80.3,y:60.2,d:8},
+ {id:'scoreboard', place:'odds',   kind:'dot', x:55.4,y:11.9,d:8},
+ {id:'kickoff-circle',place:'control',kind:'zone',x:49.8,y:50.5,w:17,h:12.2},
+ {id:'sideline-book', place:'book',   kind:'zone',x:26.8,y:50.6,w:9,h:6.5},
+ {id:'stands-ring',   place:'stands', kind:'ring',x:50,y:50.4,w:97,h:96}
+];
+var KEY='rooot.spot-tool.v1';
+var spots; try{ spots=JSON.parse(localStorage.getItem(KEY))||null; }catch(e){ spots=null; }
+if(!spots||!spots.length||spots.length!==DEF.length) spots=JSON.parse(JSON.stringify(DEF));
+var stage=document.getElementById('stage'), sel=null;
+function el(i){return document.getElementById(i);}
+function save(){ try{ localStorage.setItem(KEY,JSON.stringify(spots)); }catch(e){} }
+
+function render(){
+  stage.querySelectorAll('.sp').forEach(function(n){n.remove();});
+  spots.forEach(function(s,i){
+    var d=document.createElement('div');
+    d.className='sp '+(s.kind==='ring'?'ring':s.kind==='zone'?'zone-k':'dot-k')+(sel===i?' on':'');
+    d.dataset.i=i; d.dataset.name=s.id.toUpperCase();
+    d.style.left=s.x+'%'; d.style.top=s.y+'%';
+    if(s.kind==='dot'){
+      d.style.width=Math.max(42,s.d+30)+'px'; d.style.height=d.style.width;
+      d.innerHTML='<span class="dot" style="width:'+s.d+'px;height:'+s.d+'px"></span>';
+    } else {
+      d.style.width=s.w+'%'; d.style.height=s.h+'%';
+      d.style.borderRadius=(s.kind==='ring'?'43%':'50%');
+      d.innerHTML='<span class="zone" style="border-radius:inherit"></span>';
+    }
+    stage.appendChild(d);
+  });
+  var ch=el('chips');
+  ch.innerHTML=spots.map(function(s,i){return '<button data-i="'+i+'"'+(sel===i?' class="on"':'')+'>'+s.id.toUpperCase()+'</button>';}).join('');
+  syncBar();
+}
+el('chips').addEventListener('click',function(e){
+  var b=e.target.closest('button'); if(!b)return;
+  sel=+b.dataset.i; render();
+  el('hint').textContent='DRAG IT ON THE BOWL · SLIDERS SIZE IT';
+});
+function syncBar(){
+  var has=sel!=null, s=has?spots[sel]:null;
+  el('selName').textContent=has?s.id.toUpperCase():'TAP A SPOT';
+  el('kindT').style.visibility=(has&&s.kind!=='ring')?'visible':'hidden';
+  if(has&&s.kind!=='ring'){ el('kindT').querySelectorAll('button').forEach(function(b){b.classList.toggle('on',b.dataset.k===s.kind);}); }
+  var isDot=has&&s.kind==='dot', isZone=has&&s.kind!=='dot';
+  el('sSize').disabled=!isDot; el('sW').disabled=!isZone; el('sH').disabled=!isZone;
+  if(isDot){ el('sSize').value=s.d; el('oSize').textContent=s.d+'px'; } else el('oSize').textContent='—';
+  if(isZone){ el('sW').value=s.w; el('oW').textContent=s.w+'%'; el('sH').value=s.h; el('oH').textContent=s.h+'%'; }
+  else { el('oW').textContent='—'; el('oH').textContent='—'; }
+}
+// drag with pointer events — % of the stage, clamped
+var drag=null;
+stage.addEventListener('pointerdown',function(e){
+  // smallest spot under the finger wins — dots inside zones inside the ring stay reachable
+  var hits=document.elementsFromPoint(e.clientX,e.clientY).map(function(n){return n.closest&&n.closest('.sp');}).filter(Boolean);
+  if(!hits.length)return;
+  var sp=hits.reduce(function(a,b){return (a.offsetWidth*a.offsetHeight)<=(b.offsetWidth*b.offsetHeight)?a:b;});
+  sel=+sp.dataset.i; render();
+  var r=stage.getBoundingClientRect(), s=spots[sel];
+  drag={dx:e.clientX-(r.left+r.width*s.x/100), dy:e.clientY-(r.top+r.height*s.y/100)};
+  stage.setPointerCapture(e.pointerId);
+  e.preventDefault();
+});
+stage.addEventListener('pointermove',function(e){
+  if(!drag||sel==null)return;
+  var r=stage.getBoundingClientRect(), s=spots[sel];
+  s.x=Math.min(99,Math.max(1,((e.clientX-drag.dx)-r.left)/r.width*100));
+  s.y=Math.min(99,Math.max(1,((e.clientY-drag.dy)-r.top)/r.height*100));
+  s.x=Math.round(s.x*10)/10; s.y=Math.round(s.y*10)/10;
+  render();
+});
+stage.addEventListener('pointerup',function(){ drag=null; save(); });
+stage.addEventListener('pointercancel',function(){ drag=null; save(); });
+// sliders
+el('sSize').addEventListener('input',function(){ if(sel==null)return; spots[sel].d=+this.value; save(); render(); });
+el('sW').addEventListener('input',function(){ if(sel==null)return; spots[sel].w=+this.value; save(); render(); });
+el('sH').addEventListener('input',function(){ if(sel==null)return; spots[sel].h=+this.value; save(); render(); });
+// kind toggle (dot <-> zone)
+el('kindT').addEventListener('click',function(e){
+  var k=e.target.dataset.k; if(!k||sel==null)return;
+  var s=spots[sel];
+  if(k==='zone'&&s.kind==='dot'){ s.kind='zone'; s.w=s.w||10; s.h=s.h||7; }
+  else if(k==='dot'&&s.kind==='zone'){ s.kind='dot'; s.d=s.d||8; }
+  save(); render();
+});
+// spec out
+function spec(){
+  return JSON.stringify({tool:'spot-tool.v1',spots:spots},null,1);
+}
+el('copyBtn').addEventListener('click',function(){
+  var t=spec();
+  (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(t):Promise.reject()).then(
+    function(){ el('hint').textContent='COPIED — SEND IT BACK, I BAKE IT IN'; },
+    function(){ el('spec').value=t; el('spec').classList.add('on'); el('hint').textContent='SELECT ALL + COPY FROM THE BOX'; }
+  );
+});
+el('showBtn').addEventListener('click',function(){ el('spec').value=spec(); el('spec').classList.toggle('on'); });
+el('resetBtn').addEventListener('click',function(){ spots=JSON.parse(JSON.stringify(DEF)); sel=null; save(); render(); el('hint').textContent='BACK TO THE SHIPPED LAYOUT'; });
+render();
+</script>
+</body>
+</html>
