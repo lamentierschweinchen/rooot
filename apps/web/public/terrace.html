@@ -317,12 +317,12 @@ if(/[?&]embed=1/.test(location.search))document.body.classList.add('embed');   /
 var PARAMS=new URLSearchParams(location.search);
 var DEMO=PARAMS.get('demo')==='1', LIVE=PARAMS.get('live')==='1';   // demo uses the baked engine; live uses the real stands wire
 var MATCH_ID=PARAMS.get('match')||(LIVE?'18218149':'18202783');
-  '18213979':{home:{tri:'NOR',name:'NORWAY',color:'#BA0C2F'},away:{tri:'ENG',name:'ENGLAND',color:'#1A1A18'}},
-  '18222446':{home:{tri:'ARG',name:'ARGENTINA',color:'#5C8CB8'},away:{tri:'SUI',name:'SWITZERLAND',color:'#D52B1E'}},
 var FIXTURES={
   '18202783':{home:{tri:'SUI',name:'SWITZERLAND',color:'#D52B1E'},away:{tri:'COL',name:'COLOMBIA',color:'#E8B10A'}},
   '18209181':{home:{tri:'FRA',name:'FRANCE',color:'#0055A4'},away:{tri:'MAR',name:'MOROCCO',color:'#C1272D'}},
-  '18218149':{home:{tri:'ESP',name:'SPAIN',color:'#AA151B',sec:'#F1BF00'},away:{tri:'BEL',name:'BELGIUM',color:'#1A1A18',sec:'#FDDA24',sec2:'#C8102E'}}
+  '18218149':{home:{tri:'ESP',name:'SPAIN',color:'#AA151B',sec:'#F1BF00'},away:{tri:'BEL',name:'BELGIUM',color:'#1A1A18',sec:'#FDDA24',sec2:'#C8102E'}},
+  '18213979':{home:{tri:'NOR',name:'NORWAY',color:'#BA0C2F',sec:'#EDE9DE',sec2:'#00205B'},away:{tri:'ENG',name:'ENGLAND',color:'#1A1A18',sec:'#EDE9DE',sec2:'#C8102E'}},
+  '18222446':{home:{tri:'ARG',name:'ARGENTINA',color:'#5C8CB8',sec:'#EDE9DE'},away:{tri:'SUI',name:'SWITZERLAND',color:'#D52B1E',sec:'#EDE9DE'}}
 };
 var FX=FIXTURES[MATCH_ID]||FIXTURES['18218149'], HOME_TRI=FX.home.tri, AWAY_TRI=FX.away.tri, YOU_TEAM=FX.home, THEM_TEAM=FX.away;
 var M={t:0,score:[0,0],rY:0,rT:0,run:true,lastMs:0,fired:{},await:null,dur:92,xp:0,reads:{h:0,a:0},pred:null,predShown:{},predResolved:{},
