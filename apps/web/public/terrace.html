@@ -439,6 +439,7 @@ function setSR(side,label,share,count){
 
 // mini-prediction: pop, call, resolve against the replay
 function showPred(p,i){
+  if(LIVE)return;   // scripted-quiz surface — never shows #pred on the live path (NEXT GOAL owns it there)
   M.pred={def:p,i:i,called:null,done:false};
   el('predL').textContent='● QUICK CALL — NO STAKE';
   el('predQ').textContent=p.q;
@@ -466,6 +467,7 @@ function resolvePred(i){
 function dismissPred(){ el('pred').classList.remove('on'); if(M.pred)M.pred.done=true; M.pred=null; }
 // checkpoint: re-call your scoreline at the natural breaks (half-time here; OT/pens same pattern)
 function showCheckpoint(){
+  if(LIVE)return;   // scripted checkpoint — never shows #pred on the live path
   M.pred={i:'ck',done:true,called:null};
   el('predL').textContent='● CHECKPOINT — YOUR CALL STANDS';
   el('predQ').textContent='HALF-TIME — YOUR CALL: '+(PASS&&PASS.call?(HOME_TRI+' '+PASS.call.h+'–'+PASS.call.a):HOME_TRI+' 2–1');   // the door's locked call
@@ -686,7 +688,12 @@ function wireLive(){
 // the server's replace semantic stays but the UI doesn't offer it). At resolution the
 // card RETURNS as the verdict — what happened + your call + the crowd's right v wrong —
 // holds ~10s, then resets fresh for the next cycle. Ends at FULL_TIME (ngEnd).
-var ngLastState=null, ngMode='open', ngEnded=false, ngResetT=null;
+// Re-show audit (prod bug, 11 Jul): live broadcast traffic can re-run the card builder, so
+// EVERY site that may add 'on' to #pred on the live path respects the mode: ngBuildCard
+// early-returns unless ngMode==='open' (a tapped-away card STAYS gone; the verdict owns its
+// own visibility); ngReset (the 10s beat) is the ONLY flip back to 'open'; dismiss (×) and
+// FULL_TIME survive any rebuild (ngDismissed/ngEnded checked at every show site).
+var ngLastState=null, ngMode='open', ngEnded=false, ngDismissed=false, ngResetT=null;
 function ngFmtSide(s){ return s==='home'?HOME_TRI:s==='away'?AWAY_TRI:null; }
 function ngTap(call){
   if(window.__stands&&window.__stands.nextGoal)window.__stands.nextGoal(call);
@@ -705,7 +712,7 @@ function ngOnState(s){
 }
 // resolution: the card returns AS the verdict — one composition, the thing itself
 function ngOnVerdict(v){
-  if(!v||ngEnded||!ngInit._done)return;
+  if(!v||!ngInit._done||ngEnded||ngDismissed)return;
   var happened=v.happened==='none'?'NO MORE GOALS':(ngFmtSide(v.happened)+' SCORED');
   var callTxt=v.call==='none'?'NO MORE':ngFmtSide(v.call);
   var q=el('predQ');
@@ -724,41 +731,45 @@ function ngOnVerdict(v){
   clearTimeout(ngResetT);
   ngResetT=setTimeout(ngReset,10000);
 }
-function ngReset(){   // a fresh NEXT GOAL? card for the next cycle (live play only)
+function ngReset(){   // the 10s beat — the ONLY path that flips the card back to 'open'
   clearTimeout(ngResetT); ngResetT=null;
-  if(ngEnded||!ngInit._done)return;
-  var q=el('predQ'); q.className='pq'; q.textContent=''; q.style.display='none';
-  var opts=el('predOpts'); opts.style.display='';
-  [].forEach.call(opts.children,function(c){c.classList.remove('on');});
+  if(!ngInit._done||ngEnded||ngDismissed)return;
   ngMode='open';
-  ngOnState(ngLastState);   // a new cycle's split that arrived during the verdict hold renders now
-  el('pred').classList.add('on');
+  ngBuildCard();
 }
 function ngEnd(){   // FULL_TIME — the card is gone (fires with the page's existing FT beat, the keepsake)
   if(!ngInit._done)return;
   ngEnded=true; clearTimeout(ngResetT);
   el('pred').classList.remove('on');
 }
-function ngInit(){
-  if(ngInit._done)return; ngInit._done=true;
-  var key='rooot.ng.dismissed.'+MATCH_ID, dismissed=false;
-  try{dismissed=sessionStorage.getItem(key)==='1';}catch(e){}
-  if(dismissed)return;
+// THE CARD BUILDER — re-runnable under live broadcast traffic, and mode-respecting:
+// never re-shows a tapped-away card, never repaints over a verdict, and dismissed/ended
+// stay away through any rebuild. Only builds (and adds 'on') in 'open' mode.
+function ngBuildCard(){
+  if(!ngInit._done||ngEnded||ngDismissed)return;
+  if(ngMode!=='open')return;
   el('predL').textContent='NEXT GOAL?';
   el('predL').style.marginLeft='24px';   // clears the back-button circle (top:7/left:9/26px) that sits over the card's header bar
-  el('predQ').style.display='none';
+  var q=el('predQ'); q.className='pq'; q.textContent=''; q.style.display='none';
   var barWrap=el('predBar').parentElement; if(barWrap)barWrap.style.display='none';
   el('predMkt').classList.add('ng');
-  var opts=el('predOpts'); opts.innerHTML='';
+  var opts=el('predOpts'); opts.style.display=''; opts.innerHTML='';
   [['home',HOME_TRI],['away',AWAY_TRI],['none','NO MORE']].forEach(function(pair){
     var b=document.createElement('div'); b.className='popt'; b.textContent=pair[1];   // shown = clickable, from the first paint
     b.onclick=function(){ ngTap(pair[0]); };
     opts.appendChild(b);
   });
-  el('predX').onclick=function(){ try{sessionStorage.setItem(key,'1');}catch(e){} el('pred').classList.remove('on'); };
+  ngOnState(ngLastState);   // the current split (or honest silence) rides every rebuild
   el('pred').classList.add('on');
+}
+function ngInit(){
+  if(ngInit._done)return; ngInit._done=true;
+  var key='rooot.ng.dismissed.'+MATCH_ID;
+  try{ngDismissed=sessionStorage.getItem(key)==='1';}catch(e){}
+  el('predX').onclick=function(){ ngDismissed=true; try{sessionStorage.setItem(key,'1');}catch(e){} clearTimeout(ngResetT); el('pred').classList.remove('on'); };   // dismissed = stays away for the session, through any rebuild
   if(window.__stands.onNextGoal)window.__stands.onNextGoal(ngOnState);
   if(window.__stands.onNextGoalVerdict)window.__stands.onNextGoalVerdict(ngOnVerdict);
+  ngBuildCard();
 }
 // ── the pulse, on the live moment schema — every kind opens a feeling window (T6) ──
 var MOMENT_TITLE={goal:'GOAL',possible:'CHECKING…','var':'VAR CHECK',red:'RED CARD',penalty:'PENALTY','near-miss':'SO CLOSE',swing:"IT'S TURNING",'full-time':'FULL TIME'};
