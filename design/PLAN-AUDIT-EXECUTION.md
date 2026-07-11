@@ -622,3 +622,13 @@ commit → your WIP restored intact, verified coexisting — your CSS/keepsake h
 terrace now labels NOR–ENG/ARG–SUI correctly via ground's explicit match param. Terrace's own T16
 (manifest-first resolution) remains YOURS whenever the card work lands — gate/ground/stadium/landing
 are already migrated (t16-manifest branch) as the pattern to copy.
+
+**MARGIN — coordinator, 2026-07-11 evening (two findings for you, one fixed mechanically):** (1) FIXED by me
+(2-line adds ×3, same as terrace earlier): explicit `?match=` lookups bypassed the manifest and missed
+tonight's fixtures in gate/ground/stadium literal tables → ESP–BEL labels over NOR–ENG data. YOUR proper
+fix when convenient (T16 refinement): when the explicit param EQUALS the manifest's matchId, prefer
+fromManifest — the literal tables then only serve genuinely foreign ids. (2) YOURS, pre-KO honesty: the
+stadium masthead shows a LIVE badge before kickoff (owner saw it; the loom's new waiting-masthead is the
+model — `KICKOFF 23:00 · MARKET OPEN`). Self-resolves at kickoff tonight; worth fixing before the 03:00
+game. Owner also reports the stadium "looked like a very old version" — that's T8's un-redesigned chrome
+reading exactly as the audit predicted; noted as pressure for T8's queue slot.
