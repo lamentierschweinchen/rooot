@@ -2,8 +2,9 @@
  * Dev-only verification script (NOT part of the service — never imported by
  * src/index.ts) for the YOUR SEAT reconciliation (docs/HANDOFF-2026-07-10-
  * coordinator-session.md §5) + its review fixes (session-bound claim tokens,
- * mint idempotency). Four parts, each independently gated so a missing
- * optional dependency (a DAS RPC) SKIPs honestly rather than failing:
+ * mint idempotency, restart-safe final scores). Five parts, each independently
+ * gated so a missing optional dependency (a DAS RPC) SKIPs honestly rather
+ * than failing:
  *
  *   1. /seat/claim + /seat/me round-trip — through the REAL token ceremony
  *      (WS hello → seatToken → grant → HTTP claim) — and profile persistence
@@ -13,7 +14,8 @@
  *      has no fixture identity and never reaches FULL_TIME, so the mint path
  *      is never approached.
  *   2. CLAIM-TOKEN SECURITY (review fix, risk 2) + the mint HONESTY GATE +
- *      MINT IDEMPOTENCY (review fix, risk 3), one in-process server:
+ *      MINT IDEMPOTENCY (review fix, risk 3) + POST-RESTART TRUE SCORE
+ *      (review merge-gate), one data dir:
  *      - a session can only obtain a token for its OWN adopted anonId+matchId
  *        (mismatched requests get silence, like a cheer for the wrong match);
  *      - a claim with a forged / reused / expired / absent token is rejected
@@ -27,30 +29,45 @@
  *        broadcastToMatch path the live ingest uses), a fan holding a durable
  *        minted marker gets the EXISTING asset back on every claim — checked
  *        BEFORE getMintRuntime() (proven by timing: no RPC/Irys latency) —
- *        two sequential claims, one asset, zero new mints.
- *   3. mint ATTRIBUTE SHAPING — pure, no server, no network: scarfFactsFor +
+ *        two sequential claims, one asset, zero new mints;
+ *      - the immediate post-FT snapshot carries the resolution-time
+ *        finalScore (v6) and currentScoreSnapshot serves it live; a CHILD
+ *        process restarted on the SAME data dir restores it, and a fresh
+ *        fan's FIRST claim (no marker) reaches the real mint path carrying
+ *        the TRUE final score — proven by the pre-mint score log line, with
+ *        EVERY mint endpoint (RPC + Irys) aimed at an unroutable localhost
+ *        port so the attempt can never become a real transaction (the claim
+ *        honestly returns mint:null when that attempt fails — the assertion
+ *        is the score it attempted with, never 0–0).
+ *   3. REFUSE-DON'T-FABRICATE (review merge-gate, the belt): a DOCTORED v5
+ *      snapshot (resolved flag hand-crafted, NO finalScore — exactly the
+ *      shape of a pre-v6 production snapshot) boots a child whose claim gets
+ *      200 + mint:null + a plain retryable mintNote, and the logs prove the
+ *      mint path was NEVER entered — a "Full-time 0–0" scarf cannot exist.
+ *   4. mint ATTRIBUTE SHAPING — pure, no server, no network: scarfFactsFor +
  *      buildScarfAttributes against a REAL 3-state verdict computed by
  *      MatchState.resolvePredictions (exact / outcome / wrong), plus the
  *      never-predicted case (call/result genuinely absent, never invented).
- *   4. /seat/album's DAS path, gated on HELIUS_RPC_URL — SKIPPED with a named
+ *   5. /seat/album's DAS path, gated on HELIUS_RPC_URL — SKIPPED with a named
  *      reason when unset (the public devnet RPC has no DAS getAssetsByOwner
  *      index); when set, one real READ (not a transaction) against a
  *      never-used pubkey.
  *
  * What this deliberately does NOT do: complete a real mint. The idempotency
  * scenario SEEDS the durable marker through the real seat/minted-store.ts
- * writer instead of minting for real — an unseeded post-FULL_TIME claim would
- * exercise mint-scarf.ts's getMintRuntime(), a real devnet RPC/Irys/mint-
- * transaction path, which the reconciliation plan explicitly forbids from an
- * automated check ("NO real transactions from dev checks"). The REAL
- * first-mint path (unseeded → one on-chain mint → second claim returns the
- * same asset → album shows ONE scarf) is covered by the manual devnet proof,
+ * writer, and the post-restart scenario aims the mint runtime at unroutable
+ * localhost endpoints — an unguarded post-FULL_TIME claim against real
+ * endpoints would exercise a real devnet RPC/Irys/mint-transaction path,
+ * which the reconciliation plan explicitly forbids from an automated check
+ * ("NO real transactions from dev checks"). The REAL first-mint path
+ * (unseeded → one on-chain mint → second claim returns the same asset →
+ * album shows ONE scarf) is covered by the manual devnet proof,
  * src/dev/prove-claim-mint.ts (npm run prove:claim-mint).
  *
  * Usage: tsx src/dev/seat-check.ts (or: npm run check:seat)
  */
 import { type ChildProcessByStdio, spawn } from 'node:child_process';
-import { existsSync, mkdtempSync, readdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import type { Readable } from 'node:stream';
@@ -396,6 +413,59 @@ async function partTokenGateIdempotency(): Promise<void> {
       `first=${JSON.stringify(claimC1.body.mint)} second=${JSON.stringify(claimC2.body.mint)}`,
     );
 
+    /* ── post-restart TRUE score (review merge-gate) ── */
+    // Live path first: currentScoreSnapshot is the EXACT value handleSeatClaim hands to
+    // mintScarfForClaim (one line apart) — resolved in this process, it must carry the real 2–1.
+    const { currentScoreSnapshot } = await import('../server');
+    const liveScore = currentScoreSnapshot(MATCH_ID);
+    assert('live path: currentScoreSnapshot serves the resolution-time score {2,1,decided:true}', liveScore.home === 2 && liveScore.away === 1 && liveScore.decided === true, JSON.stringify(liveScore));
+
+    // The immediate post-FT snapshot (predictLifecycle -> registry.snapshotNow) must already
+    // carry finalScore — that write happened synchronously inside the FULL_TIME broadcast above.
+    const snapOnDisk = JSON.parse(readFileSync(path.join(dataDir, 'rooot-stands-snapshot.json'), 'utf8')) as {
+      version?: number;
+      matches: Array<{ matchId: string; finalScore?: { home: number; away: number } }>;
+    };
+    const snapMatch = snapOnDisk.matches.find((m) => m.matchId === MATCH_ID);
+    assert('the on-disk snapshot is v6 and carries finalScore {2,1} for the resolved match', snapOnDisk.version === 6 && snapMatch?.finalScore?.home === 2 && snapMatch?.finalScore?.away === 1, `version=${snapOnDisk.version} finalScore=${JSON.stringify(snapMatch?.finalScore)}`);
+
+    // Now the restart: a CHILD process on the SAME data dir (fresh memory — the exact bug
+    // scenario: resolvedMatches restores, the join-snapshot score cache does NOT). A fresh fan
+    // with NO minted marker claims; the mint path must be entered with the TRUE restored score.
+    // Every mint endpoint (RPC + Irys + collection cache) is aimed at unroutable/throwaway local
+    // targets so this attempt CANNOT become a real transaction — the claim then honestly returns
+    // mint:null when the attempt fails, and the assertion is the pre-mint score log line.
+    const bootR = await bootServer({
+      STANDS_DATA_DIR: dataDir,
+      MINT_DEVNET_RPC: 'http://127.0.0.1:9',
+      MINT_IRYS_DEVNET: 'http://127.0.0.1:9',
+      MINT_DEVNET_KEYPAIR: path.join(dataDir, 'mint-throwaway.json'),
+      ROOOT_SCARF_COLLECTION_CACHE: path.join(dataDir, 'scarf-collection-throwaway.json'),
+    });
+    log('restart-score', `child up on port ${bootR.port} (same dataDir, fresh memory)`);
+    try {
+      assert('the restarted child logs a restored-snapshot line (v6)', bootR.getOutput().includes('restored') && bootR.getOutput().includes('(v6)'), bootR.getOutput().split('\n').find((l) => l.includes('restored')) ?? '(no restore line)');
+      const fanD = 'seat-check-fan-d';
+      const pubkeyD = freshPubkey();
+      const tokenD = await getSeatToken(`ws://127.0.0.1:${bootR.port}`, MATCH_ID, fanD, 'away');
+      const claimD = await postClaim(`http://127.0.0.1:${bootR.port}`, { token: tokenD, pubkey: pubkeyD, method: 'passkey' });
+      const outR = bootR.getOutput();
+      assert('post-restart first claim (no marker) -> 200, and the refuse path did NOT trigger (score was restored, so no mintNote)', claimD.status === 200 && claimD.body.mintNote === undefined, `status=${claimD.status} mintNote=${JSON.stringify(claimD.body.mintNote)}`);
+      assert(
+        'the mint path was entered with the TRUE restored final score (pre-mint log carries full-time 2–1, sourced from the v6 snapshot, not the empty live cache)',
+        outR.includes('full-time 2–1'),
+        outR.split('\n').find((l) => l.includes('[seat:mint] minting')) ?? '(no pre-mint line)',
+      );
+      assert('…and never a fabricated 0–0 anywhere in the child log', !outR.includes('0–0'), 'no 0–0 in output');
+      assert(
+        '…the attempt then failed on the deliberately unroutable endpoints -> mint:null (no real transaction is possible from this check; the REAL unrouted mint is prove-claim-mint.ts, manual)',
+        claimD.body.mint === null && outR.includes('[seat:mint] mint failed'),
+        `mint=${JSON.stringify(claimD.body.mint)} failLine=${outR.split('\n').find((l) => l.includes('mint failed')) ?? '(none)'}`,
+      );
+    } finally {
+      await killHard(bootR.proc);
+    }
+
     await closeAndWait(wsA);
     await closeAndWait(wsC);
   } finally {
@@ -405,7 +475,59 @@ async function partTokenGateIdempotency(): Promise<void> {
   }
 }
 
-/* ── part 3: mint attribute shaping — pure, no server, no network ───────────── */
+/* ── part 3: refuse-don't-fabricate — resolved WITHOUT a known score (doctored v5) ── */
+async function partRefuseUnknownScore(): Promise<void> {
+  const dataDir = mkdtempSync(path.join(tmpdir(), 'rooot-seat-check-refuse-'));
+  const MATCH_ID = '18202783'; // a real fixture id, so ONLY the missing score can explain a refusal
+  // Hand-craft the exact shape a PRE-v6 production snapshot has for a resolved match: the
+  // resolved flag present, verdicts present, but NO finalScore field at all. This is the
+  // reviewer's scenario verbatim — restore it and claim.
+  const doctored = {
+    version: 5,
+    savedAtMs: Date.now(),
+    matches: [{
+      matchId: MATCH_ID,
+      rooted: [['doctored-fan', 'home']],
+      rooms: [],
+      predictions: [['doctored-fan', { home: 2, away: 1, atMs: 1 }]],
+      predictLocked: true,
+      verdicts: [['doctored-fan', { type: 'predictVerdict', matchId: MATCH_ID, anonId: 'doctored-fan', predicted: { home: 2, away: 1 }, final: { home: 2, away: 1 }, verdict: 'exact' }]],
+      resolved: true,
+      fanStats: [],
+      openedTriggerIds: [],
+    }],
+  };
+  writeFileSync(path.join(dataDir, 'rooot-stands-snapshot.json'), JSON.stringify(doctored));
+  const boot = await bootServer({
+    STANDS_DATA_DIR: dataDir,
+    ROOOT_SEAT_DIR: path.join(dataDir, 'seat'),
+    MINT_DEVNET_RPC: 'http://127.0.0.1:9',
+    MINT_IRYS_DEVNET: 'http://127.0.0.1:9',
+    MINT_DEVNET_KEYPAIR: path.join(dataDir, 'mint-throwaway.json'),
+    ROOOT_SCARF_COLLECTION_CACHE: path.join(dataDir, 'scarf-collection-throwaway.json'),
+  });
+  log('refuse', `child up on port ${boot.port} (doctored v5 snapshot: resolved, NO finalScore)`);
+  try {
+    const fanE = 'seat-check-fan-e';
+    const pubkeyE2 = freshPubkey();
+    const token = await getSeatToken(`ws://127.0.0.1:${boot.port}`, MATCH_ID, fanE, 'home');
+    const start = Date.now();
+    const claim = await postClaim(`http://127.0.0.1:${boot.port}`, { token, pubkey: pubkeyE2, method: 'passkey' });
+    const elapsed = Date.now() - start;
+    const out = boot.getOutput();
+    assert('a claim on a resolved match with NO known score -> 200 with mint:null — NEVER a 0–0 scarf', claim.status === 200 && claim.body.mint === null, `status=${claim.status} mint=${JSON.stringify(claim.body.mint)}`);
+    assert('…with a plain retryable mintNote in the response', typeof claim.body.mintNote === 'string' && claim.body.mintNote.length > 0, `mintNote=${JSON.stringify(claim.body.mintNote)}`);
+    assert('…the server logged the refuse reason plainly', out.includes('refusing to mint rather than fabricate'), out.split('\n').find((l) => l.includes('refusing to mint')) ?? '(no refuse line)');
+    assert('…and the mint path was NEVER entered (no pre-mint score line, no mint attempt/failure at all)', !out.includes('[seat:mint] minting') && !out.includes('[seat:mint] mint failed'), 'no [seat:mint] minting/failed lines');
+    assert('…resolved fast (no network path was ever reached)', elapsed < 2000, `${elapsed}ms`);
+    assert('…the profile bind itself still saved normally (refusal costs the fan nothing)', claim.body.profile?.pubkey === pubkeyE2, `profile=${JSON.stringify(claim.body.profile)}`);
+  } finally {
+    await killHard(boot.proc);
+    rmSync(dataDir, { recursive: true, force: true });
+  }
+}
+
+/* ── part 4: mint attribute shaping — pure, no server, no network ───────────── */
 async function partAttributeShaping(): Promise<void> {
   const { MatchState } = await import('../match-state');
   const { scarfFactsFor } = await import('../seat/mint-scarf');
@@ -465,7 +587,7 @@ async function partAttributeShaping(): Promise<void> {
   assert('…but still carries every structural fact (matchId/home/away/score/comp/date/serial)', ['matchId', 'home', 'away', 'score', 'comp', 'date', 'serial'].every((k) => noCallTypes.has(k)), JSON.stringify(noCallAttrs));
 }
 
-/* ── part 4: /seat/album's DAS path — env-gated, one real READ if present ───── */
+/* ── part 5: /seat/album's DAS path — env-gated, one real READ if present ───── */
 async function partAlbumDas(): Promise<void> {
   if (!process.env.HELIUS_RPC_URL) {
     skip('/seat/album DAS path', 'HELIUS_RPC_URL is not set — the public devnet RPC has no DAS getAssetsByOwner index, so this check has no honest way to exercise the live route. Set HELIUS_RPC_URL (a Helius or other DAS-capable devnet RPC) to run it.');
@@ -500,6 +622,7 @@ const watchdog = setTimeout(() => {
 async function main(): Promise<void> {
   await partPersistence();
   await partTokenGateIdempotency();
+  await partRefuseUnknownScore();
   await partAttributeShaping();
   await partAlbumDas();
 }

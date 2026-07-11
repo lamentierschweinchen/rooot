@@ -94,8 +94,16 @@ export const SNAPSHOT_INTERVAL_MS = resolveSnapshotIntervalMs();
  * re-open an already-run drama moment — a "ghost window" whose react a
  * connected fan could double-count into their PERSISTED fanStats.reacts.
  * Absent on a v1/v2/v3/v4 file — applySnapshot defaults to none, never
- * fabricates. Same shape/tolerance discipline as `resolved` below. */
-export const SNAPSHOT_VERSION = 5;
+ * fabricates. Same shape/tolerance discipline as `resolved` below. v6 adds
+ * `finalScore` (per match) — the resolution-time final score predictLifecycle
+ * graded the verdicts against (review merge-gate fix: `resolvedMatches`
+ * restored from the snapshot but the score cache was memory-only, so a fan's
+ * FIRST post-restart claim on an already-resolved match minted a false
+ * "Full-time 0–0" scarf whose score contradicted its own verdict attribute).
+ * Absent on a v1..v5 file — applySnapshot restores none, and a resolved match
+ * with no known score REFUSES to mint rather than fabricating 0–0 (server.ts
+ * currentScoreSnapshot + handleSeatClaim). */
+export const SNAPSHOT_VERSION = 6;
 
 interface SnapshotRoomMember {
   anonId: string;
@@ -138,6 +146,14 @@ interface SnapshotMatch {
    * above for the "ghost window" bug this closes. Mirrors `resolved` above:
    * per-match, additive, tolerant. */
   openedTriggerIds?: string[];
+  /** v6+. The REAL final score this match resolved with — captured in
+   * predictLifecycle's FULL_TIME branch from the same fh/fa the verdicts were
+   * graded against, so a restored process's scarf mints can never contradict
+   * the restored verdicts. Absent on a v1..v5 file (or a never-resolved
+   * match) — applySnapshot restores none, never fabricates; server-side, a
+   * resolved match with no known score refuses to mint (SNAPSHOT_VERSION doc
+   * comment above). */
+  finalScore?: { home: number; away: number };
 }
 
 /** v4+. THE FAN SERIAL (design/HANDOFF-2026-07-10-fan-serial.md) — a
@@ -188,6 +204,10 @@ export function writeSnapshot(
    * doc comment above: the "ghost window" fix). Optional/undefined-tolerant,
    * same as getMoments/isResolved above. */
   getOpenedTriggerIds?: (matchId: string) => string[],
+  /** v6 — the resolution-time final score for this match, or null when it
+   * never resolved (the field is then omitted, never zero-filled). Same
+   * optional-hook discipline as the rest. */
+  getFinalScore?: (matchId: string) => { home: number; away: number } | null,
 ): void {
   const file: SnapshotFile = {
     version: SNAPSHOT_VERSION,
@@ -208,6 +228,7 @@ export function writeSnapshot(
         resolved: isResolved ? isResolved(m.matchId) : undefined,
         fanStats: snap.fanStats,
         openedTriggerIds: getOpenedTriggerIds ? getOpenedTriggerIds(m.matchId) : [],
+        finalScore: getFinalScore ? getFinalScore(m.matchId) ?? undefined : undefined,
       };
     }),
     fans: fanSerial,
@@ -294,6 +315,11 @@ export function applySnapshot(
   markResolved?: (matchId: string) => void,
   restoreFanSerial?: (nextFanNo: number, numbers: Array<[string, number]>) => void,
   restoreOpenedTriggers?: (matchId: string, triggerIds: string[]) => void,
+  /** v6 — re-arm the resolution-time final score for a match restored with one
+   * (SNAPSHOT_VERSION doc comment above). Only called for a genuinely numeric
+   * persisted pair — an older file (or a never-resolved match) restores
+   * nothing, and the mint path then refuses rather than fabricating 0–0. */
+  restoreFinalScore?: (matchId: string, score: { home: number; away: number }) => void,
 ): void {
   for (const sm of snap.matches) {
     const match = getOrCreate(sm.matchId);
@@ -312,6 +338,9 @@ export function applySnapshot(
     if (restoreOpenedTriggers && sm.openedTriggerIds && sm.openedTriggerIds.length > 0) restoreOpenedTriggers(sm.matchId, sm.openedTriggerIds);
     const hadVerdicts = (sm.verdicts?.length ?? 0) > 0;
     if (markResolved && (sm.resolved === true || hadVerdicts)) markResolved(sm.matchId);
+    if (restoreFinalScore && sm.finalScore && typeof sm.finalScore.home === 'number' && typeof sm.finalScore.away === 'number') {
+      restoreFinalScore(sm.matchId, { home: sm.finalScore.home, away: sm.finalScore.away });
+    }
   }
   if (restoreFanSerial && snap.fans) restoreFanSerial(snap.fans.nextFanNo ?? 1, snap.fans.numbers ?? []);
 }

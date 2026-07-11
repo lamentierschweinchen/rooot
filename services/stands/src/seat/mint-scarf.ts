@@ -130,6 +130,10 @@ async function mintScarfNow(record: ClaimRecord, score: LiveScoreSnapshot, extra
       return null;
     }
 
+    // Log the exact score this mint will write BEFORE any network call — one plain line so Fly
+    // logs (and the dev check's post-restart scenario) show what the scarf was about to carry.
+    console.log(`[seat:mint] minting for ${record.pubkey.slice(0, 8)} @ ${record.matchId}: full-time ${score.home}–${score.away}, result ${extras.result ?? 'none'}, serial ${extras.fanNo}`);
+
     const { umi, cluster, collection } = await getMintRuntime();
     const cover = makeScarfCoverPng();
     const capturedAtISO = new Date().toISOString();

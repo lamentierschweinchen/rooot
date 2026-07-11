@@ -198,6 +198,17 @@ function sendToAnon(matchId: string, anonId: string, msg: ServerMsg): void {
 /** Predictions lock at kickoff and resolve at full time — driven by the phase
  * on the status feed (the match's own truth). Idempotent: resolve fires once. */
 const resolvedMatches = new Set<string>();
+/** The RESOLUTION-TIME final score per resolved match — the very fh/fa
+ * predictLifecycle grades verdicts with, captured at the instant
+ * resolvedMatches flips and persisted alongside it (snapshot v6, via the
+ * registry's finalScore hooks below). Review merge-gate fix: the resolved
+ * flag restored across a restart but the score lived only in the memory-only
+ * join-snapshot cache, so a fan's FIRST post-restart claim on an
+ * already-resolved match minted a false "Full-time 0–0" scarf that
+ * contradicted its own restored verdict attribute. A resolved match with no
+ * entry here and no live-cached score now REFUSES to mint
+ * (currentScoreSnapshot in the SEAT fence) rather than fabricating a score. */
+const finalScores = new Map<string, { home: number; away: number }>();
 function predictLifecycle(matchId: string, msg: ServerMsg | FeedMsg): void {
   if (msg.type !== 'status') return;
   const phase = msg.ev.phase;
@@ -213,6 +224,10 @@ function predictLifecycle(matchId: string, msg: ServerMsg | FeedMsg): void {
     const fa = snap && snap.score ? snap.score.ev.away : undefined;
     if (typeof fh === 'number' && typeof fa === 'number') {
       resolvedMatches.add(matchId);
+      // capture the SAME final score the verdicts below are graded with — it
+      // rides the immediate post-FT snapshot (finalScore hooks) so a restarted
+      // process's scarf mints can never contradict the restored verdicts.
+      finalScores.set(matchId, { home: fh, away: fa });
       // per-fan delivery, not a match broadcast — a verdict is personal
       // (Task 4 point 2: confirmed sendToAnon already scopes to this anonId's
       // own sockets only). Late joiners/reconnects get theirs via handleHello's
@@ -713,6 +728,19 @@ const registry = new MatchRegistry(
       for (const id of triggerIds) seen.add(id);
     },
   },
+  {
+    // Review merge-gate fix: the resolution-time final score (finalScores,
+    // captured in predictLifecycle's FULL_TIME branch alongside
+    // resolvedMatches) rides the snapshot through these hooks — same pattern
+    // as moments/resolved/openedTriggers above. `restore` runs during
+    // registry.loadSnapshot(), BEFORE any ingest, so the very first
+    // post-restart claim on an already-resolved match already knows the TRUE
+    // score its restored verdicts were graded against — never a fabricated
+    // 0–0. `get` returns null for a never-resolved match (the field is then
+    // omitted from the snapshot, never zero-filled).
+    get: (matchId) => finalScores.get(matchId) ?? null,
+    restore: (matchId, score) => { finalScores.set(matchId, score); },
+  },
 );
 
 function isValidSide(v: unknown): v is Side {
@@ -993,14 +1021,29 @@ function handleMessage(ws: WebSocket, state: ConnState, raw: string): void {
  * risk 2), and the fenced route block inside createStandsServer.
  * ════════════════════════════════════════════════════════════════════════ */
 
-/** The REAL current score for matchId, as of right now — read from the same join-snapshot cache
- * that catches up a freshly-joined socket (this module's own state; MatchState carries no score).
- * `{home:0,away:0}` when no score message has arrived yet — a real, true tally, not a fabrication.
- * `decided` is true only once FULL_TIME was genuinely observed (`resolvedMatches`, populated in
- * predictLifecycle off the real status feed) — never guessed. */
-function currentScoreSnapshot(matchId: string): LiveScoreSnapshot {
+/** The REAL score for matchId as this process knows it. `decided` is true ONLY when full time was
+ * genuinely observed (`resolvedMatches`) AND a genuine final score is known — belt from the review
+ * merge-gate fix: a restart used to restore the resolved flag while the score cache (memory-only
+ * joinSnapshots) came back empty, so this returned {0,0,decided:true} and the fan's first
+ * post-restart claim minted a permanent "Full-time 0–0" scarf contradicting its own verdict
+ * attribute. Order of truth for a RESOLVED match: `finalScores` first (the resolution-time score
+ * the verdicts were graded with — persisted in the snapshot, restored on boot), then the live
+ * join-snapshot cache (covers a resolved-in-this-process match; identical by construction, since
+ * predictLifecycle sourced fh/fa from that same cache); neither known -> decided:false, and the
+ * claim path refuses the mint honestly (retryable) rather than fabricating a score. For an
+ * UNRESOLVED match this stays the live-cache read it always was ({0,0} before any score message —
+ * a real, true tally, and decided:false keeps the mint gate shut anyway).
+ * Exported for the dev check (src/dev/seat-check.ts) — this is the exact value handleSeatClaim
+ * hands to mintScarfForClaim, so asserting it post-restore IS asserting what a mint would carry. */
+export function currentScoreSnapshot(matchId: string): LiveScoreSnapshot {
   const ev = joinSnapshots.get(matchId)?.score?.ev;
-  return { home: ev?.home ?? 0, away: ev?.away ?? 0, decided: resolvedMatches.has(matchId) };
+  if (resolvedMatches.has(matchId)) {
+    const final = finalScores.get(matchId);
+    if (final) return { home: final.home, away: final.away, decided: true };
+    if (ev && typeof ev.home === 'number' && typeof ev.away === 'number') return { home: ev.home, away: ev.away, decided: true };
+    return { home: 0, away: 0, decided: false }; // resolved but no genuine score known — refuse, never fabricate
+  }
+  return { home: ev?.home ?? 0, away: ev?.away ?? 0, decided: false };
 }
 
 function sendJson(res: ServerResponse, status: number, body: unknown): void {
@@ -1149,16 +1192,27 @@ async function handleSeatClaim(req: IncomingMessage, res: ServerResponse): Promi
     // problem can NEVER turn an already-saved bind into a 500: the claim always responds 200 with
     // mint:null on any mint-side issue.
     let mint: ScarfMint | null = null;
+    let mintNote: string | undefined;
     if (match) {
-      try {
-        const result = match.verdictFor(grant.anonId)?.verdict ?? null;
-        const fanNo = registry.fanNoFor(grant.anonId);
-        mint = await mintScarfForClaim(record, currentScoreSnapshot(match.matchId), { result, fanNo });
-      } catch (err) {
-        console.warn(`[seat] mint threw unexpectedly for ${pubkey.slice(0, 8)}: ${String(err)}`);
+      const score = currentScoreSnapshot(match.matchId);
+      if (resolvedMatches.has(match.matchId) && !score.decided) {
+        // Review merge-gate fix: the match genuinely finished, but THIS process does not know
+        // the real final score (restored from a pre-v6 snapshot, or the score never persisted).
+        // Refuse plainly and retryably — the bind is saved, no token/marker is burned by this
+        // branch, and no scarf is ever minted with a fabricated 0–0.
+        mintNote = 'final score not available right now — your seat is saved; claim again shortly';
+        console.warn(`[seat] ${match.matchId} is resolved but its final score is unknown to this process (pre-finalScore snapshot?) — refusing to mint rather than fabricate a 0–0 scarf; the claim stays retryable`);
+      } else {
+        try {
+          const result = match.verdictFor(grant.anonId)?.verdict ?? null;
+          const fanNo = registry.fanNoFor(grant.anonId);
+          mint = await mintScarfForClaim(record, score, { result, fanNo });
+        } catch (err) {
+          console.warn(`[seat] mint threw unexpectedly for ${pubkey.slice(0, 8)}: ${String(err)}`);
+        }
       }
     }
-    sendJson(res, 200, { profile, mint });
+    sendJson(res, 200, { profile, mint, ...(mintNote ? { mintNote } : {}) });
   } catch (err) {
     console.warn(`[seat] claim failed for ${pubkey.slice(0, 8)}: ${String(err)}`);
     sendJson(res, 500, { error: 'claim failed' });
