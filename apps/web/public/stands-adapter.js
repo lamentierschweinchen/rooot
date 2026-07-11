@@ -40,13 +40,13 @@
     // resolve to this same literal. Warns exactly once (review I2).
     function finish(id, fellBack) {
       if (done) return; done = true;
-      if (fellBack) console.warn('[stands-adapter] fixture manifest unavailable — falling back to 18209181');
+      if (fellBack) console.warn('[stands-adapter] fixture manifest unavailable — falling back to 18213979');
       cb(id);
     }
     window.__fixtureReady.then(function (fx) {
-      if (fx && fx.matchId) finish(fx.matchId, false); else finish('18209181', true);
-    }, function () { finish('18209181', true); });
-    setTimeout(function () { finish('18209181', true); }, 1500);
+      if (fx && fx.matchId) finish(fx.matchId, false); else finish('18213979', true);
+    }, function () { finish('18213979', true); });
+    setTimeout(function () { finish('18213979', true); }, 1500);
   }
 
   resolveMatchId(explicitMatch, function (matchId) {
@@ -60,6 +60,9 @@
   }
   var me = anonId();
   var ws = null, mySide = null, backoff = 1000, outbox = [];
+  var connecting = false;        // true while a socket is opening or open — single-flight guard
+  var reconnectTimer = null;     // at most one pending reconnect timer, ever
+  var openedAtMs = 0;            // when the current attempt's onopen fired (0 = not open yet)
   var lastTriple = null;                 // live de-vigged market, for the predict stamp
   var trailing = null;                   // side currently behind → faith
   var lastScore = { home: 0, away: 0 };
@@ -97,7 +100,19 @@
     onMarket: function (fn) { cb.market.push(fn); if (lastTriple) try { fn(lastTriple); } catch (e) {} },
   };
   function flushCheer() { cheerTimer = null; var n = pendingCheer; pendingCheer = 0; if (n > 0 && mySide) send({ type: 'cheer', matchId: matchId, side: mySide, n: n, atMs: Date.now() }); }
-  function publish() { view.faithSide = trailing; fire(cb.state, view); }
+  // trailing-edge throttle (~250ms, <=4 fires/s): view is mutated synchronously by every
+  // caller above BEFORE publish() runs, so this only coalesces the notify-to-surfaces
+  // fan-out — nothing is lost, a join replay's ~1,600 stands/score/odds messages just can't
+  // each force a synchronous render (the main-thread block behind last night's reconnect
+  // storm). Discrete signals (consensus/verdict/moment/momentResult/cheerEcho/market, plus
+  // the direct fanNo assignment on 'welcome') fire via fire(cb.X, …) directly in onMsg, not
+  // through publish() — they stay instant, untouched here.
+  var publishTimer = null;
+  function publish() {
+    view.faithSide = trailing;
+    if (publishTimer) return;
+    publishTimer = setTimeout(function () { publishTimer = null; fire(cb.state, view); }, 250);
+  }
 
   function onMsg(m) {
     switch (m.type) {
@@ -137,13 +152,43 @@
     }
   }
 
+  // Single-flight + reconnect discipline. Last night: heavy replay processing blocked the
+  // main thread, sockets died under backpressure, and MULTIPLE queued onclose handlers each
+  // reconnected + reset backoff to 1s — a self-feeding storm (10 successful opens logged in
+  // ~1s vs 2 expected). Fix: `connecting` guards against ever having two concurrent
+  // attempts (opening OR open); `reconnectTimer` guards against ever having more than one
+  // pending reconnect scheduled; backoff (1s→30s) resets to 1s only once a connection has
+  // stayed open >=5s — a connect-die-connect flap keeps escalating instead of hammering.
+  function scheduleReconnect() {
+    if (reconnectTimer || connecting) return;
+    reconnectTimer = setTimeout(function () { reconnectTimer = null; connect(); }, backoff);
+  }
   function connect() {
+    if (connecting) return;
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+    connecting = true;
     var url = wsBase + (wsBase.indexOf('?') >= 0 ? '&' : '?') + 'matchId=' + encodeURIComponent(matchId);
-    try { ws = new WebSocket(url); } catch (e) { setTimeout(connect, backoff); return; }
-    ws.onopen = function () { backoff = 1000; hello(); flush(); console.log('[stands-adapter] live wire →', matchId); };
-    ws.onmessage = function (e) { var m; try { m = JSON.parse(e.data); } catch (_) { return; } try { onMsg(m); } catch (err) { console.warn('[stands-adapter]', err); } };
-    ws.onclose = function () { view.connected = false; publish(); setTimeout(connect, backoff); backoff = Math.min(backoff * 2, 30000); };
-    ws.onerror = function () { try { ws.close(); } catch (_) {} };
+    var sock;
+    try { sock = new WebSocket(url); } catch (e) { connecting = false; scheduleReconnect(); return; }
+    ws = sock;
+    sock.onopen = function () {
+      if (sock !== ws) return; // stale handler guard — should be unreachable under single-flight
+      if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+      openedAtMs = Date.now();
+      hello(); flush();
+      console.log('[stands-adapter] live wire →', matchId);
+    };
+    sock.onmessage = function (e) { var m; try { m = JSON.parse(e.data); } catch (_) { return; } try { onMsg(m); } catch (err) { console.warn('[stands-adapter]', err); } };
+    sock.onclose = function () {
+      if (sock !== ws) return;
+      connecting = false;
+      view.connected = false; publish();
+      var stayedOpen = openedAtMs > 0 && (Date.now() - openedAtMs) >= 5000;
+      backoff = stayedOpen ? 1000 : Math.min(backoff * 2, 30000);
+      openedAtMs = 0;
+      scheduleReconnect();
+    };
+    sock.onerror = function () { try { sock.close(); } catch (_) {} };
   }
   connect();
   });

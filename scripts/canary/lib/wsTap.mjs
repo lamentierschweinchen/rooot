@@ -42,6 +42,31 @@ export function initScript(params) {
   };
   window.__canary = log;
 
+  // every REAL (non-stubbed) native socket this page ever opened, kept for the
+  // reconnect-storm check (scripts/canary/reconnect-check.mjs) — additive, unused by
+  // full/smoke mode. Lets a test force a real close (simulating "the socket dies under
+  // backpressure") and read live concurrency, without touching any adapter's own code.
+  var liveHandles = [];
+  window.__canary.killLive = function (hostFilter) {
+    var n = 0;
+    for (var i = 0; i < liveHandles.length; i++) {
+      var h = liveHandles[i];
+      if (h.real.readyState === 1 && (!hostFilter || h.host === hostFilter)) {
+        try { h.real.close(); } catch (e) {}
+        n++;
+      }
+    }
+    return n;
+  };
+  window.__canary.liveCount = function (hostFilter) {
+    var n = 0;
+    for (var i = 0; i < liveHandles.length; i++) {
+      var h = liveHandles[i], rs = h.real.readyState;
+      if ((rs === 0 || rs === 1) && (!hostFilter || h.host === hostFilter)) n++;
+    }
+    return n;
+  };
+
   function hostOf(u) {
     try { return new URL(u, window.location.href).host; } catch (e) { return ''; }
   }
@@ -89,6 +114,7 @@ export function initScript(params) {
     }
 
     var real = new NativeWebSocket(url, protocols);
+    liveHandles.push({ real: real, url: urlStr, host: host });
     real.addEventListener('open', function () { log.opens.push({ url: urlStr, host: host, atMs: Date.now() }); });
     real.addEventListener('close', function (ev) { log.closes.push({ url: urlStr, host: host, atMs: Date.now(), code: ev && ev.code }); });
     real.addEventListener('error', function () { log.errors.push({ url: urlStr, host: host, atMs: Date.now() }); });

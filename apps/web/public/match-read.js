@@ -87,11 +87,20 @@
   var subs = [];
   function snapshot() { return { score: state.score, clock: state.clock, market: state.market, marketSeries: state.marketSeries, teams: state.teams, done: state.done }; }
   function fire() { for (var i = 0; i < subs.length; i++) try { subs[i](snapshot()); } catch (e) {} }
+  // trailing-edge throttle (~250ms, <=4 fires/s) on the LIVE path only: the window.__match
+  // fields above are updated synchronously on every message BEFORE the throttle gate, so
+  // reads never go stale — only the subscriber fan-out (fire(), which snapshots + calls each
+  // on(fn)) is coalesced, so a join replay's ~1,600 messages can't each force a synchronous
+  // render. ?demo=1 is gated out and stays byte-identical (demo-feed.js already paces its own
+  // playback; no reconnect loop to storm in the first place).
+  var publishTimer = null;
   function publish() {
     var s = snapshot();
     window.__match.score = s.score; window.__match.clock = s.clock; window.__match.market = s.market;
     window.__match.marketSeries = s.marketSeries; window.__match.teams = s.teams; window.__match.done = s.done;
-    fire();
+    if (DEMO) { fire(); return; }
+    if (publishTimer) return;
+    publishTimer = setTimeout(function () { publishTimer = null; fire(); }, 250);
   }
   window.__match = {
     score: state.score, clock: state.clock, market: state.market, marketSeries: state.marketSeries,
@@ -103,12 +112,40 @@
   function connectFeed(matchId, wsBase, onMsg) {
     if (wsBase) {
       var url = wsBase + (wsBase.indexOf('?') >= 0 ? '&' : '?') + 'matchId=' + encodeURIComponent(matchId);
-      (function connect() {
-        var ws; try { ws = new WebSocket(url); } catch (e) { setTimeout(connect, 1000); return; }
-        ws.onmessage = function (e) { var m; try { m = JSON.parse(e.data); } catch (_) { return; } try { onMsg(m); } catch (err) {} };
-        ws.onclose = function () { setTimeout(connect, 1000); };
-        ws.onerror = function () { try { ws.close(); } catch (_) {} };
-      })();
+      var ws = null, backoff = 1000, connecting = false, reconnectTimer = null, openedAtMs = 0;
+      // Single-flight + reconnect discipline (see stands-adapter.js for the full incident
+      // rationale). The original loop here had no backoff at all (flat 1s retry forever) —
+      // now brought in line with the other adapters: `connecting` guards against two
+      // concurrent attempts, `reconnectTimer` against more than one pending reconnect,
+      // backoff (1s→30s) resets to 1s only once a connection has stayed open >=5s.
+      function scheduleReconnect() {
+        if (reconnectTimer || connecting) return;
+        reconnectTimer = setTimeout(function () { reconnectTimer = null; connect(); }, backoff);
+      }
+      function connect() {
+        if (connecting) return;
+        if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+        connecting = true;
+        var sock;
+        try { sock = new WebSocket(url); } catch (e) { connecting = false; scheduleReconnect(); return; }
+        ws = sock;
+        sock.onopen = function () {
+          if (sock !== ws) return; // stale handler guard — should be unreachable under single-flight
+          if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+          openedAtMs = Date.now();
+        };
+        sock.onmessage = function (e) { var m; try { m = JSON.parse(e.data); } catch (_) { return; } try { onMsg(m); } catch (err) {} };
+        sock.onclose = function () {
+          if (sock !== ws) return;
+          connecting = false;
+          var stayedOpen = openedAtMs > 0 && (Date.now() - openedAtMs) >= 5000;
+          backoff = stayedOpen ? 1000 : Math.min(backoff * 2, 30000);
+          openedAtMs = 0;
+          scheduleReconnect();
+        };
+        sock.onerror = function () { try { sock.close(); } catch (_) {} };
+      }
+      connect();
     } else if (DEMO && root.__demoFeed) {
       root.__demoFeed.start(onMsg);
     }
@@ -142,13 +179,13 @@
     // resolve to this same literal. Warns exactly once (review I2).
     function finish(id, fellBack) {
       if (done) return; done = true;
-      if (fellBack) console.warn('[match-read] fixture manifest unavailable — falling back to 18209181');
+      if (fellBack) console.warn('[match-read] fixture manifest unavailable — falling back to 18213979');
       cb(id);
     }
     window.__fixtureReady.then(function (fx) {
-      if (fx && fx.matchId) finish(fx.matchId, false); else finish('18209181', true);
-    }, function () { finish('18209181', true); });
-    setTimeout(function () { finish('18209181', true); }, 1500);
+      if (fx && fx.matchId) finish(fx.matchId, false); else finish('18213979', true);
+    }, function () { finish('18213979', true); });
+    setTimeout(function () { finish('18213979', true); }, 1500);
   }
   if (LIVE) resolveMatchId(explicitMatch, bootFeed);
   else bootFeed(explicitMatch || '18202783');

@@ -49,13 +49,13 @@
     // resolve to this same literal. Warns exactly once (review I2).
     function finish(id, fellBack) {
       if (done) return; done = true;
-      if (fellBack) console.warn('[loom-adapter] fixture manifest unavailable — falling back to 18209181');
+      if (fellBack) console.warn('[loom-adapter] fixture manifest unavailable — falling back to 18213979');
       cb(id);
     }
     window.__fixtureReady.then(function (fx) {
-      if (fx && fx.matchId) finish(fx.matchId, false); else finish('18209181', true);
-    }, function () { finish('18209181', true); });
-    setTimeout(function () { finish('18209181', true); }, 1500);
+      if (fx && fx.matchId) finish(fx.matchId, false); else finish('18213979', true);
+    }, function () { finish('18213979', true); });
+    setTimeout(function () { finish('18213979', true); }, 1500);
   }
 
   function waitForLoom(cb) {
@@ -421,18 +421,58 @@
     }
 
     // ── transport: WS to the stands service (it holds the token, parses server-side)
+    //
+    // NOTE on throttling: unlike stands-adapter/stats-adapter/match-read.js, nothing here
+    // gets a state-publish throttle. window.__loom (woven-loom.html / loom-proto.html) never
+    // re-renders synchronously per call — every L.* method below just mutates small in-memory
+    // state (push to an array, bump a counter, set a field) and sets a `dirty` flag; the
+    // actual paint runs once per animation frame, gated on that flag
+    // (woven-loom.html: "if(dirty){dirty=false;renderCloth();}" inside a requestAnimationFrame
+    // loop; loom-proto.html paints on its own always-on rAF loop, fully decoupled from how
+    // often L.* is called). So a join replay's burst of L.odds/L.pressure/L.possession/
+    // L.event/L.clock calls is already O(1)-cheap per call and already coalesces to <=1
+    // render/frame — the loom solved this problem itself. Adding a throttle here would only
+    // risk DROPPING data for the calls that push into arrays (L.event, L.odds, L.pressure,
+    // L.possession all need every call, not just the latest) for zero main-thread benefit —
+    // so market/spell-tick calls (L.odds/L.pressure/L.possession) and the event stream
+    // (L.event) are both left exactly as they were. Only the transport below changes.
     var url = wsBase + (wsBase.indexOf('?') >= 0 ? '&' : '?') + 'matchId=' + encodeURIComponent(matchId);
-    var backoff = 1000;
+    var backoff = 1000, ws = null, connecting = false, reconnectTimer = null, openedAtMs = 0;
+    // Single-flight + reconnect discipline (see stands-adapter.js for the full incident
+    // rationale): `connecting` guards against two concurrent attempts (opening OR open);
+    // `reconnectTimer` guards against more than one pending reconnect; backoff (1s→30s)
+    // resets to 1s only once a connection has stayed open >=5s, so a connect-die-connect
+    // flap escalates instead of hammering at 1s.
+    function scheduleReconnect() {
+      if (reconnectTimer || connecting) return;
+      reconnectTimer = setTimeout(function () { reconnectTimer = null; connect(); }, backoff);
+    }
     function connect() {
-      var ws;
-      try { ws = new WebSocket(url); } catch (e) { setTimeout(connect, backoff); return; }
-      ws.onopen = function () { backoff = 1000; console.log('[loom-adapter] live wire open →', matchId); };
-      ws.onmessage = function (e) {
+      if (connecting) return;
+      if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+      connecting = true;
+      var sock;
+      try { sock = new WebSocket(url); } catch (e) { connecting = false; scheduleReconnect(); return; }
+      ws = sock;
+      sock.onopen = function () {
+        if (sock !== ws) return; // stale handler guard — should be unreachable under single-flight
+        if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+        openedAtMs = Date.now();
+        console.log('[loom-adapter] live wire open →', matchId);
+      };
+      sock.onmessage = function (e) {
         var msg; try { msg = JSON.parse(e.data); } catch (_) { return; }
         try { onFeed(msg); } catch (err) { console.warn('[loom-adapter] translate error', err); }
       };
-      ws.onclose = function () { setTimeout(connect, backoff); backoff = Math.min(backoff * 2, 30000); };
-      ws.onerror = function () { try { ws.close(); } catch (_) {} };
+      sock.onclose = function () {
+        if (sock !== ws) return;
+        connecting = false;
+        var stayedOpen = openedAtMs > 0 && (Date.now() - openedAtMs) >= 5000;
+        backoff = stayedOpen ? 1000 : Math.min(backoff * 2, 30000);
+        openedAtMs = 0;
+        scheduleReconnect();
+      };
+      sock.onerror = function () { try { sock.close(); } catch (_) {} };
     }
     // under ?demo=1 with no explicit ?ws, weave the baked serverless feed (demo-feed.js) —
     // the loom shows the REAL recorded match offline, not its ARG-CPV demo seed.
