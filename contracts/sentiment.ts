@@ -162,6 +162,32 @@ export interface SentimentRecord {
   market: MarketSentiment;
   fans: FanSentiment;
   feel: InGameSentiment;
+  /** IN-GAME NEXT GOAL (docs/BACKLOG-full-version-and-deferred-ideas.md §2) —
+   * one row per resolved, CALLED cycle: the crowd's split at resolution, what
+   * actually happened, and the market at that instant. Rows are appended only
+   * at real resolutions (a goal CONFIRMING on the wire, or FULL_TIME closing
+   * the book against 'none') — never synthesized; a cycle nobody called
+   * appends no row (its `cycle` ordinal is simply skipped — the gap IS the
+   * honest record of an uncalled cycle). `crowd` counts are real fans with an
+   * open call, never probabilities, and always carry n. This is §1.4
+   * Courage-Adjusted Calls' substrate. Optional: absent on records
+   * crystallized before this landed (readers must tolerate absence). */
+  nextGoal?: Array<{
+    /** 1-based ordinal of resolution events this match (confirmed goals +
+     * full-time) — uncalled cycles leave gaps rather than fabricated rows */
+    cycle: number;
+    /** earliest open call's atMs in the resolving book — when the crowd
+     * began calling this cycle (client-stamped, same field predict stores) */
+    openedAtMs: number;
+    resolvedAtMs: number;
+    happened: 'home' | 'away' | 'none';
+    /** the confirming goal's ledger event id; null for a full-time ('none') resolution */
+    confirmedGoalId: string | null;
+    /** real fans with an open call at resolution (n = home+away+none) */
+    crowd: { n: number; home: number; away: number; none: number };
+    /** the live de-vigged market at the resolution instant; null if no tick yet */
+    marketAtResolution: { home: number; draw: number; away: number } | null;
+  }>;
   /** the material events (goals w/ scorer+type, cards, VAR…) */
   events: LedgerEvent[];
   divergence: Divergence;

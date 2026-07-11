@@ -177,6 +177,10 @@ export interface AssembleInputs {
   fans: FanSentiment;
   feel: InGameSentiment;
   events: LedgerEvent[];
+  /** resolved NEXT GOAL cycles (contracts/sentiment.ts SentimentRecord doc) —
+   * optional so callers predating the mechanism (the offline crystallizer)
+   * keep working; absent defaults to an honest empty list. */
+  nextGoal?: SentimentRecord['nextGoal'];
   edition: SentimentRecord['edition'];
   capture: { fromMs: number; toMs: number };
   network: 'devnet' | 'mainnet-beta';
@@ -198,6 +202,7 @@ export function assembleSentimentRecord(inp: AssembleInputs): SentimentRecord {
     market: inp.market,
     fans: inp.fans,
     feel: inp.feel,
+    nextGoal: inp.nextGoal ?? [],
     events: inp.events,
     divergence: div,
     fingerprint,

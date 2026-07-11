@@ -32,6 +32,17 @@ interface NextGoalOpenCall {
   atMs: number;
 }
 
+/** What one NEXT GOAL resolution produced: the per-fan verdicts (personal
+ * delivery), the crowd's split at the instant of resolution (pre-clear —
+ * the SentimentRecord nextGoal row's `crowd`), and the earliest open call's
+ * atMs (the row's `openedAtMs`; null only when the book was empty, which
+ * callers exclude before recording a row). */
+export interface NextGoalResolution {
+  verdicts: NextGoalVerdictMsg[];
+  crowd: { n: number; home: number; away: number; none: number };
+  openedAtMs: number | null;
+}
+
 /** Summarize a cohort's predictions into mean / outcome-split / modal scoreline. */
 function summarize(preds: Array<{ home: number; away: number }>): PredictGroup {
   const n = preds.length;
@@ -495,11 +506,20 @@ export class MatchState {
   /** Resolve every open call against what actually happened, empty the book
    * (a new open-call cycle begins for the next goal), and return the per-fan
    * verdicts for personal delivery (server.ts's sendToAnon, like predict
-   * verdicts). Shared by both resolution triggers below — the ONLY difference
-   * between a goal and a full-time-with-no-more-goals is what `happened` is. */
-  private resolveNextGoal(happened: 'home' | 'away' | 'none', nowMs = Date.now()): NextGoalVerdictMsg[] {
+   * verdicts) PLUS the pre-clear crowd split and the cycle's earliest call
+   * atMs — the caller appends these into the SentimentRecord's nextGoal rows
+   * (contracts/sentiment.ts, §1.4's substrate). Shared by both resolution
+   * triggers below — the ONLY difference between a goal and a
+   * full-time-with-no-more-goals is what `happened` is. */
+  private resolveNextGoal(happened: 'home' | 'away' | 'none', nowMs = Date.now()): NextGoalResolution {
     const out: NextGoalVerdictMsg[] = [];
+    let home = 0, away = 0, none = 0;
+    let openedAtMs: number | null = null;
     for (const [anonId, open] of this.nextGoalOpen) {
+      if (open.call === 'home') home++;
+      else if (open.call === 'away') away++;
+      else none++;
+      if (openedAtMs === null || open.atMs < openedAtMs) openedAtMs = open.atMs;
       const outcome: 'correct' | 'wrong' = open.call === happened ? 'correct' : 'wrong';
       const v: NextGoalVerdictMsg = {
         type: 'nextGoalVerdict',
@@ -517,19 +537,24 @@ export class MatchState {
       if (outcome === 'correct') fs.nextGoalCorrect += 1;
       out.push(v);
     }
+    const crowd = { n: this.nextGoalOpen.size, home, away, none };
     this.nextGoalOpen.clear();
-    return out;
+    return { verdicts: out, crowd, openedAtMs };
   }
 
   /** A real goal scored: calls for the scoring side resolve correct; the
-   * opposite side AND 'none' resolve wrong. */
-  resolveNextGoalOnGoal(side: Side, nowMs = Date.now()): NextGoalVerdictMsg[] {
+   * opposite side AND 'none' resolve wrong. The caller gates on the goal
+   * being CONFIRMED on the wire — an unconfirmed goal (the held breath,
+   * possibly disallowed outright: FRA–MAR 18209181:495 emitted
+   * confirmed:false once, never confirmed, excluded from the final score)
+   * must never reach this. */
+  resolveNextGoalOnGoal(side: Side, nowMs = Date.now()): NextGoalResolution {
     return this.resolveNextGoal(side, nowMs);
   }
 
   /** FULL_TIME with no further goal this cycle: 'none' calls resolve correct;
    * side calls resolve wrong. */
-  resolveNextGoalAtFullTime(nowMs = Date.now()): NextGoalVerdictMsg[] {
+  resolveNextGoalAtFullTime(nowMs = Date.now()): NextGoalResolution {
     return this.resolveNextGoal('none', nowMs);
   }
 

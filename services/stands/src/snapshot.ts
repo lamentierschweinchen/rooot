@@ -24,8 +24,11 @@
 import { accessSync, constants as fsConstants, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { NextGoalVerdictMsg, PredictVerdictMsg, Side } from '@contracts/crowd';
-import type { MomentFeeling } from '@contracts/sentiment';
+import type { MomentFeeling, SentimentRecord } from '@contracts/sentiment';
 import type { FanStats, MatchState } from './match-state';
+
+/** One resolved NEXT GOAL cycle row (contracts/sentiment.ts nextGoal doc). */
+type NextGoalRow = NonNullable<SentimentRecord['nextGoal']>[number];
 
 /**
  * Data dir resolution (Task 3 — volume-ready): STANDS_DATA_DIR env wins
@@ -102,7 +105,14 @@ export const SNAPSHOT_INTERVAL_MS = resolveSnapshotIntervalMs();
  * fabricates. fanStats rows also gain `nextGoalCalls`/`nextGoalCorrect`
  * counters as of v6 — absent on an older row, MatchState.restoreFanStats
  * defaults both to 0 (the feature didn't exist yet when that row was
- * written), same tolerance discipline as `fanStats` itself at v3. */
+ * written), same tolerance discipline as `fanStats` itself at v3. v6 (never
+ * shipped before the whole family landed on one branch — one version covers
+ * it) ALSO adds `nextGoalResolvedIds` (per match; review Critical 2 — the
+ * NEXT-GOAL resolution dedup Set, same seedSnapshot/REPLAY-from-line-0
+ * re-dispatch bug class as openedTriggerIds at v5) and `nextGoalRows` (per
+ * match; the SentimentRecord's resolved-cycle rows riding the accumulator,
+ * same reason moments do at v2). All absent on any older file — applySnapshot
+ * defaults every one to none, never fabricates. */
 export const SNAPSHOT_VERSION = 6;
 
 interface SnapshotRoomMember {
@@ -153,6 +163,18 @@ interface SnapshotMatch {
   /** v6+. A fan's most recent resolved NEXT GOAL verdict — mirrors `verdicts`
    * above. Absent on a v1..v5 file — applySnapshot defaults to none. */
   nextGoalVerdicts?: Array<[string, NextGoalVerdictMsg]>;
+  /** v6+. server.ts's NEXT-GOAL resolution dedup Set for this match (review
+   * Critical 2 — a confirmed goal's ledger event id, plus a
+   * `${matchId}:nextgoal:ft` synthetic for full-time). Mirrors
+   * `openedTriggerIds` above exactly: per-match, additive, tolerant, restored
+   * BEFORE ingest starts so a seedSnapshot/replay re-dispatch of an
+   * already-resolved goal can never resolve a fresh cycle's open calls. */
+  nextGoalResolvedIds?: string[];
+  /** v6+. The SentimentRecord's resolved NEXT GOAL cycle rows for this match
+   * (contracts/sentiment.ts nextGoal doc) — ride the snapshot for the same
+   * reason `moments` do: a full-time crystallization after a mid-match
+   * restart must still carry cycles resolved before it. */
+  nextGoalRows?: NextGoalRow[];
 }
 
 /** v4+. THE FAN SERIAL (design/HANDOFF-2026-07-10-fan-serial.md) — a
@@ -203,6 +225,12 @@ export function writeSnapshot(
    * doc comment above: the "ghost window" fix). Optional/undefined-tolerant,
    * same as getMoments/isResolved above. */
   getOpenedTriggerIds?: (matchId: string) => string[],
+  /** v6 — server.ts's NEXT-GOAL resolution dedup Set (review Critical 2).
+   * Optional/undefined-tolerant, mirrors getOpenedTriggerIds exactly. */
+  getNextGoalResolvedIds?: (matchId: string) => string[],
+  /** v6 — the accumulator's resolved NEXT GOAL cycle rows (the record's
+   * nextGoal layer). Optional/undefined-tolerant, mirrors getMoments. */
+  getNextGoalRows?: (matchId: string) => NextGoalRow[],
 ): void {
   const file: SnapshotFile = {
     version: SNAPSHOT_VERSION,
@@ -225,6 +253,8 @@ export function writeSnapshot(
         openedTriggerIds: getOpenedTriggerIds ? getOpenedTriggerIds(m.matchId) : [],
         nextGoalOpen: snap.nextGoalOpen,
         nextGoalVerdicts: snap.nextGoalVerdicts,
+        nextGoalResolvedIds: getNextGoalResolvedIds ? getNextGoalResolvedIds(m.matchId) : [],
+        nextGoalRows: getNextGoalRows ? getNextGoalRows(m.matchId) : [],
       };
     }),
     fans: fanSerial,
@@ -303,6 +333,12 @@ export function readSnapshot(): SnapshotFile | null {
  * runs synchronously, before index.ts wires up TXLINE/REPLAY ingest, so the
  * very first re-dispatched historical trigger is already deduped. Absent on
  * an older file (or a match with no persisted triggers) — never fabricated.
+ *
+ * `restoreNextGoalResolved` (v6+, review Critical 2) mirrors
+ * `restoreOpenedTriggers` exactly for the NEXT-GOAL resolution dedup Set;
+ * `restoreNextGoalRows` (v6+) mirrors `restoreMoments` exactly for the
+ * record's resolved-cycle rows. Both absent on any older file — no-ops,
+ * never fabricated.
  */
 export function applySnapshot(
   snap: SnapshotFile,
@@ -311,6 +347,8 @@ export function applySnapshot(
   markResolved?: (matchId: string) => void,
   restoreFanSerial?: (nextFanNo: number, numbers: Array<[string, number]>) => void,
   restoreOpenedTriggers?: (matchId: string, triggerIds: string[]) => void,
+  restoreNextGoalResolved?: (matchId: string, resolvedIds: string[]) => void,
+  restoreNextGoalRows?: (matchId: string, rows: NextGoalRow[]) => void,
 ): void {
   for (const sm of snap.matches) {
     const match = getOrCreate(sm.matchId);
@@ -332,6 +370,8 @@ export function applySnapshot(
     for (const [anonId, v] of sm.nextGoalVerdicts ?? []) match.restoreNextGoalVerdict(anonId, v);
     if (restoreMoments && sm.moments && sm.moments.length > 0) restoreMoments(sm.matchId, sm.moments);
     if (restoreOpenedTriggers && sm.openedTriggerIds && sm.openedTriggerIds.length > 0) restoreOpenedTriggers(sm.matchId, sm.openedTriggerIds);
+    if (restoreNextGoalResolved && sm.nextGoalResolvedIds && sm.nextGoalResolvedIds.length > 0) restoreNextGoalResolved(sm.matchId, sm.nextGoalResolvedIds);
+    if (restoreNextGoalRows && sm.nextGoalRows && sm.nextGoalRows.length > 0) restoreNextGoalRows(sm.matchId, sm.nextGoalRows);
     const hadVerdicts = (sm.verdicts?.length ?? 0) > 0;
     if (markResolved && (sm.resolved === true || hadVerdicts)) markResolved(sm.matchId);
   }

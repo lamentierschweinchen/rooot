@@ -163,6 +163,18 @@ function broadcastToMatch(matchId: string, msg: ServerMsg | FeedMsg): void {
   } catch (err) {
     console.warn(`[sentiment] feed error on ${matchId}: ${errDetail(err)}`);
   }
+  // NEXT GOAL (in-game, docs/BACKLOG-full-version-and-deferred-ideas.md §2) —
+  // isolated the same way as every side-effect here: a fault must never
+  // prevent the core broadcast, nor be caused by one of the others. MUST run
+  // BEFORE predictLifecycle: at FULL_TIME predictLifecycle crystallizes the
+  // SentimentRecord, and the FT resolution row this layer appends into the
+  // accumulator (the record's nextGoal layer) has to be there by then — after,
+  // and the record would silently lose its final cycle.
+  try {
+    nextGoalLifecycle(matchId, stamped);
+  } catch (err) {
+    console.warn(`[nextGoal] lifecycle error on ${matchId}: ${errDetail(err)}`);
+  }
   try {
     predictLifecycle(matchId, stamped); // lock at KO, resolve at FT (docs/MECHANISMS.md §2)
   } catch (err) {
@@ -175,14 +187,6 @@ function broadcastToMatch(matchId: string, msg: ServerMsg | FeedMsg): void {
     momentLifecycle(matchId, stamped);
   } catch (err) {
     console.warn(`[moment] lifecycle error on ${matchId}: ${errDetail(err)}`);
-  }
-  // NEXT GOAL (in-game, docs/BACKLOG-full-version-and-deferred-ideas.md §2) —
-  // isolated the same way as every side-effect above: a fault here must never
-  // prevent the core broadcast, nor be caused by one of the others.
-  try {
-    nextGoalLifecycle(matchId, stamped);
-  } catch (err) {
-    console.warn(`[nextGoal] lifecycle error on ${matchId}: ${errDetail(err)}`);
   }
 }
 
@@ -715,6 +719,32 @@ const registry = new MatchRegistry(
       for (const id of triggerIds) seen.add(id);
     },
   },
+  {
+    // NEXT GOAL resolution dedup (review Critical 2 — the fenced NEXT GOAL
+    // region below owns nextGoalResolvedIds): in-memory-only, a restart used
+    // to re-arm it empty, and TxLINE's seedSnapshot (ingest/txline.ts) replays
+    // the FULL historical action list through the same dispatch on every
+    // ingest boot — the EXACT mechanism that forced persistence for
+    // resolvedMatches and openedTriggerIds above. Without this, a re-dispatched
+    // historical confirmed goal could resolve a FRESH cycle's open calls
+    // against stale history. Mirrors openedTriggerIds' hooks exactly; same
+    // boot-ordering guarantee (`restore` runs during registry.loadSnapshot(),
+    // BEFORE ingest starts). `get` reads only — never fabricates an entry.
+    get: (matchId) => Array.from(nextGoalResolvedIds.get(matchId) ?? []),
+    restore: (matchId, ids) => {
+      const seen = nextGoalResolvedIdsFor(matchId);
+      for (const id of ids) seen.add(id);
+    },
+  },
+  {
+    // NEXT GOAL resolved-cycle rows (review Important 3): the record's
+    // nextGoal layer lives on the SentimentAccumulator (this file owns it),
+    // exactly like the felt-moment history above — so a full-time
+    // crystallization after a mid-match restart still carries cycles resolved
+    // before it. Same hooks pattern as moments; tolerant (absent = none).
+    get: (matchId) => accumulators.get(matchId)?.getNextGoalRows() ?? [],
+    restore: (matchId, rows) => { getOrCreateAccumulator(matchId)?.restoreNextGoalRows(rows); },
+  },
 );
 
 function isValidSide(v: unknown): v is Side {
@@ -929,10 +959,16 @@ async function handleCall(ws: WebSocket, state: ConnState, msg: Extract<ClientMs
  * A fan's live in-round call: which end scores next, or 'none' (no more
  * goals this match). Stamped from the server's OWN observed market (never
  * client-supplied, unlike CallMsg.marketP — see handleCall's TODO above),
- * accepted only during live play, resolved on the next real goal or at
- * FULL_TIME. Self-contained region (tonight-gate merge note: keep edits
- * here, outside it only the minimal wiring — dispatch case, the
- * broadcastToMatch hook, the two join/hello replay lines — all marked
+ * accepted only during live play, resolved on the next CONFIRMED goal or at
+ * FULL_TIME (review Critical 1: an unconfirmed goal is the held breath and
+ * may be disallowed outright — it never resolves the book; the honest
+ * semantic is "your call resolves when the goal CONFIRMS", observed lag
+ * ~1-2 minutes on the premiere wire). Each resolution with open calls also
+ * appends a row into the SentimentRecord's nextGoal layer (contracts/
+ * sentiment.ts — §1.4 Courage-Adjusted Calls' substrate). Self-contained
+ * region (tonight-gate merge note: keep edits here, outside it only the
+ * minimal wiring — dispatch case, the broadcastToMatch hook, the registry
+ * persistence hooks, the two join/hello replay lines — all marked
  * "NEXT GOAL" at their call sites). ════════════════════════════════════ */
 
 /** Only these phases count as "live play" for a call — pre-kickoff (PRE),
@@ -971,19 +1007,28 @@ function handleNextGoalCall(state: ConnState, msg: Extract<ClientMsg, { type: 'n
   }
   const match = registry.getOrCreate(msg.matchId);
   const marketAtCall = currentTriple(msg.matchId);
-  match.nextGoalCall(state.anonId, msg.call, marketAtCall, msg.atMs);
+  // normalize a missing/garbage client stamp to the server clock — the stored
+  // atMs feeds the record row's openedAtMs (min over the book), which must
+  // never be NaN/undefined (same trust level as PredictMsg.atMs otherwise).
+  const atMs = typeof msg.atMs === 'number' && Number.isFinite(msg.atMs) ? msg.atMs : Date.now();
+  match.nextGoalCall(state.anonId, msg.call, marketAtCall, atMs);
   broadcastToMatch(msg.matchId, match.nextGoalState(marketAtCall));
 }
 
-/** Dedup so a re-emitted goal (Confirmed:false→true, same ev.id) or a
- * re-delivered FULL_TIME status can never resolve the SAME real-world event
- * twice — parallels openedTriggerIds' discipline (server.ts's moment-open
- * dedup, same id scheme: a goal's ev.id, `${matchId}:ft`-shaped for
- * full-time) with its OWN Set, so this stays correct independent of
- * DISABLE_MOMENTS (which would otherwise leave openedTriggerIds unfed).
- * In-memory only tonight — not snapshot-persisted (open calls + fanStats
- * counters are, per spec; this dedup horizon resets on restart, same as
- * every other rolling/live-only structure in this file, e.g. tripleWindow). */
+/** Dedup so a re-emitted goal (a confirmed goal re-emits with the same
+ * ev.id) or a re-delivered FULL_TIME status can never resolve the SAME
+ * real-world event twice — parallels openedTriggerIds' discipline (the
+ * moment-open dedup, same id scheme: a goal's ev.id, a `${matchId}:`-prefixed
+ * synthetic for full-time) with its OWN Set, so this stays correct
+ * independent of DISABLE_MOMENTS (which would otherwise leave
+ * openedTriggerIds unfed). PERSISTED per match via the registry's
+ * NEXT-GOAL hooks (review Critical 2): TxLINE's seedSnapshot
+ * (ingest/txline.ts) replays the FULL historical action list through the
+ * same dispatch on every ingest boot — and a REPLAY_FILE restart always
+ * plays from line 0 — so an in-memory-only Set here would let a
+ * re-dispatched historical confirmed goal resolve a FRESH cycle's open
+ * calls against stale history after any restart. The Set's size doubles as
+ * the cycle ordinal (a resolution event count — see the row append below). */
 const nextGoalResolvedIds = new Map<string, Set<string>>();
 function nextGoalResolvedIdsFor(matchId: string): Set<string> {
   let seen = nextGoalResolvedIds.get(matchId);
@@ -994,25 +1039,66 @@ function nextGoalResolvedIdsFor(matchId: string): Set<string> {
   return seen;
 }
 
+/** Resolve the open book against what happened: personal verdicts to each
+ * caller, a SentimentRecord row into the accumulator (ONLY when the cycle
+ * had open calls — an uncalled cycle appends nothing, its ordinal is the
+ * honest gap), and the emptied-book state broadcast. Shared by the goal and
+ * FULL_TIME branches of nextGoalLifecycle below. */
+function resolveNextGoalBook(matchId: string, cycle: number, happened: Side | 'none', confirmedGoalId: string | null): void {
+  const match = registry.get(matchId);
+  if (!match) return; // no crowd state ever — nothing to resolve (the dedup id stays marked)
+  if (match.nextGoalOpenCount() === 0) return; // nothing open — no-op, nothing to broadcast
+  const now = Date.now();
+  const res = happened === 'none' ? match.resolveNextGoalAtFullTime(now) : match.resolveNextGoalOnGoal(happened, now);
+  for (const v of res.verdicts) sendToAnon(matchId, v.anonId, v);
+  // the record row (contracts/sentiment.ts nextGoal doc) — real resolutions
+  // only, real counts only. getOrCreateAccumulator is null for an unknown
+  // fixture (no team identity to record against) — same silent skip as
+  // feedSentiment's.
+  const acc = getOrCreateAccumulator(matchId);
+  if (acc) {
+    acc.nextGoalResolved({
+      cycle,
+      openedAtMs: res.openedAtMs ?? now, // openedAtMs is non-null whenever the book was non-empty (guarded above)
+      resolvedAtMs: now,
+      happened,
+      confirmedGoalId,
+      crowd: res.crowd,
+      marketAtResolution: currentTriple(matchId),
+    });
+  }
+  broadcastToMatch(matchId, match.nextGoalState(currentTriple(matchId)));
+}
+
 /** Drive NEXT GOAL resolution off the same broadcast every message rides
- * (mirrors predictLifecycle/momentLifecycle above). A real goal resolves the
+ * (mirrors predictLifecycle/momentLifecycle above — but ordered BEFORE
+ * predictLifecycle in broadcastToMatch, so a FULL_TIME row lands in the
+ * accumulator before crystallize reads it). A CONFIRMED goal resolves the
  * book against the scoring side; FULL_TIME (no further goal this cycle)
- * resolves it against 'none'. */
+ * resolves it against 'none'. The dedup mark happens BEFORE the match
+ * lookup, so a fanless match's confirmed goal still consumes its cycle
+ * ordinal and can never resolve calls placed between two re-emissions of
+ * the same goal. */
 function nextGoalLifecycle(matchId: string, msg: ServerMsg | FeedMsg): void {
   if (DISABLE_NEXT_GOAL) return;
-  const match = registry.get(matchId);
-  if (!match) return;
 
   if (msg.type === 'ledger') {
     if (msg.msg.type !== 'event') return;
     const ev = msg.msg.ev;
     if (ev.kind !== 'goal' || !ev.side) return;
+    // Review Critical 1: ONLY a confirmed goal resolves. The premiere capture
+    // is the proof of both halves of this gate: 18209181:495 emitted
+    // confirmed:false ONCE, never confirmed, and the final score excludes it
+    // (a disallowed goal — resolving on it would have graded real fans
+    // against a goal that never happened); 18209181:683/:729 each emitted
+    // confirmed:false first and confirmed TRUE ~105s/~67s later — the gate
+    // sits BEFORE the dedup mark so the provisional emission never consumes
+    // the id, and the confirming emission still resolves exactly once.
+    if (ev.confirmed !== true) return;
     const seen = nextGoalResolvedIdsFor(matchId);
-    if (seen.has(ev.id)) return; // re-emission of the same goal — already resolved
+    if (seen.has(ev.id)) return; // re-emission of an already-resolved goal
     seen.add(ev.id);
-    if (match.nextGoalOpenCount() === 0) return; // nothing open — no-op, nothing to broadcast
-    for (const v of match.resolveNextGoalOnGoal(ev.side)) sendToAnon(matchId, v.anonId, v);
-    broadcastToMatch(matchId, match.nextGoalState(currentTriple(matchId)));
+    resolveNextGoalBook(matchId, seen.size, ev.side, ev.id);
     return;
   }
 
@@ -1022,9 +1108,7 @@ function nextGoalLifecycle(matchId: string, msg: ServerMsg | FeedMsg): void {
     const seen = nextGoalResolvedIdsFor(matchId);
     if (seen.has(sourceId)) return; // a re-delivered FULL_TIME — already resolved
     seen.add(sourceId);
-    if (match.nextGoalOpenCount() === 0) return; // no-op — nothing open
-    for (const v of match.resolveNextGoalAtFullTime()) sendToAnon(matchId, v.anonId, v);
-    broadcastToMatch(matchId, match.nextGoalState(currentTriple(matchId)));
+    resolveNextGoalBook(matchId, seen.size, 'none', null);
   }
 }
 /* ══════════════════════════════════════ END NEXT GOAL ═══════════════════ */
