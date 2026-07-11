@@ -42,9 +42,11 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
 /* interactive hotspots — the PLACE ITSELF glows (owner, 11 Jul: no glyphs, no rings; the glow sits on the landmark) */
 .hot{position:absolute;transform:translate(-50%,-50%);z-index:4;cursor:pointer;-webkit-tap-highlight-color:transparent;
   min-width:34px;min-height:30px;border-radius:8px;
-  box-shadow:0 0 10px 1px rgba(199,154,56,.28);}
-.hot::after{content:"";position:absolute;inset:0;border-radius:inherit;border:2px solid var(--gold);animation:halo 2.2s ease-out infinite;opacity:0}
-@keyframes halo{0%{transform:scale(1);opacity:.9}100%{transform:scale(1.7);opacity:0}}
+  box-shadow:0 0 7px 0 rgba(199,154,56,.15);}
+.hot::after{content:"";position:absolute;inset:0;border-radius:inherit;border:1.5px solid var(--gold);animation:halo 2.6s ease-out infinite;opacity:0}
+.hot.ring-all{z-index:2;box-shadow:none}   /* the stands ARE the whole bowl — one breath around the rim */
+.pitchzone{position:absolute;left:50%;top:50.5%;transform:translate(-50%,-50%);width:50%;height:61%;z-index:3}   /* bare pitch swallows taps (as before) — it is not the stands */
+@keyframes halo{0%{transform:scale(1);opacity:.5}100%{transform:scale(1.22);opacity:0}}
 .hot .cap{display:none}   /* owner: the place self-explains — position IS the label (Jul 7 + Jul 11) */
 .hot.soon{box-shadow:none}
 .hot.soon::after{border-style:dashed;border-color:var(--card);animation-duration:2.6s}
@@ -197,7 +199,8 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
       <div class="hot" data-place="book" style="left:26.8%;top:50.6%;width:7%;height:5.5%;border-radius:50%" aria-label="the book"><span class="cap">THE BOOK</span></div>
       <div class="hot" data-place="bench" style="left:80.3%;top:41.7%;width:9.5%;height:11.5%;border-radius:6px" aria-label="the bench"><span class="cap">THE BENCH</span></div>
       <div class="hot" data-place="bench" style="left:80.3%;top:60.2%;width:9.5%;height:11.5%;border-radius:6px" aria-label="the bench"><span class="cap">THE BENCH</span></div>
-      <div class="hot" data-place="stands" style="left:50%;top:89.6%;width:34%;height:7.5%;border-radius:16px" aria-label="the stands"><span class="cap">THE STANDS</span></div>
+      <div class="hot ring-all" data-place="stands" style="left:50%;top:50.4%;width:97%;height:96%;border-radius:43%" aria-label="the stands"><span class="cap">THE STANDS</span></div>
+      <div class="pitchzone" aria-hidden="true"></div>
       <div class="hot" data-place="odds" style="left:49.5%;top:12.6%;width:21%;height:7.5%;border-radius:6px" aria-label="the market"><span class="cap">THE MARKET</span></div>
     </div>
   </div>
@@ -656,8 +659,10 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     var lastMin=series[series.length-1].min||0, useMin=lastMin>=5, maxMin=Math.max(90,lastMin);   // pre-kickoff every point is min 0 → spread by index so the opening drift reads as a line
     function X(mn,i){return px+(useMin?(mn/maxMin):(series.length>1?i/(series.length-1):0))*(W-2*px);} function Y(p){return py+(1-p)*(H-2*py);}
     function path(k){var d='';for(var i=0;i<series.length;i++){d+=(i?'L':'M')+X(series[i].min,i).toFixed(1)+' '+Y(series[i][k]).toFixed(1)+' ';}return d;}
-    function cased(k,c){var d=path(k);return '<path d="'+d+'" fill="none" stroke="#1A1815" stroke-width="3.9" stroke-linejoin="round" stroke-linecap="round"/><path d="'+d+'" fill="none" stroke="'+c+'" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>';}
-    box.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;display:block"><rect x="'+px+'" y="'+py+'" width="'+(W-2*px)+'" height="'+(H-2*py)+'" fill="#EFE7D2" stroke="#1A1815" stroke-width="1.4"/><line x1="'+px+'" y1="'+Y(0.5).toFixed(1)+'" x2="'+(W-px)+'" y2="'+Y(0.5).toFixed(1)+'" stroke="#8C8467" stroke-width="0.6" stroke-dasharray="2 3"/>'+'<path d="'+path('draw')+'" fill="none" stroke="#7a7256" stroke-width="1.6" stroke-dasharray="2.5 3" stroke-linejoin="round"/>'+cased('away',AC)+cased('home',HC)+'</svg>';
+    // a near-ink team line (BEL, ENG) vanishes inside the black casing — those get a light casing instead
+    function lum(c){c=String(c).replace('#','');return 0.2126*parseInt(c.slice(0,2),16)+0.7152*parseInt(c.slice(2,4),16)+0.0722*parseInt(c.slice(4,6),16);}
+    function cased(k,c){var cc=lum(c)<45?'#EDE9DE':'#1A1815';var d=path(k);return '<path d="'+d+'" fill="none" stroke="'+cc+'" stroke-width="3.9" stroke-linejoin="round" stroke-linecap="round"/><path d="'+d+'" fill="none" stroke="'+c+'" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>';}
+    box.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;display:block"><rect x="'+px+'" y="'+py+'" width="'+(W-2*px)+'" height="'+(H-2*py)+'" fill="#EFE7D2" stroke="#1A1815" stroke-width="1.4"/><line x1="'+px+'" y1="'+Y(0.5).toFixed(1)+'" x2="'+(W-px)+'" y2="'+Y(0.5).toFixed(1)+'" stroke="#8C8467" stroke-width="0.6" stroke-dasharray="2 3"/><text x="'+(W-px-2)+'" y="'+(Y(0.5)-2.5).toFixed(1)+'" text-anchor="end" font-size="6" font-weight="700" fill="#8C8467">50</text>'+'<path d="'+path('draw')+'" fill="none" stroke="#7a7256" stroke-width="1.6" stroke-dasharray="2.5 3" stroke-linejoin="round"/>'+cased('away',AC)+cased('home',HC)+'</svg>';
     var last=series[series.length-1], k=el('oddsKey'); if(k)k.innerHTML='<span style="color:'+HC+'">'+el('mHT').textContent+' '+Math.round(last.home*100)+'%</span><span style="color:#7a7256">DRAW '+Math.round(last.draw*100)+'%</span><span style="color:'+AC+'">'+el('mAT').textContent+' '+Math.round(last.away*100)+'%</span>';
   }
   if((DEMO||LIVE) && window.__match){
