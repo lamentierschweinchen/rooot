@@ -158,31 +158,42 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .scarf{position:relative;width:100%;max-width:330px;background:var(--card);border:2.5px solid var(--ink);box-shadow:0 18px 46px rgba(0,0,0,.4);
   transform:translateY(16px) scale(.96);transition:transform .6s cubic-bezier(.2,1,.3,1)}
 .keepsake.on .scarf{transform:none}
-/* THE CARD — the one you held up in the stands; your end's colours, your seat, your numbers */
+/* THE CARD — the one you held up in the stands; your end's colours, your seat, your numbers.
+   Print discipline: outer keyline 2.5 (the card), inner rules 1.25 (the sheet), uniform cream frame,
+   benday over the face — press language, never aging. */
 .scarf{padding:7px}
-.k-face{position:relative;background:var(--you);height:300px;border:1.5px solid var(--ink);overflow:hidden}
+.scarf::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='90' height='90'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='90' height='90' filter='url(%23n)' opacity='0.05'/></svg>")}
+.k-face{position:relative;background:var(--you);height:300px;border:1.25px solid var(--ink);overflow:hidden}
+.k-face::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:2;
+  background-image:radial-gradient(circle,rgba(26,24,21,.5) 0.9px,transparent 1.3px);background-size:4.5px 4.5px;
+  opacity:.28;mix-blend-mode:multiply}
 .k-face .kt{position:absolute;inset:5px;display:grid;grid-template-columns:repeat(11,1fr);gap:2px;align-content:start}
 .k-face .kt span{aspect-ratio:1;background:var(--you);border-radius:1px;opacity:.55;filter:brightness(1.25)}
 .k-face .kt span.k{background:var(--yousec,var(--you));opacity:.8;filter:none}
 .k-face .kt span.k2{background:var(--yousec2,var(--yousec,var(--you)));opacity:.85;filter:none}
 .k-face .kt span.you{background:var(--card);opacity:1;filter:none;outline:2px solid var(--yousec,var(--card));border-radius:2px}
-.k-seat{position:absolute;left:0;right:0;bottom:0;padding:9px 11px;display:flex;justify-content:space-between;align-items:baseline;
+.k-seat{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:9px 11px;display:flex;justify-content:space-between;align-items:baseline;
   background:linear-gradient(0deg,rgba(26,24,21,.92) 30%,transparent);color:var(--card)}
-.k-seat b{font-size:13px;letter-spacing:.08em}
+.k-seat b{font-size:14px;letter-spacing:.08em}
 .k-seat span{font-size:7.5px;letter-spacing:.16em;color:var(--yousec,var(--card))}
-.krow{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border:1.5px solid var(--ink);border-top:none}
-.krow .l{color:var(--sub);font-size:7.5px;letter-spacing:.18em;font-weight:800}
-.krow b{font-weight:900;font-size:12px;letter-spacing:.04em}
+.krow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;border:1.25px solid var(--ink);border-top:none}
+.krow .l{color:var(--sub);font-size:7.5px;letter-spacing:.18em;font-weight:800;white-space:nowrap}
+.krow b{font-weight:900;font-size:13px;letter-spacing:.04em;white-space:nowrap}
+#kPredRow b{font-size:11.5px}   /* the longest line on the card stays one line */
 .kfinal{background:var(--ink);color:var(--card)}
 .kfinal .l{color:rgba(243,236,219,.6)}
-.kfinal b{font-size:15px}
-.kmoms{display:flex;justify-content:space-between;gap:4px;padding:8px 10px;border:1.5px solid var(--ink);border-top:none}
+.kfinal b{font-size:18px}
+.kmoms{display:flex;justify-content:space-between;gap:4px;padding:8px 10px;border:1.25px solid var(--ink);border-top:none}
 .kmoms .mom{display:flex;align-items:center;gap:4px}
 .kmoms img.g{width:24px;height:24px;object-fit:contain;display:block}
 .kmoms small{font-weight:900;font-size:9.5px}
 .kmoms .mom.off{opacity:.25;filter:grayscale(1)}
-.k-prov{display:flex;justify-content:space-between;padding:7px 3px 2px;font-weight:700;font-size:6.6px;letter-spacing:.14em;color:var(--sub)}
-.scarf .sk-keep{margin-top:7px;width:100%;padding:11px;background:var(--ink);color:var(--card);border:none;font-family:var(--disp);font-weight:900;font-size:11px;letter-spacing:.12em;cursor:pointer}
+.k-prov{display:flex;justify-content:space-between;padding:8px 3px 2px;margin-top:6px;font-weight:700;font-size:6.6px;letter-spacing:.14em;color:var(--sub);
+  border-top:2px dotted var(--line)}   /* the perforation — torn from the match */
+.scarf .sk-keep{margin-top:7px;width:100%;padding:11px;background:var(--ink);color:var(--card);border:none;font-family:var(--disp);font-weight:900;font-size:11px;letter-spacing:.12em;cursor:pointer;
+  box-shadow:3px 3px 0 rgba(26,24,21,.32);transition:box-shadow .08s,transform .08s}
+.scarf .sk-keep:active{transform:translate(2px,2px);box-shadow:1px 1px 0 rgba(26,24,21,.32)}   /* the stamp presses */
 
 /* honesty footer */
 .foot{flex:none;padding:5px 14px;text-align:center;font-weight:700;font-size:7px;letter-spacing:.11em;color:var(--sub);background:var(--paper);border-top:1px solid var(--line);z-index:6}
@@ -474,7 +485,7 @@ function showKeepsake(){
   var vm=M.verdictMsg;
   if(vm&&vm.final)M.score=[vm.final.home,vm.final.away];   // the wire's settled final beats a late-join's stale 0-0
   var kt=el('skTifo');
-  if(kt&&!kt.childElementCount){ var h='',KC=88,ki=YOU_IDX%KC;   // your end at card scale — same scatter, your seat bright
+  if(kt&&!kt.childElementCount){ var h='',KC=132,ki=YOU_IDX%KC;   // your end at card scale — the crowd fills the frame and bleeds past it
     for(var i=0;i<KC;i++){ var k=((i*29+i*i*13)%5)===0;
       h+='<span class="'+(i===ki?'you':k?(((i*7)%2)?'k':'k2'):'')+'"></span>'; }
     kt.innerHTML=h; }
