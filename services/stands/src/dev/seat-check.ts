@@ -1,18 +1,33 @@
 /**
  * Dev-only verification script (NOT part of the service — never imported by
  * src/index.ts) for the YOUR SEAT reconciliation (docs/HANDOFF-2026-07-10-
- * coordinator-session.md §5). Four parts, each independently gated so a
- * missing optional dependency (a DAS RPC) SKIPs honestly rather than failing:
+ * coordinator-session.md §5) + its review fixes (session-bound claim tokens,
+ * mint idempotency). Four parts, each independently gated so a missing
+ * optional dependency (a DAS RPC) SKIPs honestly rather than failing:
  *
- *   1. /seat/claim + /seat/me round-trip, profile persistence ACROSS A REAL
- *      PROCESS RESTART on the DATA_DIR volume path (two spawned child
- *      processes pointed at the same STANDS_DATA_DIR — mirrors
- *      restart-persistence-check.ts's convention exactly). Identity-only
- *      claim (no matchId) throughout, so this never approaches the mint path.
- *   2. the mint HONESTY GATE — a claim for a real, registry-known match that
- *      has NOT reached FULL_TIME must return mint:null, fast (no network
- *      reached), while still correctly resolving profile.sides to the team
- *      TRICODE. In-process server, real WS hello + real HTTP claim.
+ *   1. /seat/claim + /seat/me round-trip — through the REAL token ceremony
+ *      (WS hello → seatToken → grant → HTTP claim) — and profile persistence
+ *      ACROSS A REAL PROCESS RESTART on the DATA_DIR volume path (two spawned
+ *      child processes pointed at the same STANDS_DATA_DIR — mirrors
+ *      restart-persistence-check.ts's convention exactly). The claimed match
+ *      has no fixture identity and never reaches FULL_TIME, so the mint path
+ *      is never approached.
+ *   2. CLAIM-TOKEN SECURITY (review fix, risk 2) + the mint HONESTY GATE +
+ *      MINT IDEMPOTENCY (review fix, risk 3), one in-process server:
+ *      - a session can only obtain a token for its OWN adopted anonId+matchId
+ *        (mismatched requests get silence, like a cheer for the wrong match);
+ *      - a claim with a forged / reused / expired / absent token is rejected
+ *        401 (expiry driven by a real SEAT_TOKEN_TTL_MS-shortened TTL wait);
+ *      - the harvest attack is dead: another session's token + a smuggled
+ *        body anonId still binds the TOKEN's fan, never the named one;
+ *      - a legit claim for a real but NOT-YET-FULL_TIME match returns
+ *        mint:null fast (the gate short-circuits before any network) while
+ *        still resolving profile.sides to the team TRICODE;
+ *      - after the match REALLY reaches FULL_TIME (driven through the same
+ *        broadcastToMatch path the live ingest uses), a fan holding a durable
+ *        minted marker gets the EXISTING asset back on every claim — checked
+ *        BEFORE getMintRuntime() (proven by timing: no RPC/Irys latency) —
+ *        two sequential claims, one asset, zero new mints.
  *   3. mint ATTRIBUTE SHAPING — pure, no server, no network: scarfFactsFor +
  *      buildScarfAttributes against a REAL 3-state verdict computed by
  *      MatchState.resolvePredictions (exact / outcome / wrong), plus the
@@ -22,26 +37,27 @@
  *      index); when set, one real READ (not a transaction) against a
  *      never-used pubkey.
  *
- * What this deliberately does NOT do: complete a real mint. Reaching
- * FULL_TIME and then actually calling POST /seat/claim would exercise
- * mint-scarf.ts's getMintRuntime() — a real devnet RPC/Irys/mint-transaction
- * path — which the reconciliation plan explicitly forbids from an automated
- * check ("NO real transactions from dev checks — reuse the existing
- * relayer-stub pattern"). Part 2 proves the gate that PREVENTS that path from
- * ever being reached before full time; Part 3 proves what that path WOULD
- * write, at the pure-function level, without ever running it.
+ * What this deliberately does NOT do: complete a real mint. The idempotency
+ * scenario SEEDS the durable marker through the real seat/minted-store.ts
+ * writer instead of minting for real — an unseeded post-FULL_TIME claim would
+ * exercise mint-scarf.ts's getMintRuntime(), a real devnet RPC/Irys/mint-
+ * transaction path, which the reconciliation plan explicitly forbids from an
+ * automated check ("NO real transactions from dev checks"). The REAL
+ * first-mint path (unseeded → one on-chain mint → second claim returns the
+ * same asset → album shows ONE scarf) is covered by the manual devnet proof,
+ * src/dev/prove-claim-mint.ts (npm run prove:claim-mint).
  *
  * Usage: tsx src/dev/seat-check.ts (or: npm run check:seat)
  */
 import { type ChildProcessByStdio, spawn } from 'node:child_process';
-import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import type { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import { Keypair } from '@solana/web3.js';
 import { WebSocket } from 'ws';
-import type { ClientMsg } from '@contracts/crowd';
+import type { ClientMsg, SeatTokenGrantMsg, ServerMsg } from '@contracts/crowd';
 
 function log(tag: string, msg: string): void {
   console.log(`[seat-check:${tag}] ${msg}`);
@@ -79,6 +95,63 @@ function closeAndWait(ws: WebSocket): Promise<void> {
 }
 function freshPubkey(): string {
   return Keypair.generate().publicKey.toBase58();
+}
+
+/** Request a claim token on an ALREADY-OPEN, already-helloed socket, for
+ * whatever matchId/anonId the request names (deliberately not forced to match
+ * the session — the mismatch tests depend on being able to ask wrongly).
+ * Resolves the granted token, or null if no grant arrives within waitMs
+ * (the server's silent-drop path for requests outside the session identity). */
+function requestToken(ws: WebSocket, matchId: string, anonId: string, waitMs = 700): Promise<string | null> {
+  return new Promise((resolve) => {
+    const onMessage = (raw: Buffer | ArrayBuffer | Buffer[]) => {
+      let m: ServerMsg;
+      try {
+        m = JSON.parse(raw.toString()) as ServerMsg;
+      } catch {
+        return;
+      }
+      if (m.type === 'seatTokenGrant') {
+        const g = m as SeatTokenGrantMsg;
+        cleanup();
+        resolve(g.token);
+      }
+    };
+    const timer = setTimeout(() => {
+      cleanup();
+      resolve(null);
+    }, waitMs);
+    function cleanup(): void {
+      clearTimeout(timer);
+      ws.off('message', onMessage);
+    }
+    ws.on('message', onMessage);
+    send(ws, { type: 'seatToken', matchId, anonId });
+  });
+}
+
+/** The full legit ceremony against a server URL: fresh socket → hello (adopt
+ * the session identity, optional side) → seatToken → grant → close. This is
+ * exactly what apps/web/public/seat-adapter.js's requestSeatToken does. */
+async function getSeatToken(wsUrl: string, matchId: string, anonId: string, side?: 'home' | 'away'): Promise<string> {
+  const ws = await connect(wsUrl);
+  try {
+    send(ws, { type: 'hello', matchId, anonId, ...(side ? { side } : {}) });
+    const token = await requestToken(ws, matchId, anonId, 2000);
+    if (!token) throw new Error(`no seatTokenGrant within 2s for ${anonId}@${matchId}`);
+    return token;
+  } finally {
+    await closeAndWait(ws);
+  }
+}
+
+async function postClaim(base: string, body: unknown): Promise<{ status: number; body: any }> {
+  const res = await fetch(`${base}/seat/claim`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  return { status: res.status, body: await res.json() };
 }
 
 /* ── spawn a real child process (mirrors verdict-replay-check.ts's bootServer) ── */
@@ -133,28 +206,27 @@ function killHard(proc: ChildProcessByStdio<null, Readable, Readable>): Promise<
   });
 }
 
-/* ── part 1: /seat/claim + /seat/me, profile persists across a real restart ── */
+/* ── part 1: token-ceremony claim + /seat/me, profile persists across a real restart ── */
 async function partPersistence(): Promise<void> {
   const dataDir = mkdtempSync(path.join(tmpdir(), 'rooot-seat-check-'));
   const pubkey = freshPubkey();
   const anonId = 'seat-check-persistence-fan';
+  // Not in FIXTURE_INFO and never driven to FULL_TIME — the mint path stops at its gates
+  // (no decided flag, no fixture identity) without ever reaching the network.
+  const MATCH_ID = 'seat-check-persist-match';
   log('persistence', `dataDir=${dataDir} pubkey=${pubkey.slice(0, 8)}…`);
   try {
     const boot1 = await bootServer({ STANDS_DATA_DIR: dataDir, ROOOT_SEAT_DIR: undefined });
     log('boot1', `up on port ${boot1.port}`);
     const base1 = `http://127.0.0.1:${boot1.port}`;
 
-    // identity-only claim (no matchId) — guarantees the mint path is never approached here.
-    const claimRes = await fetch(`${base1}/seat/claim`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ anonId, pubkey, method: 'passkey' }),
-    });
-    const claimBody = (await claimRes.json()) as { profile?: { pubkey?: string; sides?: string[] }; mint?: unknown };
-    assert('identity-only claim -> 200', claimRes.status === 200, `status=${claimRes.status} body=${JSON.stringify(claimBody)}`);
-    assert('identity-only claim never attempts a mint', claimBody.mint === null, `mint=${JSON.stringify(claimBody.mint)}`);
-    assert('claim response profile carries the claimed pubkey', claimBody.profile?.pubkey === pubkey, `profile=${JSON.stringify(claimBody.profile)}`);
-    assert('identity-only claim invents no side/tricode', Array.isArray(claimBody.profile?.sides) && claimBody.profile!.sides!.length === 0, `sides=${JSON.stringify(claimBody.profile?.sides)}`);
+    // the REAL ceremony, exactly as seat-adapter.js runs it: hello → seatToken → grant → claim.
+    const token = await getSeatToken(`ws://127.0.0.1:${boot1.port}`, MATCH_ID, anonId);
+    const claim = await postClaim(base1, { token, pubkey, method: 'passkey' });
+    assert('token-ceremony claim -> 200', claim.status === 200, `status=${claim.status} body=${JSON.stringify(claim.body)}`);
+    assert('a claim on a never-finished, fixtureless match attempts no mint', claim.body.mint === null, `mint=${JSON.stringify(claim.body.mint)}`);
+    assert('claim response profile carries the claimed pubkey', claim.body.profile?.pubkey === pubkey, `profile=${JSON.stringify(claim.body.profile)}`);
+    assert('an unrooted fan gets no side/tricode invented', Array.isArray(claim.body.profile?.sides) && claim.body.profile.sides.length === 0, `sides=${JSON.stringify(claim.body.profile?.sides)}`);
 
     const meRes1 = await fetch(`${base1}/seat/me?pubkey=${pubkey}`);
     const meBody1 = (await meRes1.json()) as { profile?: { pubkey?: string } };
@@ -184,58 +256,148 @@ async function partPersistence(): Promise<void> {
     );
     assert('the restored profile matches the pre-restart one exactly', JSON.stringify(meBody2.profile) === JSON.stringify(meBody1.profile), `before=${JSON.stringify(meBody1.profile)} after=${JSON.stringify(meBody2.profile)}`);
 
+    // tokens are in-memory session credentials — a restart must invalidate any pending one.
+    const claimAcrossRestart = await postClaim(base2, { token, pubkey, method: 'passkey' });
+    assert('a token issued by the PRE-restart process is dead after the restart (session credential, not durable state)', claimAcrossRestart.status === 401, `status=${claimAcrossRestart.status} body=${JSON.stringify(claimAcrossRestart.body)}`);
+
     await killHard(boot2.proc);
   } finally {
     rmSync(dataDir, { recursive: true, force: true });
   }
 }
 
-/* ── part 2: the mint honesty gate — no FULL_TIME, no mint, fast, no network ── */
-async function partHonestyGate(): Promise<void> {
+/* ── part 2: claim-token security + the mint honesty gate + mint idempotency ── */
+async function partTokenGateIdempotency(): Promise<void> {
   const dataDir = mkdtempSync(path.join(tmpdir(), 'rooot-seat-check-gate-'));
   process.env.STANDS_DATA_DIR = dataDir;
   process.env.ROOOT_SEAT_DIR = path.join(dataDir, 'seat');
+  // Short REAL TTL so the expiry test waits ~2s, not ~2min — the env-tunable
+  // knob exists for exactly this (server.ts's seatTokenTtlMs, floored at 1s).
+  // Set BEFORE the first dynamic import of ../server: the TTL (and the two
+  // seat stores' dirs) are resolved at module load.
+  process.env.SEAT_TOKEN_TTL_MS = '1500';
   const { createStandsServer } = await import('../server');
+  const { loadMintMarker, saveMintMarker } = await import('../seat/minted-store');
   const MATCH_ID = '18202783'; // SUI v COL — a real sentiment/teams.ts FIXTURE_INFO entry
-  const anonId = 'seat-check-gate-fan';
-  const pubkey = freshPubkey();
+  const fanA = 'seat-check-fan-a';
+  const fanB = 'seat-check-fan-b';
+  const fanC = 'seat-check-fan-c';
+  const pubkeyA = freshPubkey();
+  const pubkeyE = freshPubkey(); // the would-be harvester's key
+  const pubkeyC = freshPubkey();
 
-  const { httpServer, registry } = createStandsServer();
+  const { httpServer, registry, broadcastToMatch } = createStandsServer();
   try {
     await new Promise<void>((resolve) => httpServer.listen(0, '127.0.0.1', resolve));
     const addr = httpServer.address();
     if (addr === null || typeof addr === 'string') throw new Error('failed to bind an ephemeral port');
     const base = `http://127.0.0.1:${addr.port}`;
-    const ws = await connect(`ws://127.0.0.1:${addr.port}`);
-    send(ws, { type: 'hello', matchId: MATCH_ID, anonId, side: 'home' });
+    const wsUrl = `ws://127.0.0.1:${addr.port}`;
+
+    // fan A: the real thing — rooted home, locked call 2–1.
+    const wsA = await connect(wsUrl);
+    send(wsA, { type: 'hello', matchId: MATCH_ID, anonId: fanA, side: 'home' });
     await sleep(120);
-    send(ws, { type: 'predict', matchId: MATCH_ID, anonId, home: 2, away: 1, atMs: Date.now() });
+    send(wsA, { type: 'predict', matchId: MATCH_ID, anonId: fanA, home: 2, away: 1, atMs: Date.now() });
     await sleep(120);
 
-    // the match is now registry-known (getOrCreate ran inside handleHello above), rooted, and
-    // predicted — but NEVER told FULL_TIME. This is exactly the "mid-match claim" case.
+    /* ── token security: the request side ── */
+    const wrongAnon = await requestToken(wsA, MATCH_ID, 'someone-else');
+    assert('a session cannot obtain a token for a DIFFERENT anonId (silent drop, like a cheer for the wrong match)', wrongAnon === null, `granted=${JSON.stringify(wrongAnon)}`);
+    const wrongMatch = await requestToken(wsA, 'some-other-match', fanA);
+    assert('a session cannot obtain a token for a DIFFERENT matchId', wrongMatch === null, `granted=${JSON.stringify(wrongMatch)}`);
+    const wsNoHello = await connect(wsUrl);
+    const noSession = await requestToken(wsNoHello, MATCH_ID, fanA);
+    assert('a socket that never helloed (no adopted identity) gets no token at all', noSession === null, `granted=${JSON.stringify(noSession)}`);
+    await closeAndWait(wsNoHello);
+
+    /* ── token security: the claim side ── */
+    const forged = await postClaim(base, { token: 'forged-tokens-never-work-111111', pubkey: pubkeyA, method: 'passkey' });
+    assert('a FORGED token is rejected 401', forged.status === 401, `status=${forged.status} body=${JSON.stringify(forged.body)}`);
+    const absent = await postClaim(base, { pubkey: pubkeyA, method: 'passkey' });
+    assert('a claim with NO token at all is rejected 401', absent.status === 401, `status=${absent.status} body=${JSON.stringify(absent.body)}`);
+
+    // the legit ceremony + the honesty gate, in one: fan A claims mid-match.
+    const tokenA = await requestToken(wsA, MATCH_ID, fanA, 2000);
+    assert('the session\'s OWN token request is granted', typeof tokenA === 'string' && tokenA.length > 0, `token=${tokenA ? tokenA.slice(0, 8) + '…' : String(tokenA)}`);
     const startMs = Date.now();
-    const claimRes = await fetch(`${base}/seat/claim`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ anonId, pubkey, method: 'passkey', matchId: MATCH_ID }),
-    });
+    const claimA = await postClaim(base, { token: tokenA, pubkey: pubkeyA, method: 'passkey' });
     const elapsedMs = Date.now() - startMs;
-    const claimBody = (await claimRes.json()) as { profile?: { sides?: string[] }; mint?: unknown };
-    assert('a claim for a real but NOT-YET-FULL_TIME match -> 200', claimRes.status === 200, `status=${claimRes.status}`);
-    assert('…and mint:null (the honesty gate — no mint before full time)', claimBody.mint === null, `mint=${JSON.stringify(claimBody.mint)}`);
+    assert('a legit token claim for a real but NOT-YET-FULL_TIME match -> 200', claimA.status === 200, `status=${claimA.status}`);
+    assert('…and mint:null (the honesty gate — no mint before full time)', claimA.body.mint === null, `mint=${JSON.stringify(claimA.body.mint)}`);
     assert(
-      '…resolved fast (well under a real RPC/Irys/mint round-trip) — proves the gate short-circuited BEFORE any network call',
+      '…resolved fast (well under a real RPC/Irys/mint round-trip) — the gate short-circuited BEFORE any network call',
       elapsedMs < 2000,
       `${elapsedMs}ms`,
     );
     assert(
       '…yet still resolves profile.sides to the real team TRICODE (SUI), not "home"',
-      Array.isArray(claimBody.profile?.sides) && claimBody.profile!.sides![0] === 'SUI',
-      `sides=${JSON.stringify(claimBody.profile?.sides)}`,
+      Array.isArray(claimA.body.profile?.sides) && claimA.body.profile.sides[0] === 'SUI',
+      `sides=${JSON.stringify(claimA.body.profile?.sides)}`,
     );
 
-    await closeAndWait(ws);
+    const reused = await postClaim(base, { token: tokenA, pubkey: pubkeyA, method: 'passkey' });
+    assert('REUSING an already-redeemed token is rejected 401 (single-use)', reused.status === 401, `status=${reused.status} body=${JSON.stringify(reused.body)}`);
+
+    // THE HARVEST ATTACK, dead: a different session's token + a smuggled body anonId/matchId
+    // naming fan A still binds the TOKEN's fan (B: never rooted, never predicted) — fan A's
+    // side/call are not reachable by naming them, because the body identity is never read.
+    const wsB = await connect(wsUrl);
+    send(wsB, { type: 'hello', matchId: MATCH_ID, anonId: fanB });
+    await sleep(120);
+    const tokenB = await requestToken(wsB, MATCH_ID, fanB, 2000);
+    const harvest = await postClaim(base, { token: tokenB, pubkey: pubkeyE, method: 'passkey', anonId: fanA, matchId: MATCH_ID });
+    assert('harvest attempt: pubkey E + fan B\'s token + a smuggled body anonId naming fan A -> 200 but binds B', harvest.status === 200, `status=${harvest.status}`);
+    assert(
+      '…profile.sides is EMPTY (fan B\'s truth) — fan A\'s side/call were NOT harvested despite being named in the body',
+      Array.isArray(harvest.body.profile?.sides) && harvest.body.profile.sides.length === 0,
+      `sides=${JSON.stringify(harvest.body.profile?.sides)}`,
+    );
+    await closeAndWait(wsB);
+
+    // expiry: a real wait past the (shortened) TTL — the token dies on the clock.
+    const expiring = await requestToken(wsA, MATCH_ID, fanA, 2000);
+    await sleep(1900); // TTL is 1500ms here (SEAT_TOKEN_TTL_MS above)
+    const expired = await postClaim(base, { token: expiring, pubkey: pubkeyA, method: 'passkey' });
+    assert('an EXPIRED token (real 1.9s wait past a real 1.5s TTL) is rejected 401', expired.status === 401, `status=${expired.status} body=${JSON.stringify(expired.body)}`);
+
+    /* ── mint idempotency (review fix, risk 3) — post-FULL_TIME, seeded marker ── */
+    // Drive the match to FULL_TIME through the REAL feed path (same call the live
+    // TXLINE/replay ingest makes) — resolvedMatches flips, the mint gate opens.
+    broadcastToMatch(MATCH_ID, { type: 'score', ev: { tMs: Date.now(), minute: 90, home: 2, away: 1, source: 'replay' } });
+    broadcastToMatch(MATCH_ID, { type: 'status', ev: { tMs: Date.now(), phase: 'FULL_TIME', minute: 90, source: 'replay' } });
+    await sleep(150);
+
+    // Seed the durable marker through the REAL store writer — this stands in for "fan C already
+    // minted this scarf in some earlier claim/process" WITHOUT performing a real devnet mint
+    // (forbidden from an automated check; the unseeded first-mint path is prove-claim-mint.ts's).
+    const seeded = { asset: 'SeededScarfAsset111111111111111111111111111', txUrl: 'https://explorer.solana.com/tx/seeded?cluster=devnet', mintedAtMs: Date.now() };
+    saveMintMarker(pubkeyC, MATCH_ID, seeded);
+    const roundTrip = loadMintMarker(pubkeyC, MATCH_ID);
+    assert('the minted marker round-trips through the real store (save -> load)', roundTrip?.asset === seeded.asset && roundTrip?.txUrl === seeded.txUrl, `loaded=${JSON.stringify(roundTrip)}`);
+    const markerFile = path.join(dataDir, 'seat', 'mints', `${pubkeyC}--${MATCH_ID}.json`);
+    assert('the marker is a real file on the durable seat dir (survives restarts the same way profiles do)', existsSync(markerFile), markerFile);
+
+    const wsC = await connect(wsUrl);
+    send(wsC, { type: 'hello', matchId: MATCH_ID, anonId: fanC, side: 'away' });
+    await sleep(120);
+    const tokenC1 = await requestToken(wsC, MATCH_ID, fanC, 2000);
+    const t1 = Date.now();
+    const claimC1 = await postClaim(base, { token: tokenC1, pubkey: pubkeyC, method: 'passkey' });
+    const c1Ms = Date.now() - t1;
+    assert('post-FULL_TIME claim with an existing marker -> 200 with the EXISTING asset (no new mint)', claimC1.status === 200 && claimC1.body.mint?.asset === seeded.asset, `mint=${JSON.stringify(claimC1.body.mint)}`);
+    assert('…and fast (no RPC/Irys latency) — the marker was checked BEFORE getMintRuntime()', c1Ms < 2000, `${c1Ms}ms`);
+
+    const tokenC2 = await requestToken(wsC, MATCH_ID, fanC, 2000);
+    const claimC2 = await postClaim(base, { token: tokenC2, pubkey: pubkeyC, method: 'passkey' });
+    assert(
+      'a SECOND sequential post-FT claim returns the SAME asset id — one scarf per match per fan, zero new mints across both claims',
+      claimC2.status === 200 && claimC2.body.mint?.asset === seeded.asset && claimC2.body.mint?.asset === claimC1.body.mint?.asset,
+      `first=${JSON.stringify(claimC1.body.mint)} second=${JSON.stringify(claimC2.body.mint)}`,
+    );
+
+    await closeAndWait(wsA);
+    await closeAndWait(wsC);
   } finally {
     registry.stop();
     await new Promise<void>((resolve) => httpServer.close(() => resolve()));
@@ -331,13 +493,13 @@ async function partAlbumDas(): Promise<void> {
 }
 
 const watchdog = setTimeout(() => {
-  console.error('[seat-check] watchdog: hung for 60s, forcing exit');
+  console.error('[seat-check] watchdog: hung for 90s, forcing exit');
   process.exit(1);
-}, 60_000);
+}, 90_000);
 
 async function main(): Promise<void> {
   await partPersistence();
-  await partHonestyGate();
+  await partTokenGateIdempotency();
   await partAttributeShaping();
   await partAlbumDas();
 }

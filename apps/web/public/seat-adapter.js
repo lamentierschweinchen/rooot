@@ -71,16 +71,31 @@
 
   var state = nextSeat(undefined, { type: 'reset' });
   var subs = [];
-  function anonId() { try { return localStorage.getItem('rooot.anonId'); } catch (_) { return null; } }
+  // Get-or-create, SAME key + generator shape as stands-adapter.js's anonId() -- both adapters
+  // get-or-create on one key, so load order can never fork a fan's identity. Needed here because
+  // the claim-token round-trip below must hello with a real session identity even on a page that
+  // never loaded stands-adapter.
+  function anonId() {
+    try {
+      var e = localStorage.getItem('rooot.anonId');
+      if (e) return e;
+      var f = 'anon-' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+      localStorage.setItem('rooot.anonId', f);
+      return f;
+    } catch (_) { return null; }
+  }
   function fire() { for (var i = 0; i < subs.length; i++) try { subs[i](snap()); } catch (e) {} }
   function snap() { return { status: state.status, pubkey: state.pubkey, method: state.method, anonId: anonId(), profile: window.__seat && window.__seat.profile || null }; }
   function publish() { window.__seat.status = state.status; window.__seat.pubkey = state.pubkey; window.__seat.method = state.method; window.__seat.anonId = anonId(); fire(); }
   // SEAT: GET /seat/me -- claim() already gets the profile back inline (its POST response
   // carries it), but a RESTORED pubkey (below, from a prior visit) never called claim() this
   // session, so __seat.profile would otherwise stay null forever until the fan re-claims.
+  // Honors r.ok (review minor): a non-ok response keeps the LAST KNOWN profile rather than
+  // touching anything -- retained state on a transient blip; a first-load failure stays null.
   function fetchMe(pubkey) {
     if (!pubkey) return;
     fetch(SEAT_API + '/seat/me?pubkey=' + encodeURIComponent(pubkey)).then(function (r) {
+      if (!r.ok) return null;
       return r.json();
     }).then(function (body) {
       if (body && body.profile) { window.__seat.profile = body.profile; publish(); }
@@ -98,12 +113,17 @@
   var albumSubs = [];
   function albumSnap() { return { scarves: window.__album.scarves, record: window.__album.record, next: window.__album.next }; }
   function fireAlbum() { for (var i = 0; i < albumSubs.length; i++) try { albumSubs[i](albumSnap()); } catch (e) {} }
+  // Honors r.ok (review minor): a non-ok response (e.g. a transient 502 off a DAS blip) keeps the
+  // LAST KNOWN scarves rather than replacing them with empty -- retained honest state; a first-load
+  // failure stays honestly empty (the initial [] was never touched).
   function fetchAlbum(pubkey) {
     if (!pubkey) return;
     fetch(SEAT_API + '/seat/album?pubkey=' + encodeURIComponent(pubkey)).then(function (r) {
+      if (!r.ok) return null;
       return r.json();
     }).then(function (body) {
-      window.__album.scarves = (body && body.scarves) || [];
+      if (!body || !body.scarves) return; // non-ok / malformed -- keep the last known album
+      window.__album.scarves = body.scarves;
       fireAlbum();
     }).catch(function (_) {
       // a fetch/network hiccup leaves the album exactly as it was -- never fabricate scarves,
@@ -111,35 +131,75 @@
     });
   }
 
-  // claim(opts): opts.matchId is the match being claimed at -- the PRESSING page
-  // (Task 8) passes it; YOUR SEAT's identity-only claim omits it. Resolves the
-  // mechanism (passkey hero / Privy fallback), then makes the ONE central POST
-  // that tells the server about the claim -- the server folds in the real
-  // rooted-side/call when matchId names a live match (never invented client-side).
+  // requestSeatToken(matchId, id): the session-bound one-time claim token (review fix, risk 2 --
+  // contracts/crowd.ts SeatTokenMsg/SeatTokenGrantMsg). Opens a short-lived WebSocket, hellos as
+  // this fan (adopting the session identity -- the SAME trust anchor cheer/predict use), requests
+  // the token, resolves with it, closes. The grant only ever answers the requesting socket, and
+  // the token is single-use with a ~2 min expiry, so it is requested fresh per claim attempt.
+  function requestSeatToken(matchId, id) {
+    return new Promise(function (resolve, reject) {
+      var sock;
+      try { sock = new WebSocket(wsBase); } catch (e) { reject(new Error('token-unavailable')); return; }
+      var done = false;
+      function finish(err, token) {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        try { sock.close(); } catch (_) {}
+        if (err) reject(err); else resolve(token);
+      }
+      var timer = setTimeout(function () { finish(new Error('token-timeout')); }, 8000);
+      sock.onopen = function () {
+        try {
+          // hello adopts this anonId into the session (ws message order is preserved per
+          // connection, so the seatToken request right behind it sees the adopted state).
+          sock.send(JSON.stringify({ type: 'hello', matchId: matchId, anonId: id }));
+          sock.send(JSON.stringify({ type: 'seatToken', matchId: matchId, anonId: id }));
+        } catch (e) { finish(new Error('token-unavailable')); }
+      };
+      sock.onmessage = function (ev) {
+        var m; try { m = JSON.parse(ev.data); } catch (_) { return; }
+        if (m && m.type === 'seatTokenGrant' && m.matchId === matchId && m.anonId === id && m.token) finish(null, m.token);
+      };
+      sock.onerror = function () { finish(new Error('token-unavailable')); };
+      sock.onclose = function () { finish(new Error('token-unavailable')); };
+    });
+  }
+
+  // claim(opts): opts.matchId is the match being claimed at -- the PRESSING page passes it.
+  // Resolves the wallet mechanism (passkey hero / Privy fallback -- the Face-ID moment), then
+  // the session-bound claim token, then makes the ONE central POST. The token ceremony runs
+  // AFTER the biometric so a fan pausing on the Face-ID prompt can never outlive the token's
+  // expiry. The POST body is { token, pubkey, method } ONLY -- the server derives the anonId +
+  // matchId being claimed from the token, never from anything the page asserts (review fix,
+  // risk 2: a bare POST can no longer harvest another fan's side/call/verdict/serial).
   function claim(opts) {
     var matchId = opts && opts.matchId;
     var id = anonId();
+    if (!matchId) return Promise.reject(new Error('match-required'));
+    if (!id) return Promise.reject(new Error('anon-required'));
     return resolveMechanism(window.seatPasskey, window.__seatPrivyClaim, id).then(function (res) {
-      var payload = { anonId: id, pubkey: res.pubkey, method: res.method };
-      if (matchId) payload.matchId = matchId;
-      return fetch(SEAT_API + '/seat/claim', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(payload)
-      }).then(function (r) {
-        return r.json().then(function (body) {
-          if (!r.ok) throw new Error((body && body.error) || ('seat claim failed: ' + r.status));
-          return body;
+      return requestSeatToken(matchId, id).then(function (token) {
+        var payload = { token: token, pubkey: res.pubkey, method: res.method };
+        return fetch(SEAT_API + '/seat/claim', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).then(function (r) {
+          return r.json().then(function (body) {
+            if (!r.ok) throw new Error((body && body.error) || ('seat claim failed: ' + r.status));
+            return body;
+          });
+        }).then(function (body) {
+          state = nextSeat(state, { type: 'claimed', pubkey: res.pubkey, method: res.method });
+          // SEAT: persist the PUBLIC pubkey (+ method) only, so a reload doesn't drop back to
+          // anon -- the derived secret is never touched here and never goes to localStorage.
+          try { localStorage.setItem('rooot.seat.pubkey', res.pubkey); localStorage.setItem('rooot.seat.method', res.method); } catch (_) {}
+          window.__seat.profile = body.profile;
+          publish();
+          fetchAlbum(res.pubkey); // a fresh claim may have just minted a new scarf -- refresh the album
+          return { pubkey: res.pubkey, mint: body.mint };
         });
-      }).then(function (body) {
-        state = nextSeat(state, { type: 'claimed', pubkey: res.pubkey, method: res.method });
-        // SEAT: persist the PUBLIC pubkey (+ method) only, so a reload doesn't drop back to
-        // anon -- the derived secret is never touched here and never goes to localStorage.
-        try { localStorage.setItem('rooot.seat.pubkey', res.pubkey); localStorage.setItem('rooot.seat.method', res.method); } catch (_) {}
-        window.__seat.profile = body.profile;
-        publish();
-        fetchAlbum(res.pubkey); // a fresh claim may have just minted a new scarf -- refresh the album
-        return { pubkey: res.pubkey, mint: body.mint };
       });
     });
   }

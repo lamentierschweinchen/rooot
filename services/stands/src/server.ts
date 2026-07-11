@@ -10,10 +10,11 @@
  */
 import { createServer } from 'node:http';
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { randomBytes } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { WebSocket, WebSocketServer } from 'ws';
-import type { CallMsg, CallReceiptMsg, CheerEchoMsg, ClientMsg, MomentKind, MomentOpenMsg, MomentResultMsg, RoomStateMsg, ServerMsg, Side, WelcomeMsg } from '@contracts/crowd';
+import type { CallMsg, CallReceiptMsg, CheerEchoMsg, ClientMsg, MomentKind, MomentOpenMsg, MomentResultMsg, RoomStateMsg, SeatTokenGrantMsg, ServerMsg, Side, WelcomeMsg } from '@contracts/crowd';
 import { FEELING_PALETTES } from '@contracts/crowd';
 import type { FeedMsg } from '@contracts/feed';
 import { REACT_WINDOW_MS, RollingCounter, SWING_DELTA_MIN, SWING_WINDOW_MS } from './decay';
@@ -973,6 +974,8 @@ function handleMessage(ws: WebSocket, state: ConnState, raw: string): void {
       return;
     case 'predict':
       return handlePredict(state, msg);
+    case 'seatToken': // SEAT: one-time claim token, session-bound (see the SEAT fence below)
+      return handleSeatToken(ws, state, msg);
     default:
       return; // unknown type, ignore
   }
@@ -984,8 +987,10 @@ function handleMessage(ws: WebSocket, state: ConnState, raw: string): void {
  * onto this file's current shape — docs/HANDOFF-2026-07-10-coordinator-
  * session.md §5 has the reconciliation plan. /seat/* HTTP routes sit
  * ALONGSIDE the crowd WebSocket protocol above; wired into createStandsServer
- * below in one additive block. Nothing above this fence was touched to add
- * SEAT (only the import block, grouped and commented the same way).
+ * below in one additive block. SEAT's entire footprint outside this fence:
+ * the grouped import block up top, ONE `case 'seatToken'` line in
+ * handleMessage's switch (the session-bound claim-token request — review fix,
+ * risk 2), and the fenced route block inside createStandsServer.
  * ════════════════════════════════════════════════════════════════════════ */
 
 /** The REAL current score for matchId, as of right now — read from the same join-snapshot cache
@@ -1038,13 +1043,76 @@ function sideTricode(matchId: string, side: Side | null): string | null {
   return side === 'home' ? fx.home.code : fx.away.code;
 }
 
-/** POST /seat/claim {anonId,pubkey,method,matchId?} -> {profile, mint:{asset,txUrl}|null}.
- * When matchId names a live match, bindClaim folds the fan's REAL rooted side + locked call into
- * the record (never inventing one), profile.sides is patched with the resolved TEAM TRICODE (not
- * 'home'/'away'), and — once the match has genuinely reached FULL_TIME — the scarf is minted owned
- * by pubkey into the ROOOT scarf collection (service pays, devnet only; see seat/mint-scarf.ts). A
- * claim before full time, or with no matchId (or an unknown one), is identity-only: still honest,
- * nothing to fold in, and no mint is attempted (`mint: null`). */
+/* ── SEAT claim tokens (review fix, risk 2) ─────────────────────────────────
+ * POST /seat/claim used to trust body.anonId — any pubkey could harvest any
+ * anonId's side/call/verdict/serial with a bare POST. Now a claim requires a
+ * one-time token requested OVER THE WEBSOCKET (contracts/crowd.ts SeatTokenMsg
+ * → SeatTokenGrantMsg): the server grants ONLY for the connection's own
+ * adopted identity (state.anonId/state.matchId — the same trust anchor
+ * cheer/predict/momentReact already use), and the HTTP claim derives its
+ * anonId + matchId FROM THE TOKEN, never from the body. Tokens are single-use
+ * (burned on redemption, even when expired), short-lived (~2 min), and
+ * in-memory only — a restart invalidates pending tokens, which is correct: a
+ * token is a session credential, and the client just requests a fresh one.
+ * TTL is env-tunable (SEAT_TOKEN_TTL_MS, floor 1s) so the dev check can run a
+ * real expiry test in seconds — same pattern as WS_HEARTBEAT_INTERVAL_MS. */
+function seatTokenTtlMs(): number {
+  const raw = process.env.SEAT_TOKEN_TTL_MS;
+  const n = raw !== undefined ? Number(raw) : 120_000;
+  return Number.isFinite(n) ? Math.max(1_000, n) : 120_000;
+}
+const SEAT_TOKEN_TTL_MS = seatTokenTtlMs();
+
+interface SeatTokenRecord {
+  matchId: string;
+  anonId: string;
+  expiresAtMs: number;
+}
+const seatTokens = new Map<string, SeatTokenRecord>();
+
+/** Issue a claim token to THIS connection's adopted identity. Mirrors
+ * handleCheer's guard shape: the session must be seated (hello adopted an
+ * anonId) and the request's matchId/anonId must BOTH equal the session's own —
+ * anything else is silently dropped, exactly like a cheer for the wrong match.
+ * At most one live token per (matchId, anonId): re-issuing replaces the prior
+ * (bounds the map by active fans), and every issue sweeps expired entries. */
+function handleSeatToken(ws: WebSocket, state: ConnState, msg: Extract<ClientMsg, { type: 'seatToken' }>): void {
+  if (!state.matchId || !state.anonId) return;
+  if (state.matchId !== msg.matchId || state.anonId !== msg.anonId) return;
+  const now = Date.now();
+  for (const [tok, rec] of seatTokens) {
+    if (now > rec.expiresAtMs) seatTokens.delete(tok); // sweep expired
+    else if (rec.matchId === state.matchId && rec.anonId === state.anonId) seatTokens.delete(tok); // replace prior
+  }
+  const token = randomBytes(24).toString('base64url');
+  const expiresAtMs = now + SEAT_TOKEN_TTL_MS;
+  seatTokens.set(token, { matchId: state.matchId, anonId: state.anonId, expiresAtMs });
+  const grant: SeatTokenGrantMsg = { type: 'seatTokenGrant', matchId: state.matchId, anonId: state.anonId, token, expiresAtMs };
+  send(ws, grant); // ONLY to the requesting socket — the token is a credential, never broadcast
+}
+
+/** Redeem (single-use): returns the bound identity, or null for anything
+ * invalid — unknown, expired, or already redeemed. A token is burned on ANY
+ * redemption attempt that finds it, even an expired one. */
+function redeemSeatToken(token: unknown): SeatTokenRecord | null {
+  if (typeof token !== 'string' || token.length === 0) return null;
+  const rec = seatTokens.get(token);
+  if (!rec) return null;
+  seatTokens.delete(token); // single-use
+  if (Date.now() > rec.expiresAtMs) return null;
+  return rec;
+}
+
+/** POST /seat/claim {token,pubkey,method} -> {profile, mint:{asset,txUrl}|null}.
+ * The anonId + matchId being claimed are derived FROM THE TOKEN (session-bound,
+ * single-use — see the block comment above), never from the body: a body
+ * anonId/matchId, if sent, is ignored. bindClaim folds the token-bound fan's
+ * REAL rooted side + locked call into the record (never inventing one),
+ * profile.sides is patched with the resolved TEAM TRICODE (not 'home'/'away'),
+ * and — once the match has genuinely reached FULL_TIME — the scarf is minted
+ * owned by pubkey into the ROOOT scarf collection (service pays, devnet only;
+ * idempotent per (pubkey, matchId) — see seat/mint-scarf.ts). A claim before
+ * full time still binds; `mint: null` until the match actually ends. */
 async function handleSeatClaim(req: IncomingMessage, res: ServerResponse): Promise<void> {
   let body: any;
   try {
@@ -1054,28 +1122,37 @@ async function handleSeatClaim(req: IncomingMessage, res: ServerResponse): Promi
     sendJson(res, 400, { error: 'invalid json' });
     return;
   }
-  const { anonId, pubkey, method, matchId } = body ?? {};
+  const { token, pubkey } = body ?? {};
   if (!isValidPubkey(pubkey)) {
     sendJson(res, 400, { error: 'invalid pubkey' });
     return;
   }
+  const grant = redeemSeatToken(token);
+  if (!grant) {
+    sendJson(res, 401, { error: 'invalid or expired claim token' });
+    return;
+  }
+  const method: 'passkey' | 'privy' = body?.method === 'privy' ? 'privy' : 'passkey';
   try {
-    const match = typeof matchId === 'string' ? registry.get(matchId) : undefined;
+    // The token's matchId was getOrCreate'd by the very hello that earned the
+    // token, so this lookup succeeds in practice; the identity-only fallback
+    // stays as defense (e.g. future GC of idle matches), never inventing state.
+    const match = registry.get(grant.matchId);
     const record = match
-      ? bindClaim(match, anonId, pubkey, method, Date.now())
-      : { pubkey, method, side: null, call: null, matchId: matchId ?? null, boundAtMs: Date.now() };
+      ? bindClaim(match, grant.anonId, pubkey, method, Date.now())
+      : { pubkey, method, side: null, call: null, matchId: grant.matchId, boundAtMs: Date.now() };
     const tricode = match ? sideTricode(match.matchId, record.side) : null;
     const profile = saveProfile(pubkey, { sides: tricode ? [tricode] : [], since: record.boundAtMs });
     // The scarf mints for a REAL, FULL-TIME match claim only (mint-scarf.ts's own honesty gate) —
-    // identity-only and mid-match claims stay mint:null. Independently try/caught — even though
-    // mintScarfForClaim itself never throws (it catches internally), this belt-and-suspenders guard
-    // means a mint problem can NEVER turn an already-saved bind into a 500: the claim always
-    // responds 200 with mint:null on any mint-side issue.
+    // mid-match claims stay mint:null. Independently try/caught — even though mintScarfForClaim
+    // itself never throws (it catches internally), this belt-and-suspenders guard means a mint
+    // problem can NEVER turn an already-saved bind into a 500: the claim always responds 200 with
+    // mint:null on any mint-side issue.
     let mint: ScarfMint | null = null;
     if (match) {
       try {
-        const result = match.verdictFor(anonId)?.verdict ?? null;
-        const fanNo = registry.fanNoFor(anonId);
+        const result = match.verdictFor(grant.anonId)?.verdict ?? null;
+        const fanNo = registry.fanNoFor(grant.anonId);
         mint = await mintScarfForClaim(record, currentScoreSnapshot(match.matchId), { result, fanNo });
       } catch (err) {
         console.warn(`[seat] mint threw unexpectedly for ${pubkey.slice(0, 8)}: ${String(err)}`);
