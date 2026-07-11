@@ -16,8 +16,32 @@
  *    FanStats interface below): every field is driven by a real,
  *    server-ACCEPTED action only, same discipline as roar/pulse above.
  */
-import type { ConsensusMsg, MomentEndHist, MomentKind, PredictGroup, PredictVerdictMsg, ReactKind, Side } from '@contracts/crowd';
+import type { ConsensusMsg, MomentEndHist, MomentKind, NextGoalStateMsg, NextGoalVerdictMsg, PredictGroup, PredictVerdictMsg, ReactKind, Side } from '@contracts/crowd';
 import { FEELING_PALETTES } from '@contracts/crowd';
+
+/** A de-vigged 1X2 probability triple, inline (matches CallMsg.marketP /
+ * PredictMsg.marketAtPredict's own inline shape in contracts/crowd.ts —
+ * no import of contracts/sentiment.ts's Triple needed for this). */
+type MarketTriple = { home: number; draw: number; away: number };
+
+/** IN-GAME: one fan's open NEXT GOAL call for the CURRENT cycle (docs/
+ * BACKLOG-full-version-and-deferred-ideas.md §2). */
+interface NextGoalOpenCall {
+  call: 'home' | 'away' | 'none';
+  marketAtCall: MarketTriple | null;
+  atMs: number;
+}
+
+/** What one NEXT GOAL resolution produced: the per-fan verdicts (personal
+ * delivery), the crowd's split at the instant of resolution (pre-clear —
+ * the SentimentRecord nextGoal row's `crowd`), and the earliest open call's
+ * atMs (the row's `openedAtMs`; null only when the book was empty, which
+ * callers exclude before recording a row). */
+export interface NextGoalResolution {
+  verdicts: NextGoalVerdictMsg[];
+  crowd: { n: number; home: number; away: number; none: number };
+  openedAtMs: number | null;
+}
 
 /** Summarize a cohort's predictions into mean / outcome-split / modal scoreline. */
 function summarize(preds: Array<{ home: number; away: number }>): PredictGroup {
@@ -88,6 +112,14 @@ export interface FanStats {
   firstSeenMs: number;
   /** Most recent touch (connect, cheer, react, predict). */
   lastSeenMs: number;
+  /** IN-GAME (docs/BACKLOG-full-version-and-deferred-ideas.md §2): count of
+   * NEXT GOAL calls that reached RESOLUTION — the denominator. A call that
+   * gets replaced before it resolves is never counted (only the open call AT
+   * resolution time is graded) — accumulates at resolution, not at call time. */
+  nextGoalCalls: number;
+  /** Of nextGoalCalls, how many resolved 'correct' — the card's "in-game
+   * prediction accuracy" slot = nextGoalCorrect / nextGoalCalls. */
+  nextGoalCorrect: number;
 }
 
 const ROOM_MAX_MEMBERS = 11;
@@ -170,6 +202,16 @@ export class MatchState {
   private readonly cheerBuckets = new Map<string, TokenBucket>();
   /** anonId -> kind -> last accepted react ms, react throttle. */
   private readonly lastReactMs = new Map<string, Map<ReactKind, number>>();
+
+  /** IN-GAME NEXT GOAL (docs/BACKLOG-full-version-and-deferred-ideas.md §2):
+   * anonId -> the fan's open call for the CURRENT cycle. A new call REPLACES
+   * the prior one (Map semantics); cleared to empty at every resolution — a
+   * fresh open-call cycle begins for the next goal. */
+  private readonly nextGoalOpen = new Map<string, NextGoalOpenCall>();
+  /** anonId -> this fan's most recent NEXT GOAL verdict — overwritten at each
+   * resolution (mirrors `verdicts` above), so this is always "the CURRENT
+   * cycle's" verdict for a fan who has one. */
+  private readonly nextGoalVerdicts = new Map<string, NextGoalVerdictMsg>();
 
   private readonly roar: PerSide<RollingCounter> = perSide(() => new RollingCounter(ROAR_WINDOW_MS));
   private readonly pulse: PerSide<Record<ReactKind, RollingCounter>> = perSide(() => ({
@@ -259,7 +301,7 @@ export class MatchState {
   private touchFanStats(anonId: string, nowMs: number): FanStats {
     let fs = this.fanStats.get(anonId);
     if (!fs) {
-      fs = { cheers: 0, watchMs: 0, reacts: 0, firstSeenMs: nowMs, lastSeenMs: nowMs };
+      fs = { cheers: 0, watchMs: 0, reacts: 0, firstSeenMs: nowMs, lastSeenMs: nowMs, nextGoalCalls: 0, nextGoalCorrect: 0 };
       this.fanStats.set(anonId, fs);
     } else {
       fs.lastSeenMs = nowMs;
@@ -305,9 +347,12 @@ export class MatchState {
   /** Snapshot restore only: install a fan's persisted card directly. No live
    * session is fabricated — sessionStart stays untouched (empty for this
    * anonId until a real new connect happens post-restart), matching the
-   * "restore returns only the persisted total" rule (FanStats.watchMs doc). */
+   * "restore returns only the persisted total" rule (FanStats.watchMs doc).
+   * nextGoalCalls/nextGoalCorrect default to 0 — absent on a pre-NEXT-GOAL
+   * snapshot (the feature didn't exist yet when it was written), never
+   * fabricated as anything but honest zero. */
   restoreFanStats(anonId: string, stats: FanStats): void {
-    this.fanStats.set(anonId, { ...stats });
+    this.fanStats.set(anonId, { ...stats, nextGoalCalls: stats.nextGoalCalls ?? 0, nextGoalCorrect: stats.nextGoalCorrect ?? 0 });
   }
 
   /* ── predict (the retention spine, docs/MECHANISMS.md §2) ──────────── */
@@ -412,6 +457,116 @@ export class MatchState {
 
   predictionCount(): number {
     return this.predictions.size;
+  }
+
+  /* ── NEXT GOAL — in-game (docs/BACKLOG-full-version-and-deferred-ideas.md
+   * §2). The live-play phase gate is owned by the caller (server.ts, via its
+   * own cached feed state) — this class stays feed-agnostic, same split of
+   * responsibility as predict()'s self-owned lock vs. this. ───────────── */
+
+  /** Record/replace a fan's open call for the current cycle. Unconditional —
+   * the caller has already gated on live play. Touches the fan's card (an
+   * accepted action); the nextGoalCalls/nextGoalCorrect COUNTERS themselves
+   * only move at resolution (see resolveNextGoalOnGoal/AtFullTime below) — a
+   * call replaced before it resolves is never counted. */
+  nextGoalCall(anonId: string, call: 'home' | 'away' | 'none', marketAtCall: MarketTriple | null, atMs: number, nowMs = Date.now()): void {
+    this.nextGoalOpen.set(anonId, { call, marketAtCall, atMs });
+    this.touchFanStats(anonId, nowMs);
+  }
+
+  /** Snapshot restore only: reinstall a fan's open call directly — mirrors restorePrediction. */
+  restoreNextGoalOpen(anonId: string, call: 'home' | 'away' | 'none', marketAtCall: MarketTriple | null, atMs: number): void {
+    this.nextGoalOpen.set(anonId, { call, marketAtCall, atMs });
+  }
+
+  nextGoalOpenCount(): number {
+    return this.nextGoalOpen.size;
+  }
+
+  /** The crowd's LIVE next-goal belief (contracts/crowd.ts NextGoalStateMsg) —
+   * broadcast on every accepted call + on resolution. `marketAtTs` is supplied
+   * by the caller (server.ts stamps it from the same cached latest triple used
+   * at call receipt) — null until the first odds tick for this match arrives. */
+  nextGoalState(marketAtTs: MarketTriple | null): NextGoalStateMsg {
+    let home = 0, away = 0, none = 0;
+    for (const { call } of this.nextGoalOpen.values()) {
+      if (call === 'home') home++;
+      else if (call === 'away') away++;
+      else none++;
+    }
+    return {
+      type: 'nextGoalState',
+      matchId: this.matchId,
+      ts: Date.now(),
+      open: { n: this.nextGoalOpen.size, home, away, none },
+      marketAtTs,
+    };
+  }
+
+  /** Resolve every open call against what actually happened, empty the book
+   * (a new open-call cycle begins for the next goal), and return the per-fan
+   * verdicts for personal delivery (server.ts's sendToAnon, like predict
+   * verdicts) PLUS the pre-clear crowd split and the cycle's earliest call
+   * atMs — the caller appends these into the SentimentRecord's nextGoal rows
+   * (contracts/sentiment.ts, §1.4's substrate). Shared by both resolution
+   * triggers below — the ONLY difference between a goal and a
+   * full-time-with-no-more-goals is what `happened` is. */
+  private resolveNextGoal(happened: 'home' | 'away' | 'none', nowMs = Date.now()): NextGoalResolution {
+    const out: NextGoalVerdictMsg[] = [];
+    let home = 0, away = 0, none = 0;
+    let openedAtMs: number | null = null;
+    for (const [anonId, open] of this.nextGoalOpen) {
+      if (open.call === 'home') home++;
+      else if (open.call === 'away') away++;
+      else none++;
+      if (openedAtMs === null || open.atMs < openedAtMs) openedAtMs = open.atMs;
+      const outcome: 'correct' | 'wrong' = open.call === happened ? 'correct' : 'wrong';
+      const v: NextGoalVerdictMsg = {
+        type: 'nextGoalVerdict',
+        matchId: this.matchId,
+        anonId,
+        call: open.call,
+        outcome,
+        happened,
+        marketAtCall: open.marketAtCall,
+        atMs: nowMs,
+      };
+      this.nextGoalVerdicts.set(anonId, v);
+      const fs = this.touchFanStats(anonId, nowMs);
+      fs.nextGoalCalls += 1; // the denominator — moves at resolution, never at call time
+      if (outcome === 'correct') fs.nextGoalCorrect += 1;
+      out.push(v);
+    }
+    const crowd = { n: this.nextGoalOpen.size, home, away, none };
+    this.nextGoalOpen.clear();
+    return { verdicts: out, crowd, openedAtMs };
+  }
+
+  /** A real goal scored: calls for the scoring side resolve correct; the
+   * opposite side AND 'none' resolve wrong. The caller gates on the goal
+   * being CONFIRMED on the wire — an unconfirmed goal (the held breath,
+   * possibly disallowed outright: FRA–MAR 18209181:495 emitted
+   * confirmed:false once, never confirmed, excluded from the final score)
+   * must never reach this. */
+  resolveNextGoalOnGoal(side: Side, nowMs = Date.now()): NextGoalResolution {
+    return this.resolveNextGoal(side, nowMs);
+  }
+
+  /** FULL_TIME with no further goal this cycle: 'none' calls resolve correct;
+   * side calls resolve wrong. */
+  resolveNextGoalAtFullTime(nowMs = Date.now()): NextGoalResolution {
+    return this.resolveNextGoal('none', nowMs);
+  }
+
+  /** A fan's most recent NEXT GOAL verdict, if they have one yet — present
+   * only once at least one of their calls has resolved (never synthesized). */
+  nextGoalVerdictFor(anonId: string): NextGoalVerdictMsg | undefined {
+    return this.nextGoalVerdicts.get(anonId);
+  }
+
+  /** Snapshot restore only: reinstall a fan's last verdict directly — mirrors restoreVerdict. */
+  restoreNextGoalVerdict(anonId: string, v: NextGoalVerdictMsg): void {
+    this.nextGoalVerdicts.set(anonId, v);
   }
 
   /* ── cheer / roar ─────────────────────────────────────────────────── */
@@ -602,6 +757,8 @@ export class MatchState {
       predictLocked: this.predictLocked,
       verdicts: Array.from(this.verdicts.entries()),
       fanStats: Array.from(this.fanStats.entries()),
+      nextGoalOpen: Array.from(this.nextGoalOpen.entries()),
+      nextGoalVerdicts: Array.from(this.nextGoalVerdicts.entries()),
     };
   }
 }

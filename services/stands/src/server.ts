@@ -15,6 +15,8 @@ import { WebSocket, WebSocketServer } from 'ws';
 import type { CallMsg, CallReceiptMsg, CheerEchoMsg, ClientMsg, MomentKind, MomentOpenMsg, MomentResultMsg, RoomStateMsg, ServerMsg, Side, WelcomeMsg } from '@contracts/crowd';
 import { FEELING_PALETTES } from '@contracts/crowd';
 import type { FeedMsg } from '@contracts/feed';
+import type { LedgerEvent } from '@contracts/ledger';
+import type { MatchPhase } from '@contracts/match';
 import { REACT_WINDOW_MS, RollingCounter, SWING_DELTA_MIN, SWING_WINDOW_MS } from './decay';
 import { MatchRegistry } from './registry';
 import { anchorRecordHash, relayCall } from './relay';
@@ -28,6 +30,10 @@ const DISABLE_ROOMS = process.env.DISABLE_ROOMS === '1';
 /** Kill switch for REACT drama windows (docs/MECHANISMS.md §4) — momentReact
  * handling + auto window open/close both stop; hello/cheer/predict/call stay. */
 const DISABLE_MOMENTS = process.env.DISABLE_MOMENTS === '1';
+/** Kill switch for NEXT GOAL in-game calls (docs/BACKLOG-full-version-and-
+ * deferred-ideas.md §2) — handling + resolution both stop; every other
+ * mechanism (hello/cheer/predict/call/moments) stays live. */
+const DISABLE_NEXT_GOAL = process.env.DISABLE_NEXT_GOAL === '1';
 
 /** Rate-limit hello floods: max hellos per connection per window. */
 const HELLO_MAX_PER_WINDOW = 5;
@@ -157,6 +163,18 @@ function broadcastToMatch(matchId: string, msg: ServerMsg | FeedMsg): void {
     feedSentiment(matchId, stamped); // accumulate the sentiment record (docs/SENTIMENT.md)
   } catch (err) {
     console.warn(`[sentiment] feed error on ${matchId}: ${errDetail(err)}`);
+  }
+  // NEXT GOAL (in-game, docs/BACKLOG-full-version-and-deferred-ideas.md §2) —
+  // isolated the same way as every side-effect here: a fault must never
+  // prevent the core broadcast, nor be caused by one of the others. MUST run
+  // BEFORE predictLifecycle: at FULL_TIME predictLifecycle crystallizes the
+  // SentimentRecord, and the FT resolution row this layer appends into the
+  // accumulator (the record's nextGoal layer) has to be there by then — after,
+  // and the record would silently lose its final cycle.
+  try {
+    nextGoalLifecycle(matchId, stamped);
+  } catch (err) {
+    console.warn(`[nextGoal] lifecycle error on ${matchId}: ${errDetail(err)}`);
   }
   try {
     predictLifecycle(matchId, stamped); // lock at KO, resolve at FT (docs/MECHANISMS.md §2)
@@ -627,6 +645,9 @@ function replaySnapshot(ws: WebSocket, matchId: string): void {
   // the crowd's prediction so far — a joiner sees the consensus instantly.
   const match = registry.get(matchId);
   if (match && match.predictionCount() > 0) send(ws, match.consensus());
+  // NEXT GOAL (in-game) — the crowd's current open-call state, so a
+  // mid-cycle joiner sees it instantly (mirrors the consensus replay above).
+  if (match && match.nextGoalOpenCount() > 0) send(ws, match.nextGoalState(currentTriple(matchId)));
   const snap = joinSnapshots.get(matchId);
   if (!snap) return;
   if (snap.fixtureInfo) send(ws, snap.fixtureInfo);
@@ -698,6 +719,32 @@ const registry = new MatchRegistry(
       const seen = openedTriggersFor(matchId);
       for (const id of triggerIds) seen.add(id);
     },
+  },
+  {
+    // NEXT GOAL resolution dedup (review Critical 2 — the fenced NEXT GOAL
+    // region below owns nextGoalResolvedIds): in-memory-only, a restart used
+    // to re-arm it empty, and TxLINE's seedSnapshot (ingest/txline.ts) replays
+    // the FULL historical action list through the same dispatch on every
+    // ingest boot — the EXACT mechanism that forced persistence for
+    // resolvedMatches and openedTriggerIds above. Without this, a re-dispatched
+    // historical confirmed goal could resolve a FRESH cycle's open calls
+    // against stale history. Mirrors openedTriggerIds' hooks exactly; same
+    // boot-ordering guarantee (`restore` runs during registry.loadSnapshot(),
+    // BEFORE ingest starts). `get` reads only — never fabricates an entry.
+    get: (matchId) => Array.from(nextGoalResolvedIds.get(matchId) ?? []),
+    restore: (matchId, ids) => {
+      const seen = nextGoalResolvedIdsFor(matchId);
+      for (const id of ids) seen.add(id);
+    },
+  },
+  {
+    // NEXT GOAL resolved-cycle rows (review Important 3): the record's
+    // nextGoal layer lives on the SentimentAccumulator (this file owns it),
+    // exactly like the felt-moment history above — so a full-time
+    // crystallization after a mid-match restart still carries cycles resolved
+    // before it. Same hooks pattern as moments; tolerant (absent = none).
+    get: (matchId) => accumulators.get(matchId)?.getNextGoalRows() ?? [],
+    restore: (matchId, rows) => { getOrCreateAccumulator(matchId)?.restoreNextGoalRows(rows); },
   },
 );
 
@@ -782,6 +829,12 @@ function handleHello(ws: WebSocket, state: ConnState, msg: Extract<ClientMsg, { 
   // it again, the client tolerates a repeat reveal.
   const verdict = match.verdictFor(msg.anonId);
   if (verdict) sendReplay(ws, verdict);
+
+  // NEXT GOAL (in-game) — a fan's most recent verdict, replayed on hello
+  // exactly like predictVerdict above (the CURRENT cycle's — nextGoalVerdicts
+  // is overwritten at each resolution, so this is always the latest one).
+  const nextGoalVerdict = match.nextGoalVerdictFor(msg.anonId);
+  if (nextGoalVerdict) sendReplay(ws, nextGoalVerdict);
 
   if (msg.roomId && !DISABLE_ROOMS) {
     const room = match.getOrCreateRoom(msg.roomId);
@@ -902,6 +955,208 @@ async function handleCall(ws: WebSocket, state: ConnState, msg: Extract<ClientMs
   send(ws, receipt);
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+ * NEXT GOAL (in-game) — docs/BACKLOG-full-version-and-deferred-ideas.md §2.
+ * A fan's live in-round call: which end scores next, or 'none' (no more
+ * goals this match). Stamped from the server's OWN observed market (never
+ * client-supplied, unlike CallMsg.marketP — see handleCall's TODO above),
+ * accepted only during live play, resolved on the next CONFIRMED goal or at
+ * FULL_TIME (review Critical 1: an unconfirmed goal is the held breath and
+ * may be disallowed outright — it never resolves the book; the honest
+ * semantic is "your call resolves when the goal CONFIRMS", observed lag
+ * ~1-2 minutes on the premiere wire). A goal here means a confirmed 'goal'
+ * ledger event OR a confirmed, SCORED, IN-PLAY penalty (re-review Critical:
+ * PAR–FRA Jul 4 — France's only goal exists exclusively as penalty_outcome
+ * envelopes, ledger kind 'penalty-kick'; kind==='goal' alone left a correct
+ * caller permanently WRONG). Shootout kicks NEVER resolve: they arrive
+ * under phase PENALTIES and score into PE.Goals with Total.Goals unchanged
+ * (SUI–COL wire proof) — the 'none'-resolves-correct-at-FULL_TIME semantic
+ * is theirs. Each resolution with open calls also appends a row into the
+ * SentimentRecord's nextGoal layer (contracts/sentiment.ts — §1.4
+ * Courage-Adjusted Calls' substrate). Self-contained region (tonight-gate
+ * merge note: keep edits here, outside it only the minimal wiring —
+ * dispatch case, the broadcastToMatch hook, the registry persistence hooks,
+ * the two join/hello replay lines — all marked "NEXT GOAL" at their call
+ * sites). ═══════════════════════════════════════════════════════════════ */
+
+/** Only these phases count as "live play" for a call — pre-kickoff (PRE),
+ * the dead-ball breaks (HALF_TIME/PENALTIES), and post-FT all reject. */
+const NEXT_GOAL_LIVE_PHASES = new Set<MatchPhase>(['FIRST_HALF', 'SECOND_HALF', 'EXTRA_TIME']);
+
+/** The market's current de-vigged triple for a match — the SAME cached
+ * latest 'odds' tick the join-replay snapshot already carries
+ * (rememberForJoin above), reused here so a NEXT GOAL call is stamped from
+ * server-observed truth. Null until the first odds tick for this match
+ * has arrived. */
+function currentTriple(matchId: string): { home: number; draw: number; away: number } | null {
+  const tick = joinSnapshots.get(matchId)?.odds?.tick;
+  return tick ? { home: tick.pHome, draw: tick.pDraw, away: tick.pAway } : null;
+}
+
+/** The match's current phase, off the SAME cached latest 'status' message
+ * join-replay uses — server.ts's single source of truth for "what phase is
+ * this match in right now" (MatchState itself stays feed-agnostic). */
+function isNextGoalLivePhase(matchId: string): boolean {
+  const phase = joinSnapshots.get(matchId)?.status?.ev.phase;
+  return phase !== undefined && NEXT_GOAL_LIVE_PHASES.has(phase);
+}
+
+function isValidNextGoalCall(v: unknown): v is 'home' | 'away' | 'none' {
+  return v === 'home' || v === 'away' || v === 'none';
+}
+
+function handleNextGoalCall(state: ConnState, msg: Extract<ClientMsg, { type: 'nextGoalCall' }>): void {
+  if (DISABLE_NEXT_GOAL) return;
+  if (!state.matchId || !state.anonId || state.matchId !== msg.matchId) return;
+  if (!isValidNextGoalCall(msg.call)) return;
+  if (!isNextGoalLivePhase(msg.matchId)) {
+    console.log(`[nextGoal] rejected — not live play: anonId=${state.anonId.slice(0, 8)} match=${msg.matchId} phase=${joinSnapshots.get(msg.matchId)?.status?.ev.phase ?? 'unknown'}`);
+    return;
+  }
+  const match = registry.getOrCreate(msg.matchId);
+  const marketAtCall = currentTriple(msg.matchId);
+  // normalize a missing/garbage client stamp to the server clock — the stored
+  // atMs feeds the record row's openedAtMs (min over the book), which must
+  // never be NaN/undefined (same trust level as PredictMsg.atMs otherwise).
+  const atMs = typeof msg.atMs === 'number' && Number.isFinite(msg.atMs) ? msg.atMs : Date.now();
+  match.nextGoalCall(state.anonId, msg.call, marketAtCall, atMs);
+  broadcastToMatch(msg.matchId, match.nextGoalState(marketAtCall));
+}
+
+/** Dedup so a re-emitted goal (a confirmed goal re-emits with the same
+ * ev.id) or a re-delivered FULL_TIME status can never resolve the SAME
+ * real-world event twice — parallels openedTriggerIds' discipline (the
+ * moment-open dedup, same id scheme: a goal's ev.id, a `${matchId}:`-prefixed
+ * synthetic for full-time) with its OWN Set, so this stays correct
+ * independent of DISABLE_MOMENTS (which would otherwise leave
+ * openedTriggerIds unfed). PERSISTED per match via the registry's
+ * NEXT-GOAL hooks (review Critical 2): TxLINE's seedSnapshot
+ * (ingest/txline.ts) replays the FULL historical action list through the
+ * same dispatch on every ingest boot — and a REPLAY_FILE restart always
+ * plays from line 0 — so an in-memory-only Set here would let a
+ * re-dispatched historical confirmed goal resolve a FRESH cycle's open
+ * calls against stale history after any restart. The Set's size doubles as
+ * the cycle ordinal (a resolution event count — see the row append below). */
+const nextGoalResolvedIds = new Map<string, Set<string>>();
+function nextGoalResolvedIdsFor(matchId: string): Set<string> {
+  let seen = nextGoalResolvedIds.get(matchId);
+  if (!seen) {
+    seen = new Set();
+    nextGoalResolvedIds.set(matchId, seen);
+  }
+  return seen;
+}
+
+/** The wire-confirmed flag of a scoring ledger event, both shapes: normalize
+ * stamps ev.confirmed for kind 'goal' ONLY — a 'penalty-kick' event's
+ * Confirmed lives on the raw envelope it carries (ev.raw, always set by
+ * parseLedgerMessage). Fail-closed: absent/unreadable = NOT confirmed — the
+ * book never resolves on unproven confirmation. */
+function isWireConfirmed(ev: LedgerEvent): boolean {
+  if (ev.confirmed === true) return true;
+  const raw = ev.raw as { Confirmed?: unknown } | undefined;
+  return raw?.Confirmed === true;
+}
+
+/** Resolve the open book against what happened: personal verdicts to each
+ * caller, a SentimentRecord row into the accumulator (ONLY when the cycle
+ * had open calls — an uncalled cycle appends nothing, its ordinal is the
+ * honest gap), and the emptied-book state broadcast. Shared by the goal and
+ * FULL_TIME branches of nextGoalLifecycle below. */
+function resolveNextGoalBook(matchId: string, cycle: number, happened: Side | 'none', confirmedGoalId: string | null): void {
+  const match = registry.get(matchId);
+  if (!match) return; // no crowd state ever — nothing to resolve (the dedup id stays marked)
+  if (match.nextGoalOpenCount() === 0) return; // nothing open — no-op, nothing to broadcast
+  const now = Date.now();
+  const res = happened === 'none' ? match.resolveNextGoalAtFullTime(now) : match.resolveNextGoalOnGoal(happened, now);
+  for (const v of res.verdicts) sendToAnon(matchId, v.anonId, v);
+  // the record row (contracts/sentiment.ts nextGoal doc) — real resolutions
+  // only, real counts only. getOrCreateAccumulator is null for an unknown
+  // fixture (no team identity to record against) — same silent skip as
+  // feedSentiment's.
+  const acc = getOrCreateAccumulator(matchId);
+  if (acc) {
+    acc.nextGoalResolved({
+      cycle,
+      openedAtMs: res.openedAtMs ?? now, // openedAtMs is non-null whenever the book was non-empty (guarded above)
+      resolvedAtMs: now,
+      happened,
+      confirmedGoalId,
+      crowd: res.crowd,
+      marketAtResolution: currentTriple(matchId),
+    });
+  }
+  broadcastToMatch(matchId, match.nextGoalState(currentTriple(matchId)));
+}
+
+/** Drive NEXT GOAL resolution off the same broadcast every message rides
+ * (mirrors predictLifecycle/momentLifecycle above — but ordered BEFORE
+ * predictLifecycle in broadcastToMatch, so a FULL_TIME row lands in the
+ * accumulator before crystallize reads it). A CONFIRMED goal resolves the
+ * book against the scoring side; FULL_TIME (no further goal this cycle)
+ * resolves it against 'none'. The dedup mark happens BEFORE the match
+ * lookup, so a fanless match's confirmed goal still consumes its cycle
+ * ordinal and can never resolve calls placed between two re-emissions of
+ * the same goal. */
+function nextGoalLifecycle(matchId: string, msg: ServerMsg | FeedMsg): void {
+  if (DISABLE_NEXT_GOAL) return;
+
+  if (msg.type === 'ledger') {
+    if (msg.msg.type !== 'event') return;
+    const ev = msg.msg.ev;
+    if (!ev.side) return;
+    if (ev.kind === 'penalty-kick') {
+      // Re-review Critical: a converted IN-PLAY penalty IS the next goal —
+      // PAR–FRA Jul 4 proof (apps/web/public/replay/par-fra-20260704.jsonl):
+      // France's only goal exists exclusively as three penalty_outcome
+      // envelopes (Id 609, Confirmed false→true→true, Outcome "Scored",
+      // Total.Goals moves) — zero Action:'goal' envelopes all match. Without
+      // this branch a fan correctly calling the penalty side stayed open and
+      // graded permanently WRONG at FULL_TIME.
+      // Shootout kicks are EXCLUDED: they arrive under phase PENALTIES
+      // (StatusId 12) and score into Score.ParticipantN.PE.Goals with
+      // Total.Goals UNCHANGED (SUI–COL wire proof; normalize.ts documents
+      // the same) — a shootout is not "the next goal", and today's semantic
+      // (side calls resolve wrong / 'none' correct at FULL_TIME) stands.
+      // Gate off the same cached status truth the call gate uses.
+      if (joinSnapshots.get(matchId)?.status?.ev.phase === 'PENALTIES') return;
+      // Only a SCORED penalty is a goal — normalize puts the wire Outcome in
+      // ev.detail for penalty-kick ('Scored' | 'Missed' | …). Fail-closed on
+      // anything else: a miss/save/unknown outcome resolves nothing.
+      if (ev.detail !== 'Scored') return;
+    } else if (ev.kind !== 'goal') {
+      return;
+    }
+    // Review Critical 1: ONLY a confirmed scoring event resolves. The
+    // premiere capture is the proof of both halves of this gate:
+    // 18209181:495 emitted confirmed:false ONCE, never confirmed, and the
+    // final score excludes it (a disallowed goal — resolving on it would
+    // have graded real fans against a goal that never happened);
+    // 18209181:683/:729 each emitted confirmed:false first and confirmed
+    // TRUE ~105s/~67s later — the gate sits BEFORE the dedup mark so the
+    // provisional emission never consumes the id, and the confirming
+    // emission still resolves exactly once. isWireConfirmed covers both
+    // event shapes (ev.confirmed for goals; the raw envelope's Confirmed
+    // for penalty-kick, which normalize doesn't stamp).
+    if (!isWireConfirmed(ev)) return;
+    const seen = nextGoalResolvedIdsFor(matchId);
+    if (seen.has(ev.id)) return; // re-emission of an already-resolved scoring event
+    seen.add(ev.id);
+    resolveNextGoalBook(matchId, seen.size, ev.side, ev.id);
+    return;
+  }
+
+  if (msg.type === 'status') {
+    if (msg.ev.phase !== 'FULL_TIME') return;
+    const sourceId = `${matchId}:nextgoal:ft`;
+    const seen = nextGoalResolvedIdsFor(matchId);
+    if (seen.has(sourceId)) return; // a re-delivered FULL_TIME — already resolved
+    seen.add(sourceId);
+    resolveNextGoalBook(matchId, seen.size, 'none', null);
+  }
+}
+/* ══════════════════════════════════════ END NEXT GOAL ═══════════════════ */
+
 function handleClose(ws: WebSocket): void {
   const state = conns.get(ws);
   conns.delete(ws);
@@ -960,6 +1215,8 @@ function handleMessage(ws: WebSocket, state: ConnState, raw: string): void {
       return;
     case 'predict':
       return handlePredict(state, msg);
+    case 'nextGoalCall':
+      return handleNextGoalCall(state, msg);
     default:
       return; // unknown type, ignore
   }

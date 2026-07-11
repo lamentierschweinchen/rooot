@@ -3,12 +3,15 @@
  *
  * Surfaces the crowd mechanisms for a STATIC fan-section page (the loom pattern,
  * for the Stands). Speaks contracts/crowd.ts on the same stands WebSocket; the
- * server already handles all of it (root/cheer/predict/react + consensus/moments).
- * A bundled app would use src/data/crowd-client.ts instead — this is the static
- * equivalent, exposing window.__stands + subscriptions design renders against.
+ * server already handles all of it (root/cheer/predict/react/nextGoal + consensus/
+ * moments/nextGoalState). A bundled app would use src/data/crowd-client.ts
+ * instead — this is the static equivalent, exposing window.__stands +
+ * subscriptions design renders against.
  *
  * Honesty: counts/roar are real server counts, never blended with market.
  * PREDICT is stamped with the live de-vigged market triple at press time.
+ * NEXT GOAL (in-game, docs/BACKLOG-full-version-and-deferred-ideas.md §2) is
+ * stamped by the SERVER at receipt — this adapter sends no market of its own.
  *
  * Opt-in: ?standsfeed=1, or wherever the fan experience runs (/, /live,
  * ?loomfeed=1, ?site=1). Match via ?match=<id>.
@@ -67,7 +70,7 @@
   var lastTriple = null;                 // live de-vigged market, for the predict stamp
   var trailing = null;                   // side currently behind → faith
   var lastScore = { home: 0, away: 0 };
-  var cb = { state: [], consensus: [], verdict: [], moment: [], momentResult: [], market: [], cheerEcho: [] };
+  var cb = { state: [], consensus: [], verdict: [], moment: [], momentResult: [], market: [], cheerEcho: [], nextGoalState: [], nextGoalVerdict: [] };
   function fire(list, v) { for (var i = 0; i < list.length; i++) { try { list[i](v); } catch (e) {} } }
 
   function send(m) {
@@ -92,6 +95,14 @@
       if (!mySide) return;
       send({ type: 'momentReact', matchId: matchId, momentId: momentId, anonId: me, side: mySide, token: token, atMs: Date.now() });
     },
+    // NEXT GOAL (in-game, docs/BACKLOG-full-version-and-deferred-ideas.md §2):
+    // which end scores next, or 'none'. Same guard style as cheer — only a
+    // rooted fan can call. The server stamps the market itself at receipt;
+    // this adapter sends no marketAtCall (unlike predict's client-stamped one).
+    nextGoal: function (call) {
+      if (!mySide) return;
+      send({ type: 'nextGoalCall', matchId: matchId, anonId: me, call: call, atMs: Date.now() });
+    },
     onState: function (fn) { cb.state.push(fn); publish(); },        // {rooted, roar, faithSide, connected}
     onConsensus: function (fn) { cb.consensus.push(fn); },           // the crowd's predicted scoreline (all + byRoot + doubters)
     onVerdict: function (fn) { cb.verdict.push(fn); },               // your prediction verdict at FT
@@ -99,6 +110,8 @@
     onMomentResult: function (fn) { cb.momentResult.push(fn); },     // the split reveal
     onCheer: function (fn) { cb.cheerEcho.push(fn); },               // a single accepted cheer landed — {side, atMs}, discrete (not the roar)
     onMarket: function (fn) { cb.market.push(fn); if (lastTriple) try { fn(lastTriple); } catch (e) {} },
+    onNextGoal: function (fn) { cb.nextGoalState.push(fn); },        // the crowd's live next-goal split — {ts, open:{n,home,away,none}, marketAtTs}
+    onNextGoalVerdict: function (fn) { cb.nextGoalVerdict.push(fn); }, // your personal verdict at resolution — {call, outcome, happened, marketAtCall}
   };
   function flushCheer() { cheerTimer = null; var n = pendingCheer; pendingCheer = 0; if (n > 0 && mySide) send({ type: 'cheer', matchId: matchId, side: mySide, n: n, atMs: Date.now() }); }
   // trailing-edge throttle (~250ms, <=4 fires/s): view is mutated synchronously by every
@@ -129,6 +142,8 @@
       case 'moment': if (m.matchId === matchId) fire(cb.moment, m); break;
       case 'momentResult': if (m.matchId === matchId) fire(cb.momentResult, m); break;
       case 'cheerEcho': if (m.matchId === matchId) fire(cb.cheerEcho, { side: m.side, atMs: m.atMs }); break;
+      case 'nextGoalState': if (m.matchId === matchId) fire(cb.nextGoalState, m); break;
+      case 'nextGoalVerdict': if (m.matchId === matchId && m.anonId === me) fire(cb.nextGoalVerdict, m); break;
       case 'odds': {
         // Fix 4: guard by matchId when the server stamps one; tolerate its
         // absence (older server) by falling through to prior behavior.

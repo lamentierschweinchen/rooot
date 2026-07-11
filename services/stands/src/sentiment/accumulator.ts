@@ -56,6 +56,10 @@ export interface CrowdInputs {
   rooted: { home: number; away: number };
 }
 
+/** One resolved, CALLED next-goal cycle (contracts/sentiment.ts
+ * SentimentRecord['nextGoal'] rows — §1.4 Courage-Adjusted Calls' substrate). */
+export type NextGoalRow = NonNullable<SentimentRecord['nextGoal']>[number];
+
 export class SentimentAccumulator {
   private full: MarketPoint[] = [];
   private et: MarketPoint[] = [];
@@ -73,6 +77,11 @@ export class SentimentAccumulator {
   private readonly eventsById = new Map<string, LedgerEvent>();
   /** the FELT drama moments (REACT reveals) — the feel.moments layer. */
   private readonly moments: MomentFeeling[] = [];
+  /** resolved NEXT GOAL cycles (docs/BACKLOG-full-version-and-deferred-ideas.md
+   * §2) — appended ONLY at real resolutions with at least one open call
+   * (server.ts's nextGoalLifecycle calls nextGoalResolved below); never
+   * synthesized. The record's nextGoal layer. */
+  private readonly nextGoalRows: NextGoalRow[] = [];
   private minute: number | null = null;
   private lastBelief: { home: number; draw: number; away: number } | null = null;
   private final = { home: 0, away: 0 };
@@ -167,6 +176,29 @@ export class SentimentAccumulator {
     this.moments.push(...moments);
   }
 
+  /** Append one resolved NEXT GOAL cycle — called by server.ts's
+   * nextGoalLifecycle at a REAL resolution only (a goal CONFIRMING on the
+   * wire, or FULL_TIME), and only when the cycle had at least one open call
+   * (an uncalled cycle appends nothing — its ordinal is skipped, the honest
+   * gap; mirrors feel.moments' "only what was actually FELT" discipline). */
+  nextGoalResolved(row: NextGoalRow): void {
+    this.nextGoalRows.push(row);
+  }
+
+  /** Snapshot persistence only (services/stands/src/snapshot.ts): the resolved
+   * next-goal cycles so far, so a mid-match restart doesn't silently drop
+   * cycles resolved before it from the eventual full-time record — the exact
+   * guarantee getMoments() above provides for felt moments. Returns a copy. */
+  getNextGoalRows(): NextGoalRow[] {
+    return [...this.nextGoalRows];
+  }
+
+  /** Snapshot restore only: reinstate cycles resolved before a restart. Call
+   * once, right after construction (boot time) — appends, does not dedupe. */
+  restoreNextGoalRows(rows: NextGoalRow[]): void {
+    this.nextGoalRows.push(...rows);
+  }
+
   /** crystallize the record (call at FULL_TIME with the crowd data).
    * `finalScoreOverride`, when given, wins over the live-tracked `this.final`
    * (folded fix: the record's finalScore came out empty despite a real FT
@@ -211,6 +243,7 @@ export class SentimentAccumulator {
       finalScore: finalScoreOverride ?? this.final,
       phasePath: this.phases,
       market, fans, feel, events: Array.from(this.eventsById.values()),
+      nextGoal: [...this.nextGoalRows],
       edition,
       capture: { fromMs: this.fromMs === Infinity ? this.toMs : this.fromMs, toMs: this.toMs },
       network: 'devnet',

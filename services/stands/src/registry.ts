@@ -4,9 +4,12 @@
  * callback from server.ts rather than knowing about WebSocket directly.
  */
 import type { ServerMsg, StandsStateMsg } from '@contracts/crowd';
-import type { MomentFeeling } from '@contracts/sentiment';
+import type { MomentFeeling, SentimentRecord } from '@contracts/sentiment';
 import { MatchState } from './match-state';
 import { applySnapshot, readSnapshot, writeSnapshot, SNAPSHOT_INTERVAL_MS } from './snapshot';
+
+/** One resolved NEXT GOAL cycle row (contracts/sentiment.ts nextGoal doc). */
+type NextGoalRow = NonNullable<SentimentRecord['nextGoal']>[number];
 
 export const STANDS_TICK_HZ = 4;
 export const STANDS_TICK_MS = 1000 / STANDS_TICK_HZ;
@@ -51,6 +54,30 @@ export interface OpenedTriggersPersistenceHooks {
   restore(matchId: string, triggerIds: string[]): void;
 }
 
+/** Hooks into server.ts's `nextGoalResolvedIds` NEXT-GOAL resolution dedup Set
+ * (review Critical 2 — same bug class as OpenedTriggersPersistenceHooks above,
+ * same mechanism: TxLINE's seedSnapshot replays the full historical action
+ * list through the live dispatch on every ingest boot, and a REPLAY_FILE
+ * restart always plays from line 0 — an in-memory-only Set re-arms empty and
+ * lets a re-dispatched historical CONFIRMED goal resolve a fresh cycle's open
+ * calls against stale history). Mirrors OpenedTriggersPersistenceHooks
+ * exactly; `restore` runs during registry.loadSnapshot(), BEFORE ingest
+ * starts — the identical boot-ordering guarantee. */
+export interface NextGoalResolvedPersistenceHooks {
+  get(matchId: string): string[];
+  restore(matchId: string, resolvedIds: string[]): void;
+}
+
+/** Hooks into server.ts's sentiment accumulators for the resolved NEXT GOAL
+ * cycle rows (the SentimentRecord's nextGoal layer, contracts/sentiment.ts) —
+ * mirrors MomentsPersistenceHooks exactly and exists for the same reason: the
+ * rows live on the accumulator, and a full-time crystallization after a
+ * mid-match restart must still carry cycles resolved before it. */
+export interface NextGoalRowsPersistenceHooks {
+  get(matchId: string): NextGoalRow[];
+  restore(matchId: string, rows: NextGoalRow[]): void;
+}
+
 export class MatchRegistry {
   private readonly matches = new Map<string, MatchState>();
   private tickTimer: NodeJS.Timeout | null = null;
@@ -72,6 +99,8 @@ export class MatchRegistry {
     private readonly moments?: MomentsPersistenceHooks,
     private readonly resolved?: ResolvedPersistenceHooks,
     private readonly openedTriggers?: OpenedTriggersPersistenceHooks,
+    private readonly nextGoalResolved?: NextGoalResolvedPersistenceHooks,
+    private readonly nextGoalRows?: NextGoalRowsPersistenceHooks,
   ) {}
 
   getOrCreate(matchId: string): MatchState {
@@ -154,6 +183,16 @@ export class MatchRegistry {
     const restoreOpenedTriggers = this.openedTriggers
       ? (matchId: string, triggerIds: string[]) => this.openedTriggers!.restore(matchId, triggerIds)
       : undefined;
+    // same pre-arm again for the NEXT GOAL resolution dedup Set (review
+    // Critical 2) — the very first re-dispatched historical CONFIRMED goal
+    // must already be deduped, or it would resolve a fresh cycle's restored
+    // open calls against stale history.
+    const restoreNextGoalResolved = this.nextGoalResolved
+      ? (matchId: string, ids: string[]) => this.nextGoalResolved!.restore(matchId, ids)
+      : undefined;
+    const restoreNextGoalRows = this.nextGoalRows
+      ? (matchId: string, rows: NextGoalRow[]) => this.nextGoalRows!.restore(matchId, rows)
+      : undefined;
     applySnapshot(
       snap,
       (matchId) => this.getOrCreate(matchId),
@@ -161,6 +200,8 @@ export class MatchRegistry {
       markResolved,
       (nextFanNo, numbers) => this.restoreFanSerial(nextFanNo, numbers),
       restoreOpenedTriggers,
+      restoreNextGoalResolved,
+      restoreNextGoalRows,
     );
     console.log(`[stands:registry] restored ${snap.matches.length} match(es) from snapshot (v${snap.version ?? 1})`);
   }
@@ -186,7 +227,9 @@ export class MatchRegistry {
     const getMoments = this.moments ? (matchId: string) => this.moments!.get(matchId) : undefined;
     const isResolved = this.resolved ? (matchId: string) => this.resolved!.get(matchId) : undefined;
     const getOpenedTriggerIds = this.openedTriggers ? (matchId: string) => this.openedTriggers!.get(matchId) : undefined;
-    writeSnapshot(this.matches, getMoments, isResolved, this.fanSerialSnapshot(), getOpenedTriggerIds);
+    const getNextGoalResolvedIds = this.nextGoalResolved ? (matchId: string) => this.nextGoalResolved!.get(matchId) : undefined;
+    const getNextGoalRows = this.nextGoalRows ? (matchId: string) => this.nextGoalRows!.get(matchId) : undefined;
+    writeSnapshot(this.matches, getMoments, isResolved, this.fanSerialSnapshot(), getOpenedTriggerIds, getNextGoalResolvedIds, getNextGoalRows);
   }
 
   stop(): void {
