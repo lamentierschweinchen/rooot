@@ -1,22 +1,22 @@
 {
-  "matchId": "18213979",
+  "matchId": "18222446",
   "home": {
-    "code": "NOR",
-    "name": "Norway",
+    "code": "ARG",
+    "name": "Argentina",
     "colors": [
-      "#BA0C2F",
-      "#00205B"
+      "#75AADB",
+      "#F6B40E"
     ]
   },
   "away": {
-    "code": "ENG",
-    "name": "England",
+    "code": "SUI",
+    "name": "Switzerland",
     "colors": [
-      "#FFFFFF",
-      "#CF081F"
+      "#D52B1E",
+      "#FFFFFF"
     ]
   },
-  "kickoffUtc": "2026-07-11T21:00:00Z",
+  "kickoffUtc": "2026-07-12T01:00:00Z",
   "competition": "World Cup",
-  "dateISO": "2026-07-11"
+  "dateISO": "2026-07-12"
 }
