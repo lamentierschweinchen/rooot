@@ -141,8 +141,12 @@ export interface PredictMsg {
  * goals this match). One live call per fan: a new call REPLACES the fan's open
  * one until resolution. The server stamps the live de-vigged market at receipt
  * (the courage weight — calling a side at 16% is not calling it at 60%).
- * Resolves on the next real goal (side match) or at FULL_TIME for 'none'.
- * Honest: never scored against anything but the wire; aggregates always carry n. */
+ * Resolves when the next goal CONFIRMS on the wire (typically ~1-2 minutes
+ * after the ball crosses the line; a goal that never confirms — disallowed —
+ * never resolves), converted IN-PLAY penalties included; shootout kicks never
+ * resolve the book. 'none' resolves correct at FULL_TIME if no further goal
+ * confirmed. Honest: never scored against anything but the wire; aggregates
+ * always carry n. */
 export interface NextGoalCallMsg {
   type: 'nextGoalCall';
   matchId: string;

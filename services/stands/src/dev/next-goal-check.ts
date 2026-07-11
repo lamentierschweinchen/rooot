@@ -3,7 +3,7 @@
  * and-deferred-ideas.md §2. Proves the mechanism end-to-end with a REAL
  * server and real ws clients (same discipline as verdict-replay-check.ts /
  * restart-persistence-check.ts). One in-process server (booted once, shared
- * — matchIds are disjoint per scenario) runs scenarios 1-3; scenario 4 is a
+ * — matchIds are disjoint per scenario) runs scenarios 1-4; scenario 5 is a
  * real child-process boot/kill/reboot.
  *
  * 1. scenarioLiveFlow (driving broadcastToMatch directly — the SAME function
@@ -46,7 +46,23 @@
  *    guarantee restart-persistence-check.ts's anchor-guard scenario relies
  *    on, made explicit here because THIS scenario crystallizes in-process).
  *
- * 4. scenarioRestart (REAL child processes, zero shared memory): cycle 1
+ * 4. scenarioInPlayPenalty (re-review Critical — converted in-play penalties
+ *    ARE the next goal): the REAL PAR–FRA envelopes (apps/web/public/replay/
+ *    par-fra-20260704.jsonl, committed) driven through the REAL parser
+ *    (contracts/normalize.ts parseLedgerMessage — the same one live/replay
+ *    ingest use). France's only goal that day exists EXCLUSIVELY as three
+ *    penalty_outcome envelopes (Id 609, Confirmed false→true→true, Outcome
+ *    "Scored"; zero Action:'goal' envelopes in the whole file) → ledger kind
+ *    'penalty-kick'. The unconfirmed emission resolves nothing; the
+ *    confirmed Scored emission resolves the book exactly once, correct side;
+ *    the second confirmed re-emission dedupes. A confirmed MISSED in-play
+ *    penalty resolves nothing. A shootout-phase (PENALTIES) confirmed Scored
+ *    kick resolves NOTHING — and the surviving open call still resolves
+ *    'none'-semantics at FULL_TIME (today's shootout behavior, unregressed).
+ *    White-box: the dedup Set carries only the real pen id + the FT id (the
+ *    missed and shootout kicks never consume a cycle); the record rows match.
+ *
+ * 5. scenarioRestart (REAL child processes, zero shared memory): cycle 1
  *    resolves via a real REPLAY_FILE confirmed goal; cycle 2 opens and is
  *    left OPEN — SIGKILLed mid-cycle. boot2 = fresh child, SAME dataDir,
  *    SAME replay file — the exact re-dispatch mechanism of review Critical 2
@@ -69,6 +85,8 @@ import { fileURLToPath } from 'node:url';
 import { WebSocket } from 'ws';
 import type { ClientMsg, NextGoalStateMsg, NextGoalVerdictMsg, ServerMsg } from '@contracts/crowd';
 import type { FeedMsg } from '@contracts/feed';
+import type { LedgerMsg } from '@contracts/ledger';
+import { parseLedgerMessage } from '@contracts/normalize';
 import type { SentimentRecord } from '@contracts/sentiment';
 
 function log(tag: string, msg: string): void {
@@ -167,7 +185,7 @@ interface InProcessCtx {
   dataDir: string;
   registry: { get(matchId: string): { nextGoalOpenCount(): number; fanStatsFor(anonId: string): { nextGoalCalls: number; nextGoalCorrect: number } | undefined } | undefined; snapshotNow(): void; stop(): void };
   broadcastToMatch: (matchId: string, msg: ServerMsg | FeedMsg) => void;
-  httpServer: { close(cb: () => void): void; listen(port: number, host: string, cb: () => void): void; address(): unknown };
+  httpServer: { close(cb: () => void): void; closeAllConnections?: () => void; listen(port: number, host: string, cb: () => void): void; address(): unknown };
 }
 
 async function bootInProcess(): Promise<InProcessCtx> {
@@ -536,7 +554,148 @@ async function scenarioSentimentRecordRows(ctx: InProcessCtx): Promise<void> {
   await closeAndWait(fanY);
 }
 
-/* ═══════════ scenario 4 — restart mid-cycle + re-dispatch (children) ═════ */
+/* ═════ scenario 4 — converted in-play penalties resolve; shootouts never ═ */
+const PARFRA_REPLAY_PATH = new URL('../../../../apps/web/public/replay/par-fra-20260704.jsonl', import.meta.url);
+const PARFRA_MATCH = '18188721'; // PAR home, FRA away (Participant1IsHome:true; France's pen = Participant 2 → side 'away')
+const PARFRA_PEN_ID = `${PARFRA_MATCH}:609`; // France's only goal — penalty_outcome, zero Action:'goal' envelopes all match
+
+/** The real Id-609 penalty_outcome lines, parsed through the REAL parser
+ * (contracts/normalize.ts parseLedgerMessage — exactly what live/replay
+ * ingest run), in captured order. Also returns the raw envelope JSON strings
+ * so the Missed/shootout variants below can be built by mutating a REAL
+ * envelope (Id + Outcome only) instead of hand-crafting a synthetic shape. */
+function loadParFraPenaltyEmissions(): Array<{ ledger: LedgerMsg; rawData: string; confirmed: boolean }> {
+  // NOTE: each line's `data` field is a JSON-ENCODED STRING, so the envelope's
+  // quotes appear escaped in the raw line (\"Action\":\"penalty_outcome\") —
+  // match the bare token, not a quoted form that never occurs.
+  const lines = readFileSync(PARFRA_REPLAY_PATH, 'utf8').split('\n').filter((l) => l.includes('penalty_outcome'));
+  const out: Array<{ ledger: LedgerMsg; rawData: string; confirmed: boolean }> = [];
+  for (const line of lines) {
+    const rec = JSON.parse(line) as { receivedAtMs: number; data: string };
+    const env = JSON.parse(rec.data) as { Id?: number; Confirmed?: boolean };
+    if (env.Id !== 609) continue;
+    const ledger = parseLedgerMessage(rec.data, rec.receivedAtMs, 'replay');
+    if (ledger) out.push({ ledger, rawData: rec.data, confirmed: env.Confirmed === true });
+  }
+  return out;
+}
+
+/** A variant of a REAL penalty envelope with only Id/Outcome changed —
+ * re-parsed through the real parser, so every other field stays wire-true. */
+function penaltyVariant(rawData: string, newId: number, outcome: string): LedgerMsg | null {
+  const env = JSON.parse(rawData) as { Id?: number; Data?: { Outcome?: string } };
+  env.Id = newId;
+  if (env.Data) env.Data.Outcome = outcome;
+  return parseLedgerMessage(JSON.stringify(env), Date.now(), 'replay');
+}
+
+async function scenarioInPlayPenalty(ctx: InProcessCtx): Promise<void> {
+  const { url, registry, broadcastToMatch, dataDir } = ctx;
+  const emissions = loadParFraPenaltyEmissions();
+  const unconfirmed = emissions.filter((e) => !e.confirmed);
+  const confirmed = emissions.filter((e) => e.confirmed);
+
+  /* preconditions — the capture + parser really are what the review says */
+  const firstEv = emissions[0]?.ledger.type === 'event' ? emissions[0].ledger.ev : null;
+  assert(
+    'precondition: PAR–FRA Id-609 = three real penalty_outcome emissions (Confirmed false→true→true), parsed by the REAL parser to ledger kind penalty-kick, detail Scored, side away — and normalize does NOT stamp ev.confirmed for this kind (why isWireConfirmed reads the raw envelope)',
+    emissions.length === 3 && unconfirmed.length === 1 && confirmed.length === 2
+      && firstEv?.kind === 'penalty-kick' && firstEv?.detail === 'Scored' && firstEv?.side === 'away' && firstEv?.id === PARFRA_PEN_ID && firstEv?.confirmed === undefined,
+    `emissions=${emissions.length} flags=${JSON.stringify(emissions.map((e) => e.confirmed))} ev=${JSON.stringify(firstEv && { kind: firstEv.kind, detail: firstEv.detail, side: firstEv.side, id: firstEv.id, confirmed: firstEv.confirmed })}`,
+  );
+  const goalEnvelopeCount = readFileSync(PARFRA_REPLAY_PATH, 'utf8').split('\n').filter((l) => l.includes('\\"Action\\":\\"goal\\"')).length;
+  assert(
+    "precondition: the whole PAR–FRA capture carries ZERO Action:'goal' envelopes — the penalty IS France's only goal (kind==='goal' alone can never resolve it)",
+    goalEnvelopeCount === 0,
+    `goalEnvelopes=${goalEnvelopeCount}`,
+  );
+
+  /* a fan correctly calls the penalty side ('away' = FRA), in live play */
+  const fan = await connect(url);
+  const cap = attachNextGoalCapture(fan, PARFRA_MATCH, 'ng-pen-fan');
+  send(fan, { type: 'hello', matchId: PARFRA_MATCH, anonId: 'ng-pen-fan', side: 'away' });
+  await sleep(120);
+  broadcastToMatch(PARFRA_MATCH, { type: 'status', ev: { tMs: Date.now(), phase: 'SECOND_HALF', minute: 68, source: 'replay' } }); // the real pen fell at 69'
+  await sleep(60);
+  send(fan, { type: 'nextGoalCall', matchId: PARFRA_MATCH, anonId: 'ng-pen-fan', call: 'away', atMs: Date.now() });
+  await sleep(150);
+
+  // (a) the real sequence, verbatim order: unconfirmed → confirmed → confirmed
+  broadcastToMatch(PARFRA_MATCH, { type: 'ledger', msg: unconfirmed[0]!.ledger });
+  await sleep(150);
+  assert(
+    'the UNCONFIRMED penalty emission resolves nothing — the spot-kick award is a held breath, not a goal',
+    cap.verdicts.length === 0 && (registry.get(PARFRA_MATCH)?.nextGoalOpenCount() ?? -1) === 1,
+    `verdicts=${JSON.stringify(cap.verdicts)}`,
+  );
+  broadcastToMatch(PARFRA_MATCH, { type: 'ledger', msg: confirmed[0]!.ledger });
+  await sleep(200);
+  assert(
+    "the CONFIRMED Scored in-play penalty resolves the book exactly once — the fan who called 'away' (FRA, the penalty side) grades CORRECT, happened:'away' (before the fix: stayed open, graded permanently WRONG at FT)",
+    cap.verdicts.length === 1 && cap.verdicts[0]?.outcome === 'correct' && cap.verdicts[0]?.happened === 'away',
+    `verdicts=${JSON.stringify(cap.verdicts)}`,
+  );
+  send(fan, { type: 'nextGoalCall', matchId: PARFRA_MATCH, anonId: 'ng-pen-fan', call: 'home', atMs: Date.now() }); // fresh cycle-2 call
+  await sleep(120);
+  broadcastToMatch(PARFRA_MATCH, { type: 'ledger', msg: confirmed[1]!.ledger });
+  await sleep(150);
+  assert(
+    "the penalty's second real confirmed re-emission resolves nothing further — dedup by ev.id, cycle 2 stays open",
+    cap.verdicts.length === 1 && (registry.get(PARFRA_MATCH)?.nextGoalOpenCount() ?? -1) === 1,
+    `verdicts=${cap.verdicts.length} openCount=${registry.get(PARFRA_MATCH)?.nextGoalOpenCount()}`,
+  );
+
+  // (c) a confirmed MISSED in-play penalty (real envelope, Outcome mutated) — no goal, no resolution
+  const missed = penaltyVariant(confirmed[0]!.rawData, 9610, 'Missed');
+  assert('precondition: the Missed variant re-parses as penalty-kick detail Missed', missed?.type === 'event' && missed.ev.kind === 'penalty-kick' && missed.ev.detail === 'Missed', `ev=${JSON.stringify(missed?.type === 'event' ? { kind: missed.ev.kind, detail: missed.ev.detail } : missed)}`);
+  broadcastToMatch(PARFRA_MATCH, { type: 'ledger', msg: missed! });
+  await sleep(150);
+  assert(
+    'a confirmed MISSED in-play penalty resolves nothing — no goal happened',
+    cap.verdicts.length === 1 && (registry.get(PARFRA_MATCH)?.nextGoalOpenCount() ?? -1) === 1,
+    `verdicts=${cap.verdicts.length} openCount=${registry.get(PARFRA_MATCH)?.nextGoalOpenCount()}`,
+  );
+
+  // (b) a SHOOTOUT kick: phase PENALTIES + a confirmed Scored penalty_outcome
+  // (the dangerous shape — same kind, same outcome, same confirm) → NOTHING
+  broadcastToMatch(PARFRA_MATCH, { type: 'status', ev: { tMs: Date.now(), phase: 'PENALTIES', minute: null, source: 'replay' } });
+  await sleep(60);
+  const shootout = penaltyVariant(confirmed[0]!.rawData, 9611, 'Scored');
+  broadcastToMatch(PARFRA_MATCH, { type: 'ledger', msg: shootout! });
+  await sleep(150);
+  assert(
+    'a shootout-phase (PENALTIES) confirmed Scored kick resolves NOTHING — shootout goals live in PE.Goals, Total.Goals unchanged; not "the next goal"',
+    cap.verdicts.length === 1 && (registry.get(PARFRA_MATCH)?.nextGoalOpenCount() ?? -1) === 1,
+    `verdicts=${cap.verdicts.length} openCount=${registry.get(PARFRA_MATCH)?.nextGoalOpenCount()}`,
+  );
+
+  // shootout semantics unregressed: the surviving side call resolves at FULL_TIME against 'none'
+  broadcastToMatch(PARFRA_MATCH, { type: 'status', ev: { tMs: Date.now(), phase: 'FULL_TIME', minute: 120, source: 'replay' } });
+  await sleep(200);
+  assert(
+    "FULL_TIME after the shootout still resolves the open call against 'none' (side call wrong) — today's shootout semantic, unregressed",
+    cap.verdicts.length === 2 && cap.verdicts[1]?.outcome === 'wrong' && cap.verdicts[1]?.happened === 'none',
+    `verdicts=${JSON.stringify(cap.verdicts)}`,
+  );
+
+  /* white-box: dedup Set + record rows on disk */
+  registry.snapshotNow();
+  const onDisk = snapshotMatchOn(dataDir, PARFRA_MATCH);
+  assert(
+    'the persisted dedup Set carries ONLY the real pen id + the FT id — the missed and shootout kicks never consumed a cycle',
+    onDisk?.nextGoalResolvedIds?.length === 2 && onDisk.nextGoalResolvedIds.includes(PARFRA_PEN_ID) && onDisk.nextGoalResolvedIds.includes(`${PARFRA_MATCH}:nextgoal:ft`),
+    `nextGoalResolvedIds=${JSON.stringify(onDisk?.nextGoalResolvedIds)}`,
+  );
+  assert(
+    "the record rows match: row 1 confirmedGoalId = the penalty's ledger id, happened:'away'; row 2 the FT cycle, happened:'none'",
+    onDisk?.nextGoalRows?.length === 2 && onDisk.nextGoalRows[0]?.confirmedGoalId === PARFRA_PEN_ID && onDisk.nextGoalRows[0]?.happened === 'away' && onDisk.nextGoalRows[1]?.happened === 'none',
+    `nextGoalRows=${JSON.stringify(onDisk?.nextGoalRows)}`,
+  );
+
+  await closeAndWait(fan);
+}
+
+/* ═══════════ scenario 5 — restart mid-cycle + re-dispatch (children) ═════ */
 const STANDS_ROOT = fileURLToPath(new URL('../../', import.meta.url)); // services/stands/
 const TSX_BIN = path.join(STANDS_ROOT, 'node_modules', '.bin', 'tsx');
 
@@ -772,8 +931,14 @@ async function main(): Promise<void> {
     await scenarioLiveFlow(ctx);
     await scenarioRealCaptureConfirmGate(ctx);
     await scenarioSentimentRecordRows(ctx);
+    await scenarioInPlayPenalty(ctx);
   } finally {
     ctx.registry.stop();
+    // force-drop any ws socket a FAILED scenario left open — without this,
+    // httpServer.close waits on live connections forever and the watchdog,
+    // not the summary, ends the run (observed when a mid-scenario throw
+    // skipped a closeAndWait). No-op on the happy path (all fans closed).
+    ctx.httpServer.closeAllConnections?.();
     await new Promise<void>((resolve) => ctx.httpServer.close(() => resolve()));
     rmSync(ctx.dataDir, { recursive: true, force: true });
   }

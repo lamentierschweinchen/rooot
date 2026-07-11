@@ -15,6 +15,7 @@ import { WebSocket, WebSocketServer } from 'ws';
 import type { CallMsg, CallReceiptMsg, CheerEchoMsg, ClientMsg, MomentKind, MomentOpenMsg, MomentResultMsg, RoomStateMsg, ServerMsg, Side, WelcomeMsg } from '@contracts/crowd';
 import { FEELING_PALETTES } from '@contracts/crowd';
 import type { FeedMsg } from '@contracts/feed';
+import type { LedgerEvent } from '@contracts/ledger';
 import type { MatchPhase } from '@contracts/match';
 import { REACT_WINDOW_MS, RollingCounter, SWING_DELTA_MIN, SWING_WINDOW_MS } from './decay';
 import { MatchRegistry } from './registry';
@@ -963,13 +964,20 @@ async function handleCall(ws: WebSocket, state: ConnState, msg: Extract<ClientMs
  * FULL_TIME (review Critical 1: an unconfirmed goal is the held breath and
  * may be disallowed outright — it never resolves the book; the honest
  * semantic is "your call resolves when the goal CONFIRMS", observed lag
- * ~1-2 minutes on the premiere wire). Each resolution with open calls also
- * appends a row into the SentimentRecord's nextGoal layer (contracts/
- * sentiment.ts — §1.4 Courage-Adjusted Calls' substrate). Self-contained
- * region (tonight-gate merge note: keep edits here, outside it only the
- * minimal wiring — dispatch case, the broadcastToMatch hook, the registry
- * persistence hooks, the two join/hello replay lines — all marked
- * "NEXT GOAL" at their call sites). ════════════════════════════════════ */
+ * ~1-2 minutes on the premiere wire). A goal here means a confirmed 'goal'
+ * ledger event OR a confirmed, SCORED, IN-PLAY penalty (re-review Critical:
+ * PAR–FRA Jul 4 — France's only goal exists exclusively as penalty_outcome
+ * envelopes, ledger kind 'penalty-kick'; kind==='goal' alone left a correct
+ * caller permanently WRONG). Shootout kicks NEVER resolve: they arrive
+ * under phase PENALTIES and score into PE.Goals with Total.Goals unchanged
+ * (SUI–COL wire proof) — the 'none'-resolves-correct-at-FULL_TIME semantic
+ * is theirs. Each resolution with open calls also appends a row into the
+ * SentimentRecord's nextGoal layer (contracts/sentiment.ts — §1.4
+ * Courage-Adjusted Calls' substrate). Self-contained region (tonight-gate
+ * merge note: keep edits here, outside it only the minimal wiring —
+ * dispatch case, the broadcastToMatch hook, the registry persistence hooks,
+ * the two join/hello replay lines — all marked "NEXT GOAL" at their call
+ * sites). ═══════════════════════════════════════════════════════════════ */
 
 /** Only these phases count as "live play" for a call — pre-kickoff (PRE),
  * the dead-ball breaks (HALF_TIME/PENALTIES), and post-FT all reject. */
@@ -1039,6 +1047,17 @@ function nextGoalResolvedIdsFor(matchId: string): Set<string> {
   return seen;
 }
 
+/** The wire-confirmed flag of a scoring ledger event, both shapes: normalize
+ * stamps ev.confirmed for kind 'goal' ONLY — a 'penalty-kick' event's
+ * Confirmed lives on the raw envelope it carries (ev.raw, always set by
+ * parseLedgerMessage). Fail-closed: absent/unreadable = NOT confirmed — the
+ * book never resolves on unproven confirmation. */
+function isWireConfirmed(ev: LedgerEvent): boolean {
+  if (ev.confirmed === true) return true;
+  const raw = ev.raw as { Confirmed?: unknown } | undefined;
+  return raw?.Confirmed === true;
+}
+
 /** Resolve the open book against what happened: personal verdicts to each
  * caller, a SentimentRecord row into the accumulator (ONLY when the cycle
  * had open calls — an uncalled cycle appends nothing, its ordinal is the
@@ -1085,18 +1104,43 @@ function nextGoalLifecycle(matchId: string, msg: ServerMsg | FeedMsg): void {
   if (msg.type === 'ledger') {
     if (msg.msg.type !== 'event') return;
     const ev = msg.msg.ev;
-    if (ev.kind !== 'goal' || !ev.side) return;
-    // Review Critical 1: ONLY a confirmed goal resolves. The premiere capture
-    // is the proof of both halves of this gate: 18209181:495 emitted
-    // confirmed:false ONCE, never confirmed, and the final score excludes it
-    // (a disallowed goal — resolving on it would have graded real fans
-    // against a goal that never happened); 18209181:683/:729 each emitted
-    // confirmed:false first and confirmed TRUE ~105s/~67s later — the gate
-    // sits BEFORE the dedup mark so the provisional emission never consumes
-    // the id, and the confirming emission still resolves exactly once.
-    if (ev.confirmed !== true) return;
+    if (!ev.side) return;
+    if (ev.kind === 'penalty-kick') {
+      // Re-review Critical: a converted IN-PLAY penalty IS the next goal —
+      // PAR–FRA Jul 4 proof (apps/web/public/replay/par-fra-20260704.jsonl):
+      // France's only goal exists exclusively as three penalty_outcome
+      // envelopes (Id 609, Confirmed false→true→true, Outcome "Scored",
+      // Total.Goals moves) — zero Action:'goal' envelopes all match. Without
+      // this branch a fan correctly calling the penalty side stayed open and
+      // graded permanently WRONG at FULL_TIME.
+      // Shootout kicks are EXCLUDED: they arrive under phase PENALTIES
+      // (StatusId 12) and score into Score.ParticipantN.PE.Goals with
+      // Total.Goals UNCHANGED (SUI–COL wire proof; normalize.ts documents
+      // the same) — a shootout is not "the next goal", and today's semantic
+      // (side calls resolve wrong / 'none' correct at FULL_TIME) stands.
+      // Gate off the same cached status truth the call gate uses.
+      if (joinSnapshots.get(matchId)?.status?.ev.phase === 'PENALTIES') return;
+      // Only a SCORED penalty is a goal — normalize puts the wire Outcome in
+      // ev.detail for penalty-kick ('Scored' | 'Missed' | …). Fail-closed on
+      // anything else: a miss/save/unknown outcome resolves nothing.
+      if (ev.detail !== 'Scored') return;
+    } else if (ev.kind !== 'goal') {
+      return;
+    }
+    // Review Critical 1: ONLY a confirmed scoring event resolves. The
+    // premiere capture is the proof of both halves of this gate:
+    // 18209181:495 emitted confirmed:false ONCE, never confirmed, and the
+    // final score excludes it (a disallowed goal — resolving on it would
+    // have graded real fans against a goal that never happened);
+    // 18209181:683/:729 each emitted confirmed:false first and confirmed
+    // TRUE ~105s/~67s later — the gate sits BEFORE the dedup mark so the
+    // provisional emission never consumes the id, and the confirming
+    // emission still resolves exactly once. isWireConfirmed covers both
+    // event shapes (ev.confirmed for goals; the raw envelope's Confirmed
+    // for penalty-kick, which normalize doesn't stamp).
+    if (!isWireConfirmed(ev)) return;
     const seen = nextGoalResolvedIdsFor(matchId);
-    if (seen.has(ev.id)) return; // re-emission of an already-resolved goal
+    if (seen.has(ev.id)) return; // re-emission of an already-resolved scoring event
     seen.add(ev.id);
     resolveNextGoalBook(matchId, seen.size, ev.side, ev.id);
     return;
