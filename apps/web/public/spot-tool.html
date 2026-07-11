@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>SPOT TOOL — place the stadium's invitations</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <meta name="theme-color" content="#E6DBC2">
 <style>
 @font-face{font-family:'Anybody';src:url(plate/fonts/anybody900.woff2) format('woff2');font-weight:800 900;font-display:swap}
@@ -82,22 +83,22 @@ html,body{background:var(--paper);font-family:'Anybody','Arial Black',sans-serif
 </div>
 <script>
 'use strict';
-// the shipped layout (fb2af2c) is the starting point — every value editable
+// the shipped layout (the owner's own spot-tool spec, 11 Jul) is the starting point.
+// the stands are not placeable — the glow is decoration; the tap is the bare seating.
 var DEF=[
- {id:'goal-top',   place:'goal',   kind:'dot', x:49.8,y:21.3,d:8},
- {id:'goal-bottom',place:'goal',   kind:'dot', x:49.8,y:79.8,d:8},
- {id:'corner-tl',  place:'arc',    kind:'dot', x:26.8,y:21.7,d:8},
- {id:'corner-tr',  place:'arc',    kind:'dot', x:73.4,y:21.7,d:8},
- {id:'corner-bl',  place:'arc',    kind:'dot', x:26.8,y:79.4,d:8},
- {id:'corner-br',  place:'arc',    kind:'dot', x:73.4,y:79.4,d:8},
- {id:'bench-top',  place:'bench',  kind:'dot', x:80.3,y:41.7,d:8},
- {id:'bench-bottom',place:'bench', kind:'dot', x:80.3,y:60.2,d:8},
- {id:'scoreboard', place:'odds',   kind:'dot', x:55.4,y:11.9,d:8},
- {id:'kickoff-circle',place:'control',kind:'zone',x:49.8,y:50.5,w:17,h:12.2},
- {id:'sideline-book', place:'book',   kind:'zone',x:26.8,y:50.6,w:9,h:6.5},
- {id:'stands-ring',   place:'stands', kind:'ring',x:50,y:50.4,w:97,h:96}
+ {id:'goal-top',   place:'goal',   kind:'dot', x:50.1,y:23.4,d:17.5},
+ {id:'goal-bottom',place:'goal',   kind:'dot', x:50.5,y:78.6,d:17.5},
+ {id:'corner-tl',  place:'arc',    kind:'dot', x:29.2,y:23.5,d:8},
+ {id:'corner-tr',  place:'arc',    kind:'dot', x:71.3,y:23.6,d:8},
+ {id:'corner-bl',  place:'arc',    kind:'dot', x:29.1,y:77.7,d:8},
+ {id:'corner-br',  place:'arc',    kind:'dot', x:71.5,y:77.6,d:8},
+ {id:'bench-top',  place:'bench',  kind:'dot', x:81.2,y:41.9,d:15.5},
+ {id:'bench-bottom',place:'bench', kind:'dot', x:81.2,y:61.6,d:15.5},
+ {id:'scoreboard', place:'odds',   kind:'dot', x:57.4,y:11.7,d:9.5},
+ {id:'kickoff-circle',place:'control',kind:'zone',x:50.3,y:50.5,w:17,h:12.2},
+ {id:'sideline-book', place:'book',   kind:'zone',x:28,y:50.8,w:9,h:6.5}
 ];
-var KEY='rooot.spot-tool.v1';
+var KEY='rooot.spot-tool.v2';
 var spots; try{ spots=JSON.parse(localStorage.getItem(KEY))||null; }catch(e){ spots=null; }
 if(!spots||!spots.length||spots.length!==DEF.length) spots=JSON.parse(JSON.stringify(DEF));
 var stage=document.getElementById('stage'), sel=null;

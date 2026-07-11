@@ -44,14 +44,15 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
    the sideline, the stands ring). Everything subtle; the hit area stays >=40px. */
 .hot{position:absolute;transform:translate(-50%,-50%);z-index:4;cursor:pointer;-webkit-tap-highlight-color:transparent;
   width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center}
-.hot::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--gold);
+.hot::before{content:"";width:var(--d,8px);height:var(--d,8px);border-radius:50%;background:var(--gold);
   box-shadow:0 0 7px 1.5px rgba(199,154,56,.45),inset 0 0 0 1px rgba(26,24,21,.3);animation:dotb 2.8s ease-in-out infinite}
 @keyframes dotb{0%,100%{opacity:.5}50%{opacity:.95}}
 .hot.zone::before{width:100%;height:100%;background:radial-gradient(closest-side,rgba(199,154,56,.16),rgba(199,154,56,.05) 62%,transparent);
   box-shadow:none;border-radius:inherit;border:1px solid rgba(199,154,56,.3)}
-.hot.ring-all{z-index:2;box-shadow:0 0 9px 0 rgba(199,154,56,.12)}   /* the stands ARE the whole bowl — one quiet breath around the rim */
-.hot.ring-all::before{display:none}
-.hot.ring-all::after{content:"";position:absolute;inset:0;border-radius:inherit;border:1.5px solid var(--gold);animation:halo 3s ease-out infinite;opacity:0}
+/* the stands glow is pure decoration across the bowl (owner, 11 Jul) — the TAP is the bare seating itself */
+.standsglow{position:absolute;left:50%;top:50.4%;transform:translate(-50%,-50%);width:97%;height:96%;border-radius:43%;
+  pointer-events:none;z-index:2;box-shadow:0 0 9px 0 rgba(199,154,56,.12)}
+.standsglow::after{content:"";position:absolute;inset:0;border-radius:inherit;border:1.5px solid var(--gold);animation:halo 3s ease-out infinite;opacity:0}
 .pitchzone{position:absolute;left:50%;top:50.5%;transform:translate(-50%,-50%);width:50%;height:61%;z-index:3}   /* bare pitch swallows taps (as before) — it is not the stands */
 @keyframes halo{0%{transform:scale(1);opacity:.5}100%{transform:scale(1.22);opacity:0}}
 .hot .cap{display:none}   /* owner: the place self-explains — position IS the label (Jul 7 + Jul 11) */
@@ -196,19 +197,19 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
       <canvas class="stad" id="stadcanvas" width="760" height="1079"></canvas>
       <div class="board" id="board"><span class="bsc" id="bSc">0–0</span><span class="bmin" id="bMin"></span></div>
       <div class="pnum a" id="pA">—</div><div class="pnum h" id="pH">—</div>
-      <!-- dots on the point-places, zone glows on the areas — the place is the label -->
-      <div class="hot" data-place="goal" style="left:49.8%;top:21.3%" aria-label="the goal mouth"><span class="cap" id="capA">GOAL</span></div>
-      <div class="hot" data-place="goal" style="left:49.8%;top:79.8%" aria-label="the goal mouth"><span class="cap" id="capH">GOAL</span></div>
-      <div class="hot" data-place="arc" style="left:26.8%;top:21.7%" aria-label="set pieces"><span class="cap">SET PIECES</span></div>
-      <div class="hot" data-place="arc" style="left:73.4%;top:21.7%" aria-label="set pieces"></div>
-      <div class="hot" data-place="arc" style="left:26.8%;top:79.4%" aria-label="set pieces"></div>
-      <div class="hot" data-place="arc" style="left:73.4%;top:79.4%" aria-label="set pieces"></div>
-      <div class="hot" data-place="bench" style="left:80.3%;top:41.7%" aria-label="the bench"><span class="cap">THE BENCH</span></div>
-      <div class="hot" data-place="bench" style="left:80.3%;top:60.2%" aria-label="the bench"><span class="cap">THE BENCH</span></div>
-      <div class="hot" data-place="odds" style="left:55.4%;top:11.9%" aria-label="the market"><span class="cap">THE MARKET</span></div>
-      <div class="hot zone" data-place="control" style="left:49.8%;top:50.5%;width:17%;height:12.2%;border-radius:50%" aria-label="control"><span class="cap">CONTROL</span></div>
-      <div class="hot zone" data-place="book" style="left:26.8%;top:50.6%;width:9%;height:6.5%;border-radius:50%" aria-label="the book"><span class="cap">THE BOOK</span></div>
-      <div class="hot ring-all" data-place="stands" style="left:50%;top:50.4%;width:97%;height:96%;border-radius:43%" aria-label="the stands"><span class="cap">THE STANDS</span></div>
+      <!-- dots + zones exactly as the owner placed them (spot-tool spec, 11 Jul) -->
+      <div class="hot" data-place="goal" style="left:50.1%;top:23.4%;--d:17.5px" aria-label="the goal mouth"><span class="cap" id="capA">GOAL</span></div>
+      <div class="hot" data-place="goal" style="left:50.5%;top:78.6%;--d:17.5px" aria-label="the goal mouth"><span class="cap" id="capH">GOAL</span></div>
+      <div class="hot" data-place="arc" style="left:29.2%;top:23.5%;--d:8px" aria-label="set pieces"><span class="cap">SET PIECES</span></div>
+      <div class="hot" data-place="arc" style="left:71.3%;top:23.6%;--d:8px" aria-label="set pieces"></div>
+      <div class="hot" data-place="arc" style="left:29.1%;top:77.7%;--d:8px" aria-label="set pieces"></div>
+      <div class="hot" data-place="arc" style="left:71.5%;top:77.6%;--d:8px" aria-label="set pieces"></div>
+      <div class="hot" data-place="bench" style="left:81.2%;top:41.9%;--d:15.5px" aria-label="the bench"><span class="cap">THE BENCH</span></div>
+      <div class="hot" data-place="bench" style="left:81.2%;top:61.6%;--d:15.5px" aria-label="the bench"><span class="cap">THE BENCH</span></div>
+      <div class="hot" data-place="odds" style="left:57.4%;top:11.7%;--d:9.5px" aria-label="the market"><span class="cap">THE MARKET</span></div>
+      <div class="hot zone" data-place="control" style="left:50.3%;top:50.5%;width:17%;height:12.2%;border-radius:50%" aria-label="control"><span class="cap">CONTROL</span></div>
+      <div class="hot zone" data-place="book" style="left:28%;top:50.8%;width:9%;height:6.5%;border-radius:50%" aria-label="the book"><span class="cap">THE BOOK</span></div>
+      <div class="standsglow" aria-hidden="true"></div>
       <div class="pitchzone" aria-hidden="true"></div>
     </div>
   </div>
@@ -636,6 +637,9 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
       open(hot.getAttribute('data-place'), ox+'% '+oy+'%');
     });
   });
+  // the stands tap is the bare seating itself — anywhere the bowl shows through (owner, 11 Jul:
+  // the glow is decoration across the bowl, never one huge element colliding with the spots)
+  el('stadwrap').addEventListener('click',function(e){ if(e.target===el('stadcanvas'))open('stands','50% 50%'); });
   document.querySelectorAll('[data-close]').forEach(function(b){b.addEventListener('click',close);});
   el('cnPrev').addEventListener('click',function(){nav(-1);});
   el('cnNext').addEventListener('click',function(){nav(1);});
