@@ -137,7 +137,25 @@ export interface PredictMsg {
   atMs: number;
 }
 
-export type ClientMsg = HelloMsg | CheerMsg | ReactMsg | MomentReactMsg | CallMsg | PredictMsg;
+/**
+ * SEAT — request a one-time claim token over the live WebSocket (the same
+ * session trust anchor cheer/predict already use). The server grants ONLY for
+ * the connection's own adopted identity: matchId must equal the session's
+ * seated match and anonId must equal the session's adopted anonId (state
+ * set by HelloMsg) — a mismatch is silently dropped, exactly like a cheer for
+ * the wrong match. This is what makes POST /seat/claim unforgeable: the HTTP
+ * body carries only { token, pubkey, method }, and the server derives the
+ * anonId/matchId being claimed FROM THE TOKEN, never from the body — so a
+ * stranger's pubkey can never harvest another fan's side/call/verdict/serial
+ * with a bare POST (review fix, seat-reconcile).
+ */
+export interface SeatTokenMsg {
+  type: 'seatToken';
+  matchId: string;
+  anonId: string;
+}
+
+export type ClientMsg = HelloMsg | CheerMsg | ReactMsg | MomentReactMsg | CallMsg | PredictMsg | SeatTokenMsg;
 
 /* ── stands → clients ─────────────────────────────────────────────── */
 
@@ -284,6 +302,21 @@ export interface WelcomeMsg {
   fanNo: number;
 }
 
+/**
+ * SEAT — the answer to SeatTokenMsg, sent ONLY to the requesting socket (never
+ * broadcast — the token is a credential). Single-use: redeemed (or expired past
+ * `expiresAtMs`, ~2 min) it is dead; a re-claim requests a fresh one. matchId/
+ * anonId echo the SESSION's adopted identity (the values the token is bound
+ * to server-side), not whatever the request claimed.
+ */
+export interface SeatTokenGrantMsg {
+  type: 'seatTokenGrant';
+  matchId: string;
+  anonId: string;
+  token: string;
+  expiresAtMs: number;
+}
+
 export type ServerMsg =
   | StandsStateMsg
   | CallReceiptMsg
@@ -293,4 +326,5 @@ export type ServerMsg =
   | MomentOpenMsg
   | MomentResultMsg
   | CheerEchoMsg
-  | WelcomeMsg;
+  | WelcomeMsg
+  | SeatTokenGrantMsg;
