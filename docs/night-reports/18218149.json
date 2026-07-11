@@ -1,0 +1,4498 @@
+{
+  "generatedAt": "2026-07-11T17:37:16.743Z",
+  "generator": "scripts/night-report.mjs",
+  "sourceFile": "services/stands/captures/espbel-sentiment-18218149.json",
+  "shape": "SentimentRecord",
+  "matchId": "18218149",
+  "fixture": {
+    "home": {
+      "code": "ESP",
+      "name": "Spain",
+      "colors": [
+        "#AA151B",
+        "#F1BF00"
+      ]
+    },
+    "away": {
+      "code": "BEL",
+      "name": "Belgium",
+      "colors": [
+        "#000000",
+        "#FDDA24"
+      ]
+    },
+    "competition": "World Cup",
+    "dateISO": "2026-07-10"
+  },
+  "finalScore": {
+    "home": 2,
+    "away": 1
+  },
+  "decidedIn": "90",
+  "market": {
+    "open": {
+      "home": 0.60606,
+      "draw": 0.23321000000000003,
+      "away": 0.16088000000000002
+    },
+    "close": {
+      "home": 0.9680500000000001,
+      "draw": 0.02907,
+      "away": 0.0028599999999999997
+    },
+    "etClose": null,
+    "swings": [
+      {
+        "minute": 29,
+        "from": {
+          "home": 0.60606,
+          "draw": 0.23321000000000003,
+          "away": 0.16088000000000002
+        },
+        "to": {
+          "home": 0.80321,
+          "draw": 0.14478,
+          "away": 0.05236
+        },
+        "deltaMax": 0.19714999999999994,
+        "toward": "home"
+      },
+      {
+        "minute": 40,
+        "from": {
+          "home": 0.80321,
+          "draw": 0.14478,
+          "away": 0.05236
+        },
+        "to": {
+          "home": 0.57013,
+          "draw": 0.29869,
+          "away": 0.13104
+        },
+        "deltaMax": 0.23307999999999995,
+        "toward": "home"
+      },
+      {
+        "minute": 50,
+        "from": {
+          "home": 0.57013,
+          "draw": 0.29869,
+          "away": 0.13104
+        },
+        "to": {
+          "home": 0.50942,
+          "draw": 0.33933,
+          "away": 0.15117
+        },
+        "deltaMax": 0.06071000000000004,
+        "toward": "home"
+      },
+      {
+        "minute": 63,
+        "from": {
+          "home": 0.50942,
+          "draw": 0.33933,
+          "away": 0.15117
+        },
+        "to": {
+          "home": 0.46991999999999995,
+          "draw": 0.40031999999999995,
+          "away": 0.12974
+        },
+        "deltaMax": 0.06098999999999993,
+        "toward": "home"
+      },
+      {
+        "minute": 73,
+        "from": {
+          "home": 0.46991999999999995,
+          "draw": 0.40031999999999995,
+          "away": 0.12974
+        },
+        "to": {
+          "home": 0.43422,
+          "draw": 0.46082999999999996,
+          "away": 0.10497999999999999
+        },
+        "deltaMax": 0.06051000000000001,
+        "toward": "draw"
+      },
+      {
+        "minute": 79,
+        "from": {
+          "home": 0.43422,
+          "draw": 0.46082999999999996,
+          "away": 0.10497999999999999
+        },
+        "to": {
+          "home": 0.3712,
+          "draw": 0.52274,
+          "away": 0.10609
+        },
+        "deltaMax": 0.06302000000000002,
+        "toward": "draw"
+      },
+      {
+        "minute": 83,
+        "from": {
+          "home": 0.3712,
+          "draw": 0.52274,
+          "away": 0.10609
+        },
+        "to": {
+          "home": 0.32103000000000004,
+          "draw": 0.58411,
+          "away": 0.09523999999999999
+        },
+        "deltaMax": 0.061370000000000036,
+        "toward": "draw"
+      },
+      {
+        "minute": 84,
+        "from": {
+          "home": 0.32103000000000004,
+          "draw": 0.58411,
+          "away": 0.09523999999999999
+        },
+        "to": {
+          "home": 0.27108,
+          "draw": 0.64558,
+          "away": 0.08333
+        },
+        "deltaMax": 0.061470000000000025,
+        "toward": "draw"
+      },
+      {
+        "minute": 87,
+        "from": {
+          "home": 0.27108,
+          "draw": 0.64558,
+          "away": 0.08333
+        },
+        "to": {
+          "home": 0.93023,
+          "draw": 0.06536,
+          "away": 0.00435
+        },
+        "deltaMax": 0.65915,
+        "toward": "home"
+      }
+    ],
+    "biggestSwing": {
+      "minute": 87,
+      "from": {
+        "home": 0.27108,
+        "draw": 0.64558,
+        "away": 0.08333
+      },
+      "to": {
+        "home": 0.93023,
+        "draw": 0.06536,
+        "away": 0.00435
+      },
+      "deltaMax": 0.65915,
+      "toward": "home"
+    },
+    "leadChanges": 10,
+    "volatility": 8.552510000000005,
+    "conviction": {
+      "mean": 0.2689145568243606,
+      "max": 0.6347166666666668
+    },
+    "suspensions": 0,
+    "ticks": 3678
+  },
+  "fans": {
+    "rootedAtLock": {
+      "home": 6,
+      "away": 5
+    },
+    "consensus": {
+      "type": "consensus",
+      "matchId": "18218149",
+      "ts": 1783717160292,
+      "locked": true,
+      "all": {
+        "n": 4,
+        "mean": {
+          "home": 2,
+          "away": 1
+        },
+        "outcome": {
+          "homeWin": 0.75,
+          "draw": 0.25,
+          "awayWin": 0
+        },
+        "modal": {
+          "home": 2,
+          "away": 1,
+          "pct": 0.5
+        }
+      },
+      "byRoot": {
+        "home": {
+          "n": 3,
+          "mean": {
+            "home": 2.3333333333333335,
+            "away": 1
+          },
+          "outcome": {
+            "homeWin": 1,
+            "draw": 0,
+            "awayWin": 0
+          },
+          "modal": {
+            "home": 2,
+            "away": 1,
+            "pct": 0.6666666666666666
+          }
+        },
+        "away": {
+          "n": 1,
+          "mean": {
+            "home": 1,
+            "away": 1
+          },
+          "outcome": {
+            "homeWin": 0,
+            "draw": 1,
+            "awayWin": 0
+          },
+          "modal": {
+            "home": 1,
+            "away": 1,
+            "pct": 1
+          }
+        },
+        "neutral": {
+          "n": 0,
+          "mean": {
+            "home": 0,
+            "away": 0
+          },
+          "outcome": {
+            "homeWin": 0,
+            "draw": 0,
+            "awayWin": 0
+          },
+          "modal": {
+            "home": 0,
+            "away": 0,
+            "pct": 0
+          }
+        }
+      }
+    },
+    "calls": {
+      "total": 0,
+      "proved": 0,
+      "failed": 0,
+      "bravestProved": null
+    },
+    "faith": {
+      "home": 0,
+      "away": 0
+    }
+  },
+  "events": [
+    {
+      "id": "18218149:135",
+      "kind": "shot",
+      "major": false,
+      "minute": 9,
+      "tMs": 1783710618011,
+      "side": "home",
+      "headline": "Shot",
+      "raw": {
+        "FixtureId": 18218149,
+        "GameState": "scheduled",
+        "StartTime": 1783710000000,
+        "IsTeam": true,
+        "FixtureGroupId": 10115675,
+        "CompetitionId": 72,
+        "CountryId": 466,
+        "SportId": 1,
+        "Participant1IsHome": true,
+        "Participant2Id": 1575,
+        "Participant1Id": 3021,
+        "CoverageSecondaryData": true,
+        "CoverageType": "TV/Stream",
+        "Action": "shot",
+        "Id": 135,
+        "Ts": 1783710617883,
+        "ConnectionId": 1080,
+        "Seq": 141,
+        "StatusId": 2,
+        "Type": "Soccer",
+        "Confirmed": true,
+        "Clock": {
+          "Running": true,
+          "Seconds": 578
+        },
+        "Data": {
+          "Outcome": "Blocked"
+        },
+        "Stats": {},
+        "Participant": 1,
+        "PlayerStats": {}
+      },
+      "detail": "Blocked"
+    },
+    {
+      "id": "18218149:162",
+      "kind": "shot",
+      "major": false,
+      "minute": 12,
+      "tMs": 1783710771749,
+      "side": "home",
+      "headline": "Shot",
+      "raw": {
+        "FixtureId": 18218149,
+        "GameState": "scheduled",
+        "StartTime": 1783710000000,
+        "IsTeam": true,
+        "FixtureGroupId": 10115675,
+        "CompetitionId": 72,
+        "CountryId": 466,
+        "SportId": 1,
+        "Participant1IsHome": true,
+        "Participant2Id": 1575,
+        "Participant1Id": 3021,
+        "CoverageSecondaryData": true,
+        "CoverageType": "TV/Stream",
+        "Action": "shot",
+        "Id": 162,
+        "Ts": 1783710771628,
+        "ConnectionId": 1080,
+        "Seq": 170,
+        "StatusId": 2,
+        "Type": "Soccer",
+        "Confirmed": true,
+        "Clock": {
+          "Running": true,
+          "Seconds": 730
+        },
+        "Data": {
+          "Outcome": "Blocked"
+        },
+        "Stats": {},
+        "Participant": 1,
+        "PlayerStats": {}
+      },
+      "detail": "Blocked"
+    },
+    {
+      "id": "18218149:187",
+      "kind": "shot",
+      "major": false,
+      "minute": 14,
+      "tMs": 1783710894459,
+      "side": "away",
+      "headline": "Shot",
+      "raw": {
+        "FixtureId": 18218149,
+        "GameState": "scheduled",
+        "StartTime": 1783710000000,
+        "IsTeam": true,
+        "FixtureGroupId": 10115675,
+        "CompetitionId": 72,
+        "CountryId": 466,
+        "SportId": 1,
+        "Participant1IsHome": true,
+        "Participant2Id": 1575,
+        "Participant1Id": 3021,
+        "CoverageSecondaryData": true,
+        "CoverageType": "TV/Stream",
+        "Action": "shot",
+        "Id": 187,
+        "Ts": 1783710894342,
+        "ConnectionId": 1080,
+        "Seq": 196,
+        "StatusId": 2,
+        "Type": "Soccer",
+        "Confirmed": true,
+        "Clock": {
+          "Running": true,
+          "Seconds": 854
+        },
+        "Data": {
+          "Outcome": "Blocked"
+        },
+        "Stats": {},
+        "Participant": 2,
+        "PlayerStats": {}
+      },
+      "detail": "Blocked"
+    },
+    {
+      "id": "18218149:244",
+      "kind": "shot",
+      "major": false,
+      "minute": 20,
+      "tMs": 1783711264924,
+      "side": "home",
+      "headline": "Shot",
+      "raw": {
+        "FixtureId": 18218149,
+        "GameState": "scheduled",
+        "StartTime": 1783710000000,
+        "IsTeam": true,
+        "FixtureGroupId": 10115675,
+        "CompetitionId": 72,
+        "CountryId": 466,
+        "SportId": 1,
+        "Participant1IsHome": true,
+        "Participant2Id": 1575,
+        "Participant1Id": 3021,
+        "CoverageSecondaryData": true,
+        "CoverageType": "TV/Stream",
+        "Action": "shot",
+        "Id": 244,
+        "Ts": 1783711264805,
+        "ConnectionId": 1080,
+        "Seq": 257,
+        "StatusId": 2,
+        "Type": "Soccer",
+        "Confirmed": true,
+        "Clock": {
+          "Running": true,
+          "Seconds": 1223
+        },
+        "Data": {
+          "Outcome": "OffTarget"
+        },
+        "Stats": {},
+        "Participant": 1,
+        "PlayerStats": {}
+      },
+      "detail": "OffTarget"
+    },
+    {
+      "id": "18218149:305",
+      "kind": "goal",
+      "major": true,
+      "minute": 29,
+      "tMs": 1783711877996,
+      "side": "home",
+      "headline": "Goal",
+      "raw": {
+        "FixtureId": 18218149,
+        "GameState": "scheduled",
+        "StartTime": 1783710000000,
+        "IsTeam": true,
+        "FixtureGroupId": 10115675,
+        "CompetitionId": 72,
+        "CountryId": 466,
+        "SportId": 1,
+        "Participant1IsHome": true,
+        "Participant2Id": 1575,
+        "Participant1Id": 3021,
+        "CoverageSecondaryData": true,
+        "CoverageType": "TV/Stream",
+        "Action": "goal",
+        "Id": 305,
+        "Ts": 1783711877877,
+        "ConnectionId": 1080,
+        "Seq": 326,
+        "StatusId": 2,
+        "Type": "Soccer",
+        "Confirmed": true,
+        "Clock": {
+          "Running": true,
+          "Seconds": 1761
+        },
+        "Score": {
+          "Participant1": {
+            "H1": {
+              "Goals": 1
+            },
+            "HT": {
+              "Goals": 1
+            },
+            "Total": {
+              "Goals": 1
+            }
+          }
+        },
+        "Data": {
+          "GoalType": "Shot",
+          "PlayerId": 533573
+        },
+        "Stats": {
+          "1": 1,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 0,
+          "6": 0,
+          "7": 0,
+          "8": 0,
+          "1001": 1,
+          "1002": 0,
+          "1003": 0,
+          "1004": 0,
+          "1005": 0,
+          "1006": 0,
+          "1007": 0,
+          "1008": 0,
+          "2001": 1,
+          "2002": 0,
+          "2003": 0,
+          "2004": 0,
+          "2005": 0,
+          "2006": 0,
+          "2007": 0,
+          "2008": 0,
+          "3001": 0,
+          "3002": 0,
+          "3003": 0,
+          "3004": 0,
+          "3005": 0,
+          "3006": 0,
+          "3007": 0,
+          "3008": 0,
+          "4001": 0,
+          "4002": 0,
+          "4003": 0,
+          "4004": 0,
+          "4005": 0,
+          "4006": 0,
+          "4007": 0,
+          "4008": 0,
+          "5001": 0,
+          "5002": 0,
+          "5003": 0,
+          "5004": 0,
+          "5005": 0,
+          "5006": 0,
+          "5007": 0,
+          "5008": 0,
+          "6001": 0,
+          "6002": 0,
+          "6003": 0,
+          "6004": 0,
+          "6005": 0,
+          "6006": 0,
+          "6007": 0,
+          "6008": 0,
+          "7001": 0,
+          "7002": 0,
+          "7003": 0,
+          "7004": 0,
+          "7005": 0,
+          "7006": 0,
+          "7007": 0,
+          "7008": 0
+        },
+        "Participant": 1,
+        "Kickoff": {
+          "Team": 2
+        },
+        "Parti1State": {},
+        "Parti2State": {},
+        "PlayerStats": {
+          "Participant1": {
+            "533573": {
+              "goals": 1
+            }
+          }
+        }
+      },
+      "confirmed": true,
+      "score": {
+        "home": 1,
+        "away": 0
+      },
+      "goalKind": "Shot",
+      "detail": "Ruiz Pena, Fabian"
+    },
+    {
+      "id": "18218149:330",
+      "kind": "shot",
+      "major": false,
+      "minute": 34,
+      "tMs": 1783712097740,
+      "side": "home",
+      "headline": "Shot",
+      "raw": {
+        "FixtureId": 18218149,
+        "GameState": "scheduled",
+        "StartTime": 1783710000000,
+        "IsTeam": true,
+        "FixtureGroupId": 10115675,
+        "CompetitionId": 72,
+        "CountryId": 466,
+        "SportId": 1,
+        "Participant1IsHome": true,
+        "Participant2Id": 1575,
+        "Participant1Id": 3021,
+        "CoverageSecondaryData": true,
+        "CoverageType": "TV/Stream",
+        "Action": "shot",
+        "Id": 330,
+        "Ts": 1783712097618,
+        "ConnectionId": 1080,
+        "Seq": 356,
+        "StatusId": 2,
+        "Type": "Soccer",
+        "Confirmed": true,
+        "Clock": {
+          "Running": true,
+          "Seconds": 2056
+        },
+        "Data": {
+          "Outcome": "OnTarget"
+        },
+        "Stats": {
+          "1": 1,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 0,
+          "6": 0,
+          "7": 0,
+          "8": 0,
+          "1001": 1,
+          "1002": 0,
+          "1003": 0,
+          "1004": 0,
+          "1005": 0,
+          "1006": 0,
+          "1007": 0,
+          "1008": 0,
+          "2001": 1,
+          "2002": 0,
+          "2003": 0,
+          "2004": 0,
+          "2005": 0,
+          "2006": 0,
+          "2007": 0,
+          "2008": 0,
+          "3001": 0,
+          "3002": 0,
+          "3003": 0,
+          "3004": 0,
+          "3005": 0,
+          "3006": 0,
+          "3007": 0,
+          "3008": 0,
+          "4001": 0,
+          "4002": 0,
+          "4003": 0,
+          "4004": 0,
+          "4005": 0,
+          "4006": 0,
+          "4007": 0,
+          "4008": 0,
+          "5001": 0,
+          "5002": 0,
+          "5003": 0,
+          "5004": 0,
+          "5005": 0,
+          "5006": 0,
+          "5007": 0,
+          "5008": 0,
+          "6001": 0,
+          "6002": 0,
+          "6003": 0,
+          "6004": 0,
+          "6005": 0,
+          "6006": 0,
+          "6007": 0,
+          "6008": 0,
+          "7001": 0,
+          "7002": 0,
+          "7003": 0,
+          "7004": 0,
+          "7005": 0,
+          "7006": 0,
+          "7007": 0,
+          "7008": 0
+        },
+        "Participant": 1,
+        "PlayerStats": {
+          "Participant1": {
+            "533573": {
+              "goals": 1
+            }
+          }
+        }
+      },
+      "detail": "OnTarget"
+    },
+    {
+      "id": "18218149:334",
+      "kind": "corner",
+      "major": false,
+      "minute": 34,
+      "tMs": 1783712106737,
+      "side": "home",
+      "headline": "Corner",
+      "raw": {
+        "FixtureId": 18218149,
+        "GameState": "scheduled",
+        "StartTime": 1783710000000,
+        "IsTeam": true,
+        "FixtureGroupId": 10115675,
+        "CompetitionId": 72,
+        "CountryId": 466,
+        "SportId": 1,
+        "Participant1IsHome": true,
+        "Participant2Id": 1575,
+        "Participant1Id": 3021,
+        "CoverageSecondaryData": true,
+        "CoverageType": "TV/Stream",
+        "Action": "corner",
+        "Id": 334,
+        "Ts": 1783712106607,
+        "ConnectionId": 1080,
+        "Seq": 361,
+        "StatusId": 2,
+        "Type": "Soccer",
+        "Confirmed": true,
+        "Clock": {
+          "Running": true,
+          "Seconds": 2064
+        },
+        "Score": {
+          "Participant1": {
+            "H1": {
+              "Goals": 1,
+              "Corners": 1
+            },
+            "HT": {
+              "Goals": 1,
+              "Corners": 1
+            },
+            "Total": {
+              "Goals": 1,
+              "Corners": 1
+            }
+          }
+        },
+        "Stats": {
+          "1": 1,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 0,
+          "6": 0,
+          "7": 1,
+          "8": 0,
+          "1001": 1,
+          "1002": 0,
+          "1003": 0,
+          "1004": 0,
+          "1005": 0,
+          "1006": 0,
+          "1007": 1,
+          "1008": 0,
+          "2001": 1,
+          "2002": 0,
+          "2003": 0,
+          "2004": 0,
+          "2005": 0,
+          "2006": 0,
+          "2007": 1,
+          "2008": 0,
+          "3001": 0,
+          "3002": 0,
+          "3003": 0,
+          "3004": 0,
+          "3005": 0,
+          "3006": 0,
+          "3007": 0,
+          "3008": 0,
+          "4001": 0,
+          "4002": 0,
+          "4003": 0,
+          "4004": 0,
+          "4005": 0,
+          "4006": 0,
+          "4007": 0,
+          "4008": 0,
+          "5001": 0,
+          "5002": 0,
+          "5003": 0,
+          "5004": 0,
+          "5005": 0,
+          "5006": 0,
+          "5007": 0,
+          "5008": 0,
+          "6001": 0,
+          "6002": 0,
+          "6003": 0,
+          "6004": 0,
+          "6005": 0,
+          "6006": 0,
+          "6007": 0,
+          "6008": 0,
+          "7001": 0,
+          "7002": 0,
+          "7003": 0,
+          "7004": 0,
+          "7005": 0,
+          "7006": 0,
+          "7007": 0,
+          "7008": 0
+        },
+        "Participant": 1,
+        "Possession": 1,
+        "Parti1State": {},
+        "Parti2State": {}
+      }
+    },
+    {
+      "id": "18218149:376",
+      "kind": "shot",
+      "major": false,
+      "minute": 39,
+      "tMs": 1783712393577,
+      "side": "home",
+      "headline": "Shot",
+      "raw": {
+        "FixtureId": 18218149,
+        "GameState": "scheduled",
+        "StartTime": 1783710000000,
+        "IsTeam": true,
+        "FixtureGroupId": 10115675,
+        "CompetitionId": 72,
+        "CountryId": 466,
+        "SportId": 1,
+        "Participant1IsHome": true,
+        "Participant2Id": 1575,
+        "Participant1Id": 3021,
+        "CoverageSecondaryData": true,
+        "CoverageType": "TV/Stream",
+        "Action": "shot",
+        "Id": 376,
+        "Ts": 1783712393459,
+        "ConnectionId": 1080,
+        "Seq": 407,
+        "StatusId": 2,
+        "Type": "Soccer",
+        "Confirmed": true,
+        "Clock": {
+          "Running": true,
+          "Seconds": 2352
+        },
+        "Data": {
+          "Outcome": "OffTarget"
+        },
+        "Stats": {
+          "1": 1,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 0,
+          "6": 0,
+          "7": 1,
+          "8": 0,
+          "1001": 1,
+          "1002": 0,
+          "1003": 0,
+          "1004": 0,
+          "1005": 0,
+          "1006": 0,
+          "1007": 1,
+          "1008": 0,
+          "2001": 1,
+          "2002": 0,
+          "2003": 0,
+          "2004": 0,
+          "2005": 0,
+          "2006": 0,
+          "2007": 1,
+          "2008": 0,
+          "3001": 0,
+          "3002": 0,
+          "3003": 0,
+          "3004": 0,
+          "3005": 0,
+          "3006": 0,
+          "3007": 0,
+          "3008": 0,
+          "4001": 0,
+          "4002": 0,
+          "4003": 0,
+          "4004": 0,
+          "4005": 0,
+          "4006": 0,
+          "4007": 0,
+          "4008": 0,
+          "5001": 0,
+          "5002": 0,
+          "5003": 0,
+          "5004": 0,
+          "5005": 0,
+          "5006": 0,
+          "5007": 0,
+          "5008": 0,
+          "6001": 0,
+          "6002": 0,
+          "6003": 0,
+          "6004": 0,
+          "6005": 0,
+          "6006": 0,
+          "6007": 0,
+          "6008": 0,
+          "7001": 0,
+          "7002": 0,
+          "7003": 0,
+          "7004": 0,
+          "7005": 0,
+          "7006": 0,
+          "7007": 0,
+          "7008": 0
+        },
+        "Participant": 1,
+        "PlayerStats": {
+          "Participant1": {
+            "533573": {
+              "goals": 1
+            }
+          }
+        }
+      },
+      "detail": "OffTarget"
+    },
+    {
+      "id": "18218149:389",
+      "kind": "goal",
+      "major": true,
+      "minute": 40,
+      "tMs": 1783712528327,
+      "side": "away",
+      "headline": "Goal",
+      "raw": {
+        "FixtureId": 18218149,
+        "GameState": "scheduled",
+        "StartTime": 1783710000000,
+        "IsTeam": true,
+        "FixtureGroupId": 10115675,
+        "CompetitionId": 72,
+        "CountryId": 466,
+        "SportId": 1,
+        "Participant1IsHome": true,
+        "Participant2Id": 1575,
+        "Participant1Id": 3021,
+        "CoverageSecondaryData": true,
+        "CoverageType": "TV/Stream",
+        "Action": "goal",
+        "Id": 389,
+        "Ts": 1783712528198,
+        "ConnectionId": 1080,
+        "Seq": 423,
+        "StatusId": 2,
+        "Type": "Soccer",
+        "Confirmed": true,
+        "Clock": {
+          "Running": true,
+          "Seconds": 2411
+        },
+        "Score": {
+          "Participant1": {
+            "H1": {
+              "Goals": 1,
+              "Corners": 1
+            },
+            "HT": {
+              "Goals": 1,
+              "Corners": 1
+            },
+            "Total": {
+              "Goals": 1,
+              "Corners": 1
+            }
+          },
+          "Participant2": {
+            "H1": {
+              "Goals": 1
+            },
+            "HT": {
+              "Goals": 1
+            },
+            "Total": {
+              "Goals": 1
+            }
+          }
+        },
+        "Data": {
+          "GoalType": "Head",
+          "PlayerId": 1204158
+        },
+        "Stats": {
+          "1": 1,
+          "2": 1,
+          "3": 0,
+          "4": 0,
+          "5": 0,
+          "6": 0,
+          "7": 1,
+          "8": 0,
+          "1001": 1,
+          "1002": 1,
+          "1003": 0,
+          "1004": 0,
+          "1005": 0,
+          "1006": 0,
+          "1007": 1,
+          "1008": 0,
+          "2001": 1,
+          "2002": 1,
+          "2003": 0,
+          "2004": 0,
+          "2005": 0,
+          "2006": 0,
+          "2007": 1,
+          "2008": 0,
+          "3001": 0,
+          "3002": 0,
+          "3003": 0,
+          "3004": 0,
+          "3005": 0,
+          "3006": 0,
+          "3007": 0,
+          "3008": 0,
+          "4001": 0,
+          "4002": 0,
+          "4003": 0,
+          "4004": 0,
+          "4005": 0,
+          "4006": 0,
+          "4007": 0,
+          "4008": 0,
+          "5001": 0,
+          "5002": 0,
+          "5003": 0,
+          "5004": 0,
+          "5005": 0,
+          "5006": 0,
+          "5007": 0,
+          "5008": 0,
+          "6001": 0,
+          "6002": 0,
+          "6003": 0,
+          "6004": 0,
+          "6005": 0,
+          "6006": 0,
+          "6007": 0,
+          "6008": 0,
+          "7001": 0,
+          "7002": 0,
+          "7003": 0,
+          "7004": 0,
+          "7005": 0,
+          "7006": 0,
+          "7007": 0,
+          "7008": 0
+        },
+        "Participant": 2,
+        "Kickoff": {
+          "Team": 1
+        },
+        "Parti1State": {},
+        "Parti2State": {},
+        "PlayerStats": {
+          "Participant1": {
+            "533573": {
+              "goals": 1
+            }
+          },
+          "Participant2": {
+            "1204158": {
+              "goals": 1
+            }
+          }
+        }
+      },
+      "confirmed": true,
+      "score": {
+        "home": 1,
+        "away": 1
+      },
+      "goalKind": "Head",
+      "detail": "De Ketelaere, Charles"
+    },
+    {
+      "id": "18218149:404",
+      "kind": "yellow-card",
+      "major": true,
+      "minute": 42,
+      "tMs": 1783712598067,
+      "side": "home",
+      "headline": "Yellow card",
+      "raw": {
+        "FixtureId": 18218149,
+        "GameState": "scheduled",
+        "StartTime": 1783710000000,
+        "IsTeam": true,
+        "FixtureGroupId": 10115675,
+        "CompetitionId": 72,
+        "CountryId": 466,
+        "SportId": 1,
+        "Participant1IsHome": true,
+        "Participant2Id": 1575,
+        "Participant1Id": 3021,
+        "CoverageSecondaryData": true,
+        "CoverageType": "TV/Stream",
+        "Action": "yellow_card",
+        "Id": 404,
+        "Ts": 1783712597949,
+        "ConnectionId": 1080,
+        "Seq": 440,
+        "StatusId": 2,
+        "Type": "Soccer",
+        "Confirmed": true,
+        "Clock": {
+          "Running": true,
+          "Seconds": 2553
+        },
+        "Score": {
+          "Participant1": {
+            "H1": {
+              "Goals": 1,
+              "YellowCards": 1,
+              "Corners": 1
+            },
+            "HT": {
+              "Goals": 1,
+              "YellowCards": 1,
+              "Corners": 1
+            },
+            "Total": {
+              "Goals": 1,
+              "YellowCards": 1,
+              "Corners": 1
+            }
+          },
+          "Participant2": {
+            "H1": {
+              "Goals": 1
+            },
+            "HT": {
+              "Goals": 1
+            },
+            "Total": {
+              "Goals": 1
+            }
+          }
+        },
+        "Data": {
+          "PlayerId": 10093448
+        },
+        "Stats": {
+          "1": 1,
+          "2": 1,
+          "3": 1,
+          "4": 0,
+          "5": 0,
+          "6": 0,
+          "7": 1,
+          "8": 0,
+          "1001": 1,
+          "1002": 1,
+          "1003": 1,
+          "1004": 0,
+          "1005": 0,
+          "1006": 0,
+          "1007": 1,
+          "1008": 0,
+          "2001": 1,
+          "2002": 1,
+          "2003": 1,
+          "2004": 0,
+          "2005": 0,
+          "2006": 0,
+          "2007": 1,
+          "2008": 0,
+          "3001": 0,
+          "3002": 0,
+          "3003": 0,
+          "3004": 0,
+          "3005": 0,
+          "3006": 0,
+          "3007": 0,
+          "3008": 0,
+          "4001": 0,
+          "4002": 0,
+          "4003": 0,
+          "4004": 0,
+          "4005": 0,
+          "4006": 0,
+          "4007": 0,
+          "4008": 0,
+          "5001": 0,
+          "5002": 0,
+          "5003": 0,
+          "5004": 0,
+          "5005": 0,
+          "5006": 0,
+          "5007": 0,
+          "5008": 0,
+          "6001": 0,
+          "6002": 0,
+          "6003": 0,
+          "6004": 0,
+          "6005": 0,
+          "6006": 0,
+          "6007": 0,
+          "6008": 0,
+          "7001": 0,
+          "7002": 0,
+          "7003": 0,
+          "7004": 0,
+          "7005": 0,
+          "7006": 0,
+          "7007": 0,
+          "7008": 0
+        },
+        "Participant": 1,
+        "PossibleEvent": {},
+        "PlayerStats": {
+          "Participant1": {
+            "533573": {
+              "goals": 1
+            },
+            "10093448": {
+              "yellowCards": 1
+            }
+          },
+          "Participant2": {
+            "1204158": {
+              "goals": 1
+            }
+          }
+        }
+      },
+      "detail": "Cubarsi, Pau"
+    },
+    {
+      "id": "18218149:424",
+      "kind": "shot",
+      "major": false,
+      "minute": 44,
+      "tMs": 1783712721699,
+      "side": "home",
+      "headline": "Shot",
+      "raw": {
+        "FixtureId": 18218149,
+        "GameState": "scheduled",
+        "StartTime": 1783710000000,
+        "IsTeam": true,
+        "FixtureGroupId": 10115675,
+        "CompetitionId": 72,
+        "CountryId": 466,
+        "SportId": 1,
+        "Participant1IsHome": true,
+        "Participant2Id": 1575,
+        "Participant1Id": 3021,
+        "CoverageSecondaryData": true,
+        "CoverageType": "TV/Stream",
+        "Action": "shot",
+        "Id": 424,
+        "Ts": 1783712721569,
+        "ConnectionId": 1080,
+        "Seq": 461,
+        "StatusId": 2,
+        "Type": "Soccer",
+        "Confirmed": true,
+        "Clock": {
+          "Running": true,
+          "Seconds": 2681
+        },
+        "Data": {
+          "Outcome": "OffTarget"
+        },
+        "Stats": {
+          "1": 1,
+          "2": 1,
+          "3": 1,
+          "4": 0,
+          "5": 0,
+          "6": 0,
+          "7": 1,
+          "8": 0,
+          "1001": 1,
+          "1002": 1,
+          "1003": 1,
+          "1004": 0,
+          "1005": 0,
+          "1006": 0,
+          "1007": 1,
+          "1008": 0,
+          "2001": 1,
+          "2002": 1,
+          "2003": 1,
+          "2004": 0,
+          "2005": 0,
+          "2006": 0,
+          "2007": 1,
+          "2008": 0,
+          "3001": 0,
+          "3002": 0,
+          "3003": 0,
+          "3004": 0,
+          "3005": 0,
+          "3006": 0,
+          "3007": 0,
+          "3008": 0,
+          "4001": 0,
+          "4002": 0,
+          "4003": 0,
+          "4004": 0,
+          "4005": 0,
+          "4006": 0,
+          "4007": 0,
+          "4008": 0,
+          "5001": 0,
+          "5002": 0,
+          "5003": 0,
+          "5004": 0,
+          "5005": 0,
+          "5006": 0,
+          "5007": 0,
+          "5008": 0,
+          "6001": 0,
+          "6002": 0,
+          "6003": 0,
+          "6004": 0,
+          "6005": 0,
+          "6006": 0,
+          "6007": 0,
+          "6008": 0,
+          "7001": 0,
+          "7002": 0,
+          "7003": 0,
+          "7004": 0,
+          "7005": 0,
+          "7006": 0,
+          "7007": 0,
+          "7008": 0
+        },
+        "Participant": 1,
+        "PlayerStats": {
+          "Participant1": {
+            "533573": {
+              "goals": 1
+            },
+            "10093448": {
+              "yellowCards": 1
+            }
+          },
+          "Participant2": {
+            "1204158": {
+              "goals": 1
+            }
+          }
+        }
+      },
+      "detail": "OffTarget"
+    },
+    {
+      "id": "18218149:438",
+      "kind": "corner",
+      "major": false,
+      "minute": 45,
+      "tMs": 1783712783345,
+      "side": "home",
+      "headline": "Corner",
+      "raw": {
+        "FixtureId": 18218149,
+        "GameState": "scheduled",
+        "StartTime": 1783710000000,
+        "IsTeam": true,
+        "FixtureGroupId": 10115675,
+        "CompetitionId": 72,
+        "CountryId": 466,
+        "SportId": 1,
+        "Participant1IsHome": true,
+        "Participant2Id": 1575,
+        "Participant1Id": 3021,
+        "CoverageSecondaryData": true,
+        "CoverageType": "TV/Stream",
+        "Action": "corner",
+        "Id": 438,
+        "Ts": 1783712783224,
+        "ConnectionId": 1080,
+        "Seq": 478,
+        "StatusId": 2,
+        "Type": "Soccer",
+        "Confirmed": true,
+        "Clock": {
+          "Running": true,
+          "Seconds": 2742
+        },
+        "Score": {
+          "Participant1": {
+            "H1": {
+              "Goals": 1,
+              "YellowCards": 1,
+              "Corners": 2
+            },
+            "HT": {
+              "Goals": 1,
+              "YellowCards": 1,
+              "Corners": 2
+            },
+            "Total": {
+              "Goals": 1,
+              "YellowCards": 1,
+              "Corners": 2
+            }
+          },
+          "Participant2": {
+            "H1": {
+              "Goals": 1
+            },
+            "HT": {
+              "Goals": 1
+            },
+            "Total": {
+              "Goals": 1
+            }
+          }
+        },
+        "Stats": {
+          "1": 1,
+          "2": 1,
+          "3": 1,
+          "4": 0,
+          "5": 0,
+          "6": 0,
+          "7": 2,
+          "8": 0,
+          "1001": 1,
+          "1002": 1,
+          "1003": 1,
+          "1004": 0,
+          "1005": 0,
+          "1006": 0,
+          "1007": 2,
+          "1008": 0,
+          "2001": 1,
+          "2002": 1,
+          "2003": 1,
+          "2004": 0,
+          "2005": 0,
+          "2006": 0,
+          "2007": 2,
+          "2008": 0,
+          "3001": 0,
+          "3002": 0,
+          "3003": 0,
+          "3004": 0,
+          "3005": 0,
+          "3006": 0,
+          "3007": 0,
+          "3008": 0,
+          "4001": 0,
+          "4002": 0,
+          "4003": 0,
+          "4004": 0,
+          "4005": 0,
+          "4006": 0,
+          "4007": 0,
+          "4008": 0,
+          "5001": 0,
+          "5002": 0,
+          "5003": 0,
+          "5004": 0,
+          "5005": 0,
+          "5006": 0,
+          "5007": 0,
+          "5008": 0,
+          "6001": 0,
+          "6002": 0,
+          "6003": 0,
+          "6004": 0,
+          "6005": 0,
+          "6006": 0,
+          "6007": 0,
+          "6008": 0,
+          "7001": 0,
+          "7002": 0,
+          "7003": 0,
+          "7004": 0,
+          "7005": 0,
+          "7006": 0,
+          "7007": 0,
+          "7008": 0
+        },
+        "Participant": 1,
+        "Possession": 1,
+        "Parti1State": {},
+        "Parti2State": {}
+      }
+    },
+    {
+      "id": "18218149:440",
+      "kind": "corner",
+      "major": false,
+      "minute": 46,
+      "tMs": 1783712814011,
+      "side": "home",
+      "headline": "Corner",
+      "raw": {
+        "FixtureId": 18218149,
+        "GameState": "scheduled",
+        "StartTime": 1783710000000,
+        "IsTeam": true,
+        "FixtureGroupId": 10115675,
+        "CompetitionId": 72,
+        "CountryId": 466,
+        "SportId": 1,
+        "Participant1IsHome": true,
+        "Participant2Id": 1575,
+        "Participant1Id": 3021,
+        "CoverageSecondaryData": true,
+        "CoverageType": "TV/Stream",
+        "Action": "corner",
+        "Id": 440,
+        "Ts": 1783712813891,
+        "ConnectionId": 1080,
+        "Seq": 481,
+        "StatusId": 2,
+        "Type": "Soccer",
+        "Confirmed": true,
+        "Clock": {
+          "Running": true,
+          "Seconds": 2773
+        },
+        "Score": {
+          "Participant1": {
+            "H1": {
+              "Goals": 1,
+              "YellowCards": 1,
+              "Corners": 3
+            },
+            "HT": {
+              "Goals": 1,
+              "YellowCards": 1,
+              "Corners": 3
+            },
+            "Total": {
+              "Goals": 1,
+              "YellowCards": 1,
+              "Corners": 3
+            }
+          },
+          "Participant2": {
+            "H1": {
+              "Goals": 1
+            },
+            "HT": {
+              "Goals": 1
+            },
+            "Total": {
+              "Goals": 1
+            }
+          }
+        },
+        "Stats": {
+          "1": 1,
+          "2": 1,
+          "3": 1,
+          "4": 0,
+          "5": 0,
+          "6": 0,
+          "7": 3,
+          "8": 0,
+          "1001": 1,
+          "1002": 1,
+          "1003": 1,
+          "1004": 0,
+          "1005": 0,
+          "1006": 0,
+          "1007": 3,
+          "1008": 0,
+          "2001": 1,
+          "2002": 1,
+          "2003": 1,
+          "2004": 0,
+          "2005": 0,
+          "2006": 0,
+          "2007": 3,
+          "2008": 0,
+          "3001": 0,
+          "3002": 0,
+          "3003": 0,
+          "3004": 0,
+          "3005": 0,
+          "3006": 0,
+          "3007": 0,
+          "3008": 0,
+          "4001": 0,
+          "4002": 0,
+          "4003": 0,
+          "4004": 0,
+          "4005": 0,
+          "4006": 0,
+          "4007": 0,
+          "4008": 0,
+          "5001": 0,
+          "5002": 0,
+          "5003": 0,
+          "5004": 0,
+          "5005": 0,
+          "5006": 0,
+          "5007": 0,
+          "5008": 0,
+          "6001": 0,
+          "6002": 0,
+          "6003": 0,
+          "6004": 0,
+          "6005": 0,
+          "6006": 0,
+          "6007": 0,
+          "6008": 0,
+          "7001": 0,
+          "7002": 0,
+          "7003": 0,
+          "7004": 0,
+          "7005": 0,
+          "7006": 0,
+          "7007": 0,
+          "7008": 0
+        },
+        "Participant": 1,
+        "Possession": 1,
+        "Parti1State": {},
+        "Parti2State": {}
+      }
+    },
+    {
+      "id": "18218149:442",
+      "kind": "shot",
+      "major": false,
+      "minute": 46,
+      "tMs": 1783712829548,
+      "side": "home",
+      "headline": "Shot",
+      "raw": {
+        "FixtureId": 18218149,
+        "GameState": "scheduled",
+        "StartTime": 1783710000000,
+        "IsTeam": true,
+        "FixtureGroupId": 10115675,
+        "CompetitionId": 72,
+        "CountryId": 466,
+        "SportId": 1,
+        "Participant1IsHome": true,
+        "Participant2Id": 1575,
+        "Participant1Id": 3021,
+        "CoverageSecondaryData": true,
+        "CoverageType": "TV/Stream",
+        "Action": "shot",
+        "Id": 442,
+        "Ts": 1783712829425,
+        "ConnectionId": 1080,
+        "Seq": 484,
+        "StatusId": 2,
+        "Type": "Soccer",
+        "Confirmed": true,
+        "Clock": {
+          "Running": true,
+          "Seconds": 2789
+        },
+        "Data": {
+          "Outcome": "Blocked"
+        },
+        "Stats": {
+          "1": 1,
+          "2": 1,
+          "3": 1,
+          "4": 0,
+          "5": 0,
+          "6": 0,
+          "7": 3,
+          "8": 0,
+          "1001": 1,
+          "1002": 1,
+          "1003": 1,
+          "1004": 0,
+          "1005": 0,
+          "1006": 0,
+          "1007": 3,
+          "1008": 0,
+          "2001": 1,
+          "2002": 1,
+          "2003": 1,
+          "2004": 0,
+          "2005": 0,
+          "2006": 0,
+          "2007": 3,
+          "2008": 0,
+          "3001": 0,
+          "3002": 0,
+          "3003": 0,
+          "3004": 0,
+          "3005": 0,
+          "3006": 0,
+          "3007": 0,
+          "3008": 0,
+          "4001": 0,
+          "4002": 0,
+          "4003": 0,
+          "4004": 0,
+          "4005": 0,
+          "4006": 0,
+          "4007": 0,
+          "4008": 0,
+          "5001": 0,
+          "5002": 0,
+          "5003": 0,
+          "5004": 0,
+          "5005": 0,
+          "5006": 0,
+          "5007": 0,
+          "5008": 0,
+          "6001": 0,
+          "6002": 0,
+          "6003": 0,
+          "6004": 0,
+          "6005": 0,
+          "6006": 0,
+          "6007": 0,
+          "6008": 0,
+          "7001": 0,
+          "7002": 0,
+          "7003": 0,
+          "7004": 0,
+          "7005": 0,
+          "7006": 0,
+          "7007": 0,
+          "7008": 0
+        },
+        "Participant": 1,
+        "PlayerStats": {
+          "Participant1": {
+            "533573": {
+              "goals": 1
+            },
+            "10093448": {
+              "yellowCards": 1
+            }
+          },
+          "Participant2": {
+            "1204158": {
+              "goals": 1
+            }
+          }
+        }
+      },
+      "detail": "Blocked"
+    },
+    {
+      "id": "18218149:510",
+      "kind": "shot",
+      "major": false,
+      "minute": 47,
+      "tMs": 1783714192626,
+      "side": "home",
+      "headline": "Shot",
+      "raw": {
+        "FixtureId": 18218149,
+        "GameState": "scheduled",
+        "StartTime": 1783710000000,
+        "IsTeam": true,
+        "FixtureGroupId": 10115675,
+        "CompetitionId": 72,
+        "CountryId": 466,
+        "SportId": 1,
+        "Participant1IsHome": true,
+        "Participant2Id": 1575,
+        "Participant1Id": 3021,
+        "CoverageSecondaryData": true,
+        "CoverageType": "TV/Stream",
+        "Action": "shot",
+        "Id": 510,
+        "Ts": 1783714192508,
+        "ConnectionId": 1080,
+        "Seq": 559,
+        "StatusId": 4,
+        "Type": "Soccer",
+        "Confirmed": true,
+        "Clock": {
+          "Running": true,
+          "Seconds": 2857
+        },
+        "Data": {
+          "Outcome": "Blocked"
+        },
+        "Stats": {
+          "1": 1,
+          "2": 1,
+          "3": 1,
+          "4": 0,
+          "5": 0,
+          "6": 0,
+          "7": 3,
+          "8": 0,
+          "1001": 1,
+          "1002": 1,
+          "1003": 1,
+          "1004": 0,
+          "1005": 0,
+          "1006": 0,
+          "1007": 3,
+          "1008": 0,
+          "2001": 1,
+          "2002": 1,
+          "2003": 1,
+          "2004": 0,
+          "2005": 0,
+          "2006": 0,
+          "2007": 3,
+          "2008": 0,
+          "3001": 0,
+          "3002": 0,
+          "3003": 0,
+          "3004": 0,
+          "3005": 0,
+          "3006": 0,
+          "3007": 0,
+          "3008": 0,
+          "4001": 0,
+          "4002": 0,
+          "4003": 0,
+          "4004": 0,
+          "4005": 0,
+          "4006": 0,
+          "4007": 0,
+          "4008": 0,
+          "5001": 0,
+          "5002": 0,
+          "5003": 0,
+          "5004": 0,
+          "5005": 0,
+          "5006": 0,
+          "5007": 0,
+          "5008": 0,
+          "6001": 0,
+          "6002": 0,
+          "6003": 0,
+          "6004": 0,
+          "6005": 0,
+          "6006": 0,
+          "6007": 0,
+          "6008": 0,
+          "7001": 0,
+          "7002": 0,
+          "7003": 0,
+          "7004": 0,
+          "7005": 0,
+          "7006": 0,
+          "7007": 0,
+          "7008": 0
+        },
+        "Participant": 1,
+        "PlayerStats": {
+          "Participant1": {
+            "533573": {
+              "goals": 1
+            },
+            "10093448": {
+              "yellowCards": 1
+            }
+          },
+          "Participant2": {
+            "1204158": {
+              "goals": 1
+            }
+          }
+        }
+      },
+      "detail": "Blocked"
+    },
+    {
+      "id": "18218149:524",
+      "kind": "corner",
+      "major": false,
+      "minute": 49,
+      "tMs": 1783714308497,
+      "side": "away",
+      "headline": "Corner",
+      "raw": {
+        "FixtureId": 18218149,
+        "GameState": "scheduled",
+        "StartTime": 1783710000000,
+        "IsTeam": true,
+        "FixtureGroupId": 10115675,
+        "CompetitionId": 72,
+        "CountryId": 466,
+        "SportId": 1,
+        "Participant1IsHome": true,
+        "Participant2Id": 1575,
+        "Participant1Id": 3021,
+        "CoverageSecondaryData": true,
+        "CoverageType": "TV/Stream",
+        "Action": "corner",
+        "Id": 524,
+        "Ts": 1783714308374,
+        "ConnectionId": 1080,
+        "Seq": 579,
+        "StatusId": 4,
+        "Type": "Soccer",
+        "Confirmed": true,
+        "Clock": {
+          "Running": true,
+          "Seconds": 2960
+        },
+        "Score": {
+          "Participant1": {
+            "H1": {
+              "Goals": 1,
+              "YellowCards": 1,
+              "Corners": 3
+            },
+            "HT": {
+              "Goals": 1,
+              "YellowCards": 1,
+              "Corners": 3
+            },
+            "Total": {
+              "Goals": 1,
+              "YellowCards": 1,
+              "Corners": 3
+            }
+          },
+          "Participant2": {
+            "H1": {
+              "Goals": 1
+            },
+            "HT": {
+              "Goals": 1
+            },
+            "H2": {
+              "Corners": 1
+            },
+            "Total": {
+              "Goals": 1,
+              "Corners": 1
+            }
+          }
+        },
+        "Stats": {
+          "1": 1,
+          "2": 1,
+          "3": 1,
+          "4": 0,
+          "5": 0,
+          "6": 0,
+          "7": 3,
+          "8": 1,
+          "1001": 1,
+          "1002": 1,
+          "1003": 1,
+          "1004": 0,
+          "1005": 0,
+          "1006": 0,
+          "1007": 3,
+          "1008": 0,
+          "2001": 1,
+          "2002": 1,
+          "2003": 1,
+          "2004": 0,
+          "2005": 0,
+          "2006": 0,
+          "2007": 3,
+          "2008": 0,
+          "3001": 0,
+          "3002": 0,
+          "3003": 0,
+          "3004": 0,
+          "3005": 0,
+          "3006": 0,
+          "3007": 0,
+          "3008": 1,
+          "4001": 0,
+          "4002": 0,
+          "4003": 0,
+          "4004": 0,
+          "4005": 0,
+          "4006": 0,
+          "4007": 0,
+          "4008": 0,
+          "5001": 0,
+          "5002": 0,
+          "5003": 0,
+          "5004": 0,
+          "5005": 0,
+          "5006": 0,
+          "5007": 0,
+          "5008": 0,
+          "6001": 0,
+          "6002": 0,
+          "6003": 0,
+          "6004": 0,
+          "6005": 0,
+          "6006": 0,
+          "6007": 0,
+          "6008": 0,
+          "7001": 0,
+          "7002": 0,
+          "7003": 0,
+          "7004": 0,
+          "7005": 0,
+          "7006": 0,
+          "7007": 0,
+          "7008": 0
+        },
+        "Participant": 2,
+        "Possession": 2,
+        "Parti1State": {},
+        "Parti2State": {}
+      }
+    },
+    {
+      "id": "18218149:545",
+      "kind": "shot",
+      "major": false,
+      "minute": 51,
+      "tMs": 1783714431946,
+      "side": "home",
+      "headline": "Shot",
+      "raw": {
+        "FixtureId": 18218149,
+        "GameState": "scheduled",
+        "StartTime": 1783710000000,
+        "IsTeam": true,
+        "FixtureGroupId": 10115675,
+        "CompetitionId": 72,
+        "CountryId": 466,
+        "SportId": 1,
+        "Participant1IsHome": true,
+        "Participant2Id": 1575,
+        "Participant1Id": 3021,
+        "CoverageSecondaryData": true,
+        "CoverageType": "TV/Stream",
+        "Action": "shot",
+        "Id": 545,
+        "Ts": 1783714431831,
+        "ConnectionId": 1080,
+        "Seq": 603,
+        "StatusId": 4,
+        "Type": "Soccer",
+        "Confirmed": true,
+        "Clock": {
+          "Running": true,
+          "Seconds": 3096
+        },
+        "Data": {
+          "Outcome": "Blocked"
+        },
+        "Stats": {
+          "1": 1,
+          "2": 1,
+          "3": 1,
+          "4": 0,
+          "5": 0,
+          "6": 0,
+          "7": 3,
+          "8": 1,
+          "1001": 1,
+          "1002": 1,
+          "1003": 1,
+          "1004": 0,
+          "1005": 0,
+          "1006": 0,
+          "1007": 3,
+          "1008": 0,
+          "2001": 1,
+          "2002": 1,
+          "2003": 1,
+          "2004": 0,
+          "2005": 0,
+          "2006": 0,
+          "2007": 3,
+          "2008": 0,
+          "3001": 0,
+          "3002": 0,
+          "3003": 0,
+          "3004": 0,
+          "3005": 0,
+          "3006": 0,
+          "3007": 0,
+          "3008": 1,
+          "4001": 0,
+          "4002": 0,
+          "4003": 0,
+          "4004": 0,
+          "4005": 0,
+          "4006": 0,
+          "4007": 0,
+          "4008": 0,
+          "5001": 0,
+          "5002": 0,
+          "5003": 0,
+          "5004": 0,
+          "5005": 0,
+          "5006": 0,
+          "5007": 0,
+          "5008": 0,
+          "6001": 0,
+          "6002": 0,
+          "6003": 0,
+          "6004": 0,
+          "6005": 0,
+          "6006": 0,
+          "6007": 0,
+          "6008": 0,
+          "7001": 0,
+          "7002": 0,
+          "7003": 0,
+          "7004": 0,
+          "7005": 0,
+          "7006": 0,
+          "7007": 0,
+          "7008": 0
+        },
+        "Participant": 1,
+        "PlayerStats": {
+          "Participant1": {
+            "533573": {
+              "goals": 1
+            },
+            "10093448": {
+              "yellowCards": 1
+            }
+          },
+          "Participant2": {
+            "1204158": {
+              "goals": 1
+            }
+          }
+        }
+      },
+      "detail": "Blocked"
+    },
+    {
+      "id": "18218149:546",
+      "kind": "corner",
+      "major": false,
+      "minute": 51,
+      "tMs": 1783714434214,
+      "side": "home",
+      "headline": "Corner",
+      "raw": {
+        "FixtureId": 18218149,
+        "GameState": "scheduled",
+        "StartTime": 1783710000000,
+        "IsTeam": true,
+        "FixtureGroupId": 10115675,
+        "CompetitionId": 72,
+        "CountryId": 466,
+        "SportId": 1,
+        "Participant1IsHome": true,
+        "Participant2Id": 1575,
+        "Participant1Id": 3021,
+        "CoverageSecondaryData": true,
+        "CoverageType": "TV/Stream",
+        "Action": "corner",
+        "Id": 546,
+        "Ts": 1783714434093,
+        "ConnectionId": 1080,
+        "Seq": 605,
+        "StatusId": 4,
+        "Type": "Soccer",
+        "Confirmed": true,
+        "Clock": {
+          "Running": true,
+          "Seconds": 3099
+        },
+        "Score": {
+          "Participant1": {
+            "H1": {
+              "Goals": 1,
+              "YellowCards": 1,
+              "Corners": 3
+            },
+            "HT": {
+              "Goals": 1,
+              "YellowCards": 1,
+              "Corners": 3
+            },
+            "H2": {
+              "Corners": 1
+            },
+            "Total": {
+              "Goals": 1,
+              "YellowCards": 1,
+              "Corners": 4
+            }
+          },
+          "Participant2": {
+            "H1": {
+              "Goals": 1
+            },
+            "HT": {
+              "Goals": 1
+            },
+            "H2": {
+              "Corners": 1
+            },
+            "Total": {
+              "Goals": 1,
+              "Corners": 1
+            }
+          }
+        },
+        "Stats": {
+          "1": 1,
+          "2": 1,
+          "3": 1,
+          "4": 0,
+          "5": 0,
+          "6": 0,
+          "7": 4,
+          "8": 1,
+          "1001": 1,
+          "1002": 1,
+          "1003": 1,
+          "1004": 0,
+          "1005": 0,
+          "1006": 0,
+          "1007": 3,
+          "1008": 0,
+          "2001": 1,
+          "2002": 1,
+          "2003": 1,
+          "2004": 0,
+          "2005": 0,
+          "2006": 0,
+          "2007": 3,
+          "2008": 0,
+          "3001": 0,
+          "3002": 0,
+          "3003": 0,
+          "3004": 0,
+          "3005": 0,
+          "3006": 0,
+          "3007": 1,
+          "3008": 1,
+          "4001": 0,
+          "4002": 0,
+          "4003": 0,
+          "4004": 0,
+          "4005": 0,
+          "4006": 0,
+          "4007": 0,
+          "4008": 0,
+          "5001": 0,
+          "5002": 0,
+          "5003": 0,
+          "5004": 0,
+          "5005": 0,
+          "5006": 0,
+          "5007": 0,
+          "5008": 0,
+          "6001": 0,
+          "6002": 0,
+          "6003": 0,
+          "6004": 0,
+          "6005": 0,
+          "6006": 0,
+          "6007": 0,
+          "6008": 0,
+          "7001": 0,
+          "7002": 0,
+          "7003": 0,
+          "7004": 0,
+          "7005": 0,
+          "7006": 0,
+          "7007": 0,
+          "7008": 0
+        },
+        "Participant": 1,
+        "Possession": 1,
+        "Parti1State": {},
+        "Parti2State": {}
+      }
+    },
+    {
+      "id": "18218149:549",
+      "kind": "shot",
+      "major": false,
+      "minute": 52,
+      "tMs": 1783714460111,
+      "side": "home",
+      "headline": "Shot",
+      "raw": {
+        "FixtureId": 18218149,
+        "GameState": "scheduled",
+        "StartTime": 1783710000000,
+        "IsTeam": true,
+        "FixtureGroupId": 10115675,
+        "CompetitionId": 72,
+        "CountryId": 466,
+        "SportId": 1,
+        "Participant1IsHome": true,
+        "Participant2Id": 1575,
+        "Participant1Id": 3021,
+        "CoverageSecondaryData": true,
+        "CoverageType": "TV/Stream",
+        "Action": "shot",
+        "Id": 549,
+        "Ts": 1783714459989,
+        "ConnectionId": 1080,
+        "Seq": 609,
+        "StatusId": 4,
+        "Type": "Soccer",
+        "Confirmed": true,
+        "Clock": {
+          "Running": true,
+          "Seconds": 3125
+        },
+        "Data": {
+          "Outcome": "OffTarget"
+        },
+        "Stats": {
+          "1": 1,
+          "2": 1,
+          "3": 1,
+          "4": 0,
+          "5": 0,
+          "6": 0,
+          "7": 4,
+          "8": 1,
+          "1001": 1,
+          "1002": 1,
+          "1003": 1,
+          "1004": 0,
+          "1005": 0,
+          "1006": 0,
+          "1007": 3,
+          "1008": 0,
+          "2001": 1,
+          "2002": 1,
+          "2003": 1,
+          "2004": 0,
+          "2005": 0,
+          "2006": 0,
+          "2007": 3,
+          "2008": 0,
+          "3001": 0,
+          "3002": 0,
+          "3003": 0,
+          "3004": 0,
+          "3005": 0,
+          "3006": 0,
+          "3007": 1,
+          "3008": 1,
+          "4001": 0,
+          "4002": 0,
+          "4003": 0,
+          "4004": 0,
+          "4005": 0,
+          "4006": 0,
+          "4007": 0,
+          "4008": 0,
+          "5001": 0,
+          "5002": 0,
+          "5003": 0,
+          "5004": 0,
+          "5005": 0,
+          "5006": 0,
+          "5007": 0,
+          "5008": 0,
+          "6001": 0,
+          "6002": 0,
+          "6003": 0,
+          "6004": 0,
+          "6005": 0,
+          "6006": 0,
+          "6007": 0,
+          "6008": 0,
+          "7001": 0,
+          "7002": 0,
+          "7003": 0,
+          "7004": 0,
+          "7005": 0,
+          "7006": 0,
+          "7007": 0,
+          "7008": 0
+        },
+        "Participant": 1,
+        "PlayerStats": {
+          "Participant1": {
+            "533573": {
+              "goals": 1
+            },
+            "10093448": {
+              "yellowCards": 1
+            }
+          },
+          "Participant2": {
+            "1204158": {
+              "goals": 1
+            }
+          }
+        }
+      },
+      "detail": "OffTarget"
+    },
+    {
+      "id": "18218149:576",
+      "kind": "shot",
+      "major": false,
+      "minute": 54,
+      "tMs": 1783714593711,
+      "side": "away",
+      "headline": "Shot",
+      "raw": {
+        "FixtureId": 18218149,
+        "GameState": "scheduled",
+        "StartTime": 1783710000000,
+        "IsTeam": true,
+        "FixtureGroupId": 10115675,
+        "CompetitionId": 72,
+        "CountryId": 466,
+        "SportId": 1,
+        "Participant1IsHome": true,
+        "Participant2Id": 1575,
+        "Participant1Id": 3021,
+        "CoverageSecondaryData": true,
+        "CoverageType": "TV/Stream",
+        "Action": "shot",
+        "Id": 576,
+        "Ts": 1783714593520,
+        "ConnectionId": 1080,
+        "Seq": 637,
+        "StatusId": 4,
+        "Type": "Soccer",
+        "Confirmed": true,
+        "Clock": {
+          "Running": true,
+          "Seconds": 3258
+        },
+        "Data": {
+          "Outcome": "OffTarget"
+        },
+        "Stats": {
+          "1": 1,
+          "2": 1,
+          "3": 1,
+          "4": 0,
+          "5": 0,
+          "6": 0,
+          "7": 4,
+          "8": 1,
+          "1001": 1,
+          "1002": 1,
+          "1003": 1,
+          "1004": 0,
+          "1005": 0,
+          "1006": 0,
+          "1007": 3,
+          "1008": 0,
+          "2001": 1,
+          "2002": 1,
+          "2003": 1,
+          "2004": 0,
+          "2005": 0,
+          "2006": 0,
+          "2007": 3,
+          "2008": 0,
+          "3001": 0,
+          "3002": 0,
+          "3003": 0,
+          "3004": 0,
+          "3005": 0,
+          "3006": 0,
+          "3007": 1,
+          "3008": 1,
+          "4001": 0,
+          "4002": 0,
+          "4003": 0,
+          "4004": 0,
+          "4005": 0,
+          "4006": 0,
+          "4007": 0,
+          "4008": 0,
+          "5001": 0,
+          "5002": 0,
+          "5003": 0,
+          "5004": 0,
+          "5005": 0,
+          "5006": 0,
+          "5007": 0,
+          "5008": 0,
+          "6001": 0,
+          "6002": 0,
+          "6003": 0,
+          "6004": 0,
+          "6005": 0,
+          "6006": 0,
+          "6007": 0,
+          "6008": 0,
+          "7001": 0,
+          "7002": 0,
+          "7003": 0,
+          "7004": 0,
+          "7005": 0,
+          "7006": 0,
+          "7007": 0,
+          "7008": 0
+        },
+        "Participant": 2,
+        "PlayerStats": {
+          "Participant1": {
+            "533573": {
+              "goals": 1
+            },
+            "10093448": {
+              "yellowCards": 1
+            }
+          },
+          "Participant2": {
+            "1204158": {
+              "goals": 1
+            }
+          }
+        }
+      },
+      "detail": "OffTarget"
+    },
+    {
+      "id": "18218149:634",
+      "kind": "shot",
+      "major": false,
+      "minute": 60,
+      "tMs": 1783714968419,
+      "side": "home",
+      "headline": "Shot",
+      "raw": {
+        "FixtureId": 18218149,
+        "GameState": "scheduled",
+        "StartTime": 1783710000000,
+        "IsTeam": true,
+        "FixtureGroupId": 10115675,
+        "CompetitionId": 72,
+        "CountryId": 466,
+        "SportId": 1,
+        "Participant1IsHome": true,
+        "Participant2Id": 1575,
+        "Participant1Id": 3021,
+        "CoverageSecondaryData": true,
+        "CoverageType": "TV/Stream",
+        "Action": "shot",
+        "Id": 634,
+        "Ts": 1783714968268,
+        "ConnectionId": 1080,
+        "Seq": 702,
+        "StatusId": 4,
+        "Type": "Soccer",
+        "Confirmed": true,
+        "Clock": {
+          "Running": true,
+          "Seconds": 3633
+        },
+        "Data": {
+          "Outcome": "OnTarget"
+        },
+        "Stats": {
+          "1": 1,
+          "2": 1,
+          "3": 1,
+          "4": 0,
+          "5": 0,
+          "6": 0,
+          "7": 4,
+          "8": 1,
+          "1001": 1,
+          "1002": 1,
+          "1003": 1,
+          "1004": 0,
+          "1005": 0,
+          "1006": 0,
+          "1007": 3,
+          "1008": 0,
+          "2001": 1,
+          "2002": 1,
+          "2003": 1,
+          "2004": 0,
+          "2005": 0,
+          "2006": 0,
+          "2007": 3,
+          "2008": 0,
+          "3001": 0,
+          "3002": 0,
+          "3003": 0,
+          "3004": 0,
+          "3005": 0,
+          "3006": 0,
+          "3007": 1,
+          "3008": 1,
+          "4001": 0,
+          "4002": 0,
+          "4003": 0,
+          "4004": 0,
+          "4005": 0,
+          "4006": 0,
+          "4007": 0,
+          "4008": 0,
+          "5001": 0,
+          "5002": 0,
+          "5003": 0,
+          "5004": 0,
+          "5005": 0,
+          "5006": 0,
+          "5007": 0,
+          "5008": 0,
+          "6001": 0,
+          "6002": 0,
+          "6003": 0,
+          "6004": 0,
+          "6005": 0,
+          "6006": 0,
+          "6007": 0,
+          "6008": 0,
+          "7001": 0,
+          "7002": 0,
+          "7003": 0,
+          "7004": 0,
+          "7005": 0,
+          "7006": 0,
+          "7007": 0,
+          "7008": 0
+        },
+        "Participant": 1,
+        "PlayerStats": {
+          "Participant1": {
+            "533573": {
+              "goals": 1
+            },
+            "10093448": {
+              "yellowCards": 1
+            }
+          },
+          "Participant2": {
+            "1204158": {
+              "goals": 1
+            }
+          }
+        }
+      },
+      "detail": "OnTarget"
+    },
+    {
+      "id": "18218149:647",
+      "kind": "shot",
+      "major": false,
+      "minute": 61,
+      "tMs": 1783715014325,
+      "side": "away",
+      "headline": "Shot",
+      "raw": {
+        "FixtureId": 18218149,
+        "GameState": "scheduled",
+        "StartTime": 1783710000000,
+        "IsTeam": true,
+        "FixtureGroupId": 10115675,
+        "CompetitionId": 72,
+        "CountryId": 466,
+        "SportId": 1,
+        "Participant1IsHome": true,
+        "Participant2Id": 1575,
+        "Participant1Id": 3021,
+        "CoverageSecondaryData": true,
+        "CoverageType": "TV/Stream",
+        "Action": "shot",
+        "Id": 647,
+        "Ts": 1783715014205,
+        "ConnectionId": 1080,
+        "Seq": 717,
+        "StatusId": 4,
+        "Type": "Soccer",
+        "Confirmed": true,
+        "Clock": {
+          "Running": true,
+          "Seconds": 3677
+        },
+        "Data": {
+          "Outcome": "OnTarget"
+        },
+        "Stats": {
+          "1": 1,
+          "2": 1,
+          "3": 1,
+          "4": 0,
+          "5": 0,
+          "6": 0,
+          "7": 4,
+          "8": 1,
+          "1001": 1,
+          "1002": 1,
+          "1003": 1,
+          "1004": 0,
+          "1005": 0,
+          "1006": 0,
+          "1007": 3,
+          "1008": 0,
+          "2001": 1,
+          "2002": 1,
+          "2003": 1,
+          "2004": 0,
+          "2005": 0,
+          "2006": 0,
+          "2007": 3,
+          "2008": 0,
+          "3001": 0,
+          "3002": 0,
+          "3003": 0,
+          "3004": 0,
+          "3005": 0,
+          "3006": 0,
+          "3007": 1,
+          "3008": 1,
+          "4001": 0,
+          "4002": 0,
+          "4003": 0,
+          "4004": 0,
+          "4005": 0,
+          "4006": 0,
+          "4007": 0,
+          "4008": 0,
+          "5001": 0,
+          "5002": 0,
+          "5003": 0,
+          "5004": 0,
+          "5005": 0,
+          "5006": 0,
+          "5007": 0,
+          "5008": 0,
+          "6001": 0,
+          "6002": 0,
+          "6003": 0,
+          "6004": 0,
+          "6005": 0,
+          "6006": 0,
+          "6007": 0,
+          "6008": 0,
+          "7001": 0,
+          "7002": 0,
+          "7003": 0,
+          "7004": 0,
+          "7005": 0,
+          "7006": 0,
+          "7007": 0,
+          "7008": 0
+        },
+        "Participant": 2,
+        "PlayerStats": {
+          "Participant1": {
+            "533573": {
+              "goals": 1
+            },
+            "10093448": {
+              "yellowCards": 1
+            }
+          },
+          "Participant2": {
+            "1204158": {
+              "goals": 1
+            }
+          }
+        }
+      },
+      "detail": "OnTarget"
+    },
+    {
+      "id": "18218149:654",
+      "kind": "shot",
+      "major": false,
+      "minute": 61,
+      "tMs": 1783715047325,
+      "side": "home",
+      "headline": "Shot",
+      "raw": {
+        "FixtureId": 18218149,
+        "GameState": "scheduled",
+        "StartTime": 1783710000000,
+        "IsTeam": true,
+        "FixtureGroupId": 10115675,
+        "CompetitionId": 72,
+        "CountryId": 466,
+        "SportId": 1,
+        "Participant1IsHome": true,
+        "Participant2Id": 1575,
+        "Participant1Id": 3021,
+        "CoverageSecondaryData": true,
+        "CoverageType": "TV/Stream",
+        "Action": "shot",
+        "Id": 654,
+        "Ts": 1783715047197,
+        "ConnectionId": 1080,
+        "Seq": 725,
+        "StatusId": 4,
+        "Type": "Soccer",
+        "Confirmed": true,
+        "Clock": {
+          "Running": true,
+          "Seconds": 3711
+        },
+        "Data": {
+          "Outcome": "OnTarget"
+        },
+        "Stats": {
+          "1": 1,
+          "2": 1,
+          "3": 1,
+          "4": 0,
+          "5": 0,
+          "6": 0,
+          "7": 4,
+          "8": 1,
+          "1001": 1,
+          "1002": 1,
+          "1003": 1,
+          "1004": 0,
+          "1005": 0,
+          "1006": 0,
+          "1007": 3,
+          "1008": 0,
+          "2001": 1,
+          "2002": 1,
+          "2003": 1,
+          "2004": 0,
+          "2005": 0,
+          "2006": 0,
+          "2007": 3,
+          "2008": 0,
+          "3001": 0,
+          "3002": 0,
+          "3003": 0,
+          "3004": 0,
+          "3005": 0,
+          "3006": 0,
+          "3007": 1,
+          "3008": 1,
+          "4001": 0,
+          "4002": 0,
+          "4003": 0,
+          "4004": 0,
+          "4005": 0,
+          "4006": 0,
+          "4007": 0,
+          "4008": 0,
+          "5001": 0,
+          "5002": 0,
+          "5003": 0,
+          "5004": 0,
+          "5005": 0,
+          "5006": 0,
+          "5007": 0,
+          "5008": 0,
+          "6001": 0,
+          "6002": 0,
+          "6003": 0,
+          "6004": 0,
+          "6005": 0,
+          "6006": 0,
+          "6007": 0,
+          "6008": 0,
+          "7001": 0,
+          "7002": 0,
+          "7003": 0,
+          "7004": 0,
+          "7005": 0,
+          "7006": 0,
+          "7007": 0,
+          "7008": 0
+        },
+        "Participant": 1,
+        "PlayerStats": {
+          "Participant1": {
+            "533573": {
+              "goals": 1
+            },
+            "10093448": {
+              "yellowCards": 1
+            }
+          },
+          "Participant2": {
+            "1204158": {
+              "goals": 1
+            }
+          }
+        }
+      },
+      "detail": "OnTarget"
+    },
+    {
+      "id": "18218149:655",
+      "kind": "corner",
+      "major": false,
+      "minute": 61,
+      "tMs": 1783715066478,
+      "side": "home",
+      "headline": "Corner",
+      "raw": {
+        "FixtureId": 18218149,
+        "GameState": "scheduled",
+        "StartTime": 1783710000000,
+        "IsTeam": true,
+        "FixtureGroupId": 10115675,
+        "CompetitionId": 72,
+        "CountryId": 466,
+        "SportId": 1,
+        "Participant1IsHome": true,
+        "Participant2Id": 1575,
+        "Participant1Id": 3021,
+        "CoverageSecondaryData": true,
+        "CoverageType": "TV/Stream",
+        "Action": "corner",
+        "Id": 655,
+        "Ts": 1783715066342,
+        "ConnectionId": 1080,
+        "Seq": 727,
+        "StatusId": 4,
+        "Type": "Soccer",
+        "Confirmed": true,
+        "Clock": {
+          "Running": true,
+          "Seconds": 3716
+        },
+        "Score": {
+          "Participant1": {
+            "H1": {
+              "Goals": 1,
+              "YellowCards": 1,
+              "Corners": 3
+            },
+            "HT": {
+              "Goals": 1,
+              "YellowCards": 1,
+              "Corners": 3
+            },
+            "H2": {
+              "Corners": 2
+            },
+            "Total": {
+              "Goals": 1,
+              "YellowCards": 1,
+              "Corners": 5
+            }
+          },
+          "Participant2": {
+            "H1": {
+              "Goals": 1
+            },
+            "HT": {
+              "Goals": 1
+            },
+            "H2": {
+              "Corners": 1
+            },
+            "Total": {
+              "Goals": 1,
+              "Corners": 1
+            }
+          }
+        },
+        "Stats": {
+          "1": 1,
+          "2": 1,
+          "3": 1,
+          "4": 0,
+          "5": 0,
+          "6": 0,
+          "7": 5,
+          "8": 1,
+          "1001": 1,
+          "1002": 1,
+          "1003": 1,
+          "1004": 0,
+          "1005": 0,
+          "1006": 0,
+          "1007": 3,
+          "1008": 0,
+          "2001": 1,
+          "2002": 1,
+          "2003": 1,
+          "2004": 0,
+          "2005": 0,
+          "2006": 0,
+          "2007": 3,
+          "2008": 0,
+          "3001": 0,
+          "3002": 0,
+          "3003": 0,
+          "3004": 0,
+          "3005": 0,
+          "3006": 0,
+          "3007": 2,
+          "3008": 1,
+          "4001": 0,
+          "4002": 0,
+          "4003": 0,
+          "4004": 0,
+          "4005": 0,
+          "4006": 0,
+          "4007": 0,
+          "4008": 0,
+          "5001": 0,
+          "5002": 0,
+          "5003": 0,
+          "5004": 0,
+          "5005": 0,
+          "5006": 0,
+          "5007": 0,
+          "5008": 0,
+          "6001": 0,
+          "6002": 0,
+          "6003": 0,
+          "6004": 0,
+          "6005": 0,
+          "6006": 0,
+          "6007": 0,
+          "6008": 0,
+          "7001": 0,
+          "7002": 0,
+          "7003": 0,
+          "7004": 0,
+          "7005": 0,
+          "7006": 0,
+          "7007": 0,
+          "7008": 0
+        },
+        "Participant": 1,
+        "Possession": 1,
+        "Parti1State": {},
+        "Parti2State": {
+          "PossibleEvent": {
+            "Goal": true
+          }
+        }
+      }
+    },
+    {
+      "id": "18218149:703",
+      "kind": "shot",
+      "major": false,
+      "minute": 70,
+      "tMs": 1783715548845,
+      "side": "home",
+      "headline": "Shot",
+      "raw": {
+        "FixtureId": 18218149,
+        "GameState": "scheduled",
+        "StartTime": 1783710000000,
+        "IsTeam": true,
+        "FixtureGroupId": 10115675,
+        "CompetitionId": 72,
+        "CountryId": 466,
+        "SportId": 1,
+        "Participant1IsHome": true,
+        "Participant2Id": 1575,
+        "Participant1Id": 3021,
+        "CoverageSecondaryData": true,
+        "CoverageType": "TV/Stream",
+        "Action": "shot",
+        "Id": 703,
+        "Ts": 1783715548717,
+        "ConnectionId": 1080,
+        "Seq": 781,
+        "StatusId": 4,
+        "Type": "Soccer",
+        "Confirmed": true,
+        "Clock": {
+          "Running": true,
+          "Seconds": 4212
+        },
+        "Data": {
+          "Outcome": "OffTarget"
+        },
+        "Stats": {
+          "1": 1,
+          "2": 1,
+          "3": 1,
+          "4": 0,
+          "5": 0,
+          "6": 0,
+          "7": 5,
+          "8": 1,
+          "1001": 1,
+          "1002": 1,
+          "1003": 1,
+          "1004": 0,
+          "1005": 0,
+          "1006": 0,
+          "1007": 3,
+          "1008": 0,
+          "2001": 1,
+          "2002": 1,
+          "2003": 1,
+          "2004": 0,
+          "2005": 0,
+          "2006": 0,
+          "2007": 3,
+          "2008": 0,
+          "3001": 0,
+          "3002": 0,
+          "3003": 0,
+          "3004": 0,
+          "3005": 0,
+          "3006": 0,
+          "3007": 2,
+          "3008": 1,
+          "4001": 0,
+          "4002": 0,
+          "4003": 0,
+          "4004": 0,
+          "4005": 0,
+          "4006": 0,
+          "4007": 0,
+          "4008": 0,
+          "5001": 0,
+          "5002": 0,
+          "5003": 0,
+          "5004": 0,
+          "5005": 0,
+          "5006": 0,
+          "5007": 0,
+          "5008": 0,
+          "6001": 0,
+          "6002": 0,
+          "6003": 0,
+          "6004": 0,
+          "6005": 0,
+          "6006": 0,
+          "6007": 0,
+          "6008": 0,
+          "7001": 0,
+          "7002": 0,
+          "7003": 0,
+          "7004": 0,
+          "7005": 0,
+          "7006": 0,
+          "7007": 0,
+          "7008": 0
+        },
+        "Participant": 1,
+        "PlayerStats": {
+          "Participant1": {
+            "533573": {
+              "goals": 1
+            },
+            "10093448": {
+              "yellowCards": 1
+            }
+          },
+          "Participant2": {
+            "1204158": {
+              "goals": 1
+            }
+          }
+        }
+      },
+      "detail": "OffTarget"
+    },
+    {
+      "id": "18218149:738",
+      "kind": "shot",
+      "major": false,
+      "minute": 73,
+      "tMs": 1783715774504,
+      "side": "home",
+      "headline": "Shot",
+      "raw": {
+        "FixtureId": 18218149,
+        "GameState": "scheduled",
+        "StartTime": 1783710000000,
+        "IsTeam": true,
+        "FixtureGroupId": 10115675,
+        "CompetitionId": 72,
+        "CountryId": 466,
+        "SportId": 1,
+        "Participant1IsHome": true,
+        "Participant2Id": 1575,
+        "Participant1Id": 3021,
+        "CoverageSecondaryData": true,
+        "CoverageType": "TV/Stream",
+        "Action": "shot",
+        "Id": 738,
+        "Ts": 1783715774248,
+        "ConnectionId": 1080,
+        "Seq": 821,
+        "StatusId": 4,
+        "Type": "Soccer",
+        "Confirmed": true,
+        "Clock": {
+          "Running": true,
+          "Seconds": 4439
+        },
+        "Data": {
+          "Outcome": "Blocked"
+        },
+        "Stats": {
+          "1": 1,
+          "2": 1,
+          "3": 1,
+          "4": 0,
+          "5": 0,
+          "6": 0,
+          "7": 5,
+          "8": 1,
+          "1001": 1,
+          "1002": 1,
+          "1003": 1,
+          "1004": 0,
+          "1005": 0,
+          "1006": 0,
+          "1007": 3,
+          "1008": 0,
+          "2001": 1,
+          "2002": 1,
+          "2003": 1,
+          "2004": 0,
+          "2005": 0,
+          "2006": 0,
+          "2007": 3,
+          "2008": 0,
+          "3001": 0,
+          "3002": 0,
+          "3003": 0,
+          "3004": 0,
+          "3005": 0,
+          "3006": 0,
+          "3007": 2,
+          "3008": 1,
+          "4001": 0,
+          "4002": 0,
+          "4003": 0,
+          "4004": 0,
+          "4005": 0,
+          "4006": 0,
+          "4007": 0,
+          "4008": 0,
+          "5001": 0,
+          "5002": 0,
+          "5003": 0,
+          "5004": 0,
+          "5005": 0,
+          "5006": 0,
+          "5007": 0,
+          "5008": 0,
+          "6001": 0,
+          "6002": 0,
+          "6003": 0,
+          "6004": 0,
+          "6005": 0,
+          "6006": 0,
+          "6007": 0,
+          "6008": 0,
+          "7001": 0,
+          "7002": 0,
+          "7003": 0,
+          "7004": 0,
+          "7005": 0,
+          "7006": 0,
+          "7007": 0,
+          "7008": 0
+        },
+        "Participant": 1,
+        "PlayerStats": {
+          "Participant1": {
+            "533573": {
+              "goals": 1
+            },
+            "10093448": {
+              "yellowCards": 1
+            }
+          },
+          "Participant2": {
+            "1204158": {
+              "goals": 1
+            }
+          }
+        }
+      },
+      "detail": "Blocked"
+    },
+    {
+      "id": "18218149:832",
+      "kind": "shot",
+      "major": false,
+      "minute": 83,
+      "tMs": 1783716341159,
+      "side": "away",
+      "headline": "Shot",
+      "raw": {
+        "FixtureId": 18218149,
+        "GameState": "scheduled",
+        "StartTime": 1783710000000,
+        "IsTeam": true,
+        "FixtureGroupId": 10115675,
+        "CompetitionId": 72,
+        "CountryId": 466,
+        "SportId": 1,
+        "Participant1IsHome": true,
+        "Participant2Id": 1575,
+        "Participant1Id": 3021,
+        "CoverageSecondaryData": true,
+        "CoverageType": "TV/Stream",
+        "Action": "shot",
+        "Id": 832,
+        "Ts": 1783716341038,
+        "ConnectionId": 1080,
+        "Seq": 926,
+        "StatusId": 4,
+        "Type": "Soccer",
+        "Confirmed": true,
+        "Clock": {
+          "Running": true,
+          "Seconds": 5006
+        },
+        "Data": {
+          "Outcome": "Blocked"
+        },
+        "Stats": {
+          "1": 1,
+          "2": 1,
+          "3": 1,
+          "4": 0,
+          "5": 0,
+          "6": 0,
+          "7": 5,
+          "8": 1,
+          "1001": 1,
+          "1002": 1,
+          "1003": 1,
+          "1004": 0,
+          "1005": 0,
+          "1006": 0,
+          "1007": 3,
+          "1008": 0,
+          "2001": 1,
+          "2002": 1,
+          "2003": 1,
+          "2004": 0,
+          "2005": 0,
+          "2006": 0,
+          "2007": 3,
+          "2008": 0,
+          "3001": 0,
+          "3002": 0,
+          "3003": 0,
+          "3004": 0,
+          "3005": 0,
+          "3006": 0,
+          "3007": 2,
+          "3008": 1,
+          "4001": 0,
+          "4002": 0,
+          "4003": 0,
+          "4004": 0,
+          "4005": 0,
+          "4006": 0,
+          "4007": 0,
+          "4008": 0,
+          "5001": 0,
+          "5002": 0,
+          "5003": 0,
+          "5004": 0,
+          "5005": 0,
+          "5006": 0,
+          "5007": 0,
+          "5008": 0,
+          "6001": 0,
+          "6002": 0,
+          "6003": 0,
+          "6004": 0,
+          "6005": 0,
+          "6006": 0,
+          "6007": 0,
+          "6008": 0,
+          "7001": 0,
+          "7002": 0,
+          "7003": 0,
+          "7004": 0,
+          "7005": 0,
+          "7006": 0,
+          "7007": 0,
+          "7008": 0
+        },
+        "Participant": 2,
+        "PlayerStats": {
+          "Participant1": {
+            "533573": {
+              "goals": 1
+            },
+            "10093448": {
+              "yellowCards": 1
+            }
+          },
+          "Participant2": {
+            "1204158": {
+              "goals": 1
+            }
+          }
+        }
+      },
+      "detail": "Blocked"
+    },
+    {
+      "id": "18218149:840",
+      "kind": "yellow-card",
+      "major": true,
+      "minute": 84,
+      "tMs": 1783716409301,
+      "side": "away",
+      "headline": "Yellow card",
+      "raw": {
+        "FixtureId": 18218149,
+        "GameState": "scheduled",
+        "StartTime": 1783710000000,
+        "IsTeam": true,
+        "FixtureGroupId": 10115675,
+        "CompetitionId": 72,
+        "CountryId": 466,
+        "SportId": 1,
+        "Participant1IsHome": true,
+        "Participant2Id": 1575,
+        "Participant1Id": 3021,
+        "CoverageSecondaryData": true,
+        "CoverageType": "TV/Stream",
+        "Action": "yellow_card",
+        "Id": 840,
+        "Ts": 1783716409182,
+        "ConnectionId": 1080,
+        "Seq": 938,
+        "StatusId": 4,
+        "Type": "Soccer",
+        "Confirmed": true,
+        "Clock": {
+          "Running": true,
+          "Seconds": 5073
+        },
+        "Score": {
+          "Participant1": {
+            "H1": {
+              "Goals": 1,
+              "YellowCards": 1,
+              "Corners": 3
+            },
+            "HT": {
+              "Goals": 1,
+              "YellowCards": 1,
+              "Corners": 3
+            },
+            "H2": {
+              "Corners": 2
+            },
+            "Total": {
+              "Goals": 1,
+              "YellowCards": 1,
+              "Corners": 5
+            }
+          },
+          "Participant2": {
+            "H1": {
+              "Goals": 1
+            },
+            "HT": {
+              "Goals": 1
+            },
+            "H2": {
+              "YellowCards": 1,
+              "Corners": 1
+            },
+            "Total": {
+              "Goals": 1,
+              "YellowCards": 1,
+              "Corners": 1
+            }
+          }
+        },
+        "Data": {
+          "PlayerId": 62889
+        },
+        "Stats": {
+          "1": 1,
+          "2": 1,
+          "3": 1,
+          "4": 1,
+          "5": 0,
+          "6": 0,
+          "7": 5,
+          "8": 1,
+          "1001": 1,
+          "1002": 1,
+          "1003": 1,
+          "1004": 0,
+          "1005": 0,
+          "1006": 0,
+          "1007": 3,
+          "1008": 0,
+          "2001": 1,
+          "2002": 1,
+          "2003": 1,
+          "2004": 0,
+          "2005": 0,
+          "2006": 0,
+          "2007": 3,
+          "2008": 0,
+          "3001": 0,
+          "3002": 0,
+          "3003": 0,
+          "3004": 1,
+          "3005": 0,
+          "3006": 0,
+          "3007": 2,
+          "3008": 1,
+          "4001": 0,
+          "4002": 0,
+          "4003": 0,
+          "4004": 0,
+          "4005": 0,
+          "4006": 0,
+          "4007": 0,
+          "4008": 0,
+          "5001": 0,
+          "5002": 0,
+          "5003": 0,
+          "5004": 0,
+          "5005": 0,
+          "5006": 0,
+          "5007": 0,
+          "5008": 0,
+          "6001": 0,
+          "6002": 0,
+          "6003": 0,
+          "6004": 0,
+          "6005": 0,
+          "6006": 0,
+          "6007": 0,
+          "6008": 0,
+          "7001": 0,
+          "7002": 0,
+          "7003": 0,
+          "7004": 0,
+          "7005": 0,
+          "7006": 0,
+          "7007": 0,
+          "7008": 0
+        },
+        "Participant": 2,
+        "PossibleEvent": {},
+        "PlayerStats": {
+          "Participant1": {
+            "533573": {
+              "goals": 1
+            },
+            "10093448": {
+              "yellowCards": 1
+            }
+          },
+          "Participant2": {
+            "62889": {
+              "yellowCards": 1
+            },
+            "1204158": {
+              "goals": 1
+            }
+          }
+        }
+      },
+      "detail": "De Bruyne, Kevin"
+    },
+    {
+      "id": "18218149:863",
+      "kind": "shot",
+      "major": false,
+      "minute": 87,
+      "tMs": 1783716575954,
+      "side": "home",
+      "headline": "Shot",
+      "raw": {
+        "FixtureId": 18218149,
+        "GameState": "scheduled",
+        "StartTime": 1783710000000,
+        "IsTeam": true,
+        "FixtureGroupId": 10115675,
+        "CompetitionId": 72,
+        "CountryId": 466,
+        "SportId": 1,
+        "Participant1IsHome": true,
+        "Participant2Id": 1575,
+        "Participant1Id": 3021,
+        "CoverageSecondaryData": true,
+        "CoverageType": "TV/Stream",
+        "Action": "shot",
+        "Id": 863,
+        "Ts": 1783716575827,
+        "ConnectionId": 1080,
+        "Seq": 965,
+        "StatusId": 4,
+        "Type": "Soccer",
+        "Confirmed": true,
+        "Clock": {
+          "Running": true,
+          "Seconds": 5241
+        },
+        "Data": {
+          "Outcome": "Blocked"
+        },
+        "Stats": {
+          "1": 1,
+          "2": 1,
+          "3": 1,
+          "4": 1,
+          "5": 0,
+          "6": 0,
+          "7": 5,
+          "8": 1,
+          "1001": 1,
+          "1002": 1,
+          "1003": 1,
+          "1004": 0,
+          "1005": 0,
+          "1006": 0,
+          "1007": 3,
+          "1008": 0,
+          "2001": 1,
+          "2002": 1,
+          "2003": 1,
+          "2004": 0,
+          "2005": 0,
+          "2006": 0,
+          "2007": 3,
+          "2008": 0,
+          "3001": 0,
+          "3002": 0,
+          "3003": 0,
+          "3004": 1,
+          "3005": 0,
+          "3006": 0,
+          "3007": 2,
+          "3008": 1,
+          "4001": 0,
+          "4002": 0,
+          "4003": 0,
+          "4004": 0,
+          "4005": 0,
+          "4006": 0,
+          "4007": 0,
+          "4008": 0,
+          "5001": 0,
+          "5002": 0,
+          "5003": 0,
+          "5004": 0,
+          "5005": 0,
+          "5006": 0,
+          "5007": 0,
+          "5008": 0,
+          "6001": 0,
+          "6002": 0,
+          "6003": 0,
+          "6004": 0,
+          "6005": 0,
+          "6006": 0,
+          "6007": 0,
+          "6008": 0,
+          "7001": 0,
+          "7002": 0,
+          "7003": 0,
+          "7004": 0,
+          "7005": 0,
+          "7006": 0,
+          "7007": 0,
+          "7008": 0
+        },
+        "Participant": 1,
+        "PlayerStats": {
+          "Participant1": {
+            "533573": {
+              "goals": 1
+            },
+            "10093448": {
+              "yellowCards": 1
+            }
+          },
+          "Participant2": {
+            "62889": {
+              "yellowCards": 1
+            },
+            "1204158": {
+              "goals": 1
+            }
+          }
+        }
+      },
+      "detail": "Blocked"
+    },
+    {
+      "id": "18218149:864",
+      "kind": "goal",
+      "major": true,
+      "minute": 87,
+      "tMs": 1783716672142,
+      "side": "home",
+      "headline": "Goal",
+      "raw": {
+        "FixtureId": 18218149,
+        "GameState": "scheduled",
+        "StartTime": 1783710000000,
+        "IsTeam": true,
+        "FixtureGroupId": 10115675,
+        "CompetitionId": 72,
+        "CountryId": 466,
+        "SportId": 1,
+        "Participant1IsHome": true,
+        "Participant2Id": 1575,
+        "Participant1Id": 3021,
+        "CoverageSecondaryData": true,
+        "CoverageType": "TV/Stream",
+        "Action": "goal",
+        "Id": 864,
+        "Ts": 1783716672018,
+        "ConnectionId": 1080,
+        "Seq": 968,
+        "StatusId": 4,
+        "Type": "Soccer",
+        "Confirmed": true,
+        "Clock": {
+          "Running": true,
+          "Seconds": 5244
+        },
+        "Score": {
+          "Participant1": {
+            "H1": {
+              "Goals": 1,
+              "YellowCards": 1,
+              "Corners": 3
+            },
+            "HT": {
+              "Goals": 1,
+              "YellowCards": 1,
+              "Corners": 3
+            },
+            "H2": {
+              "Goals": 1,
+              "Corners": 2
+            },
+            "Total": {
+              "Goals": 2,
+              "YellowCards": 1,
+              "Corners": 5
+            }
+          },
+          "Participant2": {
+            "H1": {
+              "Goals": 1
+            },
+            "HT": {
+              "Goals": 1
+            },
+            "H2": {
+              "YellowCards": 1,
+              "Corners": 1
+            },
+            "Total": {
+              "Goals": 1,
+              "YellowCards": 1,
+              "Corners": 1
+            }
+          }
+        },
+        "Data": {
+          "GoalType": "Shot",
+          "PlayerId": 525288
+        },
+        "Stats": {
+          "1": 2,
+          "2": 1,
+          "3": 1,
+          "4": 1,
+          "5": 0,
+          "6": 0,
+          "7": 5,
+          "8": 1,
+          "1001": 1,
+          "1002": 1,
+          "1003": 1,
+          "1004": 0,
+          "1005": 0,
+          "1006": 0,
+          "1007": 3,
+          "1008": 0,
+          "2001": 1,
+          "2002": 1,
+          "2003": 1,
+          "2004": 0,
+          "2005": 0,
+          "2006": 0,
+          "2007": 3,
+          "2008": 0,
+          "3001": 1,
+          "3002": 0,
+          "3003": 0,
+          "3004": 1,
+          "3005": 0,
+          "3006": 0,
+          "3007": 2,
+          "3008": 1,
+          "4001": 0,
+          "4002": 0,
+          "4003": 0,
+          "4004": 0,
+          "4005": 0,
+          "4006": 0,
+          "4007": 0,
+          "4008": 0,
+          "5001": 0,
+          "5002": 0,
+          "5003": 0,
+          "5004": 0,
+          "5005": 0,
+          "5006": 0,
+          "5007": 0,
+          "5008": 0,
+          "6001": 0,
+          "6002": 0,
+          "6003": 0,
+          "6004": 0,
+          "6005": 0,
+          "6006": 0,
+          "6007": 0,
+          "6008": 0,
+          "7001": 0,
+          "7002": 0,
+          "7003": 0,
+          "7004": 0,
+          "7005": 0,
+          "7006": 0,
+          "7007": 0,
+          "7008": 0
+        },
+        "Participant": 1,
+        "Kickoff": {
+          "Team": 2
+        },
+        "Parti1State": {},
+        "Parti2State": {},
+        "PlayerStats": {
+          "Participant1": {
+            "525288": {
+              "goals": 1
+            },
+            "533573": {
+              "goals": 1
+            },
+            "10093448": {
+              "yellowCards": 1
+            }
+          },
+          "Participant2": {
+            "62889": {
+              "yellowCards": 1
+            },
+            "1204158": {
+              "goals": 1
+            }
+          }
+        }
+      },
+      "confirmed": true,
+      "score": {
+        "home": 2,
+        "away": 1
+      },
+      "goalKind": "Shot",
+      "detail": "Merino Zazon, Mikel"
+    },
+    {
+      "id": "18218149:906",
+      "kind": "yellow-card",
+      "major": true,
+      "minute": 92,
+      "tMs": 1783716878930,
+      "side": "home",
+      "headline": "Yellow card",
+      "raw": {
+        "FixtureId": 18218149,
+        "GameState": "scheduled",
+        "StartTime": 1783710000000,
+        "IsTeam": true,
+        "FixtureGroupId": 10115675,
+        "CompetitionId": 72,
+        "CountryId": 466,
+        "SportId": 1,
+        "Participant1IsHome": true,
+        "Participant2Id": 1575,
+        "Participant1Id": 3021,
+        "CoverageSecondaryData": true,
+        "CoverageType": "TV/Stream",
+        "Action": "yellow_card",
+        "Id": 906,
+        "Ts": 1783716878813,
+        "ConnectionId": 1080,
+        "Seq": 1019,
+        "StatusId": 4,
+        "Type": "Soccer",
+        "Confirmed": true,
+        "Clock": {
+          "Running": true,
+          "Seconds": 5542
+        },
+        "Score": {
+          "Participant1": {
+            "H1": {
+              "Goals": 1,
+              "YellowCards": 1,
+              "Corners": 3
+            },
+            "HT": {
+              "Goals": 1,
+              "YellowCards": 1,
+              "Corners": 3
+            },
+            "H2": {
+              "Goals": 1,
+              "YellowCards": 1,
+              "Corners": 2
+            },
+            "Total": {
+              "Goals": 2,
+              "YellowCards": 2,
+              "Corners": 5
+            }
+          },
+          "Participant2": {
+            "H1": {
+              "Goals": 1
+            },
+            "HT": {
+              "Goals": 1
+            },
+            "H2": {
+              "YellowCards": 1,
+              "Corners": 1
+            },
+            "Total": {
+              "Goals": 1,
+              "YellowCards": 1,
+              "Corners": 1
+            }
+          }
+        },
+        "Data": {
+          "PlayerId": 162407
+        },
+        "Stats": {
+          "1": 2,
+          "2": 1,
+          "3": 2,
+          "4": 1,
+          "5": 0,
+          "6": 0,
+          "7": 5,
+          "8": 1,
+          "1001": 1,
+          "1002": 1,
+          "1003": 1,
+          "1004": 0,
+          "1005": 0,
+          "1006": 0,
+          "1007": 3,
+          "1008": 0,
+          "2001": 1,
+          "2002": 1,
+          "2003": 1,
+          "2004": 0,
+          "2005": 0,
+          "2006": 0,
+          "2007": 3,
+          "2008": 0,
+          "3001": 1,
+          "3002": 0,
+          "3003": 1,
+          "3004": 1,
+          "3005": 0,
+          "3006": 0,
+          "3007": 2,
+          "3008": 1,
+          "4001": 0,
+          "4002": 0,
+          "4003": 0,
+          "4004": 0,
+          "4005": 0,
+          "4006": 0,
+          "4007": 0,
+          "4008": 0,
+          "5001": 0,
+          "5002": 0,
+          "5003": 0,
+          "5004": 0,
+          "5005": 0,
+          "5006": 0,
+          "5007": 0,
+          "5008": 0,
+          "6001": 0,
+          "6002": 0,
+          "6003": 0,
+          "6004": 0,
+          "6005": 0,
+          "6006": 0,
+          "6007": 0,
+          "6008": 0,
+          "7001": 0,
+          "7002": 0,
+          "7003": 0,
+          "7004": 0,
+          "7005": 0,
+          "7006": 0,
+          "7007": 0,
+          "7008": 0
+        },
+        "Participant": 1,
+        "PossibleEvent": {},
+        "PlayerStats": {
+          "Participant1": {
+            "162407": {
+              "yellowCards": 1
+            },
+            "525288": {
+              "goals": 1
+            },
+            "533573": {
+              "goals": 1
+            },
+            "10093448": {
+              "yellowCards": 1
+            }
+          },
+          "Participant2": {
+            "62889": {
+              "yellowCards": 1
+            },
+            "1204158": {
+              "goals": 1
+            }
+          }
+        }
+      },
+      "detail": "Laporte, Aymeric"
+    },
+    {
+      "id": "18218149:927",
+      "kind": "yellow-card",
+      "major": true,
+      "minute": 94,
+      "tMs": 1783716997725,
+      "side": "away",
+      "headline": "Yellow card",
+      "raw": {
+        "FixtureId": 18218149,
+        "GameState": "scheduled",
+        "StartTime": 1783710000000,
+        "IsTeam": true,
+        "FixtureGroupId": 10115675,
+        "CompetitionId": 72,
+        "CountryId": 466,
+        "SportId": 1,
+        "Participant1IsHome": true,
+        "Participant2Id": 1575,
+        "Participant1Id": 3021,
+        "CoverageSecondaryData": true,
+        "CoverageType": "TV/Stream",
+        "Action": "yellow_card",
+        "Id": 927,
+        "Ts": 1783716997606,
+        "ConnectionId": 1080,
+        "Seq": 1046,
+        "StatusId": 4,
+        "Type": "Soccer",
+        "Confirmed": true,
+        "Clock": {
+          "Running": true,
+          "Seconds": 5659
+        },
+        "Score": {
+          "Participant1": {
+            "H1": {
+              "Goals": 1,
+              "YellowCards": 1,
+              "Corners": 3
+            },
+            "HT": {
+              "Goals": 1,
+              "YellowCards": 1,
+              "Corners": 3
+            },
+            "H2": {
+              "Goals": 1,
+              "YellowCards": 1,
+              "Corners": 2
+            },
+            "Total": {
+              "Goals": 2,
+              "YellowCards": 2,
+              "Corners": 5
+            }
+          },
+          "Participant2": {
+            "H1": {
+              "Goals": 1
+            },
+            "HT": {
+              "Goals": 1
+            },
+            "H2": {
+              "YellowCards": 2,
+              "Corners": 1
+            },
+            "Total": {
+              "Goals": 1,
+              "YellowCards": 2,
+              "Corners": 1
+            }
+          }
+        },
+        "Data": {
+          "PlayerId": 62865
+        },
+        "Stats": {
+          "1": 2,
+          "2": 1,
+          "3": 2,
+          "4": 2,
+          "5": 0,
+          "6": 0,
+          "7": 5,
+          "8": 1,
+          "1001": 1,
+          "1002": 1,
+          "1003": 1,
+          "1004": 0,
+          "1005": 0,
+          "1006": 0,
+          "1007": 3,
+          "1008": 0,
+          "2001": 1,
+          "2002": 1,
+          "2003": 1,
+          "2004": 0,
+          "2005": 0,
+          "2006": 0,
+          "2007": 3,
+          "2008": 0,
+          "3001": 1,
+          "3002": 0,
+          "3003": 1,
+          "3004": 2,
+          "3005": 0,
+          "3006": 0,
+          "3007": 2,
+          "3008": 1,
+          "4001": 0,
+          "4002": 0,
+          "4003": 0,
+          "4004": 0,
+          "4005": 0,
+          "4006": 0,
+          "4007": 0,
+          "4008": 0,
+          "5001": 0,
+          "5002": 0,
+          "5003": 0,
+          "5004": 0,
+          "5005": 0,
+          "5006": 0,
+          "5007": 0,
+          "5008": 0,
+          "6001": 0,
+          "6002": 0,
+          "6003": 0,
+          "6004": 0,
+          "6005": 0,
+          "6006": 0,
+          "6007": 0,
+          "6008": 0,
+          "7001": 0,
+          "7002": 0,
+          "7003": 0,
+          "7004": 0,
+          "7005": 0,
+          "7006": 0,
+          "7007": 0,
+          "7008": 0
+        },
+        "Participant": 2,
+        "PossibleEvent": {},
+        "PlayerStats": {
+          "Participant1": {
+            "162407": {
+              "yellowCards": 1
+            },
+            "525288": {
+              "goals": 1
+            },
+            "533573": {
+              "goals": 1
+            },
+            "10093448": {
+              "yellowCards": 1
+            }
+          },
+          "Participant2": {
+            "62865": {
+              "yellowCards": 1
+            },
+            "62889": {
+              "yellowCards": 1
+            },
+            "1204158": {
+              "goals": 1
+            }
+          }
+        }
+      },
+      "detail": "Witsel, Axel"
+    },
+    {
+      "id": "18218149:946",
+      "kind": "shot",
+      "major": false,
+      "minute": 96,
+      "tMs": 1783717123363,
+      "side": "home",
+      "headline": "Shot",
+      "raw": {
+        "FixtureId": 18218149,
+        "GameState": "scheduled",
+        "StartTime": 1783710000000,
+        "IsTeam": true,
+        "FixtureGroupId": 10115675,
+        "CompetitionId": 72,
+        "CountryId": 466,
+        "SportId": 1,
+        "Participant1IsHome": true,
+        "Participant2Id": 1575,
+        "Participant1Id": 3021,
+        "CoverageSecondaryData": true,
+        "CoverageType": "TV/Stream",
+        "Action": "shot",
+        "Id": 946,
+        "Ts": 1783717123242,
+        "ConnectionId": 1080,
+        "Seq": 1070,
+        "StatusId": 4,
+        "Type": "Soccer",
+        "Confirmed": true,
+        "Clock": {
+          "Running": true,
+          "Seconds": 5788
+        },
+        "Data": {
+          "Outcome": "OnTarget"
+        },
+        "Stats": {
+          "1": 2,
+          "2": 1,
+          "3": 2,
+          "4": 2,
+          "5": 0,
+          "6": 0,
+          "7": 5,
+          "8": 1,
+          "1001": 1,
+          "1002": 1,
+          "1003": 1,
+          "1004": 0,
+          "1005": 0,
+          "1006": 0,
+          "1007": 3,
+          "1008": 0,
+          "2001": 1,
+          "2002": 1,
+          "2003": 1,
+          "2004": 0,
+          "2005": 0,
+          "2006": 0,
+          "2007": 3,
+          "2008": 0,
+          "3001": 1,
+          "3002": 0,
+          "3003": 1,
+          "3004": 2,
+          "3005": 0,
+          "3006": 0,
+          "3007": 2,
+          "3008": 1,
+          "4001": 0,
+          "4002": 0,
+          "4003": 0,
+          "4004": 0,
+          "4005": 0,
+          "4006": 0,
+          "4007": 0,
+          "4008": 0,
+          "5001": 0,
+          "5002": 0,
+          "5003": 0,
+          "5004": 0,
+          "5005": 0,
+          "5006": 0,
+          "5007": 0,
+          "5008": 0,
+          "6001": 0,
+          "6002": 0,
+          "6003": 0,
+          "6004": 0,
+          "6005": 0,
+          "6006": 0,
+          "6007": 0,
+          "6008": 0,
+          "7001": 0,
+          "7002": 0,
+          "7003": 0,
+          "7004": 0,
+          "7005": 0,
+          "7006": 0,
+          "7007": 0,
+          "7008": 0
+        },
+        "Participant": 1,
+        "PlayerStats": {
+          "Participant1": {
+            "162407": {
+              "yellowCards": 1
+            },
+            "525288": {
+              "goals": 1
+            },
+            "533573": {
+              "goals": 1
+            },
+            "10093448": {
+              "yellowCards": 1
+            }
+          },
+          "Participant2": {
+            "62865": {
+              "yellowCards": 1
+            },
+            "62889": {
+              "yellowCards": 1
+            },
+            "1204158": {
+              "goals": 1
+            }
+          }
+        }
+      },
+      "detail": "OnTarget"
+    }
+  ],
+  "spells": null,
+  "stats": {
+    "optimismGap": {
+      "home": {
+        "n": 3,
+        "ownWinShare": 1,
+        "marketAtLock": 0.60606,
+        "value": 0.39393999999999996
+      },
+      "away": {
+        "n": 1,
+        "ownWinShare": 0,
+        "marketAtLock": 0.16088000000000002,
+        "value": -0.16088000000000002
+      }
+    },
+    "doubterIndex": {
+      "home": {
+        "n": 3,
+        "ownWinShare": 1,
+        "value": 0,
+        "sideResult": "won",
+        "modal": {
+          "home": 2,
+          "away": 1,
+          "pct": 0.6666666666666666
+        }
+      },
+      "away": {
+        "n": 1,
+        "ownWinShare": 0,
+        "value": 1,
+        "sideResult": "lost",
+        "modal": {
+          "home": 1,
+          "away": 1,
+          "pct": 1
+        }
+      }
+    },
+    "foresightAlphaV0": {
+      "winSide": "home",
+      "marketAtLockForWinner": 0.60606,
+      "weight": 0.39393999999999996,
+      "crowd": {
+        "n": 4,
+        "pred": {
+          "home": 2,
+          "away": 1
+        },
+        "verdict": "exact",
+        "score": 1,
+        "alpha": 0.39393999999999996
+      },
+      "home": {
+        "n": 3,
+        "pred": {
+          "home": 2,
+          "away": 1
+        },
+        "verdict": "exact",
+        "score": 1,
+        "alpha": 0.39393999999999996
+      },
+      "away": {
+        "n": 1,
+        "pred": {
+          "home": 1,
+          "away": 1
+        },
+        "verdict": "wrong",
+        "score": 0,
+        "alpha": 0
+      }
+    },
+    "upsetIndex": {
+      "value": 0.03194999999999992,
+      "winLeg": 0.9680500000000001,
+      "winSide": "home",
+      "decisive": {
+        "home": 0.9680500000000001,
+        "draw": 0.02907,
+        "away": 0.0028599999999999997
+      }
+    },
+    "pressureWithoutRewardV0": null
+  },
+  "notComputable": {
+    "courageAdjustedCalls": "fans.calls is a zeroed stub in this record (total:0, proved:0, failed:0) — the in-game \"calls\" mechanism (BACKLOG §2's \"mini-preds\") wasn't live when this match was captured.",
+    "faithUnderFire": "feel.roar carries only a match-wide peak + total (home 250.8 vs away 198.0), not a per-minute curve; feel.moments is empty (0 felt drama windows) — no time series exists to cross against \"was this side behind at the time.\"",
+    "roarElasticity": "feel.roar carries only a match-wide peak + total (home 250.8 vs away 198.0), not a per-minute curve; feel.moments is empty (0 felt drama windows) — no time series exists to cross against \"was this side behind at the time.\"",
+    "aftershockHalfLife": "feel.roar carries only a match-wide peak + total (home 250.8 vs away 198.0), not a per-minute curve; feel.moments is empty (0 felt drama windows) — no time series exists to cross against \"was this side behind at the time.\"",
+    "heldBreathIndex": "0 market suspensions and 0 \"possible\" (Goal?/Penalty? checking) moments in this record — no held-breath windows occurred (or were captured) this match, and the crowd-reaction half isn't recoverable either way (see §1.5's reason).",
+    "pressureWithoutReward": "this record shape carries no spell/territory feed (no danger-possession data at all).",
+    "moodDivergence": "feel.moments is empty — 0 felt drama windows this match (Pulse windows opened server-side but drew no reactions; see BACKLOG §4).",
+    "attendanceGravity": "fans.rootedAtLock gives a count (home 6, away 5) but no join TIMESTAMPS — that lives in the server's separate runtime fanStats.firstSeen snapshot, not in this persisted record."
+  },
+  "provenance": {
+    "txlineRefs": [],
+    "attendeeRoot": null,
+    "capture": {
+      "fromMs": 1783704392695,
+      "toMs": 1783717094311
+    },
+    "network": "devnet",
+    "recordHash": "1a3e57633a89546616de568f3ecb5f681b166c34303880ff5a10e4cd3149bf6b",
+    "anchorTxSig": "3YMn98FgPpB7CBFC9ViVoVxw2tcg7A5CMpcJvYALjdAYTHtYF46sGjRC9QqmX2rsBhgQyX7p7UVPfcvie1RBzBW9"
+  }
+}
