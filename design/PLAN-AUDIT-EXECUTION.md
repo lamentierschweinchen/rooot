@@ -632,3 +632,8 @@ stadium masthead shows a LIVE badge before kickoff (owner saw it; the loom's new
 model — `KICKOFF 23:00 · MARKET OPEN`). Self-resolves at kickoff tonight; worth fixing before the 03:00
 game. Owner also reports the stadium "looked like a very old version" — that's T8's un-redesigned chrome
 reading exactly as the audit predicted; noted as pressure for T8's queue slot.
+
+**MARGIN — owner verdict, 2026-07-11 ~22:4x (copy canon, applies everywhere):** labels never explain,
+never disclaim, never perform. The card IS the question: "NEXT CORNER?" — no "QUICK CALL", no "NO
+STAKE", no register line. Anything on any surface currently explaining itself gets the same knife at
+the next pass. (Trigger: the quick-call card's "QUICK CALL — NO STAKE" header, live terrace, tonight.)
