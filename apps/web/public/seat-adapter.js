@@ -9,6 +9,12 @@
  * match-state (services/stands/src/seat/claim.ts) -- the client never parses a
  * gate pass itself (Task 2 review decision: the old bindPayload/rooot.pass
  * forwarding was dead code, removed here).
+ *
+ * SEAT reconciliation (docs/HANDOFF-2026-07-10-coordinator-session.md §5): this
+ * adapter also owns window.__album -- design/HANDOFF-coordinator-data-wiring.md's
+ * explicit ask is that no surface ever does a raw fetch('/seat/album') itself (the
+ * your-seat branch's original cabinet.html did exactly that, which is one of the two
+ * things this reconciliation drops -- see fetchAlbum below and its two call sites).
  */
 (function (root) {
   'use strict';
@@ -69,6 +75,41 @@
   function fire() { for (var i = 0; i < subs.length; i++) try { subs[i](snap()); } catch (e) {} }
   function snap() { return { status: state.status, pubkey: state.pubkey, method: state.method, anonId: anonId(), profile: window.__seat && window.__seat.profile || null }; }
   function publish() { window.__seat.status = state.status; window.__seat.pubkey = state.pubkey; window.__seat.method = state.method; window.__seat.anonId = anonId(); fire(); }
+  // SEAT: GET /seat/me -- claim() already gets the profile back inline (its POST response
+  // carries it), but a RESTORED pubkey (below, from a prior visit) never called claim() this
+  // session, so __seat.profile would otherwise stay null forever until the fan re-claims.
+  function fetchMe(pubkey) {
+    if (!pubkey) return;
+    fetch(SEAT_API + '/seat/me?pubkey=' + encodeURIComponent(pubkey)).then(function (r) {
+      return r.json();
+    }).then(function (body) {
+      if (body && body.profile) { window.__seat.profile = body.profile; publish(); }
+    }).catch(function (_) {
+      // leave profile as-is on a fetch hiccup -- never fabricate one.
+    });
+  }
+
+  // SEAT: window.__album -- the adapter owns this global (design/HANDOFF-coordinator-data-wiring.md
+  // §2: "not a raw fetch in the surface"). scarves/record/next mirror the AlbumScarf/record shapes
+  // in that doc; record/next stay null here on purpose (the doc: "no /seat/me record fields needed" --
+  // design derives record from scarves, and next has no fixtures source yet) -- only scarves is ever
+  // populated over the wire. on(fn) fires immediately with the current snapshot, then again every
+  // time fetchAlbum refreshes it (claim, or a restored pubkey on load) -- mirrors __seat's fire/publish.
+  var albumSubs = [];
+  function albumSnap() { return { scarves: window.__album.scarves, record: window.__album.record, next: window.__album.next }; }
+  function fireAlbum() { for (var i = 0; i < albumSubs.length; i++) try { albumSubs[i](albumSnap()); } catch (e) {} }
+  function fetchAlbum(pubkey) {
+    if (!pubkey) return;
+    fetch(SEAT_API + '/seat/album?pubkey=' + encodeURIComponent(pubkey)).then(function (r) {
+      return r.json();
+    }).then(function (body) {
+      window.__album.scarves = (body && body.scarves) || [];
+      fireAlbum();
+    }).catch(function (_) {
+      // a fetch/network hiccup leaves the album exactly as it was -- never fabricate scarves,
+      // never clear real ones out from under a fan on a transient failure.
+    });
+  }
 
   // claim(opts): opts.matchId is the match being claimed at -- the PRESSING page
   // (Task 8) passes it; YOUR SEAT's identity-only claim omits it. Resolves the
@@ -97,12 +138,14 @@
         try { localStorage.setItem('rooot.seat.pubkey', res.pubkey); localStorage.setItem('rooot.seat.method', res.method); } catch (_) {}
         window.__seat.profile = body.profile;
         publish();
+        fetchAlbum(res.pubkey); // a fresh claim may have just minted a new scarf -- refresh the album
         return { pubkey: res.pubkey, mint: body.mint };
       });
     });
   }
 
   window.__seat = { status: state.status, pubkey: null, method: null, anonId: anonId(), profile: null, claim: claim, on: function (fn) { subs.push(fn); fn(snap()); } };
+  window.__album = { scarves: [], record: null, next: null, on: function (fn) { albumSubs.push(fn); fn(albumSnap()); } };
 
   // SEAT: restore claimed status from a persisted pubkey (Task 8 review Fix 2) -- so a
   // returning fan's cabinet/album read-only views survive a reload without a fresh
@@ -114,6 +157,8 @@
     if (pk) {
       state = nextSeat(state, { type: 'claimed', pubkey: pk, method: localStorage.getItem('rooot.seat.method') || 'passkey' });
       publish();
+      fetchMe(pk);    // a returning fan's profile (displayName/sides/since) loads without a fresh claim
+      fetchAlbum(pk); // a returning fan's album loads without a fresh claim
     }
   } catch (_) {}
 })(typeof window !== 'undefined' ? window : this);
