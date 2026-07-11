@@ -131,6 +131,9 @@ body.embed .wrap{padding:6px 8px 8px}
     var r=parseInt(hex.substr(1,2),16),g=parseInt(hex.substr(3,2),16),b=parseInt(hex.substr(5,2),16), lum=(0.299*r+0.587*g+0.114*b)/255;
     if(lum>0.55){ var k=0.55/lum; r=Math.round(r*k); g=Math.round(g*k); b=Math.round(b*k); }
     return 'rgb('+r+','+g+','+b+')'; }
+  // pre-kickoff honesty — the fan's own local kickoff clock, small and plain (no timezone maths shown, just their phone's own time)
+  function koClock(iso){ var dd=new Date(iso), hh=dd.getHours(), mi=dd.getMinutes();
+    return (hh<10?'0':'')+hh+':'+(mi<10?'0':'')+mi; }
   // dyed thread, two ways — real cloth is never one flat colour: the warp runs a shade darker,
   // the weft a shade lighter, and the weave is the two beating together
   function shade(hex,f){ if(!/^#[0-9a-fA-F]{6}$/.test(hex))return hex;
@@ -633,8 +636,15 @@ body.embed .wrap{padding:6px 8px 8px}
     var _hT=document.getElementById('hT'),_aT=document.getElementById('aT');
     _hT.textContent=M.hTri; _aT.textContent=M.aTri; _hT.style.color=mastInk(HOME); _aT.style.color=mastInk(AWAY);
     var mm=Math.floor(M.t), lbl, dcls;
+    // pre-kickoff honesty: the wire is connected (M.live/'live') but has produced no kickoff yet —
+    // the clock has never been anchored running and still sits at 0'. LIVE · 0′ would claim a match
+    // that hasn't started (Jul 10: it read that 40 minutes before kickoff). Read the wait instead,
+    // straight off the manifest's own kickoff time; the instant the wire delivers a real running
+    // clock this falls through to LIVE exactly as today — no separate "kickoff just happened" state.
+    var preKO = M.live && M.src==='live' && !M.run && M.t<0.05 && FIXTURE && FIXTURE.kickoffUtc && Date.now()<Date.parse(FIXTURE.kickoffUtc);
     if(KEEP){ lbl='KEPT'; dcls='dot off'; }
     else if(M.over||SEALED){ lbl='FULL TIME · '+mm+'′'; dcls='dot off'; }
+    else if(preKO){ lbl='KICKOFF '+koClock(FIXTURE.kickoffUtc)+' · MARKET OPEN'; dcls='dot off'; }
     else if(M.live&&M.src==='live'){ lbl='LIVE · '+mm+'′'; dcls='dot'; }
     else { lbl='REPLAY · '+mm+'′'; dcls='dot off'; }   // a replay is just a small true word — no lamp, no ceremony (owner)
     document.getElementById('rp').textContent=lbl;
@@ -645,18 +655,35 @@ body.embed .wrap{padding:6px 8px 8px}
 
   // boot: seed the replay (goes live the moment loom-adapter calls __loom.live())
   seedReplay();
+  // the shared fixture manifest (script-order-independent, one fetch total — the SAME
+  // window.__fixtureReady ||= fetch(...) idiom every adapter uses, so whichever script runs
+  // first on the page makes the ONE network request). Two consumers below it: the /live
+  // default's matchId, and the masthead's pre-kickoff honesty check in step().
+  var FIXTURE=null;
+  window.__fixtureReady = window.__fixtureReady || fetch('/fixture.json').then(function(r){return r.ok?r.json():null;}).catch(function(){return null;});
+  window.__fixtureReady.then(function(fx){ FIXTURE=fx||null; }, function(){ FIXTURE=null; });
   // theme AFTER seedReplay (which sets the ARG-CPV demo) — from ?match= (loom-adapter drives
   // the DATA off the same param; this wire has no fixtureInfo, so theme locally like loom-proto).
   (function(){ var FX={ '18202701':['ARG','ARGENTINA','#75AADB','EGY','EGYPT','#CE1126'],
     '18202783':['SUI','SWITZERLAND','#D52B1E','COL','COLOMBIA','#FCD116'],
     '18193785':['USA','USA','#2A3B78','BEL','BELGIUM','#B4232B'], '18209181':['FRA','FRANCE','#0055A4','MAR','MOROCCO','#C1272D'],
-    '18218149':['ESP','SPAIN','#AA151B','BEL','BELGIUM','#1A1A18'] };
+    '18218149':['ESP','SPAIN','#AA151B','BEL','BELGIUM','#1A1A18'],
+    '18213979':['NOR','NORWAY','#BA0C2F','ENG','ENGLAND','#CF081F'],
+    '18222446':['ARG','ARGENTINA','#75AADB','SUI','SWITZERLAND','#D52B1E'] };
     // only re-theme when a match is EXPLICITLY requested (live/coordinator); otherwise keep the
     // replay data's own teams so the standalone loom stays coherent (data ↔ teams matched).
-    // /live is served by a rewrite that hides ?match from the client URL, so on the
-    // live front door default to tonight's fixture (mirrors loom-adapter's matchId default).
-    var mid=Q.get('match')||(location.pathname==='/live'?'18218149':null), f=mid&&FX[mid];   // /live default = TONIGHT's fixture (ESP–BEL, 2026-07-10)
-    if(!KEEP && f) window.__loom.teams({tri:f[0],name:f[1],primary:f[2]},{tri:f[3],name:f[4],primary:f[5]});
+    function theme(id){ var f=id&&FX[id]; if(!KEEP && f) window.__loom.teams({tri:f[0],name:f[1],primary:f[2]},{tri:f[3],name:f[4],primary:f[5]}); }
+    var qMatch=Q.get('match');
+    if(qMatch){ theme(qMatch); return; }   // ?match= always wins — instant, synchronous, never touches the manifest
+    // /live is served by a rewrite that hides ?match from the client URL. Follow the SAME
+    // manifest game 2 will update at 03:00 (zero loom edits): resolve matchId off
+    // window.__fixtureReady, raced against a ~1500ms timeout exactly like loom-adapter's own
+    // resolveMatchId, tonight's fixture as the timeout/failure fallback.
+    if(location.pathname==='/live'){
+      var done=false; function finish(id){ if(done)return; done=true; theme(id); }
+      window.__fixtureReady.then(function(fx){ finish(fx&&fx.matchId?fx.matchId:'18213979'); }, function(){ finish('18213979'); });
+      setTimeout(function(){ finish('18213979'); },1500);
+    }
   })();
   // THE KEPT CLOTH — resolve this match's own record from the rail; never substitute another match's
   if(KEEP){
