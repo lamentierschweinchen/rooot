@@ -102,5 +102,30 @@
       <div class="step"><b>KEEP</b><span>the full-time cloth becomes the match relic</span></div>
     </section>
   </main>
+  <script>
+  // T16 — the landing reads the __fixture manifest so tonight's game needs zero surface
+  // edits. Fetch-fail/malformed -> leave the static ESP-BEL content above exactly as
+  // printed (never invent a fixture). Never say a match is LIVE before its kickoff —
+  // the computed line always reads "TONIGHT HH:MM", matching the static copy's voice.
+  (function(){
+    window.__fixtureReady = window.__fixtureReady || fetch('/fixture.json')
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .catch(function(){ return null; });
+    window.__fixtureReady.then(function(fx){
+      if(!fx || !fx.matchId || !fx.home || !fx.away) return;
+      var hc=fx.home.code, ac=fx.away.code, hn=fx.home.name, an=fx.away.name;
+      var hhmm='';
+      try{ hhmm=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Madrid',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(fx.kickoffUtc)); }catch(e){}
+      var kickLabel=hhmm?('TONIGHT '+hhmm):'TONIGHT';
+      var status=document.querySelector('.status'); if(status)status.innerHTML=kickLabel+'<br>'+hc+' v '+ac;
+      var fxEl=document.querySelector('.ticket .fx'); if(fxEl)fxEl.innerHTML=hc+'<span>v</span>'+ac;
+      var meta=document.querySelector('.ticket .meta'); if(meta)meta.innerHTML='MATCH CLOTH<br>'+(hhmm?('PRINTS FROM '+hhmm):'PRINTS AT KICK-OFF');
+      var pairing=hn+' v '+an;
+      var sub=document.querySelector('.sub'); if(sub)sub.innerHTML=sub.innerHTML.replace(/Spain v Belgium/g,pairing);
+      var liveStep=document.querySelectorAll('.route .step span')[1]; if(liveStep)liveStep.textContent=liveStep.textContent.replace(/Spain v Belgium/g,pairing);
+      var cta=document.querySelector('.enter'); if(cta)cta.setAttribute('href','/gate?live=1&match='+encodeURIComponent(fx.matchId));
+    });
+  })();
+  </script>
 </body>
 </html>
