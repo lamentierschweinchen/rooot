@@ -15,6 +15,7 @@ import { WebSocket, WebSocketServer } from 'ws';
 import type { CallMsg, CallReceiptMsg, CheerEchoMsg, ClientMsg, MomentKind, MomentOpenMsg, MomentResultMsg, RoomStateMsg, ServerMsg, Side, WelcomeMsg } from '@contracts/crowd';
 import { FEELING_PALETTES } from '@contracts/crowd';
 import type { FeedMsg } from '@contracts/feed';
+import type { MatchPhase } from '@contracts/match';
 import { REACT_WINDOW_MS, RollingCounter, SWING_DELTA_MIN, SWING_WINDOW_MS } from './decay';
 import { MatchRegistry } from './registry';
 import { anchorRecordHash, relayCall } from './relay';
@@ -28,6 +29,10 @@ const DISABLE_ROOMS = process.env.DISABLE_ROOMS === '1';
 /** Kill switch for REACT drama windows (docs/MECHANISMS.md §4) — momentReact
  * handling + auto window open/close both stop; hello/cheer/predict/call stay. */
 const DISABLE_MOMENTS = process.env.DISABLE_MOMENTS === '1';
+/** Kill switch for NEXT GOAL in-game calls (docs/BACKLOG-full-version-and-
+ * deferred-ideas.md §2) — handling + resolution both stop; every other
+ * mechanism (hello/cheer/predict/call/moments) stays live. */
+const DISABLE_NEXT_GOAL = process.env.DISABLE_NEXT_GOAL === '1';
 
 /** Rate-limit hello floods: max hellos per connection per window. */
 const HELLO_MAX_PER_WINDOW = 5;
@@ -170,6 +175,14 @@ function broadcastToMatch(matchId: string, msg: ServerMsg | FeedMsg): void {
     momentLifecycle(matchId, stamped);
   } catch (err) {
     console.warn(`[moment] lifecycle error on ${matchId}: ${errDetail(err)}`);
+  }
+  // NEXT GOAL (in-game, docs/BACKLOG-full-version-and-deferred-ideas.md §2) —
+  // isolated the same way as every side-effect above: a fault here must never
+  // prevent the core broadcast, nor be caused by one of the others.
+  try {
+    nextGoalLifecycle(matchId, stamped);
+  } catch (err) {
+    console.warn(`[nextGoal] lifecycle error on ${matchId}: ${errDetail(err)}`);
   }
 }
 
@@ -627,6 +640,9 @@ function replaySnapshot(ws: WebSocket, matchId: string): void {
   // the crowd's prediction so far — a joiner sees the consensus instantly.
   const match = registry.get(matchId);
   if (match && match.predictionCount() > 0) send(ws, match.consensus());
+  // NEXT GOAL (in-game) — the crowd's current open-call state, so a
+  // mid-cycle joiner sees it instantly (mirrors the consensus replay above).
+  if (match && match.nextGoalOpenCount() > 0) send(ws, match.nextGoalState(currentTriple(matchId)));
   const snap = joinSnapshots.get(matchId);
   if (!snap) return;
   if (snap.fixtureInfo) send(ws, snap.fixtureInfo);
@@ -783,6 +799,12 @@ function handleHello(ws: WebSocket, state: ConnState, msg: Extract<ClientMsg, { 
   const verdict = match.verdictFor(msg.anonId);
   if (verdict) sendReplay(ws, verdict);
 
+  // NEXT GOAL (in-game) — a fan's most recent verdict, replayed on hello
+  // exactly like predictVerdict above (the CURRENT cycle's — nextGoalVerdicts
+  // is overwritten at each resolution, so this is always the latest one).
+  const nextGoalVerdict = match.nextGoalVerdictFor(msg.anonId);
+  if (nextGoalVerdict) sendReplay(ws, nextGoalVerdict);
+
   if (msg.roomId && !DISABLE_ROOMS) {
     const room = match.getOrCreateRoom(msg.roomId);
     const result = room.join({
@@ -902,6 +924,111 @@ async function handleCall(ws: WebSocket, state: ConnState, msg: Extract<ClientMs
   send(ws, receipt);
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+ * NEXT GOAL (in-game) — docs/BACKLOG-full-version-and-deferred-ideas.md §2.
+ * A fan's live in-round call: which end scores next, or 'none' (no more
+ * goals this match). Stamped from the server's OWN observed market (never
+ * client-supplied, unlike CallMsg.marketP — see handleCall's TODO above),
+ * accepted only during live play, resolved on the next real goal or at
+ * FULL_TIME. Self-contained region (tonight-gate merge note: keep edits
+ * here, outside it only the minimal wiring — dispatch case, the
+ * broadcastToMatch hook, the two join/hello replay lines — all marked
+ * "NEXT GOAL" at their call sites). ════════════════════════════════════ */
+
+/** Only these phases count as "live play" for a call — pre-kickoff (PRE),
+ * the dead-ball breaks (HALF_TIME/PENALTIES), and post-FT all reject. */
+const NEXT_GOAL_LIVE_PHASES = new Set<MatchPhase>(['FIRST_HALF', 'SECOND_HALF', 'EXTRA_TIME']);
+
+/** The market's current de-vigged triple for a match — the SAME cached
+ * latest 'odds' tick the join-replay snapshot already carries
+ * (rememberForJoin above), reused here so a NEXT GOAL call is stamped from
+ * server-observed truth. Null until the first odds tick for this match
+ * has arrived. */
+function currentTriple(matchId: string): { home: number; draw: number; away: number } | null {
+  const tick = joinSnapshots.get(matchId)?.odds?.tick;
+  return tick ? { home: tick.pHome, draw: tick.pDraw, away: tick.pAway } : null;
+}
+
+/** The match's current phase, off the SAME cached latest 'status' message
+ * join-replay uses — server.ts's single source of truth for "what phase is
+ * this match in right now" (MatchState itself stays feed-agnostic). */
+function isNextGoalLivePhase(matchId: string): boolean {
+  const phase = joinSnapshots.get(matchId)?.status?.ev.phase;
+  return phase !== undefined && NEXT_GOAL_LIVE_PHASES.has(phase);
+}
+
+function isValidNextGoalCall(v: unknown): v is 'home' | 'away' | 'none' {
+  return v === 'home' || v === 'away' || v === 'none';
+}
+
+function handleNextGoalCall(state: ConnState, msg: Extract<ClientMsg, { type: 'nextGoalCall' }>): void {
+  if (DISABLE_NEXT_GOAL) return;
+  if (!state.matchId || !state.anonId || state.matchId !== msg.matchId) return;
+  if (!isValidNextGoalCall(msg.call)) return;
+  if (!isNextGoalLivePhase(msg.matchId)) {
+    console.log(`[nextGoal] rejected — not live play: anonId=${state.anonId.slice(0, 8)} match=${msg.matchId} phase=${joinSnapshots.get(msg.matchId)?.status?.ev.phase ?? 'unknown'}`);
+    return;
+  }
+  const match = registry.getOrCreate(msg.matchId);
+  const marketAtCall = currentTriple(msg.matchId);
+  match.nextGoalCall(state.anonId, msg.call, marketAtCall, msg.atMs);
+  broadcastToMatch(msg.matchId, match.nextGoalState(marketAtCall));
+}
+
+/** Dedup so a re-emitted goal (Confirmed:false→true, same ev.id) or a
+ * re-delivered FULL_TIME status can never resolve the SAME real-world event
+ * twice — parallels openedTriggerIds' discipline (server.ts's moment-open
+ * dedup, same id scheme: a goal's ev.id, `${matchId}:ft`-shaped for
+ * full-time) with its OWN Set, so this stays correct independent of
+ * DISABLE_MOMENTS (which would otherwise leave openedTriggerIds unfed).
+ * In-memory only tonight — not snapshot-persisted (open calls + fanStats
+ * counters are, per spec; this dedup horizon resets on restart, same as
+ * every other rolling/live-only structure in this file, e.g. tripleWindow). */
+const nextGoalResolvedIds = new Map<string, Set<string>>();
+function nextGoalResolvedIdsFor(matchId: string): Set<string> {
+  let seen = nextGoalResolvedIds.get(matchId);
+  if (!seen) {
+    seen = new Set();
+    nextGoalResolvedIds.set(matchId, seen);
+  }
+  return seen;
+}
+
+/** Drive NEXT GOAL resolution off the same broadcast every message rides
+ * (mirrors predictLifecycle/momentLifecycle above). A real goal resolves the
+ * book against the scoring side; FULL_TIME (no further goal this cycle)
+ * resolves it against 'none'. */
+function nextGoalLifecycle(matchId: string, msg: ServerMsg | FeedMsg): void {
+  if (DISABLE_NEXT_GOAL) return;
+  const match = registry.get(matchId);
+  if (!match) return;
+
+  if (msg.type === 'ledger') {
+    if (msg.msg.type !== 'event') return;
+    const ev = msg.msg.ev;
+    if (ev.kind !== 'goal' || !ev.side) return;
+    const seen = nextGoalResolvedIdsFor(matchId);
+    if (seen.has(ev.id)) return; // re-emission of the same goal — already resolved
+    seen.add(ev.id);
+    if (match.nextGoalOpenCount() === 0) return; // nothing open — no-op, nothing to broadcast
+    for (const v of match.resolveNextGoalOnGoal(ev.side)) sendToAnon(matchId, v.anonId, v);
+    broadcastToMatch(matchId, match.nextGoalState(currentTriple(matchId)));
+    return;
+  }
+
+  if (msg.type === 'status') {
+    if (msg.ev.phase !== 'FULL_TIME') return;
+    const sourceId = `${matchId}:nextgoal:ft`;
+    const seen = nextGoalResolvedIdsFor(matchId);
+    if (seen.has(sourceId)) return; // a re-delivered FULL_TIME — already resolved
+    seen.add(sourceId);
+    if (match.nextGoalOpenCount() === 0) return; // no-op — nothing open
+    for (const v of match.resolveNextGoalAtFullTime()) sendToAnon(matchId, v.anonId, v);
+    broadcastToMatch(matchId, match.nextGoalState(currentTriple(matchId)));
+  }
+}
+/* ══════════════════════════════════════ END NEXT GOAL ═══════════════════ */
+
 function handleClose(ws: WebSocket): void {
   const state = conns.get(ws);
   conns.delete(ws);
@@ -960,6 +1087,8 @@ function handleMessage(ws: WebSocket, state: ConnState, raw: string): void {
       return;
     case 'predict':
       return handlePredict(state, msg);
+    case 'nextGoalCall':
+      return handleNextGoalCall(state, msg);
     default:
       return; // unknown type, ignore
   }

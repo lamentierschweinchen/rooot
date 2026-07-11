@@ -23,7 +23,7 @@
  */
 import { accessSync, constants as fsConstants, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import type { PredictVerdictMsg, Side } from '@contracts/crowd';
+import type { NextGoalVerdictMsg, PredictVerdictMsg, Side } from '@contracts/crowd';
 import type { MomentFeeling } from '@contracts/sentiment';
 import type { FanStats, MatchState } from './match-state';
 
@@ -94,8 +94,16 @@ export const SNAPSHOT_INTERVAL_MS = resolveSnapshotIntervalMs();
  * re-open an already-run drama moment — a "ghost window" whose react a
  * connected fan could double-count into their PERSISTED fanStats.reacts.
  * Absent on a v1/v2/v3/v4 file — applySnapshot defaults to none, never
- * fabricates. Same shape/tolerance discipline as `resolved` below. */
-export const SNAPSHOT_VERSION = 5;
+ * fabricates. Same shape/tolerance discipline as `resolved` below. v6 adds
+ * `nextGoalOpen` + `nextGoalVerdicts` (per match) — NEXT GOAL, the in-game
+ * call (docs/BACKLOG-full-version-and-deferred-ideas.md §2): a fan's open
+ * call for the current cycle, and their most recent resolved verdict.
+ * Absent on a v1..v5 file — applySnapshot defaults to none, never
+ * fabricates. fanStats rows also gain `nextGoalCalls`/`nextGoalCorrect`
+ * counters as of v6 — absent on an older row, MatchState.restoreFanStats
+ * defaults both to 0 (the feature didn't exist yet when that row was
+ * written), same tolerance discipline as `fanStats` itself at v3. */
+export const SNAPSHOT_VERSION = 6;
 
 interface SnapshotRoomMember {
   anonId: string;
@@ -138,6 +146,13 @@ interface SnapshotMatch {
    * above for the "ghost window" bug this closes. Mirrors `resolved` above:
    * per-match, additive, tolerant. */
   openedTriggerIds?: string[];
+  /** v6+. IN-GAME NEXT GOAL (docs/BACKLOG-full-version-and-deferred-ideas.md
+   * §2, SNAPSHOT_VERSION doc comment above) — a fan's open call for the
+   * current cycle. Absent on a v1..v5 file — applySnapshot defaults to none. */
+  nextGoalOpen?: Array<[string, { call: 'home' | 'away' | 'none'; marketAtCall: { home: number; draw: number; away: number } | null; atMs: number }]>;
+  /** v6+. A fan's most recent resolved NEXT GOAL verdict — mirrors `verdicts`
+   * above. Absent on a v1..v5 file — applySnapshot defaults to none. */
+  nextGoalVerdicts?: Array<[string, NextGoalVerdictMsg]>;
 }
 
 /** v4+. THE FAN SERIAL (design/HANDOFF-2026-07-10-fan-serial.md) — a
@@ -208,6 +223,8 @@ export function writeSnapshot(
         resolved: isResolved ? isResolved(m.matchId) : undefined,
         fanStats: snap.fanStats,
         openedTriggerIds: getOpenedTriggerIds ? getOpenedTriggerIds(m.matchId) : [],
+        nextGoalOpen: snap.nextGoalOpen,
+        nextGoalVerdicts: snap.nextGoalVerdicts,
       };
     }),
     fans: fanSerial,
@@ -308,6 +325,11 @@ export function applySnapshot(
     if (sm.predictLocked) match.lockPredictions();
     for (const [anonId, v] of sm.verdicts ?? []) match.restoreVerdict(anonId, v);
     for (const [anonId, fs] of sm.fanStats ?? []) match.restoreFanStats(anonId, fs);
+    // NEXT GOAL (in-game, v6+) — a fan's open call for the current cycle +
+    // their most recent resolved verdict. Absent on a v1..v5 file — both
+    // loops are simply no-ops, never fabricating either.
+    for (const [anonId, oc] of sm.nextGoalOpen ?? []) match.restoreNextGoalOpen(anonId, oc.call, oc.marketAtCall, oc.atMs);
+    for (const [anonId, v] of sm.nextGoalVerdicts ?? []) match.restoreNextGoalVerdict(anonId, v);
     if (restoreMoments && sm.moments && sm.moments.length > 0) restoreMoments(sm.matchId, sm.moments);
     if (restoreOpenedTriggers && sm.openedTriggerIds && sm.openedTriggerIds.length > 0) restoreOpenedTriggers(sm.matchId, sm.openedTriggerIds);
     const hadVerdicts = (sm.verdicts?.length ?? 0) > 0;

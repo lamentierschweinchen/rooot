@@ -137,7 +137,21 @@ export interface PredictMsg {
   atMs: number;
 }
 
-export type ClientMsg = HelloMsg | CheerMsg | ReactMsg | MomentReactMsg | CallMsg | PredictMsg;
+/** IN-GAME: a fan's next-goal call — which end scores next, or none (no more
+ * goals this match). One live call per fan: a new call REPLACES the fan's open
+ * one until resolution. The server stamps the live de-vigged market at receipt
+ * (the courage weight — calling a side at 16% is not calling it at 60%).
+ * Resolves on the next real goal (side match) or at FULL_TIME for 'none'.
+ * Honest: never scored against anything but the wire; aggregates always carry n. */
+export interface NextGoalCallMsg {
+  type: 'nextGoalCall';
+  matchId: string;
+  anonId: string;
+  call: 'home' | 'away' | 'none';
+  atMs: number;
+}
+
+export type ClientMsg = HelloMsg | CheerMsg | ReactMsg | MomentReactMsg | CallMsg | PredictMsg | NextGoalCallMsg;
 
 /* ── stands → clients ─────────────────────────────────────────────── */
 
@@ -214,6 +228,30 @@ export interface PredictVerdictMsg {
   final: { home: number; away: number };
   /** exact score · right outcome (W/D/L) but wrong score · wrong outcome */
   verdict: 'exact' | 'outcome' | 'wrong';
+}
+
+/** Broadcast on every accepted call + on resolution: the crowd's LIVE next-goal
+ * belief. counts are real fans with an open call; market is the latest triple. */
+export interface NextGoalStateMsg {
+  type: 'nextGoalState';
+  matchId: string;
+  ts: number;
+  open: { n: number; home: number; away: number; none: number };
+  marketAtTs: { home: number; draw: number; away: number } | null;
+}
+
+/** Per-fan resolution, personal delivery + replay like predictVerdict. */
+export interface NextGoalVerdictMsg {
+  type: 'nextGoalVerdict';
+  matchId: string;
+  anonId: string;
+  call: 'home' | 'away' | 'none';
+  outcome: 'correct' | 'wrong';
+  /** what actually happened: the scoring side, or 'none' (FT with no further goal) */
+  happened: 'home' | 'away' | 'none';
+  /** the de-vigged market stamped when the call was made */
+  marketAtCall: { home: number; draw: number; away: number } | null;
+  atMs: number;
 }
 
 /**
@@ -293,4 +331,6 @@ export type ServerMsg =
   | MomentOpenMsg
   | MomentResultMsg
   | CheerEchoMsg
-  | WelcomeMsg;
+  | WelcomeMsg
+  | NextGoalStateMsg
+  | NextGoalVerdictMsg;
