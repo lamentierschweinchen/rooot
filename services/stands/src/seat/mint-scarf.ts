@@ -14,12 +14,21 @@
  * any matchId-claim, decided or not — which this reconciliation replaces per the plan's explicit
  * honesty law.)
  *
+ * IDEMPOTENT per (pubkey, matchId) (review fix, risk 3): a durable minted marker on the same
+ * volume base as the profile store (seat/minted-store.ts) is checked BEFORE getMintRuntime() —
+ * before any network — and a repeat claim returns the EXISTING asset reference, so the album
+ * stays one scarf per match per fan across repeat claims AND across restarts/redeploys. An
+ * in-process single-flight map additionally collapses two CONCURRENT claims for the same pair
+ * onto one mint promise (two tabs pressing at once), instead of racing past the not-yet-written
+ * marker into a double mint.
+ *
  * NEVER THROWS beyond the gate: every failure (no fixture identity, RPC hiccup, insufficient
  * devnet SOL, Irys hiccup, malformed data) is caught and logged; the caller always gets a value
  * back (`null` on any failure or on a not-yet-decided match) so a mint problem can never cost the
  * fan their already-saved bind (server.ts's handleSeatClaim saves the profile BEFORE calling this).
  */
 import type { ClaimRecord } from './claim';
+import { loadMintMarker, saveMintMarker } from './minted-store';
 import { buildRelicFromMatch, type LiveScoreSnapshot } from '../mint/relic-from-match';
 import { buildScarfAttributes, buildClaimDescription, type ScarfFacts } from '../mint/metadata';
 import { uploadRelic } from '../mint/storage';
@@ -88,11 +97,31 @@ export function scarfFactsFor(
   };
 }
 
+/** Concurrent same-pair claims collapse onto ONE in-flight mint promise (doc
+ * comment up top) — keyed like the durable marker, cleared when it settles. */
+const inFlightMints = new Map<string, Promise<ScarfMint | null>>();
+
 export async function mintScarfForClaim(record: ClaimRecord, score: LiveScoreSnapshot, extras: ScarfExtras): Promise<ScarfMint | null> {
   if (!score.decided) {
     console.log(`[seat:mint] ${record.matchId} not yet FULL_TIME — skipping mint (bind still saved; claim again after full time)`);
     return null;
   }
+  // Idempotency (review fix, risk 3): checked BEFORE getMintRuntime() — before any network. A
+  // repeat post-FT claim returns the fan's EXISTING scarf, never a duplicate.
+  const prior = loadMintMarker(record.pubkey, record.matchId);
+  if (prior) {
+    console.log(`[seat:mint] ${record.pubkey.slice(0, 8)} already holds ${prior.asset} for ${record.matchId} — returning the existing scarf, no new mint`);
+    return { asset: prior.asset, txUrl: prior.txUrl };
+  }
+  const flightKey = `${record.pubkey}--${record.matchId}`;
+  const inFlight = inFlightMints.get(flightKey);
+  if (inFlight) return inFlight;
+  const flight = mintScarfNow(record, score, extras).finally(() => inFlightMints.delete(flightKey));
+  inFlightMints.set(flightKey, flight);
+  return flight;
+}
+
+async function mintScarfNow(record: ClaimRecord, score: LiveScoreSnapshot, extras: ScarfExtras): Promise<ScarfMint | null> {
   try {
     const relic = buildRelicFromMatch(record.matchId, score);
     const fx = fixtureInfo(record.matchId);
@@ -136,6 +165,14 @@ export async function mintScarfForClaim(record: ClaimRecord, score: LiveScoreSna
 
     const result = await mintRelic(relic, uris, umi, cluster, record.pubkey, collection);
     console.log(`[seat:mint] minted ${result.asset} for ${record.pubkey.slice(0, 8)} @ ${record.matchId} (${result.txUrl})`);
+    // Persist the marker AFTER the mint confirms — and never let a marker-write failure hide a
+    // mint that already happened on-chain: the fan gets their asset reference either way, at the
+    // cost (on a disk error only) of one possible future duplicate instead of a lost scarf.
+    try {
+      saveMintMarker(record.pubkey, record.matchId, { asset: result.asset, txUrl: result.txUrl, mintedAtMs: Date.now() });
+    } catch (err) {
+      console.warn(`[seat:mint] minted marker write failed for ${record.pubkey.slice(0, 8)} @ ${record.matchId}: ${String(err)}`);
+    }
     return { asset: result.asset, txUrl: result.txUrl };
   } catch (err) {
     console.warn(`[seat:mint] mint failed for ${record.pubkey.slice(0, 8)} @ ${record.matchId}: ${String(err)}`);
