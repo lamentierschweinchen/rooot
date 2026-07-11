@@ -13,7 +13,7 @@
 import { MatchState } from '../match-state';
 import { SentimentAccumulator } from '../sentiment/accumulator';
 import { detectMoment } from '../server';
-import { MOMENT_COOLDOWN_MS } from '../decay';
+import { MOMENT_COOLDOWN_MS, SWING_DELTA_MIN, SWING_WINDOW_MS } from '../decay';
 import type { MomentResultMsg } from '@contracts/crowd';
 import type { SentimentRecord } from '@contracts/sentiment';
 
@@ -108,12 +108,50 @@ const woodTrig = detectMoment('det', wire({ type: 'ledger', msg: { type: 'event'
 check('a shot off the woodwork → a soft near-miss', woodTrig?.kind === 'near-miss' && woodTrig.hard === false);
 const plainShot = detectMoment('det', wire({ type: 'ledger', msg: { type: 'event', ev: { id: 'det:3', kind: 'shot', side: 'away', minute: 62, detail: 'OnTarget' } } }));
 check('an ordinary shot → no moment (not every shot is drama)', plainShot === null);
+// WINDOWED swing detection (tonight-gate folded fix): compares the current
+// tick against the OLDEST tick still inside SWING_WINDOW_MS, not the
+// immediately-previous one — a consecutive-tick comparison is invisible on a
+// high-frequency feed (79 ticks/10s observed live, Jul 10 ESP-BEL — each step
+// a fraction of a percent even while the market moved 60%→97% over the
+// match). decay.ts's SWING_WINDOW_MS doc comment has the full story.
 const swingMatch = 'det-swing';
 check('the first odds tick only sets a baseline (no moment)', detectMoment(swingMatch, wire({ type: 'odds', tick: { pHome: 0.4, pDraw: 0.3, pAway: 0.3, period: 'full', tMs: 0 } })) === null);
 const swingTrig = detectMoment(swingMatch, wire({ type: 'odds', tick: { pHome: 0.6, pDraw: 0.2, pAway: 0.2, period: 'full', tMs: 1 } }));
 check('a 0.20 market lurch → a soft swing toward home', swingTrig?.kind === 'swing' && swingTrig.hard === false && swingTrig.side === 'home');
-const smallMove = detectMoment(swingMatch, wire({ type: 'odds', tick: { pHome: 0.61, pDraw: 0.2, pAway: 0.19, period: 'full', tMs: 2 } }));
-check('a 0.01 market wiggle → no moment (below the noise floor)', smallMove === null);
+// tMs = 1 + SWING_WINDOW_MS: old enough that the FIRST tick (tMs=0) ages out
+// of the window (its age would be SWING_WINDOW_MS+1, over the limit) while
+// the SECOND tick (tMs=1) stays exactly at the edge (age == SWING_WINDOW_MS,
+// not over) — so "the window's start" is now tick 2, and a genuinely small
+// move off IT is correctly read as noise, not compared against the stale
+// pre-lurch baseline from tick 1.
+const smallMove = detectMoment(swingMatch, wire({ type: 'odds', tick: { pHome: 0.61, pDraw: 0.2, pAway: 0.19, period: 'full', tMs: 1 + SWING_WINDOW_MS } }));
+check('a 0.01 wiggle off the current window start → no moment (below the noise floor)', smallMove === null);
+
+// the actual bug this fix closes: many small CONSECUTIVE ticks, each well
+// under SWING_DELTA_MIN on its own, that sum past the threshold across the
+// window — exactly the 79-ticks/10s shape from the live incident. Fresh
+// match id so this doesn't inherit the window state from the checks above.
+const driftMatch = 'det-swing-drift';
+detectMoment(driftMatch, wire({ type: 'odds', tick: { pHome: 0.50, pDraw: 0.30, pAway: 0.20, period: 'full', tMs: 0 } })); // baseline
+let driftTrig: ReturnType<typeof detectMoment> = null;
+const DRIFT_STEPS = 40; // 40 steps × 0.01 = 0.40 total drift, each step alone far under SWING_DELTA_MIN (0.12)
+for (let i = 1; i <= DRIFT_STEPS; i++) {
+  // pHome carries the full drift; pDraw/pAway each absorb only HALF of the
+  // complementary decrease (deliberately asymmetric, not pDraw-fixed/pAway-
+  // absorbs-all) — a tied delta between two legs is a coin-flip 'home'/
+  // 'away' by floating-point rounding alone (harmless, but confusing to
+  // read); this keeps dH unambiguously dominant so `side` reads 'home'.
+  const pHome = 0.50 + i * 0.01; // drifts 0.51 → 0.90
+  const pDraw = 0.30 - i * 0.005;
+  const pAway = 0.20 - i * 0.005;
+  driftTrig = detectMoment(driftMatch, wire({ type: 'odds', tick: { pHome, pDraw, pAway, period: 'full', tMs: i * 1_000 } }));
+  if (driftTrig) break; // stop at the first tick that crosses the window threshold
+}
+check(
+  'a gradual drift of many sub-threshold ticks (0.01 each) DOES fire once it sums past SWING_DELTA_MIN within the window, toward home — the windowed fix',
+  driftTrig?.kind === 'swing' && driftTrig.hard === false && driftTrig.side === 'home',
+  `fired at step giving trig=${JSON.stringify(driftTrig)}`,
+);
 
 /* ── the reveals crystallize into the sentiment record's feel.moments ── */
 console.log('\nCRYSTALLIZE  the reveals → feel.moments');
