@@ -4,8 +4,17 @@
   "outputDirectory": "apps/web/dist",
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/live", "destination": "/woven-loom?match=18218149" },
-    { "source": "/demo", "destination": "/showcase" },
-    { "source": "/loom", "destination": "/woven-loom" }
+    {
+      "source": "/live",
+      "destination": "/woven-loom?match=18213979"
+    },
+    {
+      "source": "/demo",
+      "destination": "/showcase"
+    },
+    {
+      "source": "/loom",
+      "destination": "/woven-loom"
+    }
   ]
 }

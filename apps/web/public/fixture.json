@@ -1,8 +1,22 @@
 {
-  "matchId": "18218149",
-  "home": { "code": "ESP", "name": "Spain", "colors": ["#AA151B", "#F1BF00"] },
-  "away": { "code": "BEL", "name": "Belgium", "colors": ["#000000", "#FDDA24"] },
-  "kickoffUtc": "2026-07-10T19:00:00Z",
+  "matchId": "18213979",
+  "home": {
+    "code": "NOR",
+    "name": "Norway",
+    "colors": [
+      "#BA0C2F",
+      "#00205B"
+    ]
+  },
+  "away": {
+    "code": "ENG",
+    "name": "England",
+    "colors": [
+      "#FFFFFF",
+      "#CF081F"
+    ]
+  },
+  "kickoffUtc": "2026-07-11T21:00:00Z",
   "competition": "World Cup",
-  "dateISO": "2026-07-10"
+  "dateISO": "2026-07-11"
 }
