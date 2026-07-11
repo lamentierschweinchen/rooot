@@ -1,0 +1,15 @@
+{
+  "name": "rooot-footage",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ROOOT footage rig -- read-only, automated screen capture of the LIVE product during real matches: continuous phone-viewport video segments of /live and /ground plus a tagged event timeline (events.jsonl), the raw material for the demo video. Own package.json (playwright + ws, same isolation approach as scripts/canary). Strictly write-free on the wire: the canary's frame-allowlist WebSocket tap is enforced inside every recorded page, and the rig's own watcher connection never sends a byte.",
+  "scripts": {
+    "start": "node run.mjs",
+    "postinstall": "playwright install chromium"
+  },
+  "dependencies": {
+    "playwright": "1.48.2",
+    "ws": "8.18.0"
+  }
+}
