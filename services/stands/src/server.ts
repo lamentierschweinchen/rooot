@@ -9,6 +9,7 @@
  * cheer/call still work); DISABLE_ROOMS drops roomId join/RoomStateMsg.
  */
 import { createServer } from 'node:http';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { WebSocket, WebSocketServer } from 'ws';
@@ -21,6 +22,18 @@ import { anchorRecordHash, relayCall } from './relay';
 import { DATA_DIR, writeFileAtomic } from './snapshot';
 import { SentimentAccumulator } from './sentiment/accumulator';
 import { fixtureInfo } from './sentiment/teams';
+// ── SEAT: self-custodial fan identity + mint-to-fan relics (YOUR SEAT) ─────
+// Reconciled from the your-seat worktree branch onto this file's current shape —
+// docs/HANDOFF-2026-07-10-coordinator-session.md §5. Imports grouped here so the
+// whole SEAT surface (imports + the function block below + the route wiring
+// inside createStandsServer) is easy to lift as one unit.
+import { networkFor } from './mint/config';
+import type { LiveScoreSnapshot } from './mint/relic-from-match';
+import { assetsByOwner } from './seat/album';
+import { bindClaim } from './seat/claim';
+import { mintScarfForClaim, type ScarfMint } from './seat/mint-scarf';
+import { loadProfile, saveProfile } from './seat/profile-store';
+import { isValidPubkey } from './seat/validate';
 
 const PORT = Number(process.env.PORT ?? 8787);
 const DISABLE_PULSE = process.env.DISABLE_PULSE === '1';
@@ -965,6 +978,148 @@ function handleMessage(ws: WebSocket, state: ConnState, raw: string): void {
   }
 }
 
+/* ════════════════════════════════════════════════════════════════════════
+ * SEAT — self-custodial fan identity + mint-to-fan relics (YOUR SEAT).
+ * Reconciled from the your-seat worktree branch (18 commits, base c9ffc84)
+ * onto this file's current shape — docs/HANDOFF-2026-07-10-coordinator-
+ * session.md §5 has the reconciliation plan. /seat/* HTTP routes sit
+ * ALONGSIDE the crowd WebSocket protocol above; wired into createStandsServer
+ * below in one additive block. Nothing above this fence was touched to add
+ * SEAT (only the import block, grouped and commented the same way).
+ * ════════════════════════════════════════════════════════════════════════ */
+
+/** The REAL current score for matchId, as of right now — read from the same join-snapshot cache
+ * that catches up a freshly-joined socket (this module's own state; MatchState carries no score).
+ * `{home:0,away:0}` when no score message has arrived yet — a real, true tally, not a fabrication.
+ * `decided` is true only once FULL_TIME was genuinely observed (`resolvedMatches`, populated in
+ * predictLifecycle off the real status feed) — never guessed. */
+function currentScoreSnapshot(matchId: string): LiveScoreSnapshot {
+  const ev = joinSnapshots.get(matchId)?.score?.ev;
+  return { home: ev?.home ?? 0, away: ev?.away ?? 0, decided: resolvedMatches.has(matchId) };
+}
+
+function sendJson(res: ServerResponse, status: number, body: unknown): void {
+  res.writeHead(status, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(body));
+}
+
+/** CORS for /seat/* — the browser calls these cross-origin (rooot.club / a localhost preview →
+ * this fly.dev host), so every seat response needs the headers below, and the preflight OPTIONS
+ * request needs an explicit 204. Devnet MVP with no cookies/credentials, so a `*` origin is fine —
+ * deliberately NOT paired with Access-Control-Allow-Credentials. WS routes don't go through HTTP
+ * CORS at all, so they're untouched. */
+const SEAT_CORS_HEADERS: Record<string, string> = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'content-type',
+};
+
+function setSeatCorsHeaders(res: ServerResponse): void {
+  for (const [name, value] of Object.entries(SEAT_CORS_HEADERS)) res.setHeader(name, value);
+}
+
+function readBody(req: IncomingMessage): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let data = '';
+    req.on('data', (chunk) => { data += chunk; });
+    req.on('end', () => resolve(data));
+    req.on('error', reject);
+  });
+}
+
+/** Resolve the side the fan actually rooted for into its team tricode (design/
+ * HANDOFF-coordinator-data-wiring.md: profile.sides must be tricodes, e.g. ['SUI','ARG'], never
+ * 'home'/'away' — the cabinet renders flag stickers from these). Null when the fan never rooted, or
+ * the match has no known fixture identity — never guessed. */
+function sideTricode(matchId: string, side: Side | null): string | null {
+  if (!side) return null;
+  const fx = fixtureInfo(matchId);
+  if (!fx) return null;
+  return side === 'home' ? fx.home.code : fx.away.code;
+}
+
+/** POST /seat/claim {anonId,pubkey,method,matchId?} -> {profile, mint:{asset,txUrl}|null}.
+ * When matchId names a live match, bindClaim folds the fan's REAL rooted side + locked call into
+ * the record (never inventing one), profile.sides is patched with the resolved TEAM TRICODE (not
+ * 'home'/'away'), and — once the match has genuinely reached FULL_TIME — the scarf is minted owned
+ * by pubkey into the ROOOT scarf collection (service pays, devnet only; see seat/mint-scarf.ts). A
+ * claim before full time, or with no matchId (or an unknown one), is identity-only: still honest,
+ * nothing to fold in, and no mint is attempted (`mint: null`). */
+async function handleSeatClaim(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  let body: any;
+  try {
+    const raw = await readBody(req);
+    body = raw ? JSON.parse(raw) : {};
+  } catch {
+    sendJson(res, 400, { error: 'invalid json' });
+    return;
+  }
+  const { anonId, pubkey, method, matchId } = body ?? {};
+  if (!isValidPubkey(pubkey)) {
+    sendJson(res, 400, { error: 'invalid pubkey' });
+    return;
+  }
+  try {
+    const match = typeof matchId === 'string' ? registry.get(matchId) : undefined;
+    const record = match
+      ? bindClaim(match, anonId, pubkey, method, Date.now())
+      : { pubkey, method, side: null, call: null, matchId: matchId ?? null, boundAtMs: Date.now() };
+    const tricode = match ? sideTricode(match.matchId, record.side) : null;
+    const profile = saveProfile(pubkey, { sides: tricode ? [tricode] : [], since: record.boundAtMs });
+    // The scarf mints for a REAL, FULL-TIME match claim only (mint-scarf.ts's own honesty gate) —
+    // identity-only and mid-match claims stay mint:null. Independently try/caught — even though
+    // mintScarfForClaim itself never throws (it catches internally), this belt-and-suspenders guard
+    // means a mint problem can NEVER turn an already-saved bind into a 500: the claim always
+    // responds 200 with mint:null on any mint-side issue.
+    let mint: ScarfMint | null = null;
+    if (match) {
+      try {
+        const result = match.verdictFor(anonId)?.verdict ?? null;
+        const fanNo = registry.fanNoFor(anonId);
+        mint = await mintScarfForClaim(record, currentScoreSnapshot(match.matchId), { result, fanNo });
+      } catch (err) {
+        console.warn(`[seat] mint threw unexpectedly for ${pubkey.slice(0, 8)}: ${String(err)}`);
+      }
+    }
+    sendJson(res, 200, { profile, mint });
+  } catch (err) {
+    console.warn(`[seat] claim failed for ${pubkey.slice(0, 8)}: ${String(err)}`);
+    sendJson(res, 500, { error: 'claim failed' });
+  }
+}
+
+/** GET /seat/album?pubkey= -> {scarves}. Devnet DAS lookup — returns real minted scarves, filtered
+ * to the ROOOT scarf collection (mint/collection.ts resolves it from ROOOT_SCARF_COLLECTION or its
+ * own on-disk cache — see seat/album.ts). Prefers HELIUS_RPC_URL (a DAS-capable RPC —
+ * getAssetsByOwner is a Helius/DAS-indexer method, not part of plain Solana JSON-RPC) over the
+ * plain devnet RPC the mint path uses; falls back to that if unset (go-live checklist item: pin
+ * HELIUS_RPC_URL as a Fly secret — the public devnet RPC has no DAS index). */
+async function handleSeatAlbum(pubkey: string | null, res: ServerResponse): Promise<void> {
+  if (!pubkey || !isValidPubkey(pubkey)) {
+    sendJson(res, 400, { error: 'invalid pubkey' });
+    return;
+  }
+  try {
+    const rpcUrl = process.env.HELIUS_RPC_URL || networkFor('devnet').rpcUrl;
+    const scarves = await assetsByOwner(pubkey, rpcUrl);
+    sendJson(res, 200, { scarves });
+  } catch (err) {
+    console.warn(`[seat] album fetch failed for ${pubkey.slice(0, 8)}: ${String(err)}`);
+    sendJson(res, 502, { error: 'album fetch failed' });
+  }
+}
+
+/** GET /seat/me?pubkey= -> {profile}. Flat-file read-back (seat/profile-store.ts), no DB. */
+function handleSeatMe(pubkey: string | null, res: ServerResponse): void {
+  if (!pubkey || !isValidPubkey(pubkey)) {
+    sendJson(res, 400, { error: 'invalid pubkey' });
+    return;
+  }
+  const profile = loadProfile(pubkey);
+  sendJson(res, 200, { profile });
+}
+/* ════════════════════════ END SEAT function block ═══════════════════════ */
+
 export function createStandsServer() {
   const httpServer = createServer((req, res) => {
     if (req.method === 'GET' && req.url === '/health') {
@@ -977,6 +1132,39 @@ export function createStandsServer() {
       res.end(body);
       return;
     }
+    // ── SEAT: /seat/* HTTP routes (comment-fenced, additive — see the SEAT
+    // function block above). CORS + OPTIONS preflight apply to this whole
+    // subtree; routing needs a parsed URL, which nothing above this point
+    // required (the /health check above is a raw req.url compare, untouched). ──
+    let seatUrl: URL;
+    try {
+      seatUrl = new URL(req.url ?? '/', 'http://x');
+    } catch {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('not found');
+      return;
+    }
+    if (seatUrl.pathname.startsWith('/seat/')) {
+      setSeatCorsHeaders(res);
+      if (req.method === 'OPTIONS') {
+        res.writeHead(204);
+        res.end();
+        return;
+      }
+      if (req.method === 'POST' && seatUrl.pathname === '/seat/claim') {
+        void handleSeatClaim(req, res);
+        return;
+      }
+      if (req.method === 'GET' && seatUrl.pathname === '/seat/album') {
+        void handleSeatAlbum(seatUrl.searchParams.get('pubkey'), res);
+        return;
+      }
+      if (req.method === 'GET' && seatUrl.pathname === '/seat/me') {
+        handleSeatMe(seatUrl.searchParams.get('pubkey'), res);
+        return;
+      }
+    }
+    // ── END SEAT routes ──────────────────────────────────────────────────
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     res.end('not found');
   });
