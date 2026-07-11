@@ -182,3 +182,102 @@ moment your T1+T2 clear the owner's check-in and commit, tell the owner "ready t
 them into the next Vercel deploy + write-proof smoke and eyeball `/live` labels on a phone. The
 whole-branch review independently re-derived your bump as THE deploy gate (its only Critical), so
 you're the critical path — in the good sense.
+
+---
+
+## 7 · NEXT GOAL (in-game) — landing next deploy
+
+The owner elevated this 2026-07-10 evening ("the v2 in-game predictions are actually something i'd
+like to have… need to experience this in-game so i can judge the mechanism") — see
+`docs/BACKLOG-full-version-and-deferred-ideas.md` §2. During live play a fan calls which end scores
+next, or "no more goals." The server — not the client — stamps the live de-vigged market at the
+moment of the call (the courage weight: calling a side at 16% is not calling it at 60%).
+
+**When calls resolve (the honesty semantic — copy law material):** a call resolves when the next
+goal **CONFIRMS** on the wire — typically within ~2 minutes of the ball crossing the line (premiere-
+observed confirm lag: ~105s). The provisional "goal?" emission is the held breath, never a grading
+moment — a goal that never confirms (disallowed; the premiere had exactly one) never resolves the
+book. A 'none' call resolves correct at FULL_TIME if no further goal confirmed; any side call still
+open at FT resolves wrong. One open call per fan at a time — a new call REPLACES the old one until
+resolution; the book empties the instant a cycle resolves, and a fan can call again for the next
+goal. **Server mechanism is built and dev-verified (42/42 incl. the real premiere wire's disallowed
+goal + confirm-lag pair driven verbatim); this is the seam for your build, not live in production
+yet — check with the coordinator before wiring a real surface to it.**
+
+Shapes, verbatim from `contracts/crowd.ts`:
+
+```js
+// fan sends (only once a side is picked — same gate as cheer/root):
+{ type:'nextGoalCall', matchId, anonId, call:'home'|'away'|'none', atMs }
+
+// broadcast on every ACCEPTED call + on every resolution — the crowd's LIVE next-goal belief:
+{ type:'nextGoalState', matchId, ts,
+  open: { n, home, away, none },              // REAL fans with an open call right now (n = home+away+none, always)
+  marketAtTs: { home, draw, away } | null }    // the live market RIGHT NOW — null until the first odds tick for this match
+
+// personal delivery to the calling fan, at resolution — replays on reconnect, like predictVerdict:
+{ type:'nextGoalVerdict', matchId, anonId,
+  call: 'home'|'away'|'none',                  // what THIS fan called
+  outcome: 'correct'|'wrong',
+  happened: 'home'|'away'|'none',              // what actually happened (the CONFIRMED scoring side, or 'none' at FT)
+  marketAtCall: { home, draw, away } | null,   // the market stamped AT THIS FAN'S CALL — the courage weight, per fan
+  atMs }
+```
+
+Adapter (`apps/web/public/stands-adapter.js`, same file/pattern as `predict`/`momentReact`):
+
+```js
+__stands.nextGoal(call)   // call: 'home' | 'away' | 'none' — sends only once mySide exists (root() first, same guard as cheer)
+__stands.onNextGoal(function (s) { /* s = the nextGoalState shape above */ })          // discrete — never throttled, fires immediately
+__stands.onNextGoalVerdict(function (v) { /* v = the nextGoalVerdict shape above */ }) // YOUR calls only — discrete, never throttled
+```
+
+**Honest-rendering notes (AGENTS.md law #1 — market ≠ crowd, always):**
+
+- **Always show `open.n`** next to any home/away/none split — "n:3", never an unlabeled 60/33/…
+  bar. Same law as consensus's n elsewhere in this doc. An `open.n:0` state (right after a
+  resolution, before anyone's called yet) is honest silence, not a rendering bug — show "no calls
+  yet," not zeros dressed as data.
+- **The market stamp is the market's voice, not the crowd's.** Render `marketAtTs` /
+  `marketAtCall` in the market/gold register (the tide's color) — visually distinct from the
+  crowd's home/away/none bars, and NEVER blended, averaged, or drawn as a fourth slice of the same
+  bar. It's context for how brave the crowd's split is against the live line, not a crowd number.
+  Both are `null` until the first odds tick lands for that match — render an honest "waiting for
+  the wire" state, never a fabricated 33/33/33.
+- **A resolved cycle clears the strip.** The instant a fresh `nextGoalState` arrives with
+  `open.n` reset low/zero (a resolution just fired), treat the crowd-call UI as a NEW cycle — reset
+  to "make your call," don't leave the previous cycle's bars sitting on screen. Show the fan their
+  OWN `nextGoalVerdict` (correct/wrong + what happened) as its own personal beat, separate from the
+  crowd strip resetting underneath it.
+- **The confirm lag is a design beat, not a bug.** Between the ball crossing the line and the wire
+  confirming (~2 min), the fan's call is still OPEN — the GOOOL eruption fires (the ledger/loom
+  layer) while the call strip quietly holds. Don't fake an instant verdict; the resolution arriving
+  a beat after the roar is the honest rhythm ("your call resolves when the goal confirms").
+- **Reconnect caveat (for now):** a fan who reloads mid-cycle gets the CROWD state back
+  (`nextGoalState` replays on join) and their LAST verdict (`nextGoalVerdict` replays on hello),
+  but NOT their own still-open call — the server holds it (it will still resolve and the verdict
+  will still arrive), the wire just doesn't re-tell them what they picked yet. Cache the fan's own
+  last call client-side (localStorage, keyed by matchId) and clear it on their next verdict. A
+  per-fan open-call restore message is a candidate wire addition later — flag the coordinator if
+  this bites in practice.
+- **Calls are binary outcomes, never a blended percentage.** `outcome` is 'correct'/'wrong' —
+  don't compute or display a running "accuracy %" that mixes it with market probability. The crowd
+  split (`open`) is a raw count of real fans with an open call, never converted into or displayed
+  as a probability.
+- **Only live play accepts calls** (FIRST_HALF/SECOND_HALF/EXTRA_TIME) — a call sent pre-kickoff,
+  at half-time, in a shootout, or after full-time is silently dropped server-side (no error reaches
+  the fan). Design should gate the call UI the same way: hide or disable it outside live play
+  rather than let a fan tap into a call that quietly goes nowhere.
+
+For the data product (not a rendering surface, just so you know it exists): every resolved, CALLED
+cycle also lands as a row in the match's SentimentRecord (`nextGoal` on `contracts/sentiment.ts` —
+crowd split + what happened + market at resolution), the §1.4 Courage-Adjusted Calls substrate.
+
+Server-side dev-verified (`services/stands/src/dev/next-goal-check.ts`, `npm run check:next-goal`,
+42/42 assertions): call-replace semantics, the pre-kickoff silent drop, unconfirmed goals resolving
+NOTHING (the premiere's real disallowed goal 18209181:495 driven verbatim), the real
+unconfirmed→confirmed pair resolving exactly once ON confirmation (~105s lag, 18209181:683),
+re-emission dedup, 'none' correct at FULL_TIME, fanStats accumulating at resolution, the record
+rows crystallizing (including the FT cycle), and a real process SIGKILL mid-cycle + reboot
+re-delivering the same goal through the real dispatch without re-resolving. Full existing suite
+re-run green, zero regressions.
