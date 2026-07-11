@@ -30,9 +30,19 @@
  *   REPLAY_FILE            path to a fixtures/*.jsonl to replay
  *   REPLAY_FIXTURE          the single fixtureId that file's lines belong to
  *   REPLAY_SPEED            playback speed multiplier (default 1)
+ *
+ *   TXLINE_IDLE_TIMEOUT_MS     abort+reconnect a CONNECTED stream after this long
+ *                               with zero bytes (default 60000; the wire heartbeats
+ *                               every ~15s, so that is 4 missed beats)
+ *   TXLINE_CONNECT_TIMEOUT_MS  abort+retry a connect whose response headers never
+ *                               arrive (default 30000)
+ *   SELF_PROBE_INTERVAL_MS     in-process /health self-probe cadence (default 30000)
+ *   SELF_PROBE_TIMEOUT_MS      per-probe response deadline (default 5000)
+ *   SELF_PROBE_MAX_MISSES      consecutive failures before exit(1)-for-restart (default 4)
+ *   SELF_PROBE_DISABLE=1       disarm the self-probe entirely
  */
 import type { FeedMsg } from '@contracts/feed';
-import { createStandsServer } from './server';
+import { armSelfProbe, createStandsServer } from './server';
 import { startTxLineIngest } from './ingest/txline';
 import { startReplayIngest } from './ingest/replay';
 
@@ -93,6 +103,10 @@ function main(): void {
     const addr = httpServer.address();
     const actualPort = addr && typeof addr === 'object' ? addr.port : port;
     console.log(`[stands] listening on :${actualPort} (GET /health, WS upgrade at /)`);
+    // dead-man for the Jul 11 accept-path wedge (armSelfProbe doc, server.ts):
+    // probe our own /health through the real listener; exit(1) for a
+    // supervisor restart after SELF_PROBE_MAX_MISSES consecutive failures.
+    armSelfProbe(actualPort);
   });
 
   const routeFeedMsg = (matchId: string, msg: FeedMsg) => broadcastToMatch(matchId, msg);

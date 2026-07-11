@@ -22,6 +22,39 @@ import type { FixtureRoster } from '@contracts/normalize';
 const TXLINE_API = process.env.TXLINE_API ?? 'https://txline-dev.txodds.com';
 const TOKEN_FILE = process.env.TXLINE_TOKEN_FILE ?? '../../.secrets/txline-token.json';
 
+/** Read-liveness watchdog (Jul 11 NOR–ENG wedge post-mortem): the wire sends
+ * an SSE heartbeat event every ~15s on BOTH streams even when the match is
+ * quiet (42k+ heartbeats across each night capture), so a stream that has
+ * produced ZERO BYTES for this long is dead — a silent half-open TCP drop
+ * (NAT/proxy death without a FIN/RST, e.g. across the half-time idle), which
+ * `reader.read()` would otherwise await FOREVER: no error, no `done`, no
+ * reconnect, ingest permanently dark while the process looks alive. That is
+ * exactly what NOR–ENG's second half looked like: the recorder (its own
+ * TxLINE connection) captured every second-half envelope while the service
+ * broadcast none of them, and no feedState transition was ever logged — the
+ * read loop was parked on a dead socket. The watchdog aborts the attempt,
+ * which lands in the existing catch → backoff → reconnect path (feedState
+ * 'reconnecting' → 'connected'), the same path a clean network error takes.
+ * Env-tunable so the dev check can run a real stall test in seconds; clamped
+ * to a floor so a bad value can never busy-loop the sweeper. 60s default =
+ * 4 missed heartbeats — far beyond any observed healthy gap. */
+function txlineIdleTimeoutMs(): number {
+  const raw = process.env.TXLINE_IDLE_TIMEOUT_MS;
+  const n = raw !== undefined ? Number(raw) : 60_000;
+  return Number.isFinite(n) ? Math.max(1_000, n) : 60_000;
+}
+const TXLINE_IDLE_TIMEOUT_MS = txlineIdleTimeoutMs();
+
+/** Connect-phase analogue of the read watchdog above (the client adapters
+ * grew the same guard — "connect-attempt watchdog", review fast-follow): a
+ * fetch whose response headers never arrive would also await forever. */
+function txlineConnectTimeoutMs(): number {
+  const raw = process.env.TXLINE_CONNECT_TIMEOUT_MS;
+  const n = raw !== undefined ? Number(raw) : 30_000;
+  return Number.isFinite(n) ? Math.max(1_000, n) : 30_000;
+}
+const TXLINE_CONNECT_TIMEOUT_MS = txlineConnectTimeoutMs();
+
 interface TxLineToken {
   jwt: string;
   apiToken: string;
@@ -186,17 +219,42 @@ async function runStream(opts: StreamOptions): Promise<void> {
   let everConnected = false;
 
   while (!opts.signal.aborted) {
+    // Per-attempt liveness watchdog (TXLINE_IDLE_TIMEOUT_MS doc above): one
+    // sweeper covers both phases — headers that never arrive (connect limit)
+    // and a connected stream that stops producing bytes (idle limit). It
+    // aborts THE ATTEMPT only (opts.signal, the ingest-wide stop, is left
+    // alone) — the abort surfaces as a rejection inside this try, and the
+    // existing catch → backoff → reconnect path handles it like any other
+    // network error. Every received chunk (heartbeats included — they are
+    // bytes) resets the clock.
+    const attempt = new AbortController();
+    const attemptSignal = AbortSignal.any([opts.signal, attempt.signal]);
+    let lastByteMs = Date.now();
+    let connected = false;
+    const sweepEveryMs = Math.max(250, Math.min(5_000, Math.floor(TXLINE_IDLE_TIMEOUT_MS / 4)));
+    const sweeper = setInterval(() => {
+      const idleMs = Date.now() - lastByteMs;
+      const limitMs = connected ? TXLINE_IDLE_TIMEOUT_MS : TXLINE_CONNECT_TIMEOUT_MS;
+      if (idleMs > limitMs) {
+        console.warn(
+          `[txline:${opts.name}] ${connected ? 'stream silent' : 'connect pending'} for ${Math.round(idleMs / 1000)}s (limit ${Math.round(limitMs / 1000)}s) — aborting this attempt to force a reconnect`,
+        );
+        attempt.abort();
+      }
+    }, sweepEveryMs);
     try {
       console.log(`[txline:${opts.name}] connecting`);
       const res = await fetch(opts.url, {
         headers: { Accept: 'text/event-stream', ...opts.headers },
-        signal: opts.signal,
+        signal: attemptSignal,
       });
       if (!res.ok || !res.body) {
         const bodyText = await res.text().catch(() => '');
         throw new Error(`http ${res.status}: ${bodyText.slice(0, 200)}`);
       }
       everConnected = true;
+      connected = true;
+      lastByteMs = Date.now();
       backoffMs = 1000;
       opts.onFeedState('connected');
 
@@ -209,6 +267,7 @@ async function runStream(opts: StreamOptions): Promise<void> {
       while (!opts.signal.aborted) {
         const { done, value } = await reader.read();
         if (done) break;
+        lastByteMs = Date.now(); // proof of life — heartbeats count, they are bytes
         buf += dec.decode(value, { stream: true });
         let nl: number;
         while ((nl = buf.indexOf('\n')) >= 0) {
@@ -222,15 +281,23 @@ async function runStream(opts: StreamOptions): Promise<void> {
           else if (line.startsWith('data:')) dataLines.push(line.slice(5).trimStart());
         }
       }
+      clearInterval(sweeper); // attempt concluded — don't let it fire during the pause below
       if (opts.signal.aborted) return;
       console.warn(`[txline:${opts.name}] stream ended; reconnecting`);
       opts.onFeedState('reconnecting');
     } catch (err) {
+      // clear FIRST: the backoff sleep below happens inside this attempt's
+      // scope, and a still-armed sweeper would keep "aborting" the already-
+      // dead attempt — harmless (the signal is spent) but one noise line per
+      // sweep through every long outage. finally stays as the safety net.
+      clearInterval(sweeper);
       if (opts.signal.aborted) return;
       console.warn(`[txline:${opts.name}] ${String(err)}; retry in ${backoffMs}ms`);
       opts.onFeedState(everConnected ? 'reconnecting' : 'lost');
       await new Promise((r) => setTimeout(r, backoffMs));
       backoffMs = Math.min(backoffMs * 2, 30_000);
+    } finally {
+      clearInterval(sweeper);
     }
   }
 }

@@ -8,7 +8,7 @@
  * Kill switches (env): DISABLE_PULSE drops react handling silently (hello/
  * cheer/call still work); DISABLE_ROOMS drops roomId join/RoomStateMsg.
  */
-import { createServer } from 'node:http';
+import { createServer, get as httpGet } from 'node:http';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { randomBytes } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
@@ -1600,4 +1600,62 @@ export function createStandsServer() {
   });
 
   return { httpServer, wss, registry, port: PORT, broadcastToMatch };
+}
+
+/* ── SELF-PROBE DEAD-MAN (Jul 11 NOR–ENG wedge post-mortem) ───────────────
+ * The wedge's proven shape: the event loop stayed ALIVE (4 Hz stands ticks
+ * still reached established sockets as late as 22:18Z; timers fine) while the
+ * ACCEPT PATH died — Fly's own /health checks (which hit the machine
+ * directly, 2s timeout) failed with "context deadline exceeded", fresh WS
+ * joins got 0 messages or 503, curl timed out awaiting headers, for 40+
+ * minutes, and a machine restart fixed everything instantly. Whatever
+ * exhausts in the guest (fd table / kernel memory on a 256mb machine / a
+ * rotting accept backlog), the process cannot serve NEW connections but sees
+ * no error it could react to — so it probes ITSELF through the same real
+ * listener external traffic uses, and exits nonzero after N consecutive
+ * failures. Fly's restart policy reboots the machine — turning a silent
+ * multi-hour outage into a bounded ~2-minute self-heal, with a loud log line
+ * naming exactly why. The external ops dead-man stays as the backstop for the
+ * one mode this cannot catch (a HARD-blocked loop never runs this timer).
+ *
+ * Called by index.ts once the real port is known. Deliberately NOT armed
+ * inside createStandsServer: dev checks import the server module and manage
+ * their own lifecycles — a self-exiting process would poison them.
+ * Env: SELF_PROBE_INTERVAL_MS (default 30s, floor 1s) · SELF_PROBE_TIMEOUT_MS
+ * (default 5s, floor 250ms) · SELF_PROBE_MAX_MISSES (default 4, floor 1) ·
+ * SELF_PROBE_DISABLE=1 kills the whole mechanism. */
+export function armSelfProbe(actualPort: number): () => void {
+  if (process.env.SELF_PROBE_DISABLE === '1') {
+    console.log('[stands:selfprobe] disabled by env (SELF_PROBE_DISABLE=1)');
+    return () => {};
+  }
+  const intervalRaw = Number(process.env.SELF_PROBE_INTERVAL_MS ?? 30_000);
+  const intervalMs = Number.isFinite(intervalRaw) ? Math.max(1_000, intervalRaw) : 30_000;
+  const timeoutRaw = Number(process.env.SELF_PROBE_TIMEOUT_MS ?? 5_000);
+  const timeoutMs = Number.isFinite(timeoutRaw) ? Math.max(250, timeoutRaw) : 5_000;
+  const missesRaw = Number(process.env.SELF_PROBE_MAX_MISSES ?? 4);
+  const maxMisses = Number.isFinite(missesRaw) ? Math.max(1, Math.floor(missesRaw)) : 4;
+
+  let misses = 0;
+  const miss = (reason: string): void => {
+    misses++;
+    console.warn(`[stands:selfprobe] /health self-probe failed (${misses}/${maxMisses}): ${reason}`);
+    if (misses >= maxMisses) {
+      console.error(
+        `[stands:selfprobe] WEDGED — ${maxMisses} consecutive self-probes failed over ~${Math.round((maxMisses * intervalMs) / 1000)}s; the accept path is dead while this process still runs (Jul 11 NOR–ENG signature). Exiting 1 for a supervisor restart.`,
+      );
+      process.exit(1);
+    }
+  };
+  const timer = setInterval(() => {
+    const req = httpGet({ host: '127.0.0.1', port: actualPort, path: '/health', timeout: timeoutMs }, (res) => {
+      res.resume(); // drain — the status line is the whole verdict
+      if (res.statusCode === 200) misses = 0;
+      else miss(`http ${res.statusCode}`);
+    });
+    req.on('timeout', () => req.destroy(new Error(`no response headers within ${timeoutMs}ms`)));
+    req.on('error', (err) => miss(String(err)));
+  }, intervalMs);
+  console.log(`[stands:selfprobe] armed — every ${intervalMs}ms, ${timeoutMs}ms timeout, exit after ${maxMisses} consecutive misses`);
+  return () => clearInterval(timer);
 }

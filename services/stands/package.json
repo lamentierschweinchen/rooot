@@ -16,6 +16,8 @@
     "check:fan-serial": "tsx src/dev/fan-serial-check.ts",
     "check:pulse-fix": "tsx src/dev/pulse-fix-check.ts",
     "check:full-replay": "tsx src/dev/full-replay-check.ts",
+    "check:sse-idle": "tsx src/dev/sse-idle-watchdog-check.ts",
+    "check:self-probe": "tsx src/dev/self-probe-check.ts",
     "check:next-goal": "tsx src/dev/next-goal-check.ts",
     "check:seat": "tsx src/dev/seat-check.ts",
     "prove:claim-mint": "tsx src/dev/prove-claim-mint.ts",
