@@ -172,6 +172,77 @@ function buildVerify(prov: RelicProvenance, live: boolean): VerifyHint {
   return hint;
 }
 
+/* ── claim-time scarf attributes (YOUR SEAT reconciliation) ────────────────────────────────────
+ * The fan's OWN scarf record — the exact shape design/HANDOFF-coordinator-data-wiring.md's
+ * AlbumScarf specifies, so seat/album.ts's shapeAlbum can read the SAME fields back verbatim:
+ * home/away tricodes, the final score, the fan's call, the 3-state result, comp, date, serial.
+ * Never a match-level aggregate (Goals/Won the stands/Data source/Kickoff — buildAttributes'
+ * traits) — those describe a fully-aggregated relic this minimal claim-time mint never captures.
+ * `call`/`result` are the only two OPTIONAL facts (a fan who rooted/claimed without ever locking
+ * a numeric prediction gets both, honestly, as null/omitted — never invented, mirrors
+ * seat/claim.ts's bindClaim). Everything else is always real by construction: mint-scarf.ts only
+ * ever calls this once the match has genuinely reached FULL_TIME (the mint honesty gate), so
+ * home/away/score/comp/date/serial are always known facts at call time. */
+export interface ScarfFacts {
+  matchId: string;
+  /** team tricodes, e.g. 'SUI' / 'COL' — design owns colour mapping from these, never written here. */
+  home: string;
+  away: string;
+  /** final score, e.g. '1–1' */
+  score: string;
+  /** the fan's locked call, e.g. 'SUI 2–1' — home-perspective predicted score, tricode-prefixed
+   * (mirrors gate.html's own "YOU CALLED {home} h–a {away}" convention). Null: never predicted. */
+  call: string | null;
+  /** the post-mortem's 3-state verdict — exact scoreline | right outcome wrong score | wrong.
+   * Null only when the fan never locked a prediction (verdictFor has nothing to grade). */
+  result: 'exact' | 'outcome' | 'wrong' | null;
+  /** competition name, e.g. 'WORLD CUP' (sentiment/teams.ts's real FIXTURE_INFO, uppercased) */
+  comp: string;
+  /** e.g. "09 JUL '26" */
+  date: string;
+  /** the fan's global serial (THE FAN SERIAL — registry.fanNoFor), zero-padded e.g. '007' */
+  serial: string;
+}
+
+/** `attributes` entries for a claimed scarf — exactly the AlbumScarf record, nothing more (no
+ * team colours — design derives those client-side from the tricodes; no match-level aggregates —
+ * see the ScarfFacts doc comment above for why). */
+export function buildScarfAttributes(facts: ScarfFacts): NftAttribute[] {
+  const attrs: NftAttribute[] = [
+    { trait_type: 'matchId', value: facts.matchId },
+    { trait_type: 'home', value: facts.home },
+    { trait_type: 'away', value: facts.away },
+    { trait_type: 'score', value: facts.score },
+    { trait_type: 'comp', value: facts.comp },
+    { trait_type: 'date', value: facts.date },
+    { trait_type: 'serial', value: facts.serial },
+  ];
+  if (facts.call) attrs.push({ trait_type: 'call', value: facts.call });
+  if (facts.result) attrs.push({ trait_type: 'result', value: facts.result });
+  return attrs;
+}
+
+/**
+ * Description for a claim-time scarf (mint/relic-from-match.ts): the fixture identity + the score
+ * ARE real, but rich match aggregates (the odds path, the goal-by-goal timeline, the crowd's roar)
+ * were NOT captured for this relic — unlike `buildDescription`'s `live` branch, this never claims a
+ * stands verdict it doesn't have (honesty seam: never overclaim past what was actually captured).
+ * `decided` is always true by construction (mint-scarf.ts only mints once FULL_TIME is real), but
+ * this stays tolerant of `false` rather than assuming its own caller's gate can never change.
+ */
+export function buildClaimDescription(relic: MatchRelicData, decided: boolean): string {
+  const fix = `${relic.fixture.home.name} vs ${relic.fixture.away.name}`;
+  const scoreLine = decided
+    ? `Full-time ${SCORE_STR(relic)}.`
+    : `${SCORE_STR(relic)} as it stood the moment this seat was claimed (the match may still have been live).`;
+  return (
+    `A ROOOT scarf — proof you had a seat at ${fix}, minted to your key on devnet. ${scoreLine} ` +
+    "This is a minimal relic: your seat is real and on-chain; rich match aggregates (the odds " +
+    "path, the goal-by-goal timeline, the crowd's roar) were not captured for this relic. " +
+    `Relics are made live at ${SITE_URL}. — ${ATTRIBUTION}`
+  );
+}
+
 /**
  * Build the full relic metadata object. Pass the URI the `image` should point at:
  *  • local bundle  → relative filename ({ imageUri: 'cover.png' })
