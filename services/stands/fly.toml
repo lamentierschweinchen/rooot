@@ -22,6 +22,14 @@
 app = "rooot-stands"
 primary_region = "iad"
 
+# Jul 11 NOR-ENG wedge hardening: on a 256mb guest with no swap, kernel memory
+# pressure can kill the ACCEPT PATH (new connections + health checks) while the
+# process and its established sockets look alive - the exact live signature.
+# Swap turns that cliff into graceful degradation. The in-process self-probe
+# (server.ts armSelfProbe) is the code-side half of the same fix: it exits(1)
+# on a dead accept path so the machine restart policy can heal in ~2 minutes.
+swap_size_mb = 256
+
 [build]
   dockerfile = "Dockerfile"
 
