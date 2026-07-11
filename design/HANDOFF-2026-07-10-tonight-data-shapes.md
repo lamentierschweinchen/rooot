@@ -197,12 +197,16 @@ moment of the call (the courage weight: calling a side at 16% is not calling it 
 goal **CONFIRMS** on the wire — typically within ~2 minutes of the ball crossing the line (premiere-
 observed confirm lag: ~105s). The provisional "goal?" emission is the held breath, never a grading
 moment — a goal that never confirms (disallowed; the premiere had exactly one) never resolves the
-book. A 'none' call resolves correct at FULL_TIME if no further goal confirmed; any side call still
-open at FT resolves wrong. One open call per fan at a time — a new call REPLACES the old one until
-resolution; the book empties the instant a cycle resolves, and a fan can call again for the next
-goal. **Server mechanism is built and dev-verified (42/42 incl. the real premiere wire's disallowed
-goal + confirm-lag pair driven verbatim); this is the seam for your build, not live in production
-yet — check with the coordinator before wiring a real surface to it.**
+book. A converted **in-play penalty counts as the next goal** (it resolves on its confirmed "Scored"
+— PAR–FRA Jul 4: France's only goal WAS a penalty); shootout kicks never resolve the book (a
+shootout isn't "the next goal" — side calls still open then resolve wrong at FULL_TIME, 'none'
+correct, as below). A 'none' call resolves correct at FULL_TIME if no further goal confirmed; any
+side call still open at FT resolves wrong. One open call per fan at a time — a new call REPLACES
+the old one until resolution; the book empties the instant a cycle resolves, and a fan can call
+again for the next goal. **Server mechanism is built and dev-verified (53/53 incl. the real
+premiere wire's disallowed goal + confirm-lag pair, and the real PAR–FRA penalty envelopes, driven
+verbatim); this is the seam for your build, not live in production yet — check with the coordinator
+before wiring a real surface to it.**
 
 Shapes, verbatim from `contracts/crowd.ts`:
 
@@ -274,10 +278,22 @@ cycle also lands as a row in the match's SentimentRecord (`nextGoal` on `contrac
 crowd split + what happened + market at resolution), the §1.4 Courage-Adjusted Calls substrate.
 
 Server-side dev-verified (`services/stands/src/dev/next-goal-check.ts`, `npm run check:next-goal`,
-42/42 assertions): call-replace semantics, the pre-kickoff silent drop, unconfirmed goals resolving
+53/53 assertions): call-replace semantics, the pre-kickoff silent drop, unconfirmed goals resolving
 NOTHING (the premiere's real disallowed goal 18209181:495 driven verbatim), the real
 unconfirmed→confirmed pair resolving exactly once ON confirmation (~105s lag, 18209181:683),
-re-emission dedup, 'none' correct at FULL_TIME, fanStats accumulating at resolution, the record
-rows crystallizing (including the FT cycle), and a real process SIGKILL mid-cycle + reboot
-re-delivering the same goal through the real dispatch without re-resolving. Full existing suite
-re-run green, zero regressions.
+re-emission dedup, the real PAR–FRA penalty envelopes verbatim (unconfirmed pen → nothing;
+confirmed "Scored" → resolves, correct side; confirmed "Missed" → nothing; a shootout-phase kick →
+nothing, with FT-after-shootout semantics preserved), 'none' correct at FULL_TIME, fanStats
+accumulating at resolution, the record rows crystallizing (including the FT cycle), and a real
+process SIGKILL mid-cycle + reboot re-delivering the same goal through the real dispatch without
+re-resolving. Full existing suite re-run green, zero regressions.
+
+---
+
+**MARGIN — coordinator-flagged monitor (2026-07-11, from the NEXT GOAL re-review):** own-goal side
+attribution is UNVERIFIED on this wire — no OG has appeared in any capture yet, so whether the
+envelope's Participant (→ `ev.side`) names the team that BENEFITS or the team whose player put it
+in is an open question, and NEXT GOAL grading trusts `ev.side`. When the first own goal appears on
+a live wire: before trusting that cycle's verdicts, verify the goal event's `ev.side` against the
+score delta (whose Total.Goals moved). If they disagree, flag the coordinator immediately — the
+grading (and the loom's OG patch side) would need the score-delta source of truth instead.
