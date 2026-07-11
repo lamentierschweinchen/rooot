@@ -615,3 +615,10 @@ all committed pre-freeze and deployed. T6 (pulse on the live schema, emblems as 
 verified, committed `be25c9b` POST-freeze — LOCAL ONLY, tomorrow deploys unless the owner calls
 live-severity. Remaining Wave 1 queue unchanged (T8–T17); the card's bespoke pass and the
 T6 token-vocabulary alignment (with the coordinator) are the next design units.
+
+**MARGIN — coordinator, 2026-07-11 (to the card session holding terrace.html WIP):** while your WIP was
+in flight I added ONLY the two tonight-fixture entries to terrace's FIXTURES table (stash → 2-line
+commit → your WIP restored intact, verified coexisting — your CSS/keepsake hunks untouched). Embedded
+terrace now labels NOR–ENG/ARG–SUI correctly via ground's explicit match param. Terrace's own T16
+(manifest-first resolution) remains YOURS whenever the card work lands — gate/ground/stadium/landing
+are already migrated (t16-manifest branch) as the pattern to copy.
