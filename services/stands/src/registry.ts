@@ -78,6 +78,22 @@ export interface NextGoalRowsPersistenceHooks {
   restore(matchId: string, rows: NextGoalRow[]): void;
 }
 
+/** Hooks into server.ts's `finalScores` map (review merge-gate fix: the
+ * resolved flag persisted but the RESOLUTION-TIME FINAL SCORE did not — it
+ * lived only in the memory-only join-snapshot cache — so a fan's first
+ * post-restart claim on an already-resolved match minted a false "Full-time
+ * 0–0" scarf contradicting its own restored verdict). Mirrors
+ * ResolvedPersistenceHooks exactly: registry.ts doesn't know what the score
+ * MEANS (that's server.ts's mint path), it only ferries the pair through
+ * snapshot write/restore. `get` returns null for a never-resolved match (the
+ * snapshot field is then omitted, never zero-filled); `restore` runs during
+ * registry.loadSnapshot(), BEFORE index.ts starts TXLINE/REPLAY ingest — the
+ * same boot-ordering guarantee the other hooks rely on. */
+export interface FinalScorePersistenceHooks {
+  get(matchId: string): { home: number; away: number } | null;
+  restore(matchId: string, score: { home: number; away: number }): void;
+}
+
 export class MatchRegistry {
   private readonly matches = new Map<string, MatchState>();
   private tickTimer: NodeJS.Timeout | null = null;
@@ -101,6 +117,7 @@ export class MatchRegistry {
     private readonly openedTriggers?: OpenedTriggersPersistenceHooks,
     private readonly nextGoalResolved?: NextGoalResolvedPersistenceHooks,
     private readonly nextGoalRows?: NextGoalRowsPersistenceHooks,
+    private readonly finalScore?: FinalScorePersistenceHooks,
   ) {}
 
   getOrCreate(matchId: string): MatchState {
@@ -193,6 +210,12 @@ export class MatchRegistry {
     const restoreNextGoalRows = this.nextGoalRows
       ? (matchId: string, rows: NextGoalRow[]) => this.nextGoalRows!.restore(matchId, rows)
       : undefined;
+    // same pre-arm again for the resolution-time final score — so the very
+    // first post-restart claim on an already-resolved match mints against the
+    // TRUE score the verdicts were graded with, never a fabricated 0–0.
+    const restoreFinalScore = this.finalScore
+      ? (matchId: string, score: { home: number; away: number }) => this.finalScore!.restore(matchId, score)
+      : undefined;
     applySnapshot(
       snap,
       (matchId) => this.getOrCreate(matchId),
@@ -202,6 +225,7 @@ export class MatchRegistry {
       restoreOpenedTriggers,
       restoreNextGoalResolved,
       restoreNextGoalRows,
+      restoreFinalScore,
     );
     console.log(`[stands:registry] restored ${snap.matches.length} match(es) from snapshot (v${snap.version ?? 1})`);
   }
@@ -229,7 +253,8 @@ export class MatchRegistry {
     const getOpenedTriggerIds = this.openedTriggers ? (matchId: string) => this.openedTriggers!.get(matchId) : undefined;
     const getNextGoalResolvedIds = this.nextGoalResolved ? (matchId: string) => this.nextGoalResolved!.get(matchId) : undefined;
     const getNextGoalRows = this.nextGoalRows ? (matchId: string) => this.nextGoalRows!.get(matchId) : undefined;
-    writeSnapshot(this.matches, getMoments, isResolved, this.fanSerialSnapshot(), getOpenedTriggerIds, getNextGoalResolvedIds, getNextGoalRows);
+    const getFinalScore = this.finalScore ? (matchId: string) => this.finalScore!.get(matchId) : undefined;
+    writeSnapshot(this.matches, getMoments, isResolved, this.fanSerialSnapshot(), getOpenedTriggerIds, getNextGoalResolvedIds, getNextGoalRows, getFinalScore);
   }
 
   stop(): void {

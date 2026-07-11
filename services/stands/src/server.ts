@@ -9,10 +9,12 @@
  * cheer/call still work); DISABLE_ROOMS drops roomId join/RoomStateMsg.
  */
 import { createServer } from 'node:http';
+import type { IncomingMessage, ServerResponse } from 'node:http';
+import { randomBytes } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { WebSocket, WebSocketServer } from 'ws';
-import type { CallMsg, CallReceiptMsg, CheerEchoMsg, ClientMsg, MomentKind, MomentOpenMsg, MomentResultMsg, RoomStateMsg, ServerMsg, Side, WelcomeMsg } from '@contracts/crowd';
+import type { CallMsg, CallReceiptMsg, CheerEchoMsg, ClientMsg, MomentKind, MomentOpenMsg, MomentResultMsg, RoomStateMsg, SeatTokenGrantMsg, ServerMsg, Side, WelcomeMsg } from '@contracts/crowd';
 import { FEELING_PALETTES } from '@contracts/crowd';
 import type { FeedMsg } from '@contracts/feed';
 import type { LedgerEvent } from '@contracts/ledger';
@@ -23,6 +25,18 @@ import { anchorRecordHash, relayCall } from './relay';
 import { DATA_DIR, writeFileAtomic } from './snapshot';
 import { SentimentAccumulator } from './sentiment/accumulator';
 import { fixtureInfo } from './sentiment/teams';
+// ── SEAT: self-custodial fan identity + mint-to-fan relics (YOUR SEAT) ─────
+// Reconciled from the your-seat worktree branch onto this file's current shape —
+// docs/HANDOFF-2026-07-10-coordinator-session.md §5. Imports grouped here so the
+// whole SEAT surface (imports + the function block below + the route wiring
+// inside createStandsServer) is easy to lift as one unit.
+import { networkFor } from './mint/config';
+import type { LiveScoreSnapshot } from './mint/relic-from-match';
+import { assetsByOwner } from './seat/album';
+import { bindClaim } from './seat/claim';
+import { mintScarfForClaim, type ScarfMint } from './seat/mint-scarf';
+import { loadProfile, saveProfile } from './seat/profile-store';
+import { isValidPubkey } from './seat/validate';
 
 const PORT = Number(process.env.PORT ?? 8787);
 const DISABLE_PULSE = process.env.DISABLE_PULSE === '1';
@@ -202,6 +216,17 @@ function sendToAnon(matchId: string, anonId: string, msg: ServerMsg): void {
 /** Predictions lock at kickoff and resolve at full time — driven by the phase
  * on the status feed (the match's own truth). Idempotent: resolve fires once. */
 const resolvedMatches = new Set<string>();
+/** The RESOLUTION-TIME final score per resolved match — the very fh/fa
+ * predictLifecycle grades verdicts with, captured at the instant
+ * resolvedMatches flips and persisted alongside it (snapshot v6, via the
+ * registry's finalScore hooks below). Review merge-gate fix: the resolved
+ * flag restored across a restart but the score lived only in the memory-only
+ * join-snapshot cache, so a fan's FIRST post-restart claim on an
+ * already-resolved match minted a false "Full-time 0–0" scarf that
+ * contradicted its own restored verdict attribute. A resolved match with no
+ * entry here and no live-cached score now REFUSES to mint
+ * (currentScoreSnapshot in the SEAT fence) rather than fabricating a score. */
+const finalScores = new Map<string, { home: number; away: number }>();
 function predictLifecycle(matchId: string, msg: ServerMsg | FeedMsg): void {
   if (msg.type !== 'status') return;
   const phase = msg.ev.phase;
@@ -217,6 +242,10 @@ function predictLifecycle(matchId: string, msg: ServerMsg | FeedMsg): void {
     const fa = snap && snap.score ? snap.score.ev.away : undefined;
     if (typeof fh === 'number' && typeof fa === 'number') {
       resolvedMatches.add(matchId);
+      // capture the SAME final score the verdicts below are graded with — it
+      // rides the immediate post-FT snapshot (finalScore hooks) so a restarted
+      // process's scarf mints can never contradict the restored verdicts.
+      finalScores.set(matchId, { home: fh, away: fa });
       // per-fan delivery, not a match broadcast — a verdict is personal
       // (Task 4 point 2: confirmed sendToAnon already scopes to this anonId's
       // own sockets only). Late joiners/reconnects get theirs via handleHello's
@@ -746,6 +775,19 @@ const registry = new MatchRegistry(
     get: (matchId) => accumulators.get(matchId)?.getNextGoalRows() ?? [],
     restore: (matchId, rows) => { getOrCreateAccumulator(matchId)?.restoreNextGoalRows(rows); },
   },
+  {
+    // Review merge-gate fix: the resolution-time final score (finalScores,
+    // captured in predictLifecycle's FULL_TIME branch alongside
+    // resolvedMatches) rides the snapshot through these hooks — same pattern
+    // as moments/resolved/openedTriggers above. `restore` runs during
+    // registry.loadSnapshot(), BEFORE any ingest, so the very first
+    // post-restart claim on an already-resolved match already knows the TRUE
+    // score its restored verdicts were graded against — never a fabricated
+    // 0–0. `get` returns null for a never-resolved match (the field is then
+    // omitted from the snapshot, never zero-filled).
+    get: (matchId) => finalScores.get(matchId) ?? null,
+    restore: (matchId, score) => { finalScores.set(matchId, score); },
+  },
 );
 
 function isValidSide(v: unknown): v is Side {
@@ -1217,10 +1259,254 @@ function handleMessage(ws: WebSocket, state: ConnState, raw: string): void {
       return handlePredict(state, msg);
     case 'nextGoalCall':
       return handleNextGoalCall(state, msg);
+    case 'seatToken': // SEAT: one-time claim token, session-bound (see the SEAT fence below)
+      return handleSeatToken(ws, state, msg);
     default:
       return; // unknown type, ignore
   }
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+ * SEAT — self-custodial fan identity + mint-to-fan relics (YOUR SEAT).
+ * Reconciled from the your-seat worktree branch (18 commits, base c9ffc84)
+ * onto this file's current shape — docs/HANDOFF-2026-07-10-coordinator-
+ * session.md §5 has the reconciliation plan. /seat/* HTTP routes sit
+ * ALONGSIDE the crowd WebSocket protocol above; wired into createStandsServer
+ * below in one additive block. SEAT's entire footprint outside this fence:
+ * the grouped import block up top, ONE `case 'seatToken'` line in
+ * handleMessage's switch (the session-bound claim-token request — review fix,
+ * risk 2), and the fenced route block inside createStandsServer.
+ * ════════════════════════════════════════════════════════════════════════ */
+
+/** The REAL score for matchId as this process knows it. `decided` is true ONLY when full time was
+ * genuinely observed (`resolvedMatches`) AND a genuine final score is known — belt from the review
+ * merge-gate fix: a restart used to restore the resolved flag while the score cache (memory-only
+ * joinSnapshots) came back empty, so this returned {0,0,decided:true} and the fan's first
+ * post-restart claim minted a permanent "Full-time 0–0" scarf contradicting its own verdict
+ * attribute. Order of truth for a RESOLVED match: `finalScores` first (the resolution-time score
+ * the verdicts were graded with — persisted in the snapshot, restored on boot), then the live
+ * join-snapshot cache (covers a resolved-in-this-process match; identical by construction, since
+ * predictLifecycle sourced fh/fa from that same cache); neither known -> decided:false, and the
+ * claim path refuses the mint honestly (retryable) rather than fabricating a score. For an
+ * UNRESOLVED match this stays the live-cache read it always was ({0,0} before any score message —
+ * a real, true tally, and decided:false keeps the mint gate shut anyway).
+ * Exported for the dev check (src/dev/seat-check.ts) — this is the exact value handleSeatClaim
+ * hands to mintScarfForClaim, so asserting it post-restore IS asserting what a mint would carry. */
+export function currentScoreSnapshot(matchId: string): LiveScoreSnapshot {
+  const ev = joinSnapshots.get(matchId)?.score?.ev;
+  if (resolvedMatches.has(matchId)) {
+    const final = finalScores.get(matchId);
+    if (final) return { home: final.home, away: final.away, decided: true };
+    if (ev && typeof ev.home === 'number' && typeof ev.away === 'number') return { home: ev.home, away: ev.away, decided: true };
+    return { home: 0, away: 0, decided: false }; // resolved but no genuine score known — refuse, never fabricate
+  }
+  return { home: ev?.home ?? 0, away: ev?.away ?? 0, decided: false };
+}
+
+function sendJson(res: ServerResponse, status: number, body: unknown): void {
+  res.writeHead(status, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(body));
+}
+
+/** CORS for /seat/* — the browser calls these cross-origin (rooot.club / a localhost preview →
+ * this fly.dev host), so every seat response needs the headers below, and the preflight OPTIONS
+ * request needs an explicit 204. Devnet MVP with no cookies/credentials, so a `*` origin is fine —
+ * deliberately NOT paired with Access-Control-Allow-Credentials. WS routes don't go through HTTP
+ * CORS at all, so they're untouched. */
+const SEAT_CORS_HEADERS: Record<string, string> = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'content-type',
+};
+
+function setSeatCorsHeaders(res: ServerResponse): void {
+  for (const [name, value] of Object.entries(SEAT_CORS_HEADERS)) res.setHeader(name, value);
+}
+
+function readBody(req: IncomingMessage): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let data = '';
+    req.on('data', (chunk) => { data += chunk; });
+    req.on('end', () => resolve(data));
+    req.on('error', reject);
+  });
+}
+
+/** Resolve the side the fan actually rooted for into its team tricode (design/
+ * HANDOFF-coordinator-data-wiring.md: profile.sides must be tricodes, e.g. ['SUI','ARG'], never
+ * 'home'/'away' — the cabinet renders flag stickers from these). Null when the fan never rooted, or
+ * the match has no known fixture identity — never guessed. */
+function sideTricode(matchId: string, side: Side | null): string | null {
+  if (!side) return null;
+  const fx = fixtureInfo(matchId);
+  if (!fx) return null;
+  return side === 'home' ? fx.home.code : fx.away.code;
+}
+
+/* ── SEAT claim tokens (review fix, risk 2) ─────────────────────────────────
+ * POST /seat/claim used to trust body.anonId — any pubkey could harvest any
+ * anonId's side/call/verdict/serial with a bare POST. Now a claim requires a
+ * one-time token requested OVER THE WEBSOCKET (contracts/crowd.ts SeatTokenMsg
+ * → SeatTokenGrantMsg): the server grants ONLY for the connection's own
+ * adopted identity (state.anonId/state.matchId — the same trust anchor
+ * cheer/predict/momentReact already use), and the HTTP claim derives its
+ * anonId + matchId FROM THE TOKEN, never from the body. Tokens are single-use
+ * (burned on redemption, even when expired), short-lived (~2 min), and
+ * in-memory only — a restart invalidates pending tokens, which is correct: a
+ * token is a session credential, and the client just requests a fresh one.
+ * TTL is env-tunable (SEAT_TOKEN_TTL_MS, floor 1s) so the dev check can run a
+ * real expiry test in seconds — same pattern as WS_HEARTBEAT_INTERVAL_MS. */
+function seatTokenTtlMs(): number {
+  const raw = process.env.SEAT_TOKEN_TTL_MS;
+  const n = raw !== undefined ? Number(raw) : 120_000;
+  return Number.isFinite(n) ? Math.max(1_000, n) : 120_000;
+}
+const SEAT_TOKEN_TTL_MS = seatTokenTtlMs();
+
+interface SeatTokenRecord {
+  matchId: string;
+  anonId: string;
+  expiresAtMs: number;
+}
+const seatTokens = new Map<string, SeatTokenRecord>();
+
+/** Issue a claim token to THIS connection's adopted identity. Mirrors
+ * handleCheer's guard shape: the session must be seated (hello adopted an
+ * anonId) and the request's matchId/anonId must BOTH equal the session's own —
+ * anything else is silently dropped, exactly like a cheer for the wrong match.
+ * At most one live token per (matchId, anonId): re-issuing replaces the prior
+ * (bounds the map by active fans), and every issue sweeps expired entries. */
+function handleSeatToken(ws: WebSocket, state: ConnState, msg: Extract<ClientMsg, { type: 'seatToken' }>): void {
+  if (!state.matchId || !state.anonId) return;
+  if (state.matchId !== msg.matchId || state.anonId !== msg.anonId) return;
+  const now = Date.now();
+  for (const [tok, rec] of seatTokens) {
+    if (now > rec.expiresAtMs) seatTokens.delete(tok); // sweep expired
+    else if (rec.matchId === state.matchId && rec.anonId === state.anonId) seatTokens.delete(tok); // replace prior
+  }
+  const token = randomBytes(24).toString('base64url');
+  const expiresAtMs = now + SEAT_TOKEN_TTL_MS;
+  seatTokens.set(token, { matchId: state.matchId, anonId: state.anonId, expiresAtMs });
+  const grant: SeatTokenGrantMsg = { type: 'seatTokenGrant', matchId: state.matchId, anonId: state.anonId, token, expiresAtMs };
+  send(ws, grant); // ONLY to the requesting socket — the token is a credential, never broadcast
+}
+
+/** Redeem (single-use): returns the bound identity, or null for anything
+ * invalid — unknown, expired, or already redeemed. A token is burned on ANY
+ * redemption attempt that finds it, even an expired one. */
+function redeemSeatToken(token: unknown): SeatTokenRecord | null {
+  if (typeof token !== 'string' || token.length === 0) return null;
+  const rec = seatTokens.get(token);
+  if (!rec) return null;
+  seatTokens.delete(token); // single-use
+  if (Date.now() > rec.expiresAtMs) return null;
+  return rec;
+}
+
+/** POST /seat/claim {token,pubkey,method} -> {profile, mint:{asset,txUrl}|null}.
+ * The anonId + matchId being claimed are derived FROM THE TOKEN (session-bound,
+ * single-use — see the block comment above), never from the body: a body
+ * anonId/matchId, if sent, is ignored. bindClaim folds the token-bound fan's
+ * REAL rooted side + locked call into the record (never inventing one),
+ * profile.sides is patched with the resolved TEAM TRICODE (not 'home'/'away'),
+ * and — once the match has genuinely reached FULL_TIME — the scarf is minted
+ * owned by pubkey into the ROOOT scarf collection (service pays, devnet only;
+ * idempotent per (pubkey, matchId) — see seat/mint-scarf.ts). A claim before
+ * full time still binds; `mint: null` until the match actually ends. */
+async function handleSeatClaim(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  let body: any;
+  try {
+    const raw = await readBody(req);
+    body = raw ? JSON.parse(raw) : {};
+  } catch {
+    sendJson(res, 400, { error: 'invalid json' });
+    return;
+  }
+  const { token, pubkey } = body ?? {};
+  if (!isValidPubkey(pubkey)) {
+    sendJson(res, 400, { error: 'invalid pubkey' });
+    return;
+  }
+  const grant = redeemSeatToken(token);
+  if (!grant) {
+    sendJson(res, 401, { error: 'invalid or expired claim token' });
+    return;
+  }
+  const method: 'passkey' | 'privy' = body?.method === 'privy' ? 'privy' : 'passkey';
+  try {
+    // The token's matchId was getOrCreate'd by the very hello that earned the
+    // token, so this lookup succeeds in practice; the identity-only fallback
+    // stays as defense (e.g. future GC of idle matches), never inventing state.
+    const match = registry.get(grant.matchId);
+    const record = match
+      ? bindClaim(match, grant.anonId, pubkey, method, Date.now())
+      : { pubkey, method, side: null, call: null, matchId: grant.matchId, boundAtMs: Date.now() };
+    const tricode = match ? sideTricode(match.matchId, record.side) : null;
+    const profile = saveProfile(pubkey, { sides: tricode ? [tricode] : [], since: record.boundAtMs });
+    // The scarf mints for a REAL, FULL-TIME match claim only (mint-scarf.ts's own honesty gate) —
+    // mid-match claims stay mint:null. Independently try/caught — even though mintScarfForClaim
+    // itself never throws (it catches internally), this belt-and-suspenders guard means a mint
+    // problem can NEVER turn an already-saved bind into a 500: the claim always responds 200 with
+    // mint:null on any mint-side issue.
+    let mint: ScarfMint | null = null;
+    let mintNote: string | undefined;
+    if (match) {
+      const score = currentScoreSnapshot(match.matchId);
+      if (resolvedMatches.has(match.matchId) && !score.decided) {
+        // Review merge-gate fix: the match genuinely finished, but THIS process does not know
+        // the real final score (restored from a pre-v6 snapshot, or the score never persisted).
+        // Refuse plainly and retryably — the bind is saved, no token/marker is burned by this
+        // branch, and no scarf is ever minted with a fabricated 0–0.
+        mintNote = 'final score not available right now — your seat is saved; claim again shortly';
+        console.warn(`[seat] ${match.matchId} is resolved but its final score is unknown to this process (pre-finalScore snapshot?) — refusing to mint rather than fabricate a 0–0 scarf; the claim stays retryable`);
+      } else {
+        try {
+          const result = match.verdictFor(grant.anonId)?.verdict ?? null;
+          const fanNo = registry.fanNoFor(grant.anonId);
+          mint = await mintScarfForClaim(record, score, { result, fanNo });
+        } catch (err) {
+          console.warn(`[seat] mint threw unexpectedly for ${pubkey.slice(0, 8)}: ${String(err)}`);
+        }
+      }
+    }
+    sendJson(res, 200, { profile, mint, ...(mintNote ? { mintNote } : {}) });
+  } catch (err) {
+    console.warn(`[seat] claim failed for ${pubkey.slice(0, 8)}: ${String(err)}`);
+    sendJson(res, 500, { error: 'claim failed' });
+  }
+}
+
+/** GET /seat/album?pubkey= -> {scarves}. Devnet DAS lookup — returns real minted scarves, filtered
+ * to the ROOOT scarf collection (mint/collection.ts resolves it from ROOOT_SCARF_COLLECTION or its
+ * own on-disk cache — see seat/album.ts). Prefers HELIUS_RPC_URL (a DAS-capable RPC —
+ * getAssetsByOwner is a Helius/DAS-indexer method, not part of plain Solana JSON-RPC) over the
+ * plain devnet RPC the mint path uses; falls back to that if unset (go-live checklist item: pin
+ * HELIUS_RPC_URL as a Fly secret — the public devnet RPC has no DAS index). */
+async function handleSeatAlbum(pubkey: string | null, res: ServerResponse): Promise<void> {
+  if (!pubkey || !isValidPubkey(pubkey)) {
+    sendJson(res, 400, { error: 'invalid pubkey' });
+    return;
+  }
+  try {
+    const rpcUrl = process.env.HELIUS_RPC_URL || networkFor('devnet').rpcUrl;
+    const scarves = await assetsByOwner(pubkey, rpcUrl);
+    sendJson(res, 200, { scarves });
+  } catch (err) {
+    console.warn(`[seat] album fetch failed for ${pubkey.slice(0, 8)}: ${String(err)}`);
+    sendJson(res, 502, { error: 'album fetch failed' });
+  }
+}
+
+/** GET /seat/me?pubkey= -> {profile}. Flat-file read-back (seat/profile-store.ts), no DB. */
+function handleSeatMe(pubkey: string | null, res: ServerResponse): void {
+  if (!pubkey || !isValidPubkey(pubkey)) {
+    sendJson(res, 400, { error: 'invalid pubkey' });
+    return;
+  }
+  const profile = loadProfile(pubkey);
+  sendJson(res, 200, { profile });
+}
+/* ════════════════════════ END SEAT function block ═══════════════════════ */
 
 export function createStandsServer() {
   const httpServer = createServer((req, res) => {
@@ -1234,6 +1520,39 @@ export function createStandsServer() {
       res.end(body);
       return;
     }
+    // ── SEAT: /seat/* HTTP routes (comment-fenced, additive — see the SEAT
+    // function block above). CORS + OPTIONS preflight apply to this whole
+    // subtree; routing needs a parsed URL, which nothing above this point
+    // required (the /health check above is a raw req.url compare, untouched). ──
+    let seatUrl: URL;
+    try {
+      seatUrl = new URL(req.url ?? '/', 'http://x');
+    } catch {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('not found');
+      return;
+    }
+    if (seatUrl.pathname.startsWith('/seat/')) {
+      setSeatCorsHeaders(res);
+      if (req.method === 'OPTIONS') {
+        res.writeHead(204);
+        res.end();
+        return;
+      }
+      if (req.method === 'POST' && seatUrl.pathname === '/seat/claim') {
+        void handleSeatClaim(req, res);
+        return;
+      }
+      if (req.method === 'GET' && seatUrl.pathname === '/seat/album') {
+        void handleSeatAlbum(seatUrl.searchParams.get('pubkey'), res);
+        return;
+      }
+      if (req.method === 'GET' && seatUrl.pathname === '/seat/me') {
+        handleSeatMe(seatUrl.searchParams.get('pubkey'), res);
+        return;
+      }
+    }
+    // ── END SEAT routes ──────────────────────────────────────────────────
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     res.end('not found');
   });

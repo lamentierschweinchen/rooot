@@ -282,6 +282,21 @@ export class MatchState {
     this.rooted.set(anonId, side);
   }
 
+  /* ── SEAT: read-only per-anonId accessors (services/stands/src/seat/claim.ts's
+   * bindClaim) — the fan's REAL rooted side / locked prediction, never invented.
+   * Typed reads of the private rooted/predictions maps; no mutation. getPrediction
+   * returns a defensive copy (this is public API now — callers must not be able to
+   * mutate the live prediction through the returned object). ────────────────── */
+
+  getRootedSide(anonId: string): Side | undefined {
+    return this.rooted.get(anonId);
+  }
+
+  getPrediction(anonId: string): { home: number; away: number; atMs: number } | undefined {
+    const p = this.predictions.get(anonId);
+    return p ? { ...p } : undefined;
+  }
+
   counts(): { home: number; away: number } {
     let home = 0;
     let away = 0;
