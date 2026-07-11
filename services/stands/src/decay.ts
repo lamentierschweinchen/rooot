@@ -33,6 +33,15 @@ export const MOMENT_COOLDOWN_MS = 15_000;
 /** A market lurch this large (max single-leg move, 0..1) with no event to pin
  * it on opens a standalone `swing` moment. */
 export const SWING_DELTA_MIN = 0.12;
+/** Swing detection compares the CURRENT tick against the OLDEST tick still
+ * inside this rolling window (not the immediately-previous tick) — a
+ * human-meaningful span of market movement, not an artifact of feed tick
+ * rate. Folded fix (tonight-gate): a consecutive-tick comparison is invisible
+ * on a high-frequency feed (79 ticks/10s observed live, Jul 10 ESP-BEL) —
+ * each step is a fraction of a percent even while the market moved 60%→97%
+ * over the match, so SWING_DELTA_MIN was never crossed by any single step.
+ * 60–90s per spec; 75s splits the difference. */
+export const SWING_WINDOW_MS = 75_000;
 
 /**
  * Token bucket: `take(n, now)` returns how many of the requested n tokens

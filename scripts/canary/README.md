@@ -130,6 +130,49 @@ with **neither** replay configured correctly reports both as SKIPPED with a
 reason, never fakes either. The predict-lock timing note above doesn't apply
 here (odds carry no phase/status), so a higher speed is fine on this stream.
 
+## Reconnect-storm regression check (tonight-gate, 2026-07-11)
+
+A second, focused entrypoint — not a `run.mjs` mode, since it force-kills real
+sockets repeatedly and needs its own local-stack recipe:
+
+```
+node scripts/canary/reconnect-check.mjs --web <baseUrl> --ws <wsUrl> --match <id> [--check storm|responsive|both] [--out <path>] [--headed]
+```
+
+Verifies the fix for last night's ground-page hang (a live reload logged
+`[stands-adapter] live wire → 18218149` **ten times** within ~1s against 2
+expected — a self-feeding reconnect storm; see
+`apps/web/public/{stands,stats,loom}-adapter.js` / `match-read.js` for the
+fix itself: a single-flight connect guard, backoff that resets to 1s only
+after staying open ≥5s, and a trailing-edge throttle on the state-publish
+path).
+
+- `--check storm` drives the real `ground.html` (stands-adapter +
+  stats-adapter), `woven-loom.html` (loom-adapter), and `stadium.html`
+  (stats-adapter + match-read.js) — never edited, never stubbed — and
+  force-closes every currently-open matching socket repeatedly (via
+  `lib/wsTap.mjs`'s additive `window.__canary.killLive`/`.liveCount`, an
+  extension of the existing WebSocket tap used by `--mode full`/`smoke`;
+  nothing about the existing tap's behavior changed). Asserts live
+  concurrency never exceeds each page's legitimate steady-state count, and
+  that "live wire" console logs never outrun real `open` events (exactly
+  equal on pages where every loaded adapter logs; `match-read.js` has never
+  logged on open, before or after this fix, so `stadium.html` is held to
+  `logs <= opens` instead — see the script's `STORM_PAGES` comment).
+- `--check responsive` navigates fresh into a match expected to already
+  carry a heavy server-side join-snapshot and samples `page.evaluate()`
+  round-trip latency for 8s right after load — a blocked main thread queues
+  the call behind whatever synchronous work the adapters/surfaces are doing.
+  PROVISIONAL (not FAIL) if fewer than 50 inbound messages were observed —
+  that means the target has no real replay loaded, not that the page failed.
+
+Needs two separate local `services/stands` instances (a bare one for
+`storm`, a `REPLAY_FILE`-fed one for `responsive` — see "Enabling full-time
+replay" above for the exact recipe); run each `--check` against the
+matching instance. Local-stack-only, same host-safety gate as `--mode full`
+(this force-kills real sockets — must be structurally incapable of hammering
+production).
+
 ## `--mode smoke`
 
 Production-safe, **read-only**. Loads `/`, `/live`, `/cabinet`, asserts zero

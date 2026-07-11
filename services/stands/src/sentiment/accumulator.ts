@@ -61,7 +61,16 @@ export class SentimentAccumulator {
   private et: MarketPoint[] = [];
   private phases: MatchPhase[] = [];
   private phaseSnaps: Array<{ phase: MatchPhase; belief: { home: number; draw: number; away: number } }> = [];
-  private events: LedgerEvent[] = [];
+  /** MATERIAL ledger events, deduped by wire event id — a goal/card/etc.
+   * re-emits on the wire as it gets confirmed (Confirmed:false → true, scorer
+   * names filled in later); a Map keyed by ev.id keeps only the LAST
+   * emission per id (the most complete one) while preserving first-seen
+   * chronological order (JS Map semantics: re-setting an EXISTING key
+   * updates its value in place without moving its iteration position — only
+   * a genuinely NEW id is appended at the end). Folded fix: the record was
+   * storing each goal 3× — one entry per re-emission of the SAME ev.id, a
+   * fabricated-looking inflation of a match's real event count. */
+  private readonly eventsById = new Map<string, LedgerEvent>();
   /** the FELT drama moments (REACT reveals) — the feel.moments layer. */
   private readonly moments: MomentFeeling[] = [];
   private minute: number | null = null;
@@ -118,7 +127,7 @@ export class SentimentAccumulator {
         if (msg.msg.type !== 'event') break;
         const ev = msg.msg.ev;
         if (typeof ev.minute === 'number') this.minute = ev.minute;
-        if (MATERIAL.has(ev.kind)) this.events.push(ev);
+        if (MATERIAL.has(ev.kind)) this.eventsById.set(ev.id, ev); // last emission wins — see eventsById doc
         break;
       }
       case 'momentResult': {
@@ -158,8 +167,17 @@ export class SentimentAccumulator {
     this.moments.push(...moments);
   }
 
-  /** crystallize the record (call at FULL_TIME with the crowd data). */
-  crystallize(crowd: CrowdInputs, edition: SentimentRecord['edition']): SentimentRecord {
+  /** crystallize the record (call at FULL_TIME with the crowd data).
+   * `finalScoreOverride`, when given, wins over the live-tracked `this.final`
+   * (folded fix: the record's finalScore came out empty despite a real FT
+   * 2-1 on the wire — server.ts's predictLifecycle already has a proven-
+   * reliable final score, sourced from the SAME joinSnapshots cache the
+   * resolved-verdict path depends on, so the live call site now passes it
+   * straight through instead of trusting this class's own separate 'score'
+   * tracking to have landed it. Optional so existing callers with no
+   * override — the offline crystallizer never calls this class at all, and
+   * the dev-check/dry-run callers — keep working unchanged off `this.final`. */
+  crystallize(crowd: CrowdInputs, edition: SentimentRecord['edition'], finalScoreOverride?: { home: number; away: number }): SentimentRecord {
     const market = summarizeMarket(this.full, this.phaseSnaps, this.et);
     const con = crowd.consensus;
     // optimism = a fanbase's own-win prediction rate − the market's implied
@@ -190,9 +208,9 @@ export class SentimentAccumulator {
     return assembleSentimentRecord({
       matchId: this.matchId,
       fixture: this.fixture,
-      finalScore: this.final,
+      finalScore: finalScoreOverride ?? this.final,
       phasePath: this.phases,
-      market, fans, feel, events: this.events,
+      market, fans, feel, events: Array.from(this.eventsById.values()),
       edition,
       capture: { fromMs: this.fromMs === Infinity ? this.toMs : this.fromMs, toMs: this.toMs },
       network: 'devnet',

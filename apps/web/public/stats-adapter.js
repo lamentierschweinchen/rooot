@@ -52,13 +52,13 @@
     // resolve to this same literal. Warns exactly once (review I2).
     function finish(id, fellBack) {
       if (done) return; done = true;
-      if (fellBack) console.warn('[stats-adapter] fixture manifest unavailable — falling back to 18209181');
+      if (fellBack) console.warn('[stats-adapter] fixture manifest unavailable — falling back to 18213979');
       cb(id);
     }
     window.__fixtureReady.then(function (fx) {
-      if (fx && fx.matchId) finish(fx.matchId, false); else finish('18209181', true);
-    }, function () { finish('18209181', true); });
-    setTimeout(function () { finish('18209181', true); }, 1500);
+      if (fx && fx.matchId) finish(fx.matchId, false); else finish('18213979', true);
+    }, function () { finish('18213979', true); });
+    setTimeout(function () { finish('18213979', true); }, 1500);
   }
 
   // DEMO boots synchronously with the explicit param or the old literal fallback —
@@ -90,7 +90,20 @@
   var cbs = [];
   window.__stats = stats;
   window.__statsAdapter = { stats: stats, matchId: matchId, onStats: function (cb) { cbs.push(cb); if (typeof cb === 'function') try { cb(stats); } catch (e) {} } };
-  function emit() { for (var i = 0; i < cbs.length; i++) { try { cbs[i](stats); } catch (e) {} } }
+  function fireStats() { for (var i = 0; i < cbs.length; i++) { try { cbs[i](stats); } catch (e) {} } }
+  // trailing-edge throttle (~250ms, <=4 fires/s) on the LIVE path only: `stats` is mutated
+  // synchronously by every onLedgerEvent/onFeed call above BEFORE emit() runs, so this only
+  // coalesces the notify-to-surfaces fan-out — nothing is lost, a join replay's ~1,600
+  // messages just can't each force a synchronous render() (terrace.html/stadium.html/
+  // count-live.html all call render(s) straight from onStats — the main-thread block behind
+  // last night's reconnect storm). ?demo=1 is gated out and stays byte-identical (demo-feed.js
+  // already paces its own playback; no reconnect loop to storm in the first place).
+  var emitTimer = null;
+  function emit() {
+    if (DEMO) { fireStats(); return; }
+    if (emitTimer) return;
+    emitTimer = setTimeout(function () { emitTimer = null; fireStats(); }, 250);
+  }
 
   function sideOf(s) { return s === 'home' ? stats.home : s === 'away' ? stats.away : null; }
 
@@ -256,14 +269,39 @@
 
   // ── transport: WS to the stands service (mirrors loom-adapter) ──
   var url = wsBase + (wsBase.indexOf('?') >= 0 ? '&' : '?') + 'matchId=' + encodeURIComponent(matchId);
-  var backoff = 1000;
+  var backoff = 1000, ws = null, connecting = false, reconnectTimer = null, openedAtMs = 0;
+  // Single-flight + reconnect discipline (see stands-adapter.js for the full incident
+  // rationale): `connecting` guards against two concurrent attempts (opening OR open);
+  // `reconnectTimer` guards against more than one pending reconnect; backoff (1s→30s)
+  // resets to 1s only once a connection has stayed open >=5s, so a connect-die-connect
+  // flap escalates instead of hammering at 1s.
+  function scheduleReconnect() {
+    if (reconnectTimer || connecting) return;
+    reconnectTimer = setTimeout(function () { reconnectTimer = null; connect(); }, backoff);
+  }
   function connect() {
-    var ws;
-    try { ws = new WebSocket(url); } catch (e) { setTimeout(connect, backoff); return; }
-    ws.onopen = function () { backoff = 1000; console.log('[stats-adapter] live wire →', matchId); };
-    ws.onmessage = function (e) { var m; try { m = JSON.parse(e.data); } catch (_) { return; } try { onFeed(m); } catch (err) { console.warn('[stats-adapter] translate error', err); } };
-    ws.onclose = function () { setTimeout(connect, backoff); backoff = Math.min(backoff * 2, 30000); };
-    ws.onerror = function () { try { ws.close(); } catch (_) {} };
+    if (connecting) return;
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+    connecting = true;
+    var sock;
+    try { sock = new WebSocket(url); } catch (e) { connecting = false; scheduleReconnect(); return; }
+    ws = sock;
+    sock.onopen = function () {
+      if (sock !== ws) return; // stale handler guard — should be unreachable under single-flight
+      if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+      openedAtMs = Date.now();
+      console.log('[stats-adapter] live wire →', matchId);
+    };
+    sock.onmessage = function (e) { var m; try { m = JSON.parse(e.data); } catch (_) { return; } try { onFeed(m); } catch (err) { console.warn('[stats-adapter] translate error', err); } };
+    sock.onclose = function () {
+      if (sock !== ws) return;
+      connecting = false;
+      var stayedOpen = openedAtMs > 0 && (Date.now() - openedAtMs) >= 5000;
+      backoff = stayedOpen ? 1000 : Math.min(backoff * 2, 30000);
+      openedAtMs = 0;
+      scheduleReconnect();
+    };
+    sock.onerror = function () { try { sock.close(); } catch (_) {} };
   }
   // under ?demo=1 with no explicit ?ws, feed the stadium's stat cards from the baked
   // serverless feed (demo-feed.js) instead of the live WebSocket.
