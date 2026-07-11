@@ -107,6 +107,20 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .pin.bronze .pc{color:#9C6733}.pin.silver .pc{color:#82888D}.pin.gold .pc{color:#A87F27}
 .pin.locked .pl{color:var(--sub)}.pin.locked .pc{color:var(--sub);font-weight:700}
 
+/* THE CARDS — the held-up cards on the shelf, miniature and true */
+.cardrack{margin:0 18px}
+.kc{display:flex;align-items:stretch;border:2px solid var(--ink);box-shadow:4px 4px 0 rgba(26,24,21,.18);background:var(--card);margin-bottom:10px;overflow:hidden}
+.kc .face{flex:none;width:58px;position:relative}
+.kc .face i{position:absolute;width:9px;height:9px;border-radius:1px;opacity:.9}
+.kc .face .seat{background:var(--card);outline:1.5px solid rgba(243,236,219,.8);opacity:1;border-radius:2px}
+.kc .bd{flex:1;padding:8px 10px 7px;display:flex;flex-direction:column;gap:3px;border-left:2px solid var(--ink)}
+.kc .l1{display:flex;justify-content:space-between;align-items:baseline;font-weight:900;font-size:13px;letter-spacing:.03em}
+.kc .l1 .acc{color:var(--gold);font-size:11px}
+.kc .l2{font-weight:800;font-size:7px;letter-spacing:.12em;color:var(--sub)}
+.kc .l3{display:flex;justify-content:space-between;font-weight:700;font-size:6.5px;letter-spacing:.1em;color:var(--sub);margin-top:2px}
+.kc.arrive{animation:kcArrive .9s cubic-bezier(.2,1.3,.4,1)}
+@keyframes kcArrive{0%{transform:scale(.955);box-shadow:0 0 0 3px var(--gold),4px 4px 0 rgba(26,24,21,.18)}100%{transform:none;box-shadow:4px 4px 0 rgba(26,24,21,.18)}}
+
 /* footer */
 .foot{margin:26px 18px 0;padding-top:12px;border-top:1px solid var(--line);text-align:center;font-weight:700;font-size:7.5px;letter-spacing:.09em;color:var(--sub);line-height:1.5}
 
@@ -146,6 +160,11 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
   <div class="sec"><span class="t">THE SCARVES</span><span class="c" id="scarvesSub">tap to unroll the cloth</span></div>
   <div class="rack" id="rack"></div>
 
+  <div id="cardsWrap" style="display:none">
+    <div class="sec"><span class="t">THE CARDS</span><span class="c">the nights you stood in the stands</span></div>
+    <div class="cardrack" id="cardrack"></div>
+  </div>
+
   <div class="sec"><span class="t">THE PINS</span><span class="c">the fan virtues · bronze → silver → gold · earned, not bought</span></div>
   <div class="pins" id="pins"></div>
 
@@ -175,44 +194,98 @@ var VIRTUES=[
 ];
 function rankOf(c,t){ return c>=t[2]?'gold':c>=t[1]?'silver':c>=t[0]?'bronze':'locked'; }
 function fmtC(n){ return n>=1000?(+(n/1000).toFixed(n>=10000?0:1))+'k':(''+n); }
-// full-time is a truthful THREE-state verdict (post-mortem): exact scoreline · right outcome, wrong score · wrong
-function resTag(r){ return r==='exact'?'<span class="hit">✓ NAILED IT</span>':r==='outcome'?'<span class="no">≈ RIGHT CALL</span>':'<span class="miss">✗ didn’t fall</span>'; }
+// full-time is a truthful THREE-state verdict — plain words (owner, 10 Jul: call things what they are)
+function resTag(r){ return r==='exact'?'<span class="hit">✓ EXACT SCORE</span>':r==='outcome'?'<span class="no">≈ RIGHT RESULT</span>':'<span class="miss">✗ WRONG</span>'; }
+// accuracy 0–100 (owner formula): 50 for the right result + 25 per team's goals, −10 per goal off
+function accScore(p,f){ var r=Math.sign(p.h-p.a)===Math.sign(f.h-f.a)?50:0;
+  var g=function(x,y){return Math.max(0,25-10*Math.abs(x-y));}; return r+g(p.h,f.h)+g(p.a,f.a); }
+
+// ── the fan's own kept relics, straight off this device — real records written at full time.
+//    the album adapter reconciles server-side later; until then these ARE the truth. ──
+function readLocal(prefix){ var out=[];
+  for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i);
+    if(k&&k.indexOf(prefix)===0){ try{ var v=JSON.parse(localStorage.getItem(k)); if(v){ v.__id=k.slice(prefix.length); out.push(v); } }catch(e){} } }
+  out.sort(function(a,b){ return (b.at||b.ts||0)-(a.at||a.ts||0); });   // newest first — the rack hangs that way
+  return out;
+}
+function fmtDate(ms){ if(!ms)return''; var d=new Date(ms),M=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  return (d.getDate()<10?'0':'')+d.getDate()+' '+M[d.getMonth()]+" '"+String(d.getFullYear()).slice(2); }
+function clothScore(c){ var s=c.score;
+  if(Array.isArray(s))return s.join('–');
+  if(s&&s.home!=null)return s.home+'–'+s.away;
+  if(s&&s.h!=null)return s.h+'–'+s.a;
+  return '—'; }
+// a scarf per kept cloth; the kept card of the same match lends its prediction, verdict and serial
+function scarvesFromCloths(cloths,kepts){
+  return cloths.map(function(c){ var id=c.fx||c.__id, k=null;
+    for(var i=0;i<kepts.length;i++)if(kepts[i].matchId===id){k=kepts[i];break;}
+    var call=null,result=null;
+    if(k&&k.pred&&k.final){ call=(k.home||'')+' '+k.pred.h+'–'+k.pred.a;
+      result=(k.pred.h===k.final.h&&k.pred.a===k.final.a)?'exact':(Math.sign(k.pred.h-k.pred.a)===Math.sign(k.final.h-k.final.a)?'outcome':'wrong'); }
+    return { matchId:id, home:(c.home&&c.home.tri)||'—', away:(c.away&&c.away.tri)||'—', score:clothScore(c),
+      call:call, result:result, comp:'THE TOURNAMENT', date:fmtDate(c.at), serial:(k&&k.fanNo)?String(k.fanNo).padStart(3,'0'):'—' };
+  });
+}
+// the record tiles, derived honestly from what this device kept
+function deriveFromKept(scarves,kepts){
+  var ids={}; scarves.forEach(function(s){ids[s.matchId]=1;}); kepts.forEach(function(k){ids[k.matchId]=1;});
+  var lived=Object.keys(ids).length, preds=0, exact=0;
+  kepts.forEach(function(k){ if(k.pred){ preds++; if(k.final&&k.pred.h===k.final.h&&k.pred.a===k.final.a)exact++; } });
+  return {lived:lived,calls:preds,nailed:exact,loudestNight:null};
+}
 
 // team tricode → scarf palette [fill, ink-on-fill]. Colours live here (design's); the mint carries only facts.
-var COLORS={ARG:['#2049AA','#F3ECDB'],CPV:['#C8504D','#F3ECDB'],SUI:['#D52B1E','#F3ECDB'],COL:['#E8B10A','#1A1815'],BRA:['#F7D117','#1A1815'],NOR:['#BA0C2F','#F3ECDB'],SPA:['#C60B1E','#F3ECDB'],BEL:['#1A1815','#F3D02F'],ENG:['#D52B1E','#F3ECDB'],FRA:['#2049AA','#F3ECDB'],MOR:['#0E5B32','#F3ECDB']};
+var COLORS={ARG:['#2049AA','#F3ECDB'],CPV:['#C8504D','#F3ECDB'],SUI:['#D52B1E','#F3ECDB'],COL:['#E8B10A','#1A1815'],BRA:['#F7D117','#1A1815'],NOR:['#BA0C2F','#F3ECDB'],SPA:['#C60B1E','#F3ECDB'],ESP:['#AA151B','#F3ECDB'],BEL:['#1A1815','#F3D02F'],ENG:['#D52B1E','#F3ECDB'],FRA:['#2049AA','#F3ECDB'],MOR:['#0E5B32','#F3ECDB']};
 function pal(tri){ return COLORS[tri]||['#8C8467','#F3ECDB']; }
 function fmtSince(v){ if(v==null||v==='')return "'26"; if(typeof v==='string')return v; var d=new Date(v); return "'"+String(d.getFullYear()).slice(2); }   // ms → 'YY; passes strings through
 function deriveRecord(sc){ var n=0; for(var i=0;i<sc.length;i++)if(sc[i].result==='exact')n++; return {lived:sc.length,calls:sc.length,nailed:n,loudestNight:null}; }   // NAILED = exact scoreline only; straight off the kept relics
 
 // --- the sample cabinet, shown ONLY in the ?demo=1 walkthrough. result is 3-state: exact | outcome | wrong ---
+// matchId = the real fixture id the adapter ran under — the kept cloth is keyed on it (rooot.cloth.<matchId>).
+// SUI–COL 18202783 IS the baked demo: live it to full time and this scarf unrolls the real pressed cloth
+// (it ended 0–0, spot-decided — the face must say what the cloth says). The others have no recorded
+// cloth on this phone, so their tap honestly says NOTHING KEPT. Rack hangs newest first.
 var SAMPLE={
   profile:{displayName:'lukas',sides:['SUI','ARG'],since:"'26"},
   record:{lived:12,calls:34,nailed:21,loudestNight:'ARG'},
   scarves:[
-    {asset:'d1',home:'ARG',away:'CPV',score:'3–2',call:'ARG 3–2',result:'exact',  comp:'WORLD CUP',date:"08 JUL '26",serial:'014'},
-    {asset:'d2',home:'SUI',away:'COL',score:'1–1',call:'SUI 2–1',result:'wrong',  comp:'GROUP F',  date:"04 JUL '26",serial:'009'},
-    {asset:'d3',home:'BRA',away:'NOR',score:'0–1',call:'the upset',result:'outcome',comp:'GROUP C', date:"01 JUL '26",serial:'003'}
+    {asset:'d2',matchId:'18202783',home:'SUI',away:'COL',score:'0–0',call:'SUI 2–1',result:'wrong',  comp:'WORLD CUP',date:"07 JUL '26",serial:'009'},
+    {asset:'d3',matchId:'18187298',home:'BRA',away:'NOR',score:'0–1',call:'the upset',result:'outcome',comp:'GROUP C', date:"05 JUL '26",serial:'003'},
+    {asset:'d1',matchId:'18175918',home:'ARG',away:'CPV',score:'3–2',call:'ARG 3–2',result:'exact',  comp:'WORLD CUP',date:"03 JUL '26",serial:'014'}
   ],
   next:{home:'SPA',away:'BEL',kickoff:"SAT 20:00",side:'SPAIN'}
 };
 // live (or any non-demo) with no seat/album yet → an HONEST empty seat, never the fake sample (post-mortem: no sample on live)
 var EMPTY={real:true, profile:{displayName:'you',sides:[],since:''}, record:{lived:0,calls:0,nailed:0,loudestNight:null}, scarves:[], next:null};
-// read the live interface if present (empty for a first-time fan), else the sample. record: album's if given, else derived from scarves
+// read the live interface if present, folding in this device's own kept records; else the sample/empty.
+// THE CARDS are always the device's real kept records — even inside the walkthrough (a walker's keep is real).
 function resolve(){
+  var kepts=readLocal('rooot.kept.'), cloths=readLocal('rooot.cloth.');
   var seat=window.__seat, album=window.__album;
-  if(seat||album){ var scarves=(album&&album.scarves)||[];
+  if(seat||album){ var scarves=(album&&album.scarves&&album.scarves.length)?album.scarves:scarvesFromCloths(cloths,kepts);
     return {
       real:true,
-      profile:(seat&&seat.profile)||{displayName:'you',sides:[],since:''},
-      record:(album&&album.record)||deriveRecord(scarves),
+      profile:(seat&&seat.profile)||profileFromPass(),
+      record:(album&&album.record)||deriveFromKept(scarves,kepts),
       scarves:scarves,
+      cards:kepts,
       next:(album&&album.next)||null
     };
   }
-  return DEMO?SAMPLE:EMPTY;   // the walkthrough shows the curated sample; a real seat with no data shows the honest empty state
+  if(!DEMO&&(kepts.length||cloths.length)){   // no album adapter yet, but this device lived matches — that is a real cabinet
+    var sc=scarvesFromCloths(cloths,kepts);
+    return {real:true, profile:profileFromPass(), record:deriveFromKept(sc,kepts), scarves:sc, cards:kepts, next:null};
+  }
+  var base=DEMO?SAMPLE:EMPTY;   // the walkthrough shows the curated sample; a real seat with no data shows the honest empty state
+  return Object.assign({cards:kepts},base);
+}
+function profileFromPass(){ var p=null; try{ p=JSON.parse(localStorage.getItem('rooot.pass')||'null'); }catch(e){}
+  if(!p)return {displayName:'you',sides:[],since:''};
+  var side=p.side==='a'?p.away:p.side==='h'?p.home:null;
+  return {displayName:'you',sides:side?[side]:[],since:(p.ts&&p.ts>1e12)?p.ts:''};
 }
 function scarfHTML(s){ var ph=pal(s.home), pa=pal(s.away);
-  return '<div class="keep reveal" data-match="'+s.home+'-'+s.away+'">'+
+  return '<div class="keep reveal" data-match="'+(s.matchId||s.home+'-'+s.away)+'">'+
     '<div class="scarf" style="--h:'+ph[0]+';--a:'+pa[0]+';--hink:'+ph[1]+';--aink:'+pa[1]+'">'+
       '<span class="fr"></span>'+
       '<div class="half h"><span class="tri">'+s.home+'</span></div>'+
@@ -220,13 +293,28 @@ function scarfHTML(s){ var ph=pal(s.home), pa=pal(s.away);
       '<div class="half a"><span class="tri">'+s.away+'</span></div>'+
       '<span class="fr"></span>'+
     '</div>'+
-    '<div class="hall"><span class="call">'+s.date+' · you called <b>'+s.call+'</b> '+resTag(s.result)+'</span><span>Nº '+s.serial+'</span></div>'+
+    '<div class="hall"><span class="call">'+s.date+(s.call?' · you predicted <b>'+s.call+'</b> '+resTag(s.result):' · <b>you were there</b>')+'</span><span>Nº '+s.serial+'</span></div>'+
   '</div>';
 }
+// THE CARD on the shelf — a miniature of the one you held: your end's colours, your seat, your numbers
+function cardHTML(k,i){
+  var col=(k.colors&&k.colors[0])||'#8C8467', sec=(k.colors&&k.colors[1])||col, sec2=(k.colors&&k.colors[2])||sec;
+  var fl=''; var pts=[[8,10],[34,22],[16,40],[40,54],[10,66],[36,82]];
+  pts.forEach(function(p,j){ fl+='<i style="left:'+p[0]+'px;top:'+p[1]+'%;background:'+((j%2)?sec:sec2)+'"></i>'; });
+  var seatCol=(k.seat!=null?(k.seat%3):1), seatRow=(k.seat!=null?((k.seat>>2)%5):2);
+  fl+='<i class="seat" style="left:'+(10+seatCol*14)+'px;top:'+(12+seatRow*16)+'%"></i>';
+  var acc=(k.pred&&k.final)?accScore(k.pred,k.final):null;
+  var l1='<span>'+(k.home||'—')+' '+(k.final?k.final.h+'–'+k.final.a:'—')+' '+(k.away||'—')+'</span>'+(acc!=null?'<span class="acc">'+acc+'%</span>':'');
+  var l2=k.pred?('YOU PREDICTED '+k.pred.h+'–'+k.pred.a+' · '+acc+'% ACCURACY'):'YOU WERE IN THE STANDS';
+  var l3='<span>CHEERS '+(k.cheers||0)+' · '+(k.mins||0)+' MIN · '+fmtDate(k.ts)+'</span><span>Nº '+(k.fanNo?String(k.fanNo).padStart(3,'0'):'—')+'</span>';
+  return '<div class="kc reveal'+(i===0&&ARRIVED?' arrive':'')+'"><div class="face" style="background:'+col+'">'+fl+'</div>'+
+    '<div class="bd"><div class="l1">'+l1+'</div><div class="l2">'+l2+'</div><div class="l3">'+l3+'</div></div></div>';
+}
 
+var ARRIVED=/[?&]from=keep/.test(location.search);   // you just pressed KEEP — the newest card announces itself once
 function render(){
   var d=resolve(), sides=d.profile.sides||[];
-  var empty=d.real && !d.scarves.length && !d.record.lived;   // a genuinely first-time seat
+  var empty=d.real && !d.scarves.length && !(d.cards&&d.cards.length) && !d.record.lived;   // a genuinely first-time seat
 
   // identity
   el('who').textContent=d.profile.displayName||'you';
@@ -237,7 +325,7 @@ function render(){
 
   // record — the four tiles
   var R=d.record;
-  el('record').innerHTML=[['st',R.lived,'MATCHES LIVED'],['st',R.calls,'CALLS MADE'],['st gold',R.nailed,'NAILED'],['st',R.loudestNight||'—','LOUDEST NIGHT']]
+  el('record').innerHTML=[['st',R.lived,'MATCHES LIVED'],['st',R.calls,'PREDICTIONS'],['st gold',R.nailed,'EXACT'],['st',R.loudestNight||'—','LOUDEST NIGHT']]
     .map(function(t){return '<div class="'+t[0]+'"><b>'+t[1]+'</b><span class="l">'+t[2]+'</span></div>';}).join('');
 
   // NEXT UP — the forward loop; no fixture → your first gate
@@ -251,11 +339,18 @@ function render(){
   el('scarvesSub').textContent=d.scarves.length?'tap to unroll the cloth':'woven from the matches you live';
   if(d.scarves.length){
     el('rack').innerHTML=d.scarves.map(scarfHTML).join('');
-    [].forEach.call(document.querySelectorAll('.keep'),function(k){ k.onclick=function(){ location.href='woven-loom.html?keepsake=1'+(DEMO?'&demo=1':''); }; });
+    // tap → THAT match's kept cloth, keyed by its id (rooot.cloth.<matchId>, pressed at full time).
+    // an id with no record gets the loom's honest NOTHING KEPT — never another match's cloth.
+    [].forEach.call(document.querySelectorAll('.keep'),function(k){ k.onclick=function(){ location.href='woven-loom.html?keepsake=1&match='+encodeURIComponent(k.getAttribute('data-match'))+(DEMO?'&demo=1':''); }; });
   } else {
     el('rack').innerHTML='<div class="emptyrack"><div class="pocket"></div><div class="pocket"></div><div class="pocket"></div>'+
       '<div class="emptymsg">your first match awaits — live one and its scarf is woven here, yours forever</div></div>';
   }
+
+  // THE CARDS — every kept card on this device, newest first; hidden until one exists
+  var cards=d.cards||[];
+  el('cardsWrap').style.display=cards.length?'':'none';
+  if(cards.length)el('cardrack').innerHTML=cards.map(cardHTML).join('');
 
   // THE PINS — counters are post-MVP (all 7 have no per-fan source yet), so we keep sample ranks; only a
   // genuinely empty seat forces them all locked. When the coordinator ships real counters, wire them here.
