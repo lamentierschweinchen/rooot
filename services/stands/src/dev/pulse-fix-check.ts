@@ -11,12 +11,17 @@
  * (openedTriggerIds/tripleWindow/accumulators/joinSnapshots/etc.) can never
  * leak state between scenarios despite sharing one process.
  *
- * Root-cause context: the volume's persisted openedTriggerIds showed ZERO
- * triggers across an entire live match with three goals — two nights running
- * (docs/POSTMORTEM-fra-mar-2026-07-09.md; the ESP-BEL Pulse recurrence in
- * docs/NOTES-esp-bel-2026-07-10.md, match 18218149). Exhaustive reproduction
- * against the real captured wire data — single messages, and the FULL real
- * 1722-message match sequence in original order — could not make
+ * Root-cause context — two DIFFERENT failures on consecutive nights:
+ * Jul 10 ESP-BEL (match 18218149): PROVEN server-side silence — the volume's
+ * persisted openedTriggerIds stayed empty through three goals with the dedup
+ * persistence live (the coordinator's volume-snapshot pull is the proof; a
+ * next-day WS replay structurally can't show closed moments and proves
+ * nothing either way). Jul 9 FRA-MAR: a different, client-side failure — SIX
+ * windows opened server-side but the client never subscribed (a client bug,
+ * since fixed; docs/POSTMORTEM-fra-mar-2026-07-09.md). Exhaustive
+ * reproduction of the ESP-BEL server silence against the real captured wire
+ * data — single messages, and the FULL real 1722-message match sequence in
+ * original order (see full-replay-check.ts) — could not make
  * detectMoment/momentLifecycle fail; every scenario below already passes on
  * the current code. The fix landed defensively rather than leave a
  * theoretical gap unclosed: dispatch fan-out isolation (broadcastToMatch's
@@ -35,14 +40,25 @@
  *
  * Usage: tsx src/dev/pulse-fix-check.ts (or: npm run check:pulse-fix)
  */
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { WebSocket } from 'ws';
 import type { ClientMsg, ServerMsg } from '@contracts/crowd';
 import type { FeedMsg } from '@contracts/feed';
 import { SWING_DELTA_MIN, SWING_WINDOW_MS } from '../decay';
-import { createStandsServer } from '../server';
 import { SentimentAccumulator } from '../sentiment/accumulator';
 import { fixtureInfo } from '../sentiment/teams';
+
+/* Hermetic data dir — set BEFORE the server module ever loads (snapshot.ts
+ * resolves DATA_DIR at import time), which is why '../server' is dynamically
+ * imported inside bootServer() below instead of statically up here. Without
+ * this, a stale /tmp snapshot from an earlier dev run could restore matches
+ * (seen live while developing this check: "restored 2 match(es)") and, worst
+ * case, restore openedTriggerIds for a scenario matchId — flaking the
+ * fanless scenario's "zero prior state" assertion. */
+const CHECK_DATA_DIR = mkdtempSync(path.join(tmpdir(), 'rooot-pulse-fix-check-'));
+process.env.STANDS_DATA_DIR = CHECK_DATA_DIR;
 
 let failures = 0;
 function check(label: string, cond: boolean, detail = ''): void {
@@ -111,13 +127,21 @@ const REAL_FULL_TIME = realFullTimeMessage();
 
 /* ── boot the real server once, in-process ────────────────────────────── */
 type Broadcast = (matchId: string, msg: ServerMsg | FeedMsg) => void;
+/** The subset of MatchRegistry the fanless scenario reads (white-box). */
+interface RegistryView {
+  get(matchId: string): { activeMomentId(): string | null } | undefined;
+  snapshotNow(): void;
+}
 
-async function bootServer(): Promise<{ port: number; broadcastToMatch: Broadcast; close: () => void }> {
-  const { httpServer, broadcastToMatch } = createStandsServer();
+async function bootServer(): Promise<{ port: number; broadcastToMatch: Broadcast; registry: RegistryView; close: () => void }> {
+  // dynamic import so CHECK_DATA_DIR (set above) is already in env when
+  // snapshot.ts resolves DATA_DIR at module load — see the comment up top.
+  const { createStandsServer } = await import('../server');
+  const { httpServer, broadcastToMatch, registry } = createStandsServer();
   await new Promise<void>((resolve) => httpServer.listen(0, resolve));
   const addr = httpServer.address();
   const port = addr && typeof addr === 'object' ? addr.port : 0;
-  return { port, broadcastToMatch, close: () => httpServer.close() };
+  return { port, broadcastToMatch, registry, close: () => httpServer.close() };
 }
 
 /* ── Scenario 1: real goal ledger event → moment broadcast, and dedup on a
@@ -352,7 +376,9 @@ function scenarioSentimentFinalScoreAndDedup(): void {
   const fx = fixtureInfo(CAPTURE_MATCH);
   if (!fx) throw new Error(`no fixtureInfo for ${CAPTURE_MATCH} — teams.ts changed?`);
 
-  // 6a — dedup, fed the REAL capture (every message, real re-emissions included).
+  // 6a — dedup + finalScore READER, fed the REAL capture (every message,
+  // real re-emissions included, no override) — the real wire shape must
+  // drive the accumulator's own 'score' tracking, not just the override.
   const accReal = new SentimentAccumulator(CAPTURE_MATCH, fx);
   for (const m of capture.messages) accReal.onFeed(m as unknown as ServerMsg | FeedMsg);
   const recordReal = accReal.crystallize({ consensus: null, rooted: { home: 0, away: 0 } }, { serial: 1, editionSize: null, caption: CAPTURE_MATCH });
@@ -362,6 +388,18 @@ function scenarioSentimentFinalScoreAndDedup(): void {
     'real capture: each real goal id appears EXACTLY once in the crystallized events (no wire re-emission triplication)',
     goalEvents.length === distinctGoalIds.size && goalEvents.length === REAL_GOALS.length,
     `events=${goalEvents.length} distinct=${distinctGoalIds.size} expectedGoals=${REAL_GOALS.length}`,
+  );
+  // the capture's own latest 'score' message is the wire truth this record
+  // must carry (latest-wins, exactly how the live path's join snapshot reads
+  // it) — computed from the capture, not hardcoded, so a re-captured file
+  // keeps this check honest.
+  const scoreMsgs = capture.messages.filter((m) => m.type === 'score') as Array<{ ev: { home: number; away: number } }>;
+  const wireScore = scoreMsgs[scoreMsgs.length - 1]?.ev;
+  check('capture carries at least one real score message with a non-goalless score (this assertion is not vacuous)', !!wireScore && wireScore.home + wireScore.away > 0, JSON.stringify(wireScore));
+  check(
+    'real capture, NO override: the accumulator\'s own score reader lands the real wire final in the crystallized record',
+    !!wireScore && recordReal.finalScore.home === wireScore.home && recordReal.finalScore.away === wireScore.away,
+    `record=${JSON.stringify(recordReal.finalScore)} wire=${JSON.stringify(wireScore)}`,
   );
 
   // 6b — finalScore: reproduce the bug (no override, no 'score' message fed
@@ -385,11 +423,88 @@ function scenarioSentimentFinalScoreAndDedup(): void {
   );
 }
 
+/* ── Scenario 7: FANLESS match — a real goal dispatched into a match with
+ * ZERO prior connections (nobody ever helloed, no socket ever seated) still
+ * opens a moment and marks its trigger in openedTriggers. THE reason
+ * momentLifecycle switched from registry.get to registry.getOrCreate: with
+ * .get, a match nobody had helloed into yet silently dropped every trigger
+ * for its whole life. Note the restart-persistence moment-dedup scenario
+ * does NOT cover this — it hellos a fan in before its goal fires. ────────── */
+async function scenarioFanlessMatchOpensMoment(port: number, broadcastToMatch: Broadcast, registry: RegistryView): Promise<void> {
+  console.log('\nSCENARIO 7  fanless match: a real goal with ZERO prior connections opens a moment (getOrCreate)');
+  const matchId = 'pulse-check-fanless';
+  const goal = REAL_GOALS[1]!; // a real goal ledger message; distinct from scenario 1's index for readability
+  const ev = (goal as unknown as { msg: { ev: { id: string } } }).msg.ev;
+
+  check('precondition: the match has NO registry state at all before dispatch (nobody helloed, nothing seated)', registry.get(matchId) === undefined, `get=${String(registry.get(matchId))}`);
+
+  // dispatch straight into the void — zero connections exist for this match.
+  broadcastToMatch(matchId, goal);
+  const match = registry.get(matchId);
+  check(
+    'the moment OPENED for the fanless match — registry entry created (getOrCreate) with the goal as the active window',
+    match !== undefined && match.activeMomentId() === ev.id,
+    `activeMomentId=${match?.activeMomentId() ?? '(no match)'} expected=${ev.id}`,
+  );
+
+  // a late joiner (feed-seated by URL, still no hello — watching is public)
+  // is caught up to the open window via the join replay: the drama a fanless
+  // match opened is really there for the first human who arrives. The
+  // 'message' listener attaches BEFORE the socket opens — the server sends
+  // the join replay synchronously in its connection handler, so a listener
+  // attached after `await connect()` can lose the first frames (races the
+  // delivery; observed empirically while building this scenario).
+  const ws = new WebSocket(`ws://127.0.0.1:${port}/?matchId=${encodeURIComponent(matchId)}`);
+  const received: Array<Record<string, unknown>> = [];
+  ws.on('message', (raw) => {
+    try {
+      received.push(JSON.parse(raw.toString()) as Record<string, unknown>);
+    } catch {
+      /* ignore */
+    }
+  });
+  await new Promise<void>((resolve, reject) => {
+    ws.once('open', () => resolve());
+    ws.once('error', reject);
+  });
+  await sleep(150);
+  const caughtUp = received.filter((m) => m.type === 'moment');
+  check(
+    'a late joiner (no hello) receives the open moment in the join replay, same momentId',
+    caughtUp.length === 1 && caughtUp[0]?.momentId === ev.id,
+    JSON.stringify(caughtUp),
+  );
+
+  // re-dispatch of the SAME goal id: openedTriggers marked it, so no second
+  // window — behavioral proof the dedup Set recorded the fanless open.
+  received.length = 0;
+  broadcastToMatch(matchId, goal);
+  await sleep(150);
+  const second = received.filter((m) => m.type === 'moment');
+  check(
+    're-dispatching the same goal id opens NO second window (the fanless open was marked in openedTriggers) and the original window is still the active one',
+    second.length === 0 && registry.get(matchId)?.activeMomentId() === ev.id,
+    `second=${JSON.stringify(second)} active=${registry.get(matchId)?.activeMomentId()}`,
+  );
+
+  // white-box, on top of the behavioral proof: the persisted snapshot (same
+  // write path production uses, into this check's hermetic data dir) carries
+  // the trigger id under this match's openedTriggerIds.
+  registry.snapshotNow();
+  const snapFile = JSON.parse(readFileSync(path.join(CHECK_DATA_DIR, 'rooot-stands-snapshot.json'), 'utf8')) as {
+    matches: Array<{ matchId: string; openedTriggerIds?: string[] }>;
+  };
+  const persisted = snapFile.matches.find((m) => m.matchId === matchId)?.openedTriggerIds ?? [];
+  check('the persisted snapshot carries the fanless trigger id in openedTriggerIds', persisted.includes(ev.id), `openedTriggerIds=${JSON.stringify(persisted)}`);
+
+  await closeAndWait(ws);
+}
+
 async function main(): Promise<void> {
   check('capture has at least 2 distinct real goal ledger events', REAL_GOALS.length >= 2, `found=${REAL_GOALS.length}`);
   check('capture has a real FULL_TIME status message', !!REAL_FULL_TIME, '');
 
-  const { port, broadcastToMatch, close } = await bootServer();
+  const { port, broadcastToMatch, registry, close } = await bootServer();
   console.log(`[pulse-fix-check] server up on :${port}`);
   try {
     await scenarioGoalOpensAndDedupes(port, broadcastToMatch);
@@ -398,8 +513,10 @@ async function main(): Promise<void> {
     await scenarioWindowedSwingFiresOnDrift(port, broadcastToMatch);
     await scenarioWindowedSwingIgnoresNoise(port, broadcastToMatch);
     scenarioSentimentFinalScoreAndDedup();
+    await scenarioFanlessMatchOpensMoment(port, broadcastToMatch, registry);
   } finally {
     close();
+    rmSync(CHECK_DATA_DIR, { recursive: true, force: true });
   }
 
   console.log(`\n${failures === 0 ? 'ALL CHECKS PASSED' : `${failures} CHECK(S) FAILED`}\n`);

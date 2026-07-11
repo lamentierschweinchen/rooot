@@ -14,7 +14,8 @@
     "check:restart-persistence": "tsx src/dev/restart-persistence-check.ts",
     "check:verdict-replay": "tsx src/dev/verdict-replay-check.ts",
     "check:fan-serial": "tsx src/dev/fan-serial-check.ts",
-    "check:pulse-fix": "tsx src/dev/pulse-fix-check.ts"
+    "check:pulse-fix": "tsx src/dev/pulse-fix-check.ts",
+    "check:full-replay": "tsx src/dev/full-replay-check.ts"
   },
   "dependencies": {
     "@metaplex-foundation/mpl-core": "1.10.0",
