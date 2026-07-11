@@ -113,6 +113,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .pstripe i{flex:1}.pstripe i:nth-child(1){background:var(--you)}.pstripe i:nth-child(2){background:var(--them)}.pstripe i:nth-child(3){background:var(--gold)}
 .pbody{padding:11px 13px 12px}
 .pred .pq{font-weight:900;font-size:16px;line-height:1.03;margin-bottom:10px}
+.pred .pq.win{color:var(--verde)}.pred .pq.lose{color:var(--you)}   /* the verdict line wears the outcome (same pair as .pres) */
 .popts{display:flex;gap:8px}
 .popt{flex:1;padding:10px 6px;text-align:center;background:var(--card);border:2.5px solid var(--ink);font-family:var(--disp);font-weight:900;font-size:14px;cursor:pointer;transition:background .12s,color .12s}
 .popt:active{transform:translate(1px,1px)}
@@ -679,40 +680,63 @@ function wireLive(){
 // ── NEXT GOAL — the live in-game call (LIVE only; DEMO/specimen never call wireLive()).
 // Contract: design/HANDOFF-2026-07-10-tonight-data-shapes.md §7. Copy law (owner, 11 Jul):
 // the label is the thing itself — no explainers, no register lines, no confirmation prose.
-// Owner rule (11 Jul, binding): IF THE CARD IS SHOWN, IT IS CLICKABLE — no client-side
-// gate (the first nextGoalState only ever broadcasts on an ACCEPTED call, so gating on
-// it was a chicken-and-egg). The SERVER is the honest gate: it silently drops calls
-// outside live play. The card ends at FULL_TIME (ngEnd, on the page's own FT signal).
-var ngMyCall=null;
+// Owner rules (11 Jul, binding): IF THE CARD IS SHOWN, IT IS CLICKABLE — no client-side
+// gate (the SERVER is the honest gate: it silently drops non-live calls). THE TAP IS THE
+// LOCK — tap sends the call and the card disappears (commitment, like the gate stamp;
+// the server's replace semantic stays but the UI doesn't offer it). At resolution the
+// card RETURNS as the verdict — what happened + your call + the crowd's right v wrong —
+// holds ~10s, then resets fresh for the next cycle. Ends at FULL_TIME (ngEnd).
+var ngLastState=null, ngMode='open', ngEnded=false, ngResetT=null;
 function ngFmtSide(s){ return s==='home'?HOME_TRI:s==='away'?AWAY_TRI:null; }
-function ngTap(call,btn){
-  ngMyCall=call;   // latch immediately — it is the fan's call; the accept broadcast confirms within a tick
-  [].forEach.call(el('predOpts').children,function(c){c.classList.toggle('on',c===btn);});
+function ngTap(call){
   if(window.__stands&&window.__stands.nextGoal)window.__stands.nextGoal(call);
+  ngMode='gone'; el('pred').classList.remove('on');   // the tap IS the lock — the card leaves with it
 }
-// the crowd's live split — counts with n, never a percentage; n:0 is honest silence, never zeros
+// the crowd's live split — counts with n, never a percentage; n:0 is honest silence, never zeros.
+// ALWAYS cached, even while the card is gone/verdict: state broadcasts fire on every accepted
+// call, so the last one cached before a verdict IS the resolved book (the split's source).
 function ngOnState(s){
+  ngLastState=s||null;
+  if(ngMode!=='open')return;
   var mv=el('predMkt'); if(!mv)return;
   if(!s||!s.open||!s.open.n){ mv.textContent=''; return; }
   var o=s.open;
   mv.textContent=HOME_TRI+' '+(o.home||0)+' · '+AWAY_TRI+' '+(o.away||0)+' · NO MORE '+(o.none||0)+' — '+o.n+' CALLS IN';
 }
-// your personal verdict, one line, the thing itself — then the card settles back to the open state
+// resolution: the card returns AS the verdict — one composition, the thing itself
 function ngOnVerdict(v){
-  if(!v)return;
+  if(!v||ngEnded||!ngInit._done)return;
   var happened=v.happened==='none'?'NO MORE GOALS':(ngFmtSide(v.happened)+' SCORED');
   var callTxt=v.call==='none'?'NO MORE':ngFmtSide(v.call);
-  var rs=el('predRes'); if(!rs)return;
-  rs.className='pres '+(v.outcome==='correct'?'win':'lose');
-  rs.textContent=happened+' · YOU CALLED '+callTxt+' '+(v.outcome==='correct'?'✓':'✗');
-  ngMyCall=null;
-  [].forEach.call(el('predOpts').children,function(c){c.classList.remove('on');});
-  clearTimeout(ngOnVerdict._t);
-  ngOnVerdict._t=setTimeout(function(){ rs.textContent=''; rs.className='pres'; },8000);
+  var q=el('predQ');
+  q.className='pq '+(v.outcome==='correct'?'win':'lose');
+  q.textContent=happened+' · YOU CALLED '+callTxt+' '+(v.outcome==='correct'?'✓':'✗');
+  q.style.display='';
+  var line2='';   // the crowd's right v wrong, from the resolved book — never invented (solo edge: no line)
+  if(ngLastState&&ngLastState.open&&ngLastState.open.n){
+    var right=ngLastState.open[v.happened]||0, n=ngLastState.open.n;
+    line2=right+' RIGHT · '+(n-right)+' WRONG OF '+n;
+  }
+  el('predMkt').textContent=line2;
+  ngLastState=null;   // consumed — only the next cycle's broadcasts repopulate it
+  el('predOpts').style.display='none';
+  ngMode='verdict'; el('pred').classList.add('on');
+  clearTimeout(ngResetT);
+  ngResetT=setTimeout(ngReset,10000);
+}
+function ngReset(){   // a fresh NEXT GOAL? card for the next cycle (live play only)
+  clearTimeout(ngResetT); ngResetT=null;
+  if(ngEnded||!ngInit._done)return;
+  var q=el('predQ'); q.className='pq'; q.textContent=''; q.style.display='none';
+  var opts=el('predOpts'); opts.style.display='';
+  [].forEach.call(opts.children,function(c){c.classList.remove('on');});
+  ngMode='open';
+  ngOnState(ngLastState);   // a new cycle's split that arrived during the verdict hold renders now
+  el('pred').classList.add('on');
 }
 function ngEnd(){   // FULL_TIME — the card is gone (fires with the page's existing FT beat, the keepsake)
   if(!ngInit._done)return;
-  clearTimeout(ngOnVerdict._t);
+  ngEnded=true; clearTimeout(ngResetT);
   el('pred').classList.remove('on');
 }
 function ngInit(){
@@ -728,7 +752,7 @@ function ngInit(){
   var opts=el('predOpts'); opts.innerHTML='';
   [['home',HOME_TRI],['away',AWAY_TRI],['none','NO MORE']].forEach(function(pair){
     var b=document.createElement('div'); b.className='popt'; b.textContent=pair[1];   // shown = clickable, from the first paint
-    b.onclick=function(){ ngTap(pair[0],b); };
+    b.onclick=function(){ ngTap(pair[0]); };
     opts.appendChild(b);
   });
   el('predX').onclick=function(){ try{sessionStorage.setItem(key,'1');}catch(e){} el('pred').classList.remove('on'); };
