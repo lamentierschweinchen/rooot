@@ -498,3 +498,11 @@ the owner whether it's worth a compressed rehearsal despite the hour rather than
   `services/stands/src/sentiment/teams.ts` FIXTURE_INFO (both tonight's fixtures already registered).
 - Canary: `scripts/canary/README.md` (smoke = the only automation you point at prod).
 - Laws: AGENTS.md — honesty above all; nothing renders or is recorded that didn't happen.
+
+## Addendum — the footage rig (coordinator, 21:50)
+
+At ~22:45 start the demo-video capture (read-only, write-proof — safe against prod):
+`cd /Users/ls/Documents/rooot/scripts/footage && node run.mjs --match 18213979 --until 240`
+Again at ~02:45 with `--match 18222446`. Footage + event timeline land in `scripts/footage/out/<matchId>/`.
+It self-recovers from page crashes; if it dies entirely, restart it — segments are crash-safe. Not a
+wake condition; a lost segment is a lost shot, not an incident.
