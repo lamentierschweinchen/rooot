@@ -119,7 +119,6 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .popt.on{background:var(--ink);color:var(--card)}
 .popt.win{background:var(--verde);color:var(--card)}
 .popt.lose{opacity:.32}
-.popt.dis{opacity:.32;pointer-events:none}
 .pmkt{font-weight:800;font-size:8px;letter-spacing:.04em;color:var(--gold);margin-top:9px}
 .pmkt.ng{color:var(--sub)}   /* NEXT GOAL's live split is a crowd count, never the market's gold register */
 .pbar{height:5px;background:var(--paper);border:2px solid var(--ink);margin-top:9px;overflow:hidden}
@@ -656,7 +655,7 @@ function wireLive(){
     });
     window.__stands.onConsensus(ccUpdate);
     if(window.__stands.onMarket)window.__stands.onMarket(marketUpdate);
-    window.__stands.onVerdict(function(v){ M.verdictMsg=v; if(!M._ft){M._ft=true; showKeepsake();} });
+    window.__stands.onVerdict(function(v){ M.verdictMsg=v; ngEnd(); if(!M._ft){M._ft=true; showKeepsake();} });   // FT: the card ends with the keepsake beat
     if(window.__stands.onCheer)window.__stands.onCheer(function(e){
       ripple(e.side===sideKey?tilesYou:tilesThem,1);   // ONE seat flickers — someone, right now (never volume; roar carries that)
     });
@@ -671,7 +670,7 @@ function wireLive(){
     window.__statsAdapter.onStats(function(st){
       if(!st)return;
       M.score=[st.home.goals||0,st.away.goals||0]; el('scH').textContent=M.score[0]; el('scA').textContent=M.score[1];
-      if(typeof st.minute==='number'){ M.t=st.minute; ngEnable(); }   // a minute on the clock is kickoff status the page can already see
+      if(typeof st.minute==='number')M.t=st.minute;
     });
   }
   return wireLive.didStands&&wireLive.didStats;
@@ -680,21 +679,19 @@ function wireLive(){
 // ── NEXT GOAL — the live in-game call (LIVE only; DEMO/specimen never call wireLive()).
 // Contract: design/HANDOFF-2026-07-10-tonight-data-shapes.md §7. Copy law (owner, 11 Jul):
 // the label is the thing itself — no explainers, no register lines, no confirmation prose.
-var ngEnabled=false, ngMyCall=null;
+// Owner rule (11 Jul, binding): IF THE CARD IS SHOWN, IT IS CLICKABLE — no client-side
+// gate (the first nextGoalState only ever broadcasts on an ACCEPTED call, so gating on
+// it was a chicken-and-egg). The SERVER is the honest gate: it silently drops calls
+// outside live play. The card ends at FULL_TIME (ngEnd, on the page's own FT signal).
+var ngMyCall=null;
 function ngFmtSide(s){ return s==='home'?HOME_TRI:s==='away'?AWAY_TRI:null; }
-function ngEnable(){
-  if(ngEnabled)return; ngEnabled=true;
-  var opts=el('predOpts'); if(opts)[].forEach.call(opts.children,function(c){c.classList.remove('dis');});
-}
 function ngTap(call,btn){
-  if(!ngEnabled)return;
-  ngMyCall=call;
+  ngMyCall=call;   // latch immediately — it is the fan's call; the accept broadcast confirms within a tick
   [].forEach.call(el('predOpts').children,function(c){c.classList.toggle('on',c===btn);});
   if(window.__stands&&window.__stands.nextGoal)window.__stands.nextGoal(call);
 }
 // the crowd's live split — counts with n, never a percentage; n:0 is honest silence, never zeros
 function ngOnState(s){
-  ngEnable();
   var mv=el('predMkt'); if(!mv)return;
   if(!s||!s.open||!s.open.n){ mv.textContent=''; return; }
   var o=s.open;
@@ -702,7 +699,7 @@ function ngOnState(s){
 }
 // your personal verdict, one line, the thing itself — then the card settles back to the open state
 function ngOnVerdict(v){
-  ngEnable(); if(!v)return;
+  if(!v)return;
   var happened=v.happened==='none'?'NO MORE GOALS':(ngFmtSide(v.happened)+' SCORED');
   var callTxt=v.call==='none'?'NO MORE':ngFmtSide(v.call);
   var rs=el('predRes'); if(!rs)return;
@@ -712,6 +709,11 @@ function ngOnVerdict(v){
   [].forEach.call(el('predOpts').children,function(c){c.classList.remove('on');});
   clearTimeout(ngOnVerdict._t);
   ngOnVerdict._t=setTimeout(function(){ rs.textContent=''; rs.className='pres'; },8000);
+}
+function ngEnd(){   // FULL_TIME — the card is gone (fires with the page's existing FT beat, the keepsake)
+  if(!ngInit._done)return;
+  clearTimeout(ngOnVerdict._t);
+  el('pred').classList.remove('on');
 }
 function ngInit(){
   if(ngInit._done)return; ngInit._done=true;
@@ -725,7 +727,7 @@ function ngInit(){
   el('predMkt').classList.add('ng');
   var opts=el('predOpts'); opts.innerHTML='';
   [['home',HOME_TRI],['away',AWAY_TRI],['none','NO MORE']].forEach(function(pair){
-    var b=document.createElement('div'); b.className='popt'+(ngEnabled?'':' dis'); b.textContent=pair[1];
+    var b=document.createElement('div'); b.className='popt'; b.textContent=pair[1];   // shown = clickable, from the first paint
     b.onclick=function(){ ngTap(pair[0],b); };
     opts.appendChild(b);
   });
