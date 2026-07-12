@@ -11,7 +11,7 @@
 import { createServer, get as httpGet } from 'node:http';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { randomBytes } from 'node:crypto';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { WebSocket, WebSocketServer } from 'ws';
 import type { CallMsg, CallReceiptMsg, CheerEchoMsg, ClientMsg, MomentKind, MomentOpenMsg, MomentResultMsg, RoomStateMsg, SeatTokenGrantMsg, ServerMsg, Side, WelcomeMsg } from '@contracts/crowd';
@@ -504,12 +504,29 @@ function feedSentiment(matchId: string, msg: ServerMsg | FeedMsg): void {
   acc.onFeed(msg);
 }
 
+/** True if a crystallized sentiment record for this match is already on the
+ * volume (the durable dedup for C1 — see the guard in crystallizeSentiment).
+ * Matches the `${matchId}-<timestamp>.json` naming written below; the trailing
+ * `-` in the prefix prevents a shorter id from matching a longer one's file.
+ * readdirSync on a small per-match dir is cheap and only runs once per
+ * FULL_TIME. Absent/unreadable dir ⇒ nothing crystallized yet (false), never
+ * throws into the FT branch. */
+function sentimentRecordExistsOnDisk(matchId: string): boolean {
+  const prefix = `${matchId}-`;
+  try {
+    return readdirSync(path.join(DATA_DIR, 'sentiment')).some((f) => f.startsWith(prefix) && f.endsWith('.json'));
+  } catch {
+    return false;
+  }
+}
+
 /** Full-time crystallization, persisted on the SAME durable dir the restart
  * snapshot uses (Task 3 — volume-ready: /data on Fly when the volume is
  * mounted, /tmp otherwise). One timestamped file per crystallization — never
  * overwritten by a later match — except the async anchor-tx-sig fill-in
  * below, which updates THIS SAME file (it's the same crystallization event,
- * just completing its on-chain anchor a little later). */
+ * just completing its on-chain anchor a little later). Idempotent across
+ * eviction + restart via the on-disk guard at the top (review C1). */
 function crystallizeSentiment(
   matchId: string,
   match: ReturnType<MatchRegistry['get']>,
@@ -522,6 +539,24 @@ function crystallizeSentiment(
 ): void {
   const acc = accumulators.get(matchId);
   if (!acc || !match) return;
+  // ── C1 idempotency backstop (review — the same dup mechanism as the
+  // ARG-SUI double record): eviction clears the in-memory resolvedMatches
+  // guard AND drops the match from the restart snapshot, so a post-eviction
+  // RESTART re-dispatches this fixture's FULL_TIME at boot (TxLINE seedSnapshot
+  // / a REPLAY-from-0), predictLifecycle sees !resolvedMatches.has() with a
+  // cached score, and re-enters here. The DURABLE record was already written
+  // to the volume at the first FULL_TIME — so if any sentiment record file for
+  // this matchId already exists on disk, this is a re-crystallize: skip the
+  // record write AND the on-chain anchor entirely. The disk is the durable
+  // dedup that survives eviction, restart, AND a lost in-memory guard; the
+  // resolvedMatches Set stays the cheap same-process fast-path (predictLifecycle
+  // never even calls this twice within one process). One honest log line, then
+  // return — anchorRecordHash below is downstream of the write, so skipping the
+  // write provably skips the anchor.
+  if (sentimentRecordExistsOnDisk(matchId)) {
+    console.log(`[sentiment] ${matchId} already crystallized on disk — skipping re-crystallize + re-anchor (idempotent; the on-disk record is the durable dedup)`);
+    return;
+  }
   try {
     const record = acc.crystallize(
       { consensus: match.consensus(), rooted: match.counts() },
@@ -844,6 +879,16 @@ const registry = new MatchRegistry(
     for (const [tok, rec] of seatTokens) {
       if (rec.matchId === matchId) seatTokens.delete(tok);
     }
+  },
+  // ── I2: the eviction gate's client count ────────────────────────────────
+  // ALL open sockets seated in this room — helloed fans AND feed-only
+  // spectators (LiveSource seats via ?matchId= at connect, never hellos, so
+  // MatchState.presenceCount() can't see it). broadcastToMatch already fans out
+  // to exactly these sockets, so this is the honest "is anyone watching?".
+  (matchId: string) => {
+    let n = 0;
+    for (const state of conns.values()) if (state.matchId === matchId) n++;
+    return n;
   },
 );
 

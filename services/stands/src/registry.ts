@@ -165,6 +165,16 @@ export class MatchRegistry {
      * resolvedMatches, the open-moment timer, seat tokens). Never scatter
      * delete calls — this single callback is the whole seam. */
     private readonly onEvict?: (matchId: string) => void,
+    /** Count of OPEN sockets seated in this match's room — helloed fans AND
+     * feed-only spectators alike (review I2). server.ts provides it by counting
+     * `conns` with `state.matchId === matchId`; a LiveSource watcher seats via
+     * ?matchId= at connect and never hellos, so it has a conn.matchId but no
+     * anonId and MatchState.presenceCount() (helloed anonIds only) does NOT see
+     * it. The eviction gate must, or a match watched only by a feed-only socket
+     * could evict out from under it. Superset of presenceCount (every helloed
+     * fan also holds a room socket); the sweep prefers it, falling back to
+     * presenceCount if unwired. */
+    private readonly roomClientCount?: (matchId: string) => number,
   ) {}
 
   getOrCreate(matchId: string): MatchState {
@@ -322,8 +332,12 @@ export class MatchRegistry {
     for (const matchId of ids) {
       // HARD gate: never evict a match a fan is still watching, no matter how
       // stale its activity clock looks (a silent match with an open socket is
-      // still a live seat).
-      const clients = this.matches.get(matchId)?.presenceCount() ?? 0;
+      // still a live seat). Count ALL room sockets — helloed fans AND feed-only
+      // spectators (review I2) — not just MatchState.presenceCount()'s helloed
+      // anonIds, or a LiveSource-only match would evict under someone.
+      const clients = this.roomClientCount
+        ? this.roomClientCount(matchId)
+        : (this.matches.get(matchId)?.presenceCount() ?? 0);
       if (clients > 0) continue;
       const last = this.lastActivityMs.get(matchId);
       if (last === undefined) continue; // no activity record → nothing to measure; leave it

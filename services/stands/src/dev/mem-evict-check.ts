@@ -43,7 +43,7 @@
  * Usage: npm run check:mem-evict  (runs under node --expose-gc via the script;
  * falls back to a v8 gc shim if the flag is absent).
  */
-import { mkdtempSync, rmSync, readFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, readFileSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import v8 from 'node:v8';
@@ -56,6 +56,14 @@ process.env.STANDS_DATA_DIR = CHECK_DATA_DIR;
 // with an advanced clock, and doesn't want a 30 s periodic snapshot churning.
 process.env.STANDS_EVICT_SWEEP_MS = String(60 * 60_000);
 process.env.STANDS_SNAPSHOT_INTERVAL_MS = String(60 * 60_000);
+// Devnet isolation (same convention as next-goal-check / restart-persistence-
+// check): strip RELAYER_KEYPAIR + point RELAYER_KEYPAIR_FILE at a nonexistent
+// path BEFORE the server module loads, so crystallize's anchorRecordHash can
+// NEVER attempt a real devnet tx from this check (no real transactions from
+// dev checks — AGENTS.md). The C1 dup proof is about the on-disk record FILE
+// and the crystallize/skip log, not the tx itself.
+delete process.env.RELAYER_KEYPAIR;
+process.env.RELAYER_KEYPAIR_FILE = path.join(CHECK_DATA_DIR, 'no-such-keypair.json');
 
 let failures = 0;
 function check(label: string, cond: boolean, detail = ''): void {
@@ -181,6 +189,26 @@ async function main(): Promise<void> {
     await sleep(120);
     return ws;
   }
+  /** A LiveSource-style FEED-ONLY spectator: seats into the room via ?matchId=
+   * at connect (server.ts's URL feed-seating) and NEVER sends a hello — so it
+   * has a conn.matchId but no anonId, and MatchState.presenceCount() (helloed
+   * anonIds only) does NOT count it. Returns the ws + a live received-message
+   * counter, so the check can prove the socket is genuinely seated/caught-up
+   * (I2). */
+  async function connectFeedOnly(matchId: string): Promise<{ ws: WebSocket; count: () => number }> {
+    const ws = new WebSocket(`ws://127.0.0.1:${port}/?matchId=${matchId}`);
+    openSockets.push(ws);
+    let received = 0;
+    ws.on('message', () => {
+      received++;
+    });
+    await new Promise<void>((resolve, reject) => {
+      ws.once('open', () => resolve());
+      ws.once('error', reject);
+    });
+    await sleep(150); // catch the replaySnapshot burst; deliberately NO hello
+    return { ws, count: () => received };
+  }
 
   const footprintAllFalse = (matchId: string): { ok: boolean; live: string[] } => {
     const fp = perMatchStateFootprint(matchId);
@@ -301,6 +329,61 @@ async function main(): Promise<void> {
     check('evicted match: a real re-hello round-trips without crashing the server', rejoin.readyState === WebSocket.OPEN);
     const reborn = registry.get(dead);
     check('evicted match: re-hello yields a fresh EMPTY room (honest, not fabricated)', !!reborn && reborn.presenceCount() === 1 && reborn.verdictFor('late-returner') === undefined && currentScoreSnapshot(dead).decided === false);
+
+    /* ═══ PART 7 — post-eviction RESTART re-dispatch must NOT re-crystallize /
+     * re-anchor (review C1 — the same dup mechanism as last night's ARG-SUI
+     * double record) ═══════════════════════════════════════════════════════ */
+    console.log('\n── PART 7: a re-dispatched FULL_TIME on an evicted match does not double the record (C1)');
+    const dead2 = FT_MATCHES[1]!; // resolved + crystallized in PART 1, evicted there too
+    const sentimentDir = path.join(CHECK_DATA_DIR, 'sentiment');
+    const countRecords = (m: string): number => {
+      try {
+        return readdirSync(sentimentDir).filter((f) => f.startsWith(`${m}-`) && f.endsWith('.json')).length;
+      } catch {
+        return 0;
+      }
+    };
+    const recordsBefore = countRecords(dead2);
+    check('exactly one durable sentiment record on disk before the re-dispatch', recordsBefore === 1, `count=${recordsBefore}`);
+    // Reproduce the post-eviction RESTART: eviction cleared resolvedMatches /
+    // finalScores / joinSnapshots / the accumulator AND dropped dead2 from the
+    // snapshot, so on reboot seedSnapshot replays this fixture's tape from 0 —
+    // score, odds, then a fresh FULL_TIME — through the SAME broadcastToMatch
+    // dispatch. predictLifecycle sees !resolvedMatches.has() with a cached
+    // score and re-enters crystallizeSentiment. Capture the sentiment log to
+    // tell a 2nd crystallize (the BUG) from an idempotent skip (the FIX).
+    const sentimentLogs: string[] = [];
+    const origLog = console.log;
+    console.log = (...args: unknown[]) => {
+      const s = args.map(String).join(' ');
+      if (s.includes('[sentiment]') && s.includes(dead2)) sentimentLogs.push(s);
+      origLog(...args);
+    };
+    try {
+      registry.getOrCreate(dead2); // the fresh MatchState a reboot/reconnect makes
+      broadcast(dead2, { type: 'score', ev: { home: 2, away: 1, minute: 90 } });
+      feedOdds(broadcast, dead2, 100); // seedSnapshot replays the belief curve too
+      broadcast(dead2, { type: 'status', ev: { phase: 'FULL_TIME', minute: 90 } });
+      await sleep(80);
+    } finally {
+      console.log = origLog;
+    }
+    const recordsAfter = countRecords(dead2);
+    const wroteSecond = sentimentLogs.some((s) => s.includes('crystallized') && !s.includes('already'));
+    const skipped = sentimentLogs.some((s) => s.includes('already crystallized on disk'));
+    check('re-dispatched FULL_TIME wrote NO 2nd sentiment record (disk-idempotent crystallize)', recordsAfter === recordsBefore, `before=${recordsBefore} after=${recordsAfter}`);
+    check('crystallize took the idempotent SKIP branch, not a 2nd crystallize (⇒ no 2nd anchor: anchor is downstream of the write)', skipped && !wroteSecond, `logs=[${sentimentLogs.map((s) => s.replace(/^\[sentiment\] /, '')).join(' | ')}]`);
+
+    /* ═══ PART 8 — a match watched ONLY by a feed-only socket is NOT evicted
+     * (review I2 — the zero-clients gate must count room sockets, not just
+     * helloed presence) ════════════════════════════════════════════════════ */
+    console.log('\n── PART 8: a feed-only spectator (?matchId=, no hello) keeps a resolved match alive (I2)');
+    const feedOnly = '18202783';
+    driveToFullTime(broadcast, registry, feedOnly, 200); // resolved, zero helloed presence
+    const fo = await connectFeedOnly(feedOnly);
+    check('feed-only spectator is seated + caught up (got replay) yet has ZERO helloed presence', fo.count() > 0 && registry.get(feedOnly)?.presenceCount() === 0, `replayMsgs=${fo.count()} presence=${registry.get(feedOnly)?.presenceCount()}`);
+    registry.sweepEvictions(Date.now() + IDLE_EVICT_GRACE_MS + 60_000); // far past every window
+    check('resolved match watched ONLY by a feed-only socket is NOT evicted', registry.get(feedOnly) !== undefined && perMatchStateFootprint(feedOnly).joinSnapshots);
   } finally {
     for (const ws of openSockets) {
       try {
