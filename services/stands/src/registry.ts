@@ -14,6 +14,33 @@ type NextGoalRow = NonNullable<SentimentRecord['nextGoal']>[number];
 export const STANDS_TICK_HZ = 4;
 export const STANDS_TICK_MS = 1000 / STANDS_TICK_HZ;
 
+/** Eviction thresholds (the memory fix — post-mortem: the 256 MB Fly guest
+ * OOM-killed across a 3-game/3-day run because a finished match's in-memory
+ * state was NEVER freed; the registry had no eviction and every per-match map
+ * in server.ts kept its entry forever). A match becomes evictable once it is
+ * genuinely OVER and nobody is left to serve:
+ *   • RESOLVED (FULL_TIME) + zero connected clients + no message/tick for
+ *     FT_EVICT_GRACE_MS (default 15 min) — the common case: the game ended,
+ *     verdicts were delivered at FT and persisted to the crystallized
+ *     sentiment record on the volume (the DURABLE record — untouched here),
+ *     and the last watcher has been gone a quarter hour.
+ *   • zero connected clients + no message/tick for IDLE_EVICT_GRACE_MS
+ *     (default 3 h) EVEN IF never resolved — a stale never-started fixture
+ *     (a feedState with no kickoff, an abandoned room) that would otherwise
+ *     pin its maps forever.
+ * Both gate HARD on zero clients: evicting a match a fan is still watching is
+ * forbidden. All three are env-tunable (a dev check drives simulated time by
+ * calling sweepEvictions(nowMs) directly, so it needs no tiny overrides, but
+ * the knobs exist for ops). Grace/idle floor at 0; the sweep cadence floors
+ * at 1 s so a malformed env can't hammer. */
+function evictMsFromEnv(name: string, def: number): number {
+  const raw = Number(process.env[name]);
+  return Number.isFinite(raw) && raw >= 0 ? raw : def;
+}
+export const FT_EVICT_GRACE_MS = evictMsFromEnv('STANDS_EVICT_FT_GRACE_MS', 15 * 60_000);
+export const IDLE_EVICT_GRACE_MS = evictMsFromEnv('STANDS_EVICT_IDLE_GRACE_MS', 3 * 60 * 60_000);
+export const EVICT_SWEEP_MS = Math.max(1000, evictMsFromEnv('STANDS_EVICT_SWEEP_MS', SNAPSHOT_INTERVAL_MS));
+
 /** Hooks into server.ts's sentiment accumulators (registry.ts doesn't own them
  * — server.ts constructs them lazily, keyed by matchId, from fixture identity).
  * Optional: a registry with no hooks just skips the moments field (harmless —
@@ -110,6 +137,16 @@ export class MatchRegistry {
   private nextFanNo = 1;
   private readonly fanNumbers = new Map<string, number>(); // anonId -> fanNo
 
+  /** Per-match wall-clock of the last activity worth keeping the match warm
+   * for — set by noteActivity() on every broadcastToMatch (feed message OR the
+   * 4 Hz tick, whichever last touched the room) and at getOrCreate. This is the
+   * ONLY thing the eviction sweep measures "quiet time" against, and it is the
+   * master key set the sweep iterates: a feed-only match (live ingest, nobody
+   * ever helloed → no MatchState) still has an entry here, so eviction covers
+   * matches that never made it into `this.matches`. Deleted on evict. */
+  private readonly lastActivityMs = new Map<string, number>();
+  private evictTimer: NodeJS.Timeout | null = null;
+
   constructor(
     private readonly broadcast: (matchId: string, msg: ServerMsg) => void,
     private readonly moments?: MomentsPersistenceHooks,
@@ -118,6 +155,16 @@ export class MatchRegistry {
     private readonly nextGoalResolved?: NextGoalResolvedPersistenceHooks,
     private readonly nextGoalRows?: NextGoalRowsPersistenceHooks,
     private readonly finalScore?: FinalScorePersistenceHooks,
+    /** The ONE server-side eviction hook (mirrors the persistence-hooks
+     * pattern above): registry.ts owns WHEN a match dies, server.ts owns WHAT
+     * per-match state that death must free. Called exactly once per eviction,
+     * with the evicted matchId, AFTER the MatchState + lastActivity entry are
+     * dropped here — server.ts clears its own module-level per-match maps
+     * (joinSnapshots, accumulators, tripleWindow, openedTriggerIds,
+     * nextGoalResolvedIds, cheerEchoCounters, lastFeedState, finalScores,
+     * resolvedMatches, the open-moment timer, seat tokens). Never scatter
+     * delete calls — this single callback is the whole seam. */
+    private readonly onEvict?: (matchId: string) => void,
   ) {}
 
   getOrCreate(matchId: string): MatchState {
@@ -126,7 +173,25 @@ export class MatchRegistry {
       m = new MatchState(matchId);
       this.matches.set(matchId, m);
     }
+    // birth-stamp the activity clock so a just-created match (a hello with no
+    // feed yet) is never seen as "quiet since epoch" by a sweep that races it.
+    if (!this.lastActivityMs.has(matchId)) this.lastActivityMs.set(matchId, Date.now());
     return m;
+  }
+
+  /** Mark matchId active NOW (server.ts calls this from broadcastToMatch — the
+   * one chokepoint every feed message and every stands tick already flows
+   * through). Feed for a match with no MatchState still registers here, so the
+   * sweep can later evict a feed-only match. Cheap: one Map.set. */
+  noteActivity(matchId: string, nowMs = Date.now()): void {
+    this.lastActivityMs.set(matchId, nowMs);
+  }
+
+  /** Total matches held in memory (active OR idle) — distinct from
+   * activeMatchCount() (clients>0 only). The dev soak asserts this DROPS after
+   * eviction. */
+  size(): number {
+    return this.matches.size;
   }
 
   get(matchId: string): MatchState | undefined {
@@ -233,6 +298,70 @@ export class MatchRegistry {
   start(): void {
     this.tickTimer = setInterval(() => this.tick(), STANDS_TICK_MS);
     this.snapshotTimer = setInterval(() => this.snapshotNow(), SNAPSHOT_INTERVAL_MS);
+    // the memory fix: sweep finished/stale matches out of ALL in-memory state
+    // on its own cadence (reuses the snapshot interval by default). unref so a
+    // pending sweep never by itself holds the process open.
+    this.evictTimer = setInterval(() => {
+      try {
+        this.sweepEvictions();
+      } catch (err) {
+        console.warn(`[stands:registry] eviction sweep error: ${String(err)}`);
+      }
+    }, EVICT_SWEEP_MS);
+    (this.evictTimer as { unref?: () => void }).unref?.();
+  }
+
+  /** Evict every match that is genuinely OVER and unwatched (see the
+   * FT_EVICT_GRACE_MS / IDLE_EVICT_GRACE_MS doc at the top of this file). Runs
+   * on the evictTimer; also called DIRECTLY by the dev soak with an advanced
+   * `nowMs` to drive simulated time without real sleeps. Materializes the key
+   * set first (union of live matches + activity-tracked feed-only matches) so
+   * evicting — which mutates both maps — is safe mid-iteration. */
+  sweepEvictions(nowMs = Date.now()): void {
+    const ids = new Set<string>([...this.matches.keys(), ...this.lastActivityMs.keys()]);
+    for (const matchId of ids) {
+      // HARD gate: never evict a match a fan is still watching, no matter how
+      // stale its activity clock looks (a silent match with an open socket is
+      // still a live seat).
+      const clients = this.matches.get(matchId)?.presenceCount() ?? 0;
+      if (clients > 0) continue;
+      const last = this.lastActivityMs.get(matchId);
+      if (last === undefined) continue; // no activity record → nothing to measure; leave it
+      const quietMs = nowMs - last;
+      const resolved = this.resolved?.get(matchId) ?? false;
+      const evictable =
+        (resolved && quietMs >= FT_EVICT_GRACE_MS) || quietMs >= IDLE_EVICT_GRACE_MS;
+      if (evictable) this.evict(matchId, resolved, quietMs);
+    }
+  }
+
+  /** Free a single match from EVERY in-memory home: the registry's own
+   * MatchState + activity clock here, then server.ts's per-match maps via the
+   * onEvict seam. Honesty: this touches NOTHING on disk — the crystallized
+   * sentiment record (the durable match record) was written at FULL_TIME and
+   * is untouched; the restart snapshot simply reflects live memory on its next
+   * periodic write. THE FAN SERIAL (fanNumbers) is registry-GLOBAL and
+   * persistent — deliberately NOT cleared here (a fan's first-come number is
+   * theirs forever, across matches). A late joiner to an evicted match gets
+   * server.ts's honest empty/"ended" path (a fresh empty MatchState, mint
+   * refused — never fabricated live state), verified by the dev soak. */
+  private evict(matchId: string, resolved: boolean, quietMs: number): void {
+    this.matches.delete(matchId);
+    this.lastActivityMs.delete(matchId);
+    try {
+      this.onEvict?.(matchId);
+    } catch (err) {
+      console.warn(`[stands:registry] onEvict hook error for ${matchId}: ${String(err)}`);
+    }
+    console.log(
+      `[stands:registry] evicted ${matchId} (${resolved ? 'resolved' : 'idle/unresolved'}, quiet ${Math.round(quietMs / 1000)}s, 0 clients) — freed from registry + all server maps`,
+    );
+  }
+
+  /** Dev-soak read: the match's last-activity wall-clock, or undefined once
+   * evicted. */
+  lastActivityFor(matchId: string): number | undefined {
+    return this.lastActivityMs.get(matchId);
   }
 
   /** Immediate, out-of-band snapshot write — reuses the EXACT SAME write path
@@ -260,6 +389,7 @@ export class MatchRegistry {
   stop(): void {
     if (this.tickTimer) clearInterval(this.tickTimer);
     if (this.snapshotTimer) clearInterval(this.snapshotTimer);
+    if (this.evictTimer) clearInterval(this.evictTimer);
   }
 
   private tick(): void {
