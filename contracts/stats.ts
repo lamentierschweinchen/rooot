@@ -1,7 +1,7 @@
 /**
  * ROOOT stats seam — a live per-side MATCH STATS aggregate DERIVED from the wire
  * event stream (contracts/ledger.ts + texture.ts). FROZEN: coordinator only.
- * Design reads window.__stats against this shape (see design/BRIEF-STATS.md).
+ * Design reads window.__stats against this shape (see archive/design-docs-consumed/design/BRIEF-STATS.md).
  *
  * Everything here is REAL, off the wire. The ScoreStatKey legend is fully resolved
  * (Jul 7): possession/shots/offsides/fouls are score EVENTS, not the numeric `Stats`

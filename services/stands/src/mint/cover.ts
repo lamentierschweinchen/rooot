@@ -6,7 +6,7 @@
  * path, seat/mint-scarf.ts, is that 3rd usage).
  *
  * HONEST LABEL: a real per-match/per-fan scarf illustration is the relics lane's job
- * (apps/web/src/relics/renderPoster.ts renders the real client-side art) — this generic branded
+ * (archive/src-spa-frozen/apps/web/src/relics/renderPoster.ts renders the real client-side art) — this generic branded
  * gradient is a placeholder cover for the on-chain asset until that's wired server-side. It is
  * never asserted to be anything more.
  */

@@ -3,7 +3,7 @@
 *The law. One purpose: **a unique and FUN fan experience** — the World Cup as a living
 mechanical print, on a phone, on-chain forever. This file is written for build lanes
 (stage · crowd · relics · mint). It is the human-readable twin of
-`apps/web/src/lib/theme.ts` (the tokens as code) and `apps/web/public/system.html` (the
+`archive/src-spa-frozen/apps/web/src/lib/theme.ts` (the tokens as code) and `archive/web-prototypes/apps/web/public/system.html` (the
 specimen page). **Where any two disagree, this file governs.** Every rule traces to a
 precedent in `design/references/_chosen/` or the brand-book tables — never to generic
 taste. If your render drifts toward betting-app / dashboard / AI-gradient, it dies in review.*
@@ -191,7 +191,7 @@ shows a legible sliver rather than nothing.
 ## 4 · TYPE (four voices, one job each)
 
 The type roles are non-negotiable role assignments, not style suggestions.
-(`FONT_STACKS`, `TYPE_ROLES`, `FONT_URLS` in theme.ts; URLs verbatim from `type-lab.html`.)
+(`FONT_STACKS`, `TYPE_ROLES`, `FONT_URLS` in theme.ts; URLs verbatim from `archive/web-prototypes/apps/web/public/type-lab.html`.)
 
 | Voice | Font | Job — and ONLY this job |
 |---|---|---|
@@ -540,5 +540,5 @@ serial/edition line), the poster-ready rule, and reserved mechanism hooks
 
 *Sources: the 14 canon renders in `design/references/_chosen/` (viewed directly);
 `design/POP-LANGUAGE.md`; `ROOOT_Brand_Book.pdf` pp. 4/7/8/9 (color-role · glyph · motion ·
-frame tables); `apps/web/public/type-lab.html` (the exact Google Fonts axes). The tokens are
-`apps/web/src/lib/theme.ts`; the specimen page is `apps/web/public/system.html`.*
+frame tables); `archive/web-prototypes/apps/web/public/type-lab.html` (the exact Google Fonts axes). The tokens are
+`archive/src-spa-frozen/apps/web/src/lib/theme.ts`; the specimen page is `archive/web-prototypes/apps/web/public/system.html`.*

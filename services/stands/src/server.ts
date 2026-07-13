@@ -28,7 +28,7 @@ import { SentimentAccumulator } from './sentiment/accumulator';
 import { fixtureInfo } from './sentiment/teams';
 // ── SEAT: self-custodial fan identity + mint-to-fan relics (YOUR SEAT) ─────
 // Reconciled from the your-seat worktree branch onto this file's current shape —
-// docs/HANDOFF-2026-07-10-coordinator-session.md §5. Imports grouped here so the
+// archive/docs-consumed/docs/HANDOFF-2026-07-10-coordinator-session.md §5. Imports grouped here so the
 // whole SEAT surface (imports + the function block below + the route wiring
 // inside createStandsServer) is easy to lift as one unit.
 import { networkFor } from './mint/config';
@@ -1204,7 +1204,7 @@ function handleHello(ws: WebSocket, state: ConnState, msg: Extract<ClientMsg, { 
   state.anonId = msg.anonId;
   if (msg.side) {
     match.root(msg.anonId, msg.side);
-    // THE FAN SERIAL (design/HANDOFF-2026-07-10-fan-serial.md, the
+    // THE FAN SERIAL (archive/design-docs-consumed/design/HANDOFF-2026-07-10-fan-serial.md, the
     // coordinator's accepted MARGIN amendment): mints on the first hello
     // that CARRIES A SIDE — side-less hellos (diagnostics, the write-proof
     // smoke canary) never reach this branch, so they structurally can never
@@ -1729,8 +1729,8 @@ function readBody(req: IncomingMessage): Promise<string> {
   });
 }
 
-/** Resolve the side the fan actually rooted for into its team tricode (design/
- * HANDOFF-coordinator-data-wiring.md: profile.sides must be tricodes, e.g. ['SUI','ARG'], never
+/** Resolve the side the fan actually rooted for into its team tricode
+ * (archive/design-docs-consumed/design/HANDOFF-coordinator-data-wiring.md: profile.sides must be tricodes, e.g. ['SUI','ARG'], never
  * 'home'/'away' — the cabinet renders flag stickers from these). Null when the fan never rooted, or
  * the match has no known fixture identity — never guessed. */
 function sideTricode(matchId: string, side: Side | null): string | null {

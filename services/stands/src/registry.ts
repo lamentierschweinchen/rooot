@@ -126,7 +126,7 @@ export class MatchRegistry {
   private tickTimer: NodeJS.Timeout | null = null;
   private snapshotTimer: NodeJS.Timeout | null = null;
 
-  /** THE FAN SERIAL (design/HANDOFF-2026-07-10-fan-serial.md, the
+  /** THE FAN SERIAL (archive/design-docs-consumed/design/HANDOFF-2026-07-10-fan-serial.md, the
    * coordinator's accepted MARGIN amendment) — a GLOBAL (registry-level, NOT
    * per-match), persistent, first-come ordinal per fan (anonId). Nº 1 = the
    * first hello this service EVER received that carried a side. Owned here

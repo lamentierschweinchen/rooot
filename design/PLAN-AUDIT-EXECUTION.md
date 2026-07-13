@@ -4,7 +4,7 @@
 > or superpowers:subagent-driven-development to implement task-by-task. Steps use checkbox (`- [ ]`)
 > syntax. **Every task ends with an OWNER CHECK-IN gate — nothing is "done" until the owner has seen
 > pixels and said so.** This plan implements `design/FRESH-EYES-AUDIT.md` as triaged by
-> `design/AUDIT-TRIAGE-2026-07-10.md` (owner verdicts + the priority override are canon).
+> `archive/design-docs-consumed/design/AUDIT-TRIAGE-2026-07-10.md` (owner verdicts + the priority override are canon).
 
 **Goal:** Land every audit fix that pushes the usable live product — page by page, card by card,
 with an owner taste/accuracy check-in per unit.
@@ -31,7 +31,7 @@ recorded feeds + local stands stack as sanctioned dev data.
   events/numbers in honest layers; REPLAY never labeled LIVE.
 - **Contrast gate (POP-LANGUAGE §C-7):** team yellows/light inks never raw as type on cream — darken
   via the `mastInk()` pattern (`woven-loom.html:118-121`). Applies to BEL yellow tonight.
-- **Lanes:** `woven-loom.html` belongs to the **loom instance** (`HANDOFF-loom-object.md`) — I only
+- **Lanes:** `woven-loom.html` belongs to the **loom instance** (`archive/design-docs-consumed/design/HANDOFF-loom-object.md`) — I only
   hand it the cabinet-side seam + the one fixture literal. `contracts/`, adapters, `main.ts`,
   `fixture.json` are **coordinator-only**. `apps/web/public/*.html` (minus loom) is mine.
 - **Verification bar per task:** `npm run typecheck` at root passes · surface driven for real ·
@@ -151,7 +151,7 @@ already treat non-`'a'` as home; no change needed there.
 
 **Interfaces:** Consumes `__stands.onConsensus(msg)` — `msg.all/{byRoot.home,away,neutral}` each
 `{ n, mean:{home,away}, outcome:{homeWin,draw,awayWin}, modal:{home,away,pct} }` (LIVE NOW, real
-shape in `HANDOFF-2026-07-10-tonight-data-shapes.md §2`) and `__stands.onMarket(triple)`.
+shape in `archive/design-docs-consumed/design/HANDOFF-2026-07-10-tonight-data-shapes.md §2`) and `__stands.onMarket(triple)`.
 
 - [ ] **Step 1: OWNER CHECK-IN (sketch first — this is the taste-heaviest tonight unit).** Two
   options mocked as static frames with tonight's teams **[D2]**:
@@ -579,7 +579,7 @@ right now — owner call on who.
    exactly **THE CROWD IS ARRIVING**; per-end lines silent at n:0. T4's sketch still owns the panel.
 4. Gate pre-data bar → KISS: **GAME STARTS AT <kick time>** (from FX.kick), not wire-speak.
 5. Loom `/live` line: **owner is working the loom himself; lands when done** — re-raise before the
-   20:30 freeze if not in. My hand-off note sits in HANDOFF-loom-object.md margin.
+   20:30 freeze if not in. My hand-off note sits in archive/design-docs-consumed/design/HANDOFF-loom-object.md margin.
 - T1 recipe deviation (logged at check-in): gate flag key `SPA` (asset truth), not `ESP`.
 - For the coordinator (receipt in data-shapes margin): `odds` carries no matchId — room-blind at the
   adapter; observed cross-room print at 15:19.

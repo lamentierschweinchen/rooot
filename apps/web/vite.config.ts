@@ -6,9 +6,10 @@ const fixturesDir = fileURLToPath(new URL('../../fixtures', import.meta.url));
 
 /**
  * DEV-ONLY: serve the repo-root fixtures/ folder at /fixtures/* so the watching-shell
- * dev entry (app-dev.html?ledger) can replay the AUS–EGY story JSONL through the frozen
- * parser to light the ledger with real events. These files are gitignored + never
- * bundled; this middleware only runs in `vite dev`. Not a product surface.
+ * dev entry (archive/src-spa-frozen/apps/web/app-dev.html?ledger, archived 2026-07-13)
+ * could replay the AUS–EGY story JSONL through the frozen parser to light the ledger
+ * with real events. These files are gitignored + never bundled; this middleware only
+ * runs in `vite dev`. Not a product surface.
  */
 function serveFixtures() {
   return {

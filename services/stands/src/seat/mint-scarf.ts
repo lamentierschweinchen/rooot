@@ -5,7 +5,7 @@
  * pubkey into the shared ROOOT scarf collection (mint/collection.ts) — service pays, fan owns,
  * devnet only.
  *
- * HONESTY GATE (reconciliation plan, docs/HANDOFF-2026-07-10-coordinator-session.md §5): a mint
+ * HONESTY GATE (reconciliation plan, archive/docs-consumed/docs/HANDOFF-2026-07-10-coordinator-session.md §5): a mint
  * happens ONLY from a real full-time claim — `score.decided` must be true (server.ts's
  * `resolvedMatches`, populated off the real status feed) BEFORE any network call is attempted. A
  * claim made mid-match still binds the fan's identity + real side/call (seat/claim.ts), it just
@@ -58,7 +58,7 @@ export interface ScarfExtras {
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
 /** ISO date ('2026-07-09') -> "09 JUL '26" (matches the cabinet's demo-sample convention,
- * design/HANDOFF-coordinator-data-wiring.md's demo-seat.js stub). Falls back to the raw ISO string
+ * archive/design-docs-consumed/design/HANDOFF-coordinator-data-wiring.md's demo-seat.js stub). Falls back to the raw ISO string
  * on anything unparseable — never invents a date. Exported for the attribute-shaping dev check. */
 export function formatScarfDate(dateISO: string): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateISO);

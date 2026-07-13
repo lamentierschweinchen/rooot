@@ -173,7 +173,7 @@ function buildVerify(prov: RelicProvenance, live: boolean): VerifyHint {
 }
 
 /* ── claim-time scarf attributes (YOUR SEAT reconciliation) ────────────────────────────────────
- * The fan's OWN scarf record — the exact shape design/HANDOFF-coordinator-data-wiring.md's
+ * The fan's OWN scarf record — the exact shape archive/design-docs-consumed/design/HANDOFF-coordinator-data-wiring.md's
  * AlbumScarf specifies, so seat/album.ts's shapeAlbum can read the SAME fields back verbatim:
  * home/away tricodes, the final score, the fan's call, the 3-state result, comp, date, serial.
  * Never a match-level aggregate (Goals/Won the stands/Data source/Kickoff — buildAttributes'

@@ -1,6 +1,6 @@
 /**
  * THE ALBUM — assets-by-owner (DAS), shaped into the AlbumScarf record
- * design/HANDOFF-coordinator-data-wiring.md specifies verbatim: home/away
+ * archive/design-docs-consumed/design/HANDOFF-coordinator-data-wiring.md specifies verbatim: home/away
  * tricodes, final score, the fan's call, the 3-state result, comp, date,
  * serial. Drops malformed assets — never fakes a field. Ported from the
  * your-seat branch's seat/album.ts; ADAPTED here for the richer scarf shape

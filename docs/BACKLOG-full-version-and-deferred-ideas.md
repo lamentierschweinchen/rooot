@@ -1,12 +1,12 @@
 # ROOOT — the full version & deferred ideas (backlog)
 
-*For the incoming coordinator instance (and owner/Codex/Design). Companion to `docs/HANDOFF-2026-07-10-coordinator-session.md`. Its job: make sure the ideas that only ever lived as concepts — or were deprioritized to ship the live prototype — are written down, not lost. Tonight's mandate is the post-mortem Release Gate; THIS doc is everything beyond tonight that the vision includes. Read it so you know what "the full version" means before you make scope calls.*
+*For the incoming coordinator instance (and owner/Codex/Design). Companion to `archive/docs-consumed/docs/HANDOFF-2026-07-10-coordinator-session.md`. Its job: make sure the ideas that only ever lived as concepts — or were deprioritized to ship the live prototype — are written down, not lost. Tonight's mandate is the post-mortem Release Gate; THIS doc is everything beyond tonight that the vision includes. Read it so you know what "the full version" means before you make scope calls.*
 
 **Source docs to read for the recorded backlog** (this doc consolidates + points to them; read them for detail):
-- `COORDINATOR-TODO.md` — the coordinator's own backlog (the data/wire/chain/deploy list, the comparisons, feed-widening, data limits).
+- `archive/docs-consumed/COORDINATOR-TODO.md` — the coordinator's own backlog (the data/wire/chain/deploy list, the comparisons, feed-widening, data limits).
 - `design/ROADMAP.md` — the design build-list / full picture (the app shell, the profile, the seams; ~Jul 19 horizon).
 - `design/experiments/LOOM-NEXT.md` — the loom's design journal (A1–A31; loom motion, shootout board, next ideas).
-- `design/QUEUE-jul7.md`, `design/BRIEF-*.md`, `design/GAP-ANALYSIS.md`, `design/STATUS-DESIGN.md` — design lane queue + briefs + gaps.
+- `archive/design-docs-consumed/design/QUEUE-jul7.md`, `archive/design-docs-consumed/design/BRIEF-*.md`, `archive/design-docs-consumed/design/GAP-ANALYSIS.md`, `archive/design-docs-consumed/design/STATUS-DESIGN.md` — design lane queue + briefs + gaps.
 - The YOUR SEAT spec's **"Later" + "Non-goals"** sections: `docs/superpowers/specs/2026-07-09-your-seat-identity-retention-design.md` §9 + §12.
 - The task tracker's pending items: **#5 submission · #8 stands · #10 XI card · #11 durability+dynamic fixture · #12 GATE+PRESSING · #13 comparisons · #14 threads · #15 copy+device**.
 
@@ -14,9 +14,9 @@
 
 ## 1 · THE DATA PRODUCT — "the gaps that ARE the story" (highest-value deferred)
 
-The premiere proved the raw signal (crowd 60% Morocco vs market 14% — a +45.7pt gap). The *product* is surfacing that as first-class, labeled comparisons. Recorded in `COORDINATOR-TODO.md` P1 as **the JUDGE** ("right now only raw streams surface, not the gaps that ARE the story"):
+The premiere proved the raw signal (crowd 60% Morocco vs market 14% — a +45.7pt gap). The *product* is surfacing that as first-class, labeled comparisons. Recorded in `archive/docs-consumed/COORDINATOR-TODO.md` P1 as **the JUDGE** ("right now only raw streams surface, not the gaps that ARE the story"):
 
-The seed (`COORDINATOR-TODO.md` P1) was three comparisons — OPTIMISM GAP (predict−market) · FORESIGHT (belief−result) · UPSET (market−result). **The owner's fuller canonical list (verbatim — these ARE the product; preserve the framing and language):**
+The seed (`archive/docs-consumed/COORDINATOR-TODO.md` P1) was three comparisons — OPTIMISM GAP (predict−market) · FORESIGHT (belief−result) · UPSET (market−result). **The owner's fuller canonical list (verbatim — these ARE the product; preserve the framing and language):**
 
 1. **Optimism Gap** — how much a fanbase's predicted outcome differs from the market at kickoff. Example: Argentina fans predict 82% win-equivalent while market says 64%. That gap is proprietary ROOOT data.
 2. **Doubter Index** — among people rooted for a side, how many predict that side will draw or lose. Even better: track whether the doubters were right. This is very human and very shareable.
@@ -50,7 +50,7 @@ These are BET vs BELIEVE vs HAPPEN made explicit. Wire them labeled, market ≠ 
 > it live at the next fixture (NOR–ENG Jul 11 or ARG–SUI Jul 12). Tonight's SentimentRecord/persistence
 > substrate (post-mortem blocker #1) already accommodates it additively.
 
-Today prediction is **pre-match only** (side + scoreline, locked at kickoff). The full version is **live, in-game prediction** — recorded only as the open question "**mini-preds?**" (`COORDINATOR-TODO.md:31`, gating the crowd-frame wiring alongside "gamification? crescendo?"). This lived largely in conversation and is **NOT specced**. Known shape of the idea:
+Today prediction is **pre-match only** (side + scoreline, locked at kickoff). The full version is **live, in-game prediction** — recorded only as the open question "**mini-preds?**" (`archive/docs-consumed/COORDINATOR-TODO.md:31`, gating the crowd-frame wiring alongside "gamification? crescendo?"). This lived largely in conversation and is **NOT specced**. Known shape of the idea:
 
 - Live micro-predictions during the match (candidates: next goal / next scorer, next card, the score at the next interval, will the lead hold, penalty outcome) — each a fresh belief tick to compare against the live market + what happens.
 - The **data to pull from it**: the crowd's live *belief trajectory* vs the market's live line vs the event stream — a moving BET/BELIEVE/HAPPEN, not a single pre-match snapshot. Per-moment consensus tied to the Pulse drama windows (§4).
@@ -69,7 +69,7 @@ Today prediction is **pre-match only** (side + scoreline, locked at kickoff). Th
 
 ## 3 · FEED-WIDENING — more signal off the wire (coordinator, recorded)
 
-From `COORDINATOR-TODO.md` P1/P2 + `design/ROADMAP.md` §6:
+From `archive/docs-consumed/COORDINATOR-TODO.md` P1/P2 + `design/ROADMAP.md` §6:
 - **Pressure/possession timeline**, **penalty-next-team** prediction, **injuries** (side+player+outcome — parsed, not woven), the **hydration/cooling break** (Action=comment · "Water-drinking break" → a blue water thread, NOT a suspend fallback).
 - **positionId → formation** — the XI carries raw position codes; map to GK/DEF/MID/FWD or a formation so design can draw a team-sheet shape.
 - **Honest data limits (not fixable by us):** no disallowed-goal REASON on the wire (show "overturned"); possession% is a gated time-share (never false 100/0); territory is an attacking-pressure proxy, labeled; TxLINE coverage can start late (flag + record).
@@ -86,7 +86,7 @@ Each room is its own page; nothing ties them into one app. Full version: **the g
 
 The identity/keepsake layer is **built on the `your-seat` branch** (see handoff §5) — passkey wallet, mint-to-fan, album. Deferred *within* it (spec §9 "Later"): **pins/patches as their own assets**, the **season-ticket relic**, **share-cards** (the crop-test social loop — every relic sent to a friend is the next fan's front door), **THE ALBUM** as a season rail (matches-attended, GOT·GOT·NEED across the tournament), cross-ecosystem key migration, the optional **key backup/export** (Task 12), and the **Privy fallback** (Task 7 — needs the owner's appId). **Non-goals (deliberately out, spec §12):** leaderboards, standings, foresight-*ranking*, competitive scores, mainnet, seed-phrase UX, forcing identity at the gate. The seven **virtue pins** are sample today → real counters is post-MVP.
 
-## 7 · THE LOOP BOOK-ENDS + CHECKPOINT RHYTHM (`COORDINATOR-TODO.md` P0, #12)
+## 7 · THE LOOP BOOK-ENDS + CHECKPOINT RHYTHM (`archive/docs-consumed/COORDINATOR-TODO.md` P0, #12)
 
 - **THE GATE** — pick-an-end + call-the-score must LOCK at kickoff and **notarize on-chain** ("a claim on the future starts when the future does"). `__stands.root/predict` exist; wire the kickoff lock + the labeled on-chain record of both.
 - **THE PRESSING** — FT relic (scarf + scorecard + stubs) crystallizes on-chain. *Built + devnet-proven on the your-seat branch; reconcile per handoff §5.*

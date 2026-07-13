@@ -179,7 +179,7 @@ threads + typed event marks. All five are now REAL seams, proven on ARG–CPV:
 | TEMPO | event rate | `builder.pushTempoAt(minute)` → TextureSample.tempo | events/minute (int) |
 | CROWD | rooted/roar | `CrowdView` (contracts/ledger) | counts + roar/s, never mixed |
 
-`TextureBuilder` (apps/web/src/texture) is pure + subscribe()-based like the
+`TextureBuilder` (archive/src-spa-frozen/apps/web/src/texture) is pure + subscribe()-based like the
 ledger builder; `parseSpell` (normalize) is the stateless atom. ReplaySource
 forwards spells via `onSpell` — the loom prototype on replay consumes it now.
 Proven: at 58' CPV held 90% possession AND 100% pressure — they scored. The

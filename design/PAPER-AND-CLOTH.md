@@ -1,7 +1,7 @@
 # PAPER & CLOTH — the site language (the law)
 
 *Owner-approved direction (Jul 5, design session). Synthesizes the loom lineage
-(woven cloth), the pop/print lineage (SYSTEM.md · POP-LANGUAGE.md · BRIEF-PRINT-SOUL.md),
+(woven cloth), the pop/print lineage (SYSTEM.md · POP-LANGUAGE.md · archive/design-docs-consumed/design/BRIEF-PRINT-SOUL.md),
 the mechanism schema (docs/MECHANISMS.md), and the sentiment lens (docs/SENTIMENT.md)
 into ONE world for rooot.club. Where this doc and a rendered surface disagree, the
 owner's gated sheet wins, then this doc is corrected.*
@@ -16,7 +16,7 @@ real collectible, intimate feel throughout. The word to beat is still DELIBERATE
 Every element on every surface declares exactly one register:
 
 - **PAPER documents.** Tickets, margins, scorecards, stubs, the album, every number,
-  every label. Paper renders through `apps/web/src/lib/ink.ts` print physics — fat
+  every label. Paper renders through `archive/src-spa-frozen/apps/web/src/lib/ink.ts` print physics — fat
   benday, ink-not-fill, warm vignetted `paperField`, the 8:4:2 frame/panel/detail
   weight scale (theme.ts WEIGHT). Paper moves only by STEPPING: registration snaps,
   stamp beats, card flips. Paper never breathes.
@@ -216,7 +216,7 @@ moved it or the loom wove it. Reduced-motion: static states. Budget ~2ms/frame.
   correction; the 1X2 prices the winner through extra time).
 - **Jul 6 (POR–ESP 19:00 · MEX–ENG 00:00 as rehearsal #2) — build day:**
   SHEET 010 Lexicon → owner gates. Then THE GATE, the STANDS RAIL, the PRESSING,
-  the ALBUM shell — in `apps/web/src/app` on theme/ink/voice primitives.
+  the ALBUM shell — in `archive/src-spa-frozen/apps/web/src/app` on theme/ink/voice primitives.
   Coordinator wires react windows + consensus render + album persistence per
   MECHANISMS the moment shapes are set.
 - **Jul 7 — USA–BEL, the debut:** Match + Album, whole.
