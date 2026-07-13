@@ -6,28 +6,38 @@ after viewing all 25.*
 
 ## The verdict in one line
 
-**Light made visible by particulate, in near-monochrome worlds with one accent — and a
-collection culture rendered in retro grammar: Topps grounds, Panini packs, pennants,
-badges, and a dark spotlit vitrine to keep it all in.** The live world is atmosphere;
-the kept world is print, cloth, and stitch.
+**A near-monochrome world of paper and cloth: printed documents in retro grammar —
+Topps grounds, Panini packs, pennants, badges, ticket stubs — and the match woven as
+real cloth, mounted on the page and kept in a dark spotlit vitrine.** The live world
+is the loom (woven cloth on paper); the kept world is print, cloth, and stitch. The
+tide-on-a-night-pitch stage is retired — `design/PAPER-AND-CLOTH.md` is the ruling
+site language.
 
-## atmosphere/ → the stage (7)
+## atmosphere/ → night ground & goal-light (7)
 
-- **floodlight and fog** ⭐ THE LIGHTING MODEL — eight beams with body through haze,
-  ground a whisper of glitter. TAKE: light-as-material, enormous negative space.
+*The live stage these were curated for is retired (`design/PAPER-AND-CLOTH.md` is the
+law now); the corpus itself stays binding. Read them for the PRESS-BLACK night ground
+and the rare goal-light moment on the paper surface — not as a live tide.*
+
+- **floodlight and fog** — eight beams with body through haze, ground a whisper of
+  glitter. TAKE: enormous negative space; a night ground with body and depth.
   REFUSE: flat dark-mode-UI black.
-- **floodlight aesthetic** — one mast smearing into mist. TAKE: the smear (our
-  probability edge). REFUSE: architecture detail.
+- **floodlight aesthetic** — one mast smearing into mist. RETIRED-THESIS: taught
+  the tide's probability edge; the built product takes nothing from it.
 - **rain & floodlights** — teal grain inside beam cones. TAKE: grain as ambient
-  texture; teal as backstage tint. REFUSE: literal weather sim.
-- **halftime show** — fire plumes over show-lit turf. TAKE: goals = FIRE, brief and
-  enormous. REFUSE: performers/staging.
+  texture — the register the print grain descends from. REFUSE: literal weather
+  sim. (The teal backstage tint retired with the stage.)
+- **halftime show** — fire plumes over show-lit turf. TAKE: the goal as the one
+  brief, enormous ceremony beat — now gold and print, not fire. REFUSE:
+  performers/staging.
 - **halftime rihanna** — floating red geometry, phone-light starfield, haze. TAKE:
-  crowd-as-starfield; ONE saturated color owning a moment. REFUSE: hovering platforms.
-- **stadium tunnel** — cyan tunnel, wet floor, lit pitch waiting. TAKE: the ENTRY
-  transition; reflections; cyan = tunnel only. REFUSE: sci-fi neon on the pitch.
+  ONE saturated colour owning a moment (gold at goals, the seal). REFUSE: hovering
+  platforms. (Crowd-as-starfield retired with the stage.)
+- **stadium tunnel** — cyan tunnel, wet floor, lit pitch waiting. RETIRED-THESIS:
+  taught the stage's tunnel entry; the built entry is THE GATE, a printed ticket.
 - **droplets and ball** — sweat macro on leather. TAKE: material intimacy, monochrome
-  confidence. REFUSE: literal ball imagery (honesty — we show no ball).
+  confidence. REFUSE: photographic literalism — the ball lives as a stitched icon
+  in the cloth, never a photo.
 
 ## fabric/ → the scarf & knit (6)
 
@@ -85,8 +95,8 @@ the kept world is print, cloth, and stitch.
 ## trophy-room/ → the trophy case (3) — NEW
 
 - **trophy cabinet** ⭐ THE CASE — PSG: dark wood, per-shelf spotlights, engraved
-  plaques. TAKE: dark spotlit vitrine as the trophy case's world (matches the night
-  stage); small plaques under each relic.
+  plaques. TAKE: dark spotlit vitrine as the trophy case's world (matches the
+  press-black night ground); small plaques under each relic.
 - **trophies bayern** — the long museum vitrine + lit jersey wall. TAKE: the long-run
   view (a tournament's worth in one glass line); frosted glass depth.
 - **jersey + trophies** ⭐ THE CENTERPIECE LAW — Ballon d'Or row with the Messi 10
@@ -121,12 +131,17 @@ grammar) · SCARF (communal) · BADGES/rosette (achievements) · PENNANT (row, l
 
 ## The rules extracted (all lanes build to these)
 
-1. **Material honesty (stage):** market = horizontal light-vs-fog on the pitch (light's
-   death-edge = exact p; fog bank = the draw); crowd = vertical bengalo smoke +
-   starfield at the ends. Never mixed. No players, no ball, no architecture.
-2. **Monochrome + one accent per moment.** Team colors only in ends' smoke + light
-   tint; fire owns goals; cyan owns the tunnel; gold owns receipts/relics.
-3. **Grain everywhere, subtly.** The rain/sweat register — live stage AND print relics.
+1. **Material honesty (paper + cloth):** the market = the number — a de-vigged
+   probability, woven as the cloth's market thread or printed plainly on paper.
+   The crowd = counts — real people as printed ink bars and crowd blocks, never a
+   percentage. Never mixed, never blended. Nothing renders that didn't happen;
+   material character is print/loom physics, never filters (`PAPER-AND-CLOTH.md`).
+2. **Restraint in ink — one accent per moment.** Two grounds: newsprint cream and
+   press-black. Host spot inks dress the room and non-team plates; team ink alone
+   carries team data; GOLD stays reserved for the exceptional — goals, the cliff,
+   the seal (the dosage law, `PAPER-AND-CLOTH.md` §2). No decoration gradients.
+3. **Grain everywhere, subtly.** The rain/sweat register — the print grain of the
+   paper surfaces AND the keepsakes.
 4. **The card grammar (new):** flat saturated ground · fat diagonal display band ·
    black keyline + white border · tabular data back · the "portrait" is the fan's own
    data made geometric (faith curve, roar, receipts) — never a photo, never a face.
