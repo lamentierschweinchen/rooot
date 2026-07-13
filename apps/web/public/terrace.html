@@ -198,6 +198,20 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .scarf .sk-keep{margin-top:7px;width:100%;padding:11px;background:var(--ink);color:var(--card);border:none;font-family:var(--disp);font-weight:900;font-size:11px;letter-spacing:.12em;cursor:pointer;
   box-shadow:3px 3px 0 rgba(26,24,21,.32);transition:box-shadow .08s,transform .08s}
 .scarf .sk-keep:active{transform:translate(2px,2px);box-shadow:1px 1px 0 rgba(26,24,21,.32)}   /* the stamp presses */
+/* SEAT — the on-chain "forever" beat, layered UNDER the keep. Honest states only: a real devnet
+   tx/asset link on success, an honest note on a bound-not-minted / cancelled / offline claim — the
+   local keepsake is already sealed, and nothing here is ever faked. */
+.scarf .sk-keep.forever{background:var(--verde)}
+.scarf .sk-keep.minting{background:var(--verde);opacity:.72;cursor:progress}
+.scarf .sk-keep.minting::after{content:"";display:inline-block;width:6px;height:6px;margin-left:9px;border-radius:50%;background:var(--card);vertical-align:middle;animation:skPulse 1s ease-in-out infinite}
+.scarf .sk-keep.done{background:var(--verde);cursor:default;box-shadow:none}
+.scarf .sk-keep.retry{background:#9a3a2a}
+@keyframes skPulse{0%,100%{opacity:.28}50%{opacity:1}}
+.sk-chain{margin-top:7px;font-weight:700;font-size:8px;letter-spacing:.08em;color:var(--sub);text-align:center;line-height:1.75}
+.sk-chain .live{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--verde);margin-right:5px;vertical-align:middle;animation:skPulse 1.4s ease-in-out infinite}
+.sk-chain a{color:var(--verde);text-decoration:underline;text-underline-offset:2px;padding:2px 0;display:inline-block}
+.sk-chain a.cab{color:var(--sub)}
+.sk-chain .err{color:#9a3a2a}
 
 /* honesty footer */
 .foot{flex:none;padding:5px 14px;text-align:center;font-weight:700;font-size:7px;letter-spacing:.11em;color:var(--sub);background:var(--paper);border-top:1px solid var(--line);z-index:6}
@@ -278,6 +292,7 @@ body.embed .backg,body.embed .foot{display:none}
       <div class="krow"><span class="l">MINUTES WATCHED</span><b id="kMins">0</b></div>
       <div class="k-prov"><span id="kFx">—</span><span id="kNo">Nº —</span></div>
       <button class="sk-keep" id="skKeep">KEEP IT</button>
+      <div class="sk-chain" id="skChain" hidden></div>
     </div>
   </div>
 
@@ -288,6 +303,12 @@ body.embed .backg,body.embed .foot{display:none}
 <script>if(/[?&]demo=1/.test(location.search))document.write('<scr'+'ipt src="plate/demo-suicol.js"></scr'+'ipt><scr'+'ipt src="demo-feed.js"></scr'+'ipt><scr'+'ipt src="match-read.js"></scr'+'ipt><scr'+'ipt src="crowd-sim.js"></scr'+'ipt>');</script>
 <script src="stands-adapter.js"></script>
 <script src="stats-adapter.js"></script>
+<!-- SEAT — walletless self-custody scarf mint (Face/Touch-ID passkey PRF -> ed25519, in-browser).
+     Load order is load-bearing: nacl (sets window.nacl) BEFORE seat-passkey (window.seatPasskey)
+     BEFORE seat-adapter (window.__seat / window.__album). -->
+<script src="plate/nacl.min.js"></script>
+<script src="seat-passkey.js"></script>
+<script src="seat-adapter.js"></script>
 <script>
 var FEELINGS=[
   {k:'JOY',img:'plate/gens/reactions/joy.png'},
@@ -521,10 +542,10 @@ function showKeepsake(){
   el('kFx').textContent=HOME_TRI+'–'+AWAY_TRI+' · '+d.getDate()+' '+MON[d.getMonth()]+' '+d.getFullYear();
   setTimeout(function(){ el('keepsake').classList.add('on'); },900);
 }
-el('skKeep').onclick=function(){
-  var b=el('skKeep');
-  if(b.dataset.kept){ location.href='cabinet.html?from=keep'+(LIVE?'&live=1':(DEMO?'&demo=1':'')); return; }   // second tap walks you home
-  // first tap: the record writes (colours ride along so the cabinet can print the card without this page)
+// BEAT 1 — the LOCAL keepsake (unchanged): the record writes (colours ride along so the cabinet can
+// print the card without this page) and the card presses. This always runs first, unblocked — the
+// stand IS the trophy, and it is kept the instant you tap, no biometric, no network in the way.
+function keepLocal(){
   var cs=getComputedStyle(document.documentElement);
   try{ localStorage.setItem('rooot.kept.'+MATCH_ID, JSON.stringify({matchId:MATCH_ID,home:HOME_TRI,away:AWAY_TRI,
     final:{h:M.score[0],a:M.score[1]}, pred:PASS&&PASS.call||null, cheers:M.cheerN, reacts:M.reacts,
@@ -532,7 +553,59 @@ el('skKeep').onclick=function(){
     colors:[(cs.getPropertyValue('--you')||'').trim(),(cs.getPropertyValue('--yousec')||'').trim(),(cs.getPropertyValue('--yousec2')||'').trim()],
     ts:Date.now()})); }catch(e){}
   var sc=document.querySelector('.keepsake .scarf'); if(sc){ sc.classList.remove('kept'); void sc.offsetWidth; sc.classList.add('kept'); }   // the press
-  b.dataset.kept='1'; b.textContent='KEPT ✓ — IN YOUR CABINET →';
+}
+function cabHref(){ return 'cabinet.html?from=keep'+(LIVE?'&live=1':(DEMO?'&demo=1':'')); }
+function chainMsg(html,cls){ var c=el('skChain'); if(!c)return; c.hidden=false; c.className='sk-chain'+(cls?' '+cls:''); c.innerHTML=html; }
+function showCab(){   // the walk-home stays reachable in EVERY branch (preserves the old KEPT→cabinet step)
+  var c=el('skChain'); if(!c||c.querySelector('a.cab'))return;
+  if(c.innerHTML.trim())c.appendChild(document.createElement('br'));
+  var a=document.createElement('a'); a.className='cab'; a.href=cabHref(); a.textContent='→ in your cabinet';
+  c.appendChild(a); c.hidden=false;
+}
+function assetUrl(asset){ return 'https://explorer.solana.com/address/'+encodeURIComponent(asset)+'?cluster=devnet'; }
+
+// KEEP IT — two honest beats on one button. Beat 1 keeps it here (keepLocal, above). Beat 2 layers the
+// on-chain "forever": window.__seat.claim() derives the fan's OWN key from Face/Touch ID (self-custody,
+// walletless) and mints a REAL Metaplex Core scarf to devnet, then shows the explorer links. Owner-gate:
+// default = two-stage (keep, THEN keep-forever) so the biometric is never a surprise under "KEEP IT" and
+// the keepsake seals even if the mint is cancelled; see scratchpad/sdd/task-mintui-report.md for the
+// same-tap and two-separate-buttons alternatives to choose between.
+el('skKeep').onclick=function(){
+  var b=el('skKeep');
+  if(b.dataset.busy) return;                                  // a mint is in flight (~5-20s) — ignore re-taps
+  if(b.dataset.stage!=='forever'){                            // BEAT 1 — keep it locally (instant, unblocked)
+    keepLocal();
+    b.dataset.stage='forever'; b.classList.add('forever'); b.textContent='KEEP IT FOREVER · ON DEVNET';
+    showCab();
+    return;
+  }
+  // BEAT 2 — the on-chain forever. If the adapter never loaded, stay honest: keep the local keepsake, no fake.
+  if(!window.__seat || typeof window.__seat.claim!=='function'){
+    chainMsg('<span class="err">on-chain claim is unavailable here — your scarf is kept in your cabinet</span>','');
+    showCab(); return;
+  }
+  b.dataset.busy='1'; b.classList.remove('forever','retry'); b.classList.add('minting'); b.textContent='MINTING ON DEVNET…';
+  chainMsg('<span class="live"></span>minting your scarf on devnet — this takes a few seconds','');
+  window.__seat.claim({matchId:MATCH_ID}).then(function(res){
+    b.dataset.busy=''; b.classList.remove('minting');
+    if(res && res.mint){                                      // a REAL mint — show the devnet proof
+      b.classList.add('done'); b.dataset.stage='done'; b.textContent='KEPT FOREVER ✓';
+      var links='<span class="live" style="animation:none"></span>on devnet · yours forever<br>'+
+        '<a href="'+res.mint.txUrl+'" target="_blank" rel="noopener">view the mint ↗</a>';
+      if(res.mint.asset)links+=' · <a href="'+assetUrl(res.mint.asset)+'" target="_blank" rel="noopener">your scarf on-chain ↗</a>';
+      chainMsg(links,''); showCab();
+    } else {                                                  // bound, not yet minted (before FULL_TIME) — honest, retryable
+      b.classList.add('forever'); b.dataset.stage='forever'; b.textContent='KEEP IT FOREVER · ON DEVNET';
+      chainMsg('your seat is saved — the scarf mints at full time. keep it again shortly.',''); showCab();
+    }
+  }).catch(function(err){                                     // cancelled Face ID / unsupported / server error — keep local, offer retry, NEVER fake
+    b.dataset.busy=''; b.classList.remove('minting'); b.classList.add('retry'); b.dataset.stage='forever'; b.textContent='TRY AGAIN · ON DEVNET';
+    var m=(err&&err.message)||'';
+    var msg=(m==='claim-unavailable'||m==='prf-unsupported') ? 'couldn’t claim on this device — your scarf is kept in your cabinet'
+          : (m==='token-timeout'||m==='token-unavailable') ? 'couldn’t reach the stands service — kept locally, tap to try again'
+          : 'not minted — your scarf is kept in your cabinet. tap to try again';
+    chainMsg('<span class="err">'+msg+'</span>',''); showCab();
+  });
 };
 el('keepsake').addEventListener('click',function(e){ if(e.target===el('keepsake'))el('keepsake').classList.remove('on'); });   // tap outside: stay in the stands
 
