@@ -19,9 +19,11 @@
 (function () {
   'use strict';
   var q = new URLSearchParams(location.search);
-  var ON = location.pathname === '/' || location.pathname === '/live'
-    || q.get('live') === '1'
-    || q.get('site') === '1' || q.get('loomfeed') === '1' || q.get('standsfeed') === '1';
+  // Live is the default on every surface that loads this adapter. The one opt-OUT is
+  // ?demo=1: there the baked crowd-sim engine owns window.__stands, so this adapter must
+  // stand down or it would clobber the tape. (?live=1 / ?site=1 / ?loomfeed=1 /
+  // ?standsfeed=1 kept working, now redundant.)
+  var ON = q.get('demo') !== '1';
   if (!ON) return;
   var explicitMatch = q.get('match');   // ?match= always wins — never touches the manifest
   var wsBase = q.get('ws') || 'wss://rooot-stands.fly.dev/';
