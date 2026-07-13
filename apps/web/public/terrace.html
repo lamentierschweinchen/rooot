@@ -198,12 +198,12 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .scarf .sk-keep{margin-top:7px;width:100%;padding:11px;background:var(--ink);color:var(--card);border:none;font-family:var(--disp);font-weight:900;font-size:11px;letter-spacing:.12em;cursor:pointer;
   box-shadow:3px 3px 0 rgba(26,24,21,.32);transition:box-shadow .08s,transform .08s}
 .scarf .sk-keep:active{transform:translate(2px,2px);box-shadow:1px 1px 0 rgba(26,24,21,.32)}   /* the stamp presses */
-/* SEAT — the on-chain "forever" beat, layered UNDER the keep. Honest states only: a real devnet
-   tx/asset link on success, an honest note on a bound-not-minted / cancelled / offline claim — the
-   local keepsake is already sealed, and nothing here is ever faked. */
-.scarf .sk-keep.forever{background:var(--verde)}
-.scarf .sk-keep.minting{background:var(--verde);opacity:.72;cursor:progress}
-.scarf .sk-keep.minting::after{content:"";display:inline-block;width:6px;height:6px;margin-left:9px;border-radius:50%;background:var(--card);vertical-align:middle;animation:skPulse 1s ease-in-out infinite}
+/* SEAT — one honest Collect. The local keepsake seals first, then the fan's own passkey
+   claims a real self-custody scarf. States show only what is true: a plain proof link on
+   success, an honest note on a not-yet / cancelled / offline claim — the local keepsake is
+   already sealed, and nothing here is ever faked. */
+.scarf .sk-keep.collecting{background:var(--verde);opacity:.72;cursor:progress}
+.scarf .sk-keep.collecting::after{content:"";display:inline-block;width:6px;height:6px;margin-left:9px;border-radius:50%;background:var(--card);vertical-align:middle;animation:skPulse 1s ease-in-out infinite}
 .scarf .sk-keep.done{background:var(--verde);cursor:default;box-shadow:none}
 .scarf .sk-keep.retry{background:#9a3a2a}
 @keyframes skPulse{0%,100%{opacity:.28}50%{opacity:1}}
@@ -291,7 +291,7 @@ body.embed .backg,body.embed .foot{display:none}
       <div class="kmoms" id="kMoms"></div>
       <div class="krow"><span class="l">MINUTES WATCHED</span><b id="kMins">0</b></div>
       <div class="k-prov"><span id="kFx">—</span><span id="kNo">Nº —</span></div>
-      <button class="sk-keep" id="skKeep">KEEP IT</button>
+      <button class="sk-keep" id="skKeep">Collect</button>
       <div class="sk-chain" id="skChain" hidden></div>
     </div>
   </div>
@@ -564,47 +564,37 @@ function showCab(){   // the walk-home stays reachable in EVERY branch (preserve
 }
 function assetUrl(asset){ return 'https://explorer.solana.com/address/'+encodeURIComponent(asset)+'?cluster=devnet'; }
 
-// KEEP IT — two honest beats on one button. Beat 1 keeps it here (keepLocal, above). Beat 2 layers the
-// on-chain "forever": window.__seat.claim() derives the fan's OWN key from Face/Touch ID (self-custody,
-// walletless) and mints a REAL Metaplex Core scarf to devnet, then shows the explorer links. Owner-gate:
-// default = two-stage (keep, THEN keep-forever) so the biometric is never a surprise under "KEEP IT" and
-// the keepsake seals even if the mint is cancelled; see scratchpad/sdd/task-mintui-report.md for the
-// same-tap and two-separate-buttons alternatives to choose between.
+// COLLECT — one honest tap. The local keepsake seals FIRST (keepLocal, above — so "your scarf
+// is safe" is literally true even if the claim fails), then the fan's OWN key derives from
+// Face/Touch ID (self-custody, walletless) and window.__seat.claim() records a REAL Metaplex Core
+// scarf, and we show a plain proof link. One tap, not two: the biometric is expected because the
+// fan asked to collect, so there is no surprise to guard against. Never fabricates an asset or a tx.
 el('skKeep').onclick=function(){
   var b=el('skKeep');
-  if(b.dataset.busy) return;                                  // a mint is in flight (~5-20s) — ignore re-taps
-  if(b.dataset.stage!=='forever'){                            // BEAT 1 — keep it locally (instant, unblocked)
-    keepLocal();
-    b.dataset.stage='forever'; b.classList.add('forever'); b.textContent='KEEP IT FOREVER · ON DEVNET';
-    showCab();
-    return;
-  }
-  // BEAT 2 — the on-chain forever. If the adapter never loaded, stay honest: keep the local keepsake, no fake.
+  if(b.dataset.busy) return;                                  // a claim is in flight (~5-20s) — ignore re-taps
+  if(b.dataset.stage==='done') return;                        // already collected — it is permanently theirs
+  keepLocal();                                                // seal the local keepsake FIRST, always, unblocked
+  // no adapter → stay honest: the keepsake is kept, offer a retry, never fake a claim.
   if(!window.__seat || typeof window.__seat.claim!=='function'){
-    chainMsg('<span class="err">on-chain claim is unavailable here — your scarf is kept in your cabinet</span>','');
-    showCab(); return;
+    b.classList.remove('collecting'); b.classList.add('retry'); b.textContent='Try again';
+    chainMsg('<span class="err">Something went wrong — try again.</span>',''); showCab(); return;
   }
-  b.dataset.busy='1'; b.classList.remove('forever','retry'); b.classList.add('minting'); b.textContent='MINTING ON DEVNET…';
-  chainMsg('<span class="live"></span>minting your scarf on devnet — this takes a few seconds','');
+  b.dataset.busy='1'; b.classList.remove('retry'); b.classList.add('collecting'); b.textContent='Collecting…';
+  chainMsg('<span class="live"></span>collecting your scarf — a few seconds',''); showCab();
   window.__seat.claim({matchId:MATCH_ID}).then(function(res){
-    b.dataset.busy=''; b.classList.remove('minting');
-    if(res && res.mint){                                      // a REAL mint — show the devnet proof
-      b.classList.add('done'); b.dataset.stage='done'; b.textContent='KEPT FOREVER ✓';
-      var links='<span class="live" style="animation:none"></span>on devnet · yours forever<br>'+
-        '<a href="'+res.mint.txUrl+'" target="_blank" rel="noopener">view the mint ↗</a>';
-      if(res.mint.asset)links+=' · <a href="'+assetUrl(res.mint.asset)+'" target="_blank" rel="noopener">your scarf on-chain ↗</a>';
-      chainMsg(links,''); showCab();
-    } else {                                                  // bound, not yet minted (before FULL_TIME) — honest, retryable
-      b.classList.add('forever'); b.dataset.stage='forever'; b.textContent='KEEP IT FOREVER · ON DEVNET';
-      chainMsg('your seat is saved — the scarf mints at full time. keep it again shortly.',''); showCab();
+    b.dataset.busy=''; b.classList.remove('collecting');
+    if(res && res.mint){                                      // a REAL claim — show a plain proof link
+      b.classList.add('done'); b.dataset.stage='done'; b.textContent='Collected ✓';
+      var url=res.mint.asset?assetUrl(res.mint.asset):res.mint.txUrl;
+      chainMsg('<span class="live" style="animation:none"></span>permanently yours<br>'+
+        '<a href="'+url+'" target="_blank" rel="noopener">view it ↗</a>',''); showCab();
+    } else {                                                  // seat saved, scarf not yet ready (before full time) — honest, retryable
+      b.textContent='Collect';                                // back to idle — collect again at full time
+      chainMsg('your seat is saved — your scarf is ready at full time.',''); showCab();
     }
-  }).catch(function(err){                                     // cancelled Face ID / unsupported / server error — keep local, offer retry, NEVER fake
-    b.dataset.busy=''; b.classList.remove('minting'); b.classList.add('retry'); b.dataset.stage='forever'; b.textContent='TRY AGAIN · ON DEVNET';
-    var m=(err&&err.message)||'';
-    var msg=(m==='claim-unavailable'||m==='prf-unsupported') ? 'couldn’t claim on this device — your scarf is kept in your cabinet'
-          : (m==='token-timeout'||m==='token-unavailable') ? 'couldn’t reach the stands service — kept locally, tap to try again'
-          : 'not minted — your scarf is kept in your cabinet. tap to try again';
-    chainMsg('<span class="err">'+msg+'</span>',''); showCab();
+  }).catch(function(){                                        // cancelled Face ID / unsupported / offline — keep local, offer retry, NEVER fake
+    b.dataset.busy=''; b.classList.remove('collecting'); b.classList.add('retry'); b.textContent='Try again';
+    chainMsg('<span class="err">Something went wrong — try again.</span>',''); showCab();
   });
 };
 el('keepsake').addEventListener('click',function(e){ if(e.target===el('keepsake'))el('keepsake').classList.remove('on'); });   // tap outside: stay in the stands
