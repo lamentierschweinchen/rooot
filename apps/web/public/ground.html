@@ -117,7 +117,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 <script src="stats-adapter.js"></script>
 <script>
 var PARAMS=new URLSearchParams(location.search);
-var DEMO=PARAMS.get('demo')==='1', LIVE=PARAMS.get('live')==='1';
+var DEMO=PARAMS.get('demo')==='1', LIVE=!DEMO, WS=PARAMS.get('ws');   // live is the default; specimen only under ?demo=1
 var explicitMatch=PARAMS.get('match');
 var FIXTURES={
   '18202783':{home:{tri:'SUI',name:'SUI',color:'#D52B1E'},away:{tri:'COL',name:'COL',color:'#E8B10A'}},
@@ -160,6 +160,7 @@ function lensSrc(name){
   if(DEMO)q+='&match=18202783&demo=1';
   else if(LIVE)q+='&live=1&match='+encodeURIComponent(MATCH_ID)+'&site=1&standsfeed=1&loomfeed=1&statsfeed=1';
   else if(name==='stadium')q+='&match=argcpv';
+  if(WS)q+='&ws='+encodeURIComponent(WS);   // thread the dry-run WS override into the lens so it hits the same wire
   return base+q;
 }
 var order=['loom','stands','stadium'], cur=1;   // THE STANDS is home
@@ -213,7 +214,7 @@ function wireLive(){
   if(!LIVE)return true;
   var sideKey=PASS&&PASS.side==='a'?'away':'home', other=sideKey==='home'?'away':'home';
   var you=sideKey==='home'?FX.home:FX.away, them=other==='home'?FX.home:FX.away;
-  byq('.cabbtn').setAttribute('href','cabinet.html?live=1&match='+encodeURIComponent(MATCH_ID));
+  byq('.cabbtn').setAttribute('href','cabinet.html?live=1&match='+encodeURIComponent(MATCH_ID)+(WS?'&ws='+encodeURIComponent(WS):''));
   document.documentElement.style.setProperty('--you',you.color); document.documentElement.style.setProperty('--them',them.color);
   document.documentElement.style.setProperty('--yousec',you.sec||you.color); document.documentElement.style.setProperty('--themsec',them.sec||them.color);
   document.documentElement.style.setProperty('--yousec2',you.sec2||you.sec||you.color); document.documentElement.style.setProperty('--themsec2',them.sec2||them.sec||them.color);

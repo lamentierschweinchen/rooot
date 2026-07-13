@@ -258,7 +258,8 @@ html,body{background:var(--paper);-webkit-font-smoothing:antialiased;text-render
    '18241006':['ENG','ENGLAND','#1A1A18','ARG','ARGENTINA','#5C8CB8']
   };
   var q=new URLSearchParams(location.search);
-  var mid=q.get('match')||'18202783';   // SUI-COL default (live now) — match stats-adapter's default
+  var explicitMatch=q.get('match');
+  var mid=explicitMatch||'18202783';   // pre-resolve default; the manifest race below overrides when there's no explicit ?match
   var fx=FIX[mid]||FIX['18175918'];
   // map a team's ink to the nearest generated emblem skin
   function skin(ink){
@@ -275,6 +276,20 @@ html,body{background:var(--paper);-webkit-font-smoothing:antialiased;text-render
   var FALLBACK={ minute:124, live:false,
     home:{goals:3,shots:{onTarget:10,offTarget:2,blocked:5},corners:9,possessionPct:61},
     away:{goals:2,shots:{onTarget:6,offTarget:5,blocked:4},corners:8,possessionPct:39} };
+
+  // live is the default: with no explicit ?match, theme from the fixture manifest (never
+  // the SUI-COL literal) so the crest/colours match the live stats wire's resolved match.
+  if(!explicitMatch){
+    window.__fixtureReady=window.__fixtureReady||fetch('/fixture.json').then(function(r){return r.ok?r.json():null;}).catch(function(){return null;});
+    window.__fixtureReady.then(function(mf){
+      if(!mf||!mf.matchId||!mf.home||!mf.away)return;
+      mid=mf.matchId; var f=FIX[mid];
+      if(f){ HOME=mkTeam(f[0],f[1],f[2]); AWAY=mkTeam(f[3],f[4],f[5]); }
+      else{ HOME=mkTeam(mf.home.code,String(mf.home.name).toUpperCase(),(mf.home.colors&&mf.home.colors[0])||'#2049AA');
+            AWAY=mkTeam(mf.away.code,String(mf.away.name).toUpperCase(),(mf.away.colors&&mf.away.colors[0])||'#C8504D'); }
+      var cur=(window.__stats&&window.__stats.home)?window.__stats:FALLBACK; cur.__live=!!(window.__stats&&window.__stats.home); render(cur);
+    });
+  }
 
   function el(id){return document.getElementById(id);}
   // shot-map zones as % of the empty-net image: goal inside, saved at the line,

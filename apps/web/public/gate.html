@@ -169,7 +169,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 <script>
 var side=null, sco={h:0,a:0}, touched=false, conv=0;
 var PARAMS=new URLSearchParams(location.search);
-var DEMO=PARAMS.get('demo')==='1', LIVE=PARAMS.get('live')==='1';
+var DEMO=PARAMS.get('demo')==='1', LIVE=!DEMO, WS=PARAMS.get('ws');   // live is the default; specimen only under ?demo=1
 var explicitMatch=PARAMS.get('match');
 var ends=document.getElementById('ends'),
     score=document.getElementById('score'), pips=document.getElementById('pips'),
@@ -216,7 +216,7 @@ function fromManifest(mf){
 }
 
 function boot(MATCH_ID,FX){
-var MODE_Q=DEMO?'&demo=1':(LIVE?'&live=1&match='+encodeURIComponent(MATCH_ID):'&demo=0');
+var MODE_Q=(DEMO?'&demo=1':'&live=1&match='+encodeURIComponent(MATCH_ID))+(WS?'&ws='+encodeURIComponent(WS):'');   // carry match always; ws only when present
 var SIDECOL={h:FX.home.color,a:FX.away.color};
 
 // flags: upgrade each end's flag to its generated sticker-badge if we have that nation;

@@ -351,7 +351,7 @@ var el=function(id){return document.getElementById(id);};
 var PASS=null; try{ PASS=JSON.parse(localStorage.getItem('rooot.pass')||'null'); }catch(e){}   // the fan's pass from the door (side + call + conviction)
 if(/[?&]embed=1/.test(location.search))document.body.classList.add('embed');   // nested as the ground's STANDS lens
 var PARAMS=new URLSearchParams(location.search);
-var DEMO=PARAMS.get('demo')==='1', LIVE=PARAMS.get('live')==='1';   // demo uses the baked engine; live uses the real stands wire
+var DEMO=PARAMS.get('demo')==='1', LIVE=!DEMO, WS=PARAMS.get('ws');   // live is the default; ?demo=1 is the only baked-engine opt-out
 var MATCH_ID=PARAMS.get('match')||(LIVE?'18218149':'18202783');
 var FIXTURES={
   '18202783':{home:{tri:'SUI',name:'SWITZERLAND',color:'#D52B1E'},away:{tri:'COL',name:'COLOMBIA',color:'#E8B10A'}},
@@ -556,7 +556,7 @@ function keepLocal(){
     ts:Date.now()})); }catch(e){}
   var sc=document.querySelector('.keepsake .scarf'); if(sc){ sc.classList.remove('kept'); void sc.offsetWidth; sc.classList.add('kept'); }   // the press
 }
-function cabHref(){ return 'cabinet.html?from=keep'+(LIVE?'&live=1':(DEMO?'&demo=1':'')); }
+function cabHref(){ return 'cabinet.html?from=keep'+(DEMO?'&demo=1':'&live=1&match='+encodeURIComponent(MATCH_ID))+(WS?'&ws='+encodeURIComponent(WS):''); }
 function chainMsg(html,cls){ var c=el('skChain'); if(!c)return; c.hidden=false; c.className='sk-chain'+(cls?' '+cls:''); c.innerHTML=html; }
 function showCab(){   // the walk-home stays reachable in EVERY branch (preserves the old KEPT→cabinet step)
   var c=el('skChain'); if(!c||c.querySelector('a.cab'))return;
@@ -935,14 +935,15 @@ function fxFromManifest(mf){ function side(t){ return {tri:t.code,name:(t.name||
   return {home:side(mf.home),away:side(mf.away)}; }
 function startLive(){ if(!wireLive()){ var _liveTerrace=setInterval(function(){ if(wireLive())clearInterval(_liveTerrace); },160); } }
 if(LIVE){
-  if(PARAMS.get('match')){ startLive(); }
-  else{
+  var explicitTerr=PARAMS.get('match');
+  if(explicitTerr&&FIXTURES[explicitTerr]){ startLive(); }   // explicit AND in the literal table → FX already correct, no async wait
+  else{                                                       // no ?match, OR a ?match we have no literal for → consult the manifest (honest fallback: its codes, never a stale literal)
     var _fxDone=false;
     var _fxGo=function(id,fx){ if(_fxDone)return; _fxDone=true;
-      if(id&&id!==MATCH_ID){ MATCH_ID=id; FX=fx||FIXTURES[id]||FX; HOME_TRI=FX.home.tri; AWAY_TRI=FX.away.tri; YOU_TEAM=FX.home; THEM_TEAM=FX.away; }
+      if(id){ MATCH_ID=id; FX=fx||FIXTURES[id]||FX; HOME_TRI=FX.home.tri; AWAY_TRI=FX.away.tri; YOU_TEAM=FX.home; THEM_TEAM=FX.away; }
       startLive(); };
     window.__fixtureReady=window.__fixtureReady||fetch('/fixture.json').then(function(r){return r.ok?r.json():null;}).catch(function(){return null;});
-    window.__fixtureReady.then(function(mf){ if(mf&&mf.matchId&&mf.home&&mf.away)_fxGo(mf.matchId,FIXTURES[mf.matchId]||fxFromManifest(mf)); else _fxGo(null); },function(){ _fxGo(null); });
+    window.__fixtureReady.then(function(mf){ if(mf&&mf.matchId&&mf.home&&mf.away&&(!explicitTerr||explicitTerr===mf.matchId))_fxGo(mf.matchId,FIXTURES[mf.matchId]||fxFromManifest(mf)); else _fxGo(null); },function(){ _fxGo(null); });
     setTimeout(function(){ _fxGo(null); },1500);
   }
 }

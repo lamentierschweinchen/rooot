@@ -79,8 +79,8 @@
   if (typeof window === 'undefined') return;
   var q = new URLSearchParams(location.search);
   var DEMO = q.get('demo') === '1';   // live by default; demo only when explicitly asked
-  var LIVE = q.get('live') === '1';
-  if (!DEMO && !LIVE && q.get('matchread') !== '1') return;   // private prototype defaults to demo; explicit live/demo=0 opts out
+  var LIVE = !DEMO;                     // live is the default; ?demo=1 is the only opt-out (?live=1 redundant)
+  if (!DEMO && !LIVE && q.get('matchread') !== '1') return;   // unreachable now (LIVE = !DEMO) — kept as a guard
   var explicitMatch = q.get('match');   // ?match= always wins — never touches the manifest
   var wsBase = q.get('ws') || (LIVE ? 'wss://rooot-stands.fly.dev/' : null);
   var state = initialState();

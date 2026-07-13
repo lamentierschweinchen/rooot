@@ -321,8 +321,8 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
 
 <script src="plate/gens/stadium-data.js"></script>
 <!-- demo engine — private prototype default: baked recording → window.__match (score/clock/market/marketSeries) -->
-<script>if(!/[?&](live=1|demo=0)/.test(location.search))document.write('<scr'+'ipt src="plate/demo-suicol.js"></scr'+'ipt><scr'+'ipt src="demo-feed.js"></scr'+'ipt><scr'+'ipt src="match-read.js"></scr'+'ipt><scr'+'ipt src="crowd-sim.js"></scr'+'ipt>');</script>
-<script>if(/[?&]live=1/.test(location.search))document.write('<scr'+'ipt src="match-read.js"></scr'+'ipt>');</script>
+<script>if(/[?&]demo=1/.test(location.search))document.write('<scr'+'ipt src="plate/demo-suicol.js"></scr'+'ipt><scr'+'ipt src="demo-feed.js"></scr'+'ipt><scr'+'ipt src="match-read.js"></scr'+'ipt><scr'+'ipt src="crowd-sim.js"></scr'+'ipt>');</script>
+<script>if(!/[?&]demo=1/.test(location.search))document.write('<scr'+'ipt src="match-read.js"></scr'+'ipt>');</script>
 <script>
 (function(){
   'use strict';
@@ -342,7 +342,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
    'argcpv':['ARG','ARGENTINA','#2049AA','CPV','CABO VERDE','#C8504D']};
   // secondary (change-strip) colours — so two same-primary teams never read as one
   var SEC={ARG:'#EDE9DE',CPV:'#12388C',BRA:'#1E8C4C',NOR:'#00205B',MEX:'#C8102E',ENG:'#EDE9DE',POR:'#DA020E',ESP:'#F1BF00',USA:'#B4232B',BEL:'#FDDA24',EGY:'#111111',SUI:'#EDE9DE',COL:'#003893',FRA:'#EDE9DE',MAR:'#006233'};
-  var q=new URLSearchParams(location.search), LIVE=q.get('live')==='1', DEMO=!LIVE&&q.get('demo')!=='0';
+  var q=new URLSearchParams(location.search), DEMO=q.get('demo')==='1', LIVE=!DEMO, WS=q.get('ws');   // live is the default; specimen only under ?demo=1
   var explicitMatch=q.get('match');
   // T16 — the __fixture manifest is the one truth; FIX/SEC above are now only the
   // explicit-?match lookup + the last-resort fallback (never invent a fixture). SEC is
@@ -620,7 +620,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     dots.innerHTML=CARDS.map(function(c){return '<i data-go="'+c[0]+'" title="'+c[1]+'"'+(c[0]===place?' class="on"':'')+'></i>';}).join('');
   }
   function open(place,origin){
-    if(place==='stands'){ location.href='terrace.html'+(DEMO?'?demo=1':(LIVE?'?live=1&match='+encodeURIComponent(mid):'')); return; }   // the stands lead INTO the stands — carrying the resolved fixture
+    if(place==='stands'){ location.href='terrace.html'+(DEMO?'?demo=1':'?live=1&match='+encodeURIComponent(mid))+(WS?'&ws='+encodeURIComponent(WS):''); return; }   // the stands lead INTO the stands — carrying the resolved fixture + wire
     var sh=el('sheet-'+place);
     if(!sh){ toast((SOON[place]||place.toUpperCase())+' · NEXT'); return; }
     if(openSheet && openSheet!==sh){ openSheet.style.transformOrigin='50% 50%'; openSheet.classList.remove('open'); }
