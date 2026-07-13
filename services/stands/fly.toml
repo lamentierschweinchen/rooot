@@ -35,6 +35,10 @@ swap_size_mb = 256
 
 [env]
   PORT = "8080"
+  # Scarf-mint payer: the funded devnet keypair lives on the durable volume
+  # (uploaded once via ssh stdin, never argv). Without this pointer the mint
+  # code generates a fresh UNFUNDED key per deploy and Collect fails silently.
+  MINT_DEVNET_KEYPAIR = "/data/mint-devnet.json"
   # Anchor durability (services/stands/src/server.ts armAnchorBackfill): sweep the
   # sentiment records on the volume at boot + every minute and re-anchor any whose
   # on-chain sig write-back was lost (confirmation timeout / suspend / OOM before
