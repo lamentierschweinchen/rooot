@@ -907,10 +907,12 @@ function pickToken(tok,chip){
   // no local reveal — the split renders only from the wire's momentResult
 }
 function revealFromWire(r,sideKey){
-  if(!r||!r.home||!r.away)return;
+  if(!r)return;
+  var b=r.byEnd||r;   // the wire nests the ends under byEnd (contracts/crowd.ts MomentResultMsg) — this read missed it, so the live reveal never fired
+  if(!b.home||!b.away)return;
   clearTimeout(M._momT);
   var my=sideKey||'home', other=my==='home'?'away':'home';
-  fillSplit('H',r[my],'YOUR END'); fillSplit('A',r[other],'THEIR END');
+  fillSplit('H',b[my],'YOUR END'); fillSplit('A',b[other],'THEIR END');
   el('picker').classList.remove('on'); el('moment').classList.remove('on');
   var s=el('split'); s.classList.add('on');
   setTimeout(function(){ s.classList.remove('on'); el('crowdcall').style.opacity='1'; el('taphint').style.opacity=''; M.await=null; },5200);
