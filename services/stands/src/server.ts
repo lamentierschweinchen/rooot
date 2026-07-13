@@ -11,7 +11,7 @@
 import { createServer, get as httpGet } from 'node:http';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { randomBytes } from 'node:crypto';
-import { mkdirSync, readdirSync } from 'node:fs';
+import { mkdirSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { WebSocket, WebSocketServer } from 'ws';
 import type { CallMsg, CallReceiptMsg, CheerEchoMsg, ClientMsg, MomentKind, MomentOpenMsg, MomentResultMsg, RoomStateMsg, SeatTokenGrantMsg, ServerMsg, Side, WelcomeMsg } from '@contracts/crowd';
@@ -19,6 +19,7 @@ import { FEELING_PALETTES } from '@contracts/crowd';
 import type { FeedMsg } from '@contracts/feed';
 import type { LedgerEvent } from '@contracts/ledger';
 import type { MatchPhase } from '@contracts/match';
+import type { SentimentRecord } from '@contracts/sentiment';
 import { REACT_WINDOW_MS, RollingCounter, SWING_DELTA_MIN, SWING_WINDOW_MS } from './decay';
 import { MatchRegistry } from './registry';
 import { anchorRecordHash, relayCall } from './relay';
@@ -520,6 +521,34 @@ function sentimentRecordExistsOnDisk(matchId: string): boolean {
   }
 }
 
+/**
+ * Merge a freshly-earned anchor signature into the ON-DISK sentiment record
+ * without clobbering any concurrent update: re-read the file, set ONLY
+ * provenance.anchorTxSig (never re-serialize a possibly-stale in-memory copy),
+ * write it back atomically, and re-emit. Shared by the live anchor path (the
+ * .then in crystallizeSentiment) and the durable backfill sweep (backfillAnchors
+ * below) — the re-read is exactly what makes it safe to call LATE, from either.
+ * Returns true iff it wrote (record found, parseable, provenance present, sig
+ * was still absent). Idempotent: a record that already carries a sig is left
+ * untouched (returns false), so two racing fills can't double-write and a
+ * re-anchor of an already-filled record is a no-op. Best-effort: any fs/parse
+ * fault logs and returns false, never throws into a timer or promise chain.
+ */
+function writeAnchorSig(filePath: string, matchId: string, sig: string): boolean {
+  try {
+    const rec = JSON.parse(readFileSync(filePath, 'utf8')) as SentimentRecord;
+    if (!rec.provenance) return false;
+    if (rec.provenance.anchorTxSig) return false; // already anchored — never clobber
+    rec.provenance.anchorTxSig = sig;
+    writeFileAtomic(filePath, JSON.stringify(rec, null, 2));
+    broadcastToMatch(matchId, { type: 'sentiment', record: rec } as unknown as ServerMsg);
+    return true;
+  } catch (err) {
+    console.warn(`[sentiment] anchor sig write-back failed for ${matchId} (${path.basename(filePath)}): ${errDetail(err)}`);
+    return false;
+  }
+}
+
 /** Full-time crystallization, persisted on the SAME durable dir the restart
  * snapshot uses (Task 3 — volume-ready: /data on Fly when the volume is
  * mounted, /tmp otherwise). One timestamped file per crystallization — never
@@ -569,16 +598,186 @@ function crystallizeSentiment(
     writeFileAtomic(filePath, JSON.stringify(record, null, 2));
     broadcastToMatch(matchId, { type: 'sentiment', record } as unknown as ServerMsg);
     console.log(`[sentiment] crystallized ${matchId}: ${record.headline} (hash ${record.provenance.recordHash.slice(0, 12)}) -> ${filePath}`);
-    // anchor the hash on-chain (best-effort) → persist + re-emit with the txSig.
-    void anchorRecordHash(matchId, record.provenance.recordHash).then((sig: string | null) => {
-      if (!sig) return;
-      record.provenance.anchorTxSig = sig;
-      writeFileAtomic(filePath, JSON.stringify(record, null, 2));
-      broadcastToMatch(matchId, { type: 'sentiment', record } as unknown as ServerMsg);
-    });
+    // Anchor the hash on-chain (best-effort). Kept ASYNC so the dispatch loop is
+    // never blocked for the up-to-20s confirmation — but the write-back is now
+    // robust: writeAnchorSig re-reads the file and merges ONLY provenance.
+    // anchorTxSig, so a late .then can never clobber a concurrent update, and
+    // both outcomes are logged honestly. If the sig is lost here (confirmation
+    // timeout, machine suspend, or OOM before this resolves — the exact
+    // durability bug the backfill sweep below closes), the record simply stays
+    // on disk with anchorTxSig:null and backfillAnchors() re-anchors its
+    // EXISTING hash on a later sweep/boot.
+    void anchorRecordHash(matchId, record.provenance.recordHash)
+      .then((sig: string | null) => {
+        if (!sig) {
+          console.warn(`[sentiment] ${matchId} live anchor did not land — leaving anchorTxSig:null for the backfill sweep to retry (hash ${record.provenance.recordHash.slice(0, 12)})`);
+          return;
+        }
+        if (writeAnchorSig(filePath, matchId, sig)) {
+          console.log(`[sentiment] ${matchId} anchored on-chain ${sig.slice(0, 12)}… — sig persisted to ${path.basename(filePath)} (live path)`);
+        }
+      })
+      .catch((err) => console.warn(`[sentiment] ${matchId} live anchor write-back errored: ${errDetail(err)}`));
   } catch (err) {
     console.warn(`[sentiment] crystallize failed for ${matchId}: ${errDetail(err)}`);
   }
+}
+
+/* ── ANCHOR DURABILITY — the backfill sweep (the durable fix) ─────────────
+ * The live anchor above is fire-and-forget by design (never block the dispatch
+ * loop for the up-to-20s confirmation). Its write-back can therefore be lost —
+ * to the confirmation timeout, a machine suspend, or an OOM before the .then
+ * resolves — leaving a persisted record with a REAL on-chain memo but
+ * anchorTxSig:null on disk (the bug this closes: memos landed, records read
+ * null). This sweep heals that FROM DISK: it scans DATA_DIR/sentiment/*.json and
+ * for any record still carrying a null sig, re-anchors its EXISTING recordHash
+ * and writes back ONLY the sig.
+ *
+ * Why it is safe next to the on-disk crystallize skip (sentimentRecordExistsOnDisk,
+ * review C1): that guard prevents a re-CRYSTALLIZE (recompute the hash / write a
+ * 2nd record / re-emit a full record) after eviction+restart. This sweep NEVER
+ * crystallizes and NEVER recomputes the hash — it operates on the persisted
+ * record exactly as-is and only fills provenance.anchorTxSig. Two orthogonal
+ * disk-driven paths that never touch the same field.
+ *
+ * Disk-driven ⇒ it heals records for matches long EVICTED from memory (their
+ * in-memory state is gone, but the file remains). Idempotent: a record that
+ * already has a sig is skipped untouched. Bounded: a record whose anchor keeps
+ * failing is retried at most STANDS_BACKFILL_MAX_ATTEMPTS times across this
+ * process's life (tracked in memory, keyed by filename), so a permanently-
+ * failing anchor is not hammered every sweep. No keypair (dev/replay) ⇒
+ * anchorRecordHash returns null ⇒ every record is left exactly as-is, no crash.
+ *
+ * Re-anchoring a record whose memo DID land but whose sig write-back was lost
+ * creates a 2nd identical-hash memo — ACCEPTABLE: same hash, the record ends
+ * with one valid sig. We deliberately do NOT chain-query for a prior memo to
+ * dedup (weekend scale; a duplicate provenance memo is harmless).
+ */
+const backfillAttempts = new Map<string, number>();
+function backfillMaxAttempts(): number {
+  const raw = Number(process.env.STANDS_BACKFILL_MAX_ATTEMPTS ?? 5);
+  return Number.isFinite(raw) && raw >= 1 ? Math.floor(raw) : 5;
+}
+let backfillInFlight = false;
+
+export interface BackfillResult {
+  /** record files inspected */
+  scanned: number;
+  /** null-sig records that got a sig this sweep */
+  filled: number;
+  /** records skipped because they already carry a sig */
+  alreadyOk: number;
+  /** null-sig records the anchor could not fill this sweep (no keypair / failure / attempt cap) */
+  stillNull: number;
+}
+
+/**
+ * One backfill sweep over DATA_DIR/sentiment/*.json. Never throws; returns a
+ * tally. Exported so the dev check drives it directly and armAnchorBackfill runs
+ * it on a timer. Deliberately NOT called from createStandsServer — dev checks
+ * import the server module and manage their own relayer/keypair, and an
+ * auto-sweep would fire real devnet anchors inside unrelated checks (mirrors
+ * armSelfProbe's "not armed inside createStandsServer" reasoning).
+ */
+export async function backfillAnchors(): Promise<BackfillResult> {
+  const result: BackfillResult = { scanned: 0, filled: 0, alreadyOk: 0, stillNull: 0 };
+  if (backfillInFlight) return result; // never overlap a slow sweep with the next tick
+  backfillInFlight = true;
+  try {
+    const dir = path.join(DATA_DIR, 'sentiment');
+    let files: string[];
+    try {
+      files = readdirSync(dir).filter((f) => f.endsWith('.json'));
+    } catch {
+      return result; // no sentiment dir yet — nothing crystallized, nothing to heal
+    }
+    const maxAttempts = backfillMaxAttempts();
+    for (const f of files) {
+      const filePath = path.join(dir, f);
+      let rec: SentimentRecord;
+      try {
+        rec = JSON.parse(readFileSync(filePath, 'utf8')) as SentimentRecord;
+      } catch (err) {
+        console.warn(`[sentiment:backfill] unreadable ${f} — skipping: ${errDetail(err)}`);
+        continue;
+      }
+      result.scanned++;
+      const prov = rec.provenance;
+      if (!prov || typeof prov.recordHash !== 'string') continue; // not a well-formed record
+      if (prov.anchorTxSig) {
+        result.alreadyOk++; // already anchored — untouched (idempotent skip)
+        continue;
+      }
+      const attempts = backfillAttempts.get(f) ?? 0;
+      if (attempts >= maxAttempts) {
+        result.stillNull++; // gave up (bounded) — don't hammer a permanently-failing anchor
+        continue;
+      }
+      const matchId = typeof rec.matchId === 'string' && rec.matchId ? rec.matchId : f.replace(/-\d+\.json$/, '');
+      backfillAttempts.set(f, attempts + 1);
+      let sig: string | null;
+      try {
+        sig = await anchorRecordHash(matchId, prov.recordHash);
+      } catch (err) {
+        console.warn(`[sentiment:backfill] anchor threw for ${matchId} (${f}): ${errDetail(err)}`);
+        result.stillNull++;
+        continue;
+      }
+      if (!sig) {
+        result.stillNull++; // no keypair / anchor failed — retry next sweep, until the cap
+        continue;
+      }
+      if (writeAnchorSig(filePath, matchId, sig)) {
+        backfillAttempts.delete(f);
+        result.filled++;
+        console.log(`[sentiment:backfill] ${matchId} back-anchored ${sig.slice(0, 12)}… (${f}) — sig recovered onto disk, recordHash unchanged`);
+      } else {
+        result.alreadyOk++; // filled by a concurrent path between our read and write
+      }
+    }
+  } finally {
+    backfillInFlight = false;
+  }
+  if (result.filled > 0 || result.stillNull > 0) {
+    console.log(`[sentiment:backfill] sweep done — filled ${result.filled}, still-null ${result.stillNull}, already-ok ${result.alreadyOk}, scanned ${result.scanned}`);
+  }
+  return result;
+}
+
+/**
+ * Arm the anchor-durability backfill: one sweep shortly after boot (heals any
+ * record a prior process left null before it died) plus a periodic sweep
+ * thereafter (retries transient anchor failures). Opt-in via
+ * STANDS_ANCHOR_BACKFILL=1 — default OFF so importing/booting the server in a
+ * dev check never fires real devnet anchors; prod turns it on in fly.toml.
+ * Returns a disposer clearing the timers. Called by index.ts once, at boot;
+ * never by createStandsServer (same reasoning as armSelfProbe). Env:
+ * STANDS_ANCHOR_BACKFILL_INTERVAL_MS (default 60000, floor 5000).
+ */
+export function armAnchorBackfill(): () => void {
+  if (process.env.STANDS_ANCHOR_BACKFILL !== '1') {
+    console.log('[sentiment:backfill] disarmed (set STANDS_ANCHOR_BACKFILL=1 to enable the lost-sig backfill sweep)');
+    return () => {};
+  }
+  const raw = Number(process.env.STANDS_ANCHOR_BACKFILL_INTERVAL_MS ?? 60_000);
+  const intervalMs = Number.isFinite(raw) && raw >= 5_000 ? raw : 60_000;
+  const run = (why: string): void => {
+    void backfillAnchors()
+      .then((r) => {
+        if (r.filled > 0) console.log(`[sentiment:backfill] ${why}: recovered ${r.filled} lost sig(s)`);
+      })
+      .catch((err) => console.warn(`[sentiment:backfill] ${why} errored: ${errDetail(err)}`));
+  };
+  // boot sweep on a short delay so it never sits in the listen() hot path.
+  const bootTimer = setTimeout(() => run('boot sweep'), 2_000);
+  (bootTimer as { unref?: () => void }).unref?.();
+  const timer = setInterval(() => run('periodic sweep'), intervalMs);
+  (timer as { unref?: () => void }).unref?.();
+  console.log(`[sentiment:backfill] armed — boot sweep + every ${intervalMs}ms (heals sentiment records whose on-chain sig write-back was lost)`);
+  return () => {
+    clearTimeout(bootTimer);
+    clearInterval(timer);
+  };
 }
 
 /**
