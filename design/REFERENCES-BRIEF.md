@@ -33,11 +33,12 @@ Material realism is the whole bet.
 Jacquard/data-weaving art, tapestry timelines, embroidered notation, stitched marks.
 **Why:** proof that data → textile can be art. The calls are *embroidered*, not plotted.
 
-### 5. `ends-light/` — the crowd's material
-Curvas/ends at night: phone-light seas, flare glow, tifo from across the stadium,
-the mass of a stand as texture.
-**Why:** the ends are crowds rendered as light. These images say what ten thousand
-people look like as a single luminous body.
+### 5. `ends-light/` — the crowd's mass  *(reframed; crowds-as-light retired with the stage)*
+Curvas/ends at night: tifo from across the stadium, terrace blocks from afar, the
+mass of a stand as texture.
+**Why:** the crowd now PRINTS — ink bars, crowd-block dots, counted heads, never a
+percentage (`design/PAPER-AND-CLOTH.md`). These images still teach what ten thousand
+people read as one mass: the density and texture the printed blocks must carry.
 
 ### 6. `type-print/` — the words' ground
 Vintage matchday programmes · stadium scoreboards/dot-matrix · ticket stubs.
