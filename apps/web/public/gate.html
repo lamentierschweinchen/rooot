@@ -81,7 +81,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .conv .pip{flex:1;height:9px;padding:0;background:var(--card);border:1.5px solid var(--line);cursor:pointer;transition:background .15s,border-color .15s}
 .conv .pip.on{background:var(--pick);border-color:var(--ink)}
 .conv .cl{font-weight:800;font-size:8px;letter-spacing:.09em;color:var(--sub);white-space:nowrap;min-width:52px;text-align:right}
-.end:focus-visible,.scn:focus-visible,.pip:focus-visible,.go:focus-visible,.slip:focus-visible{
+.end:focus-visible,.scn:focus-visible,.pip:focus-visible,.go:focus-visible{
   outline:2px solid var(--gold);outline-offset:2px;
 }
 
@@ -105,9 +105,6 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .nudge{animation:nudge .28s ease}
 .go.ready:active{transform:translateY(1px)}
 .go small{display:block;font-weight:700;font-size:7.5px;letter-spacing:.2em;opacity:.6;margin-top:3px}
-/* the quiet turnstile — lurking is a complete experience; no claims required */
-.slip{display:block;margin:-4px auto 14px;padding:6px 8px;background:none;border:none;font-family:var(--disp);font-weight:700;font-size:8px;letter-spacing:.18em;color:var(--sub);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
-.slip:active{transform:translateY(1px)}
 
 /* THE TURNSTILE — your pass is stamped as you walk in (shown on confirm only; additive — never hides the gate) */
 .stamp{position:absolute;left:50%;top:47%;transform:translate(-50%,-50%) rotate(-11deg) scale(1.6);opacity:0;z-index:8;pointer-events:none;
@@ -163,7 +160,6 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
     </div>
 
     <button class="go" id="go">TAKE YOUR PLACE<small>THE GROUND OPENS →</small></button>
-    <button class="slip" id="slip" type="button">JUST WATCHING · GO IN →</button>
     <div class="stamp" id="stamp"><b>ADMITTED</b><span>SUI v COL · 20:00</span></div>
   </div>
 </div>
@@ -316,9 +312,8 @@ go.onclick=function(){
   go.innerHTML='SEE YOU INSIDE<small>◆ YOU CALLED '+FX.home.tri+' '+sco.h+'–'+sco.a+' '+FX.away.tri+'</small>';
   setTimeout(function(){ location.href='ground.html?from=gate'+MODE_Q; }, 1050);   // the tunnel — walk into the ground (carry prototype mode)
 };
-// the quiet turnstile — no claims, no pass written, nothing fabricated (law 2: lurking is a complete experience)
-var slip=document.getElementById('slip');
-if(slip)slip.onclick=function(){ location.href='ground.html?from=gate'+MODE_Q; };
+// no watch-only entrance — the door asks for a side and a score, deliberately (owner, 13 Jul:
+// opinionated app; root + cheer + predict is the product AND the data)
 } // end boot
 
 // T16 fixture resolution: explicit ?match= wins outright (unchanged — literal-table
