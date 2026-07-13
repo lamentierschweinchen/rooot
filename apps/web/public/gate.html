@@ -238,7 +238,10 @@ function paintFixture(){
     node.querySelector('.tri').textContent=team.tri;
     node.querySelector('.nm').textContent=team.name;
     var f=node.querySelector('.flag');
-    if(f&&FLAGSET[flag]){ f.classList.add('tile'); f.innerHTML='<img src="plate/gens/flags/'+flag+'.png" alt="'+team.tri+'">'; }
+    if(f){
+      if(FLAGSET[flag]){ f.classList.add('tile'); f.innerHTML='<img src="plate/gens/flags/'+flag+'.png" alt="'+team.tri+'">'; }
+      else{ f.classList.remove('tile'); f.innerHTML=''; f.style.background=team.color; }   // honest neutral — never another nation's flag
+    }
   });
   [].forEach.call(score.querySelectorAll('.sct'),function(n,i){ n.textContent=i?FX.away.tri:FX.home.tri; });
   var st=document.querySelector('.stamp span'); if(st)st.textContent=FX.home.tri+' v '+FX.away.tri+' · '+FX.kick;
