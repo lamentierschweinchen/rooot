@@ -18,7 +18,7 @@
  * spans 5 distinct FixtureIds, the scores file 3. Every surface in this repo
  * already defaults `?match=18202783` for SUI-COL (crowd-sim.js,
  * match-read.js, loom-adapter.js, stats-adapter.js all hardcode it — see
- * design/STADIUM-GAPS.md's "SUI-COL* (FIX default 18202783)"), so this bake
+ * archive/design-docs-consumed/design/STADIUM-GAPS.md's "SUI-COL* (FIX default 18202783)"), so this bake
  * filters to FixtureId 18202783 before parsing — otherwise the baked demo
  * would be a cross-talk mess of up to five simultaneous fixtures instead of
  * one coherent match.

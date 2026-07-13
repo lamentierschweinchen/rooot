@@ -16,7 +16,7 @@
  *    (unknown matchId) — the caller (seat/mint-scarf.ts) treats that as "cannot honestly mint,"
  *    never a crash, and never a fabricated placeholder team.
  *  - `flag`: TeamRef.flag is a mandatory string, but no real flag glyph is available server-side
- *    (sentiment/teams.ts carries code/name/colors only — apps/web/src/data/fixtureMeta.ts has
+ *    (sentiment/teams.ts carries code/name/colors only — archive/src-spa-frozen/apps/web/src/data/fixtureMeta.ts has
  *    hand-picked flags, but that's a different app/service, not importable here per
  *    tsconfig's `@contracts/*`-only path alias). Left '' rather than guessed — and never
  *    rendered downstream anyway (mint/metadata.ts's buildAttributes/buildRelicMetadata never

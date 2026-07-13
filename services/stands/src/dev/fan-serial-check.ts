@@ -1,6 +1,6 @@
 /**
  * Dev-only verification script (NOT part of the service — never imported by
- * src/index.ts). Proves THE FAN SERIAL (design/HANDOFF-2026-07-10-fan-serial.md,
+ * src/index.ts). Proves THE FAN SERIAL (archive/design-docs-consumed/design/HANDOFF-2026-07-10-fan-serial.md,
  * the coordinator's accepted MARGIN amendment — "Nº 001 = the first fan
  * through the door") end-to-end:
  *

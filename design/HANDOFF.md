@@ -92,7 +92,7 @@ every rule and still be self-regard.
 
 ## 4 · WHAT EXISTS AND WHERE
 
-- **The build:** `apps/web/public/loom-proto.html` (v24, ~2MB, self-contained). Artifact:
+- **The build:** `archive/web-prototypes/apps/web/public/loom-proto.html` (v24, ~2MB, self-contained). Artifact:
   https://claude.ai/code/artifact/ae8f2e46-c93b-4da5-ae6a-4ea4fa5f8b87 . Every version
   v13–v24 snapshotted in `design/experiments/versions/` (v24-legend-integrated is last).
 - **In it, working and verified:** the woven cloth (real de-vigged H/D/A through ET; team
@@ -106,9 +106,9 @@ every rule and still be self-regard.
   (`BALLSRC` in the loom; sources `design/generations/balls/`), 6 Pulse patches
   (`design/generations/reactions/`), GOOOOL, pennant (unsocketed), shield-crest (alt).
   Pending his generation: the woven LABEL blank (FT seal) — prompt in sheet 011 footer.
-- **Docs:** `design/PAPER-AND-CLOTH.md` (the law — trim it), `design/COORDINATION-PASS1.md`
-  (briefs + pass specs), `design/COLD-EYES-PASS2.md` (READ THIS — the visitor study),
-  `design/COPY-MAP-PASS1.md`, `design/experiments/LOOM-NEXT.md` (A1–A31, the full journal),
+- **Docs:** `design/PAPER-AND-CLOTH.md` (the law — trim it), `archive/design-docs-consumed/design/COORDINATION-PASS1.md`
+  (briefs + pass specs), `archive/design-docs-consumed/design/COLD-EYES-PASS2.md` (READ THIS — the visitor study),
+  `archive/design-docs-consumed/design/COPY-MAP-PASS1.md`, `design/experiments/LOOM-NEXT.md` (A1–A31, the full journal),
   sheets 010–014 in `design/experiments/` (published artifacts logged in the journal).
 - **References:** `design/references/` — infographic inspo, panini, + the older canon.
   The Mirror at `/Users/ls/Documents/AI Reach/design/`.
@@ -124,7 +124,7 @@ every rule and still be self-regard.
   mid-match tone · FT scarf unroll (→ THE PRESSING, unbuilt).
 - Unbuilt rooms: THE PRESSING (FT ceremony + label + hallmarks), THE ALBUM (GOT·GOT·NEED),
   YOUR SEAT (profile), THE GATE (entry). The coordinator's fan-section seams are ready
-  (`design/BRIEF-FANSECTION.md`).
+  (`archive/design-docs-consumed/design/BRIEF-FANSECTION.md`).
 - The immediate task the owner implicitly set: REDO the visual world — host-palette
   fields, real Bauhaus composition, collectible-grade pages — sketch-first, judge-blind,
   then rebuild. And rename the rail's question to the human one.

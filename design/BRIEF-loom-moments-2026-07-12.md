@@ -16,7 +16,7 @@ notes named it: "the loom needs an actual notice mechanism built — this isn't 
 `{type:'momentResult', kind, minute, home:{top,pct,hist,n}, away:{top,pct,hist,n}}` on close — an end
 that stayed silent reveals honestly empty. Kinds: goal · possible · var · red · penalty · near-miss ·
 swing (now windowed — it genuinely fires on sustained market drift). Full shapes:
-`design/HANDOFF-2026-07-10-tonight-data-shapes.md` §4.
+`archive/design-docs-consumed/design/HANDOFF-2026-07-10-tonight-data-shapes.md` §4.
 
 ## The plumbing seam (one line from me, on your word)
 

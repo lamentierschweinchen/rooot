@@ -52,7 +52,7 @@ plainly. The crowd's roar is real and counted. At the whistle you keep what you 
 ## 2 · Gate — the turnstile  ·  `gate.html` (~:272 logic, market bar)
 
 **Wrong:** "DE-VIGGED" on the market bar; the draw labeled **"X"**. Jargon on the second screen.
-(Also a *logic* fix, tracked separately: a pure lurker can't enter without setting a score.)
+(gate requiring side+score is intended — owner ruling.)
 
 **Direction:** market bar names a plain chance; the draw is "Draw."
 

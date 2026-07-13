@@ -152,7 +152,7 @@ async function main(): Promise<void> {
   if (claim.status !== 200 || !claim.body.mint) {
     fail('claim did not return a mint (see [seat:mint] warnings above for why)');
   }
-  // profile.sides must carry the TEAM TRICODE (design/HANDOFF-coordinator-data-wiring.md), not 'home'.
+  // profile.sides must carry the TEAM TRICODE (archive/design-docs-consumed/design/HANDOFF-coordinator-data-wiring.md), not 'home'.
   if (!claim.body.profile?.sides?.includes('POR')) {
     fail(`profile.sides should carry the resolved tricode 'POR', got ${JSON.stringify(claim.body.profile?.sides)}`);
   }
