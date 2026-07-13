@@ -202,8 +202,9 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 /* honesty footer */
 .foot{flex:none;padding:5px 14px;text-align:center;font-weight:700;font-size:7px;letter-spacing:.11em;color:var(--sub);background:var(--paper);border-top:1px solid var(--line);z-index:6}
 .backg{position:absolute;top:7px;left:9px;z-index:20;width:26px;height:26px;border-radius:50%;border:1.5px solid var(--ink);background:rgba(243,236,219,.94);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px;line-height:1;color:var(--ink);text-decoration:none;-webkit-tap-highlight-color:transparent}
-/* embed mode — nested as the STANDS lens inside the ground: shed the back-button + own footer (the ground frames it) */
-body.embed .backg,body.embed .foot{display:none}
+/* embed mode — nested as the STANDS lens inside the ground: shed the back-button, own footer
+   + own score row (the ground's masthead already carries score + clock — one score, one clock) */
+body.embed .backg,body.embed .foot,body.embed .matchbar{display:none}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;scroll-behavior:auto !important}}
 </style>
 </head>
