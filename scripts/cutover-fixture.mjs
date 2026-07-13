@@ -27,6 +27,8 @@ const KICKOFFS = {
   '18218149': '2026-07-10T19:00:00Z',
   '18213979': '2026-07-11T21:00:00Z',
   '18222446': '2026-07-12T01:00:00Z',
+  '18237038': '2026-07-14T19:00:00Z',
+  '18241006': '2026-07-15T19:00:00Z',
 };
 
 const teamsTs = readFileSync(path.join(ROOT, 'services/stands/src/sentiment/teams.ts'), 'utf8');
