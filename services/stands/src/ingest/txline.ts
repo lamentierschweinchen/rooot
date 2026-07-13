@@ -420,6 +420,43 @@ export function startTxLineIngest(opts: {
               console.log(`[txline:seed] clock seed ${fid}: StatusId ${freshest.StatusId} @ ${Math.floor((freshest.Clock?.Seconds ?? 0) / 60)}'`);
             }
           }
+
+          // LINEUP SEED (xi-seed-recovery, Jul 13 — scratchpad/starting-xi-
+          // diagnosis.md): lineups is a ONE-SHOT envelope (~45min pre-KO);
+          // SSE never replays, so a restart after the drop has no live
+          // re-delivery to catch. STEP 0 of that task confirmed the REAL
+          // /api/scores/snapshot/{fid} endpoint DOES carry it (finished
+          // fixtures 18222446 + 18213979, one envelope each, both parse
+          // clean) — so the generic per-envelope loop just above THIS
+          // already recovers it: dispatch()'s roster latch runs
+          // unconditionally on every scores envelope, seed or live, no
+          // lineups-specific branch needed to make it fire. This block does
+          // NOT re-dispatch anything (that would double-fire onFeedMsg for
+          // the SAME envelope within one seedSnapshot pass) — it only
+          // confirms + logs what the loop above already did, so an operator
+          // can see the recovery land on a Fly deploy, and so a restart
+          // check has a stable line to assert against.
+          //
+          // Double-apply safety (if live later re-delivers, e.g. the wire's
+          // observed 1-4 re-emissions of the same one-shot): rosterByFixture
+          // .set() and, downstream, snapshotFor(matchId).lineup are both
+          // plain last-write-wins assignments with no counter or one-shot
+          // side effect (unlike goal/card ledger triggers, which DO need the
+          // openedTriggerIds dedup Set because they open a moment window) —
+          // a later live delivery just overwrites with equivalent-or-fresher
+          // data. Never double-counts, never fabricates, nothing to guard.
+          if (name === 'scores') {
+            const sawLineupsEnvelope = (arr as Array<{ Action?: unknown }>).some((env) => env.Action === 'lineups');
+            if (sawLineupsEnvelope) {
+              const roster = rosterByFixture.get(fid);
+              if (roster) {
+                const xi = roster.lineup ? `, starting XI ${roster.lineup.home.length}v${roster.lineup.away.length}` : '';
+                console.log(`[txline:seed] lineup seed ${fid}: roster recovered (${roster.byPlayerId.size} players${xi})`);
+              } else {
+                console.warn(`[txline:seed] lineup seed ${fid}: snapshot carried a lineups envelope but it failed to parse — team sheet stays empty`);
+              }
+            }
+          }
         } catch {
           // aborted or unreachable — the live streams still carry the match
         }

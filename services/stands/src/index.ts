@@ -82,6 +82,16 @@ function fixtureIdOfFeedMsg(msg: FeedMsg): string | null {
     return m.fixtureKey || null;
   }
   if (msg.type === 'spell') return msg.fixtureId; // tagged at emit (Spell has no id)
+  // xi-seed-recovery, Jul 13: MISSING THIS CASE dropped every lineup FeedMsg
+  // silently (fell through to `return null` below, same failure shape as the
+  // ledger case above) — not just after a restart, on EVERY delivery, live
+  // or seeded, because this function runs before broadcastToMatch is ever
+  // called. The team sheet stayed "NOT IN YET" forever even on a service
+  // that never restarted; goal/card scorer names were unaffected (the roster
+  // latch in txline.ts's dispatch() runs unconditionally, before this
+  // function is even consulted) — this is what let the bug hide behind
+  // correct scorer names. lineup carries fixtureId directly, same as spell.
+  if (msg.type === 'lineup') return msg.fixtureId;
   let raw: unknown;
   if (msg.type === 'odds') raw = msg.tick.raw;
   else if (msg.type === 'score') raw = msg.ev.raw;
