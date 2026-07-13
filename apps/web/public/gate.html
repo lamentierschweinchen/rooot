@@ -81,7 +81,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .conv .pip{flex:1;height:9px;padding:0;background:var(--card);border:1.5px solid var(--line);cursor:pointer;transition:background .15s,border-color .15s}
 .conv .pip.on{background:var(--pick);border-color:var(--ink)}
 .conv .cl{font-weight:800;font-size:8px;letter-spacing:.09em;color:var(--sub);white-space:nowrap;min-width:52px;text-align:right}
-.end:focus-visible,.scn:focus-visible,.pip:focus-visible,.go:focus-visible{
+.end:focus-visible,.scn:focus-visible,.pip:focus-visible,.go:focus-visible,.slip:focus-visible{
   outline:2px solid var(--gold);outline-offset:2px;
 }
 
@@ -105,6 +105,9 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .nudge{animation:nudge .28s ease}
 .go.ready:active{transform:translateY(1px)}
 .go small{display:block;font-weight:700;font-size:7.5px;letter-spacing:.2em;opacity:.6;margin-top:3px}
+/* the quiet turnstile — lurking is a complete experience; no claims required */
+.slip{display:block;margin:-4px auto 14px;padding:6px 8px;background:none;border:none;font-family:var(--disp);font-weight:700;font-size:8px;letter-spacing:.18em;color:var(--sub);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.slip:active{transform:translateY(1px)}
 
 /* THE TURNSTILE — your pass is stamped as you walk in (shown on confirm only; additive — never hides the gate) */
 .stamp{position:absolute;left:50%;top:47%;transform:translate(-50%,-50%) rotate(-11deg) scale(1.6);opacity:0;z-index:8;pointer-events:none;
@@ -156,10 +159,11 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
     <div class="mkt">
       <div class="mkthd"><span class="ml">THE MARKET READS</span><span class="mr">SAMPLE · WIRES TO LIVE</span></div>
       <!-- sample proportions — wires from the live de-vigged odds feed -->
-      <div class="mbar"><i class="h" style="flex:44">SUI 44</i><i class="d" style="flex:28">X 28</i><i class="a" style="flex:28">COL 28</i></div>
+      <div class="mbar"><i class="h" style="flex:44">SUI 44</i><i class="d" style="flex:28">DRAW 28</i><i class="a" style="flex:28">COL 28</i></div>
     </div>
 
     <button class="go" id="go">TAKE YOUR PLACE<small>THE GROUND OPENS →</small></button>
+    <button class="slip" id="slip" type="button">JUST WATCHING · GO IN →</button>
     <div class="stamp" id="stamp"><b>ADMITTED</b><span>SUI v COL · 20:00</span></div>
   </div>
 </div>
@@ -258,8 +262,8 @@ function paintMarketTriple(m){
   if(!m)return;
   var h=Math.max(1,Math.round(m.home*100)), d=Math.max(1,Math.round(m.draw*100)), a=Math.max(1,Math.round(m.away*100));
   var bar=document.querySelector('.mbar');
-  if(bar)bar.innerHTML='<i class="h" style="flex:'+h+'">'+FX.home.tri+' '+h+'</i><i class="d" style="flex:'+d+'">X '+d+'</i><i class="a" style="flex:'+a+'">'+FX.away.tri+' '+a+'</i>';
-  var mr=document.querySelector('.mkt .mr'); if(mr)mr.textContent=LIVE?'LIVE · DE-VIGGED':'PRE-MATCH · DE-VIGGED';
+  if(bar)bar.innerHTML='<i class="h" style="flex:'+h+'">'+FX.home.tri+' '+h+'</i><i class="d" style="flex:'+d+'">DRAW '+d+'</i><i class="a" style="flex:'+a+'">'+FX.away.tri+' '+a+'</i>';
+  var mr=document.querySelector('.mkt .mr'); if(mr)mr.textContent=LIVE?'LIVE':'PRE-MATCH';
 }
 function wireLiveGate(){
   if(!LIVE)return true;
@@ -276,8 +280,8 @@ function paintMarket(m){ if(!m||!m.market)return; var mk=m.market, t=m.teams||{}
   var h=Math.round(mk.home*100), d=Math.round(mk.draw*100), a=Math.round(mk.away*100);
   var hn=(t.home&&t.home.tri)||'SUI', an=(t.away&&t.away.tri)||'COL';
   var bar=document.querySelector('.mbar');
-  bar.innerHTML='<i class="h" style="flex:'+h+'">'+hn+' '+h+'</i><i class="d" style="flex:'+d+'">X '+d+'</i><i class="a" style="flex:'+a+'">'+an+' '+a+'</i>';
-  var mr=document.querySelector('.mr'); if(mr)mr.textContent='PRE-MATCH · DE-VIGGED';
+  bar.innerHTML='<i class="h" style="flex:'+h+'">'+hn+' '+h+'</i><i class="d" style="flex:'+d+'">DRAW '+d+'</i><i class="a" style="flex:'+a+'">'+an+' '+a+'</i>';
+  var mr=document.querySelector('.mr'); if(mr)mr.textContent='PRE-MATCH';
 }
 if(DEMO&&window.__match){ paintMarket(window.__match); if(window.__match.on)window.__match.on(paintMarket); }
 
@@ -312,6 +316,9 @@ go.onclick=function(){
   go.innerHTML='SEE YOU INSIDE<small>◆ YOU CALLED '+FX.home.tri+' '+sco.h+'–'+sco.a+' '+FX.away.tri+'</small>';
   setTimeout(function(){ location.href='ground.html?from=gate'+MODE_Q; }, 1050);   // the tunnel — walk into the ground (carry prototype mode)
 };
+// the quiet turnstile — no claims, no pass written, nothing fabricated (law 2: lurking is a complete experience)
+var slip=document.getElementById('slip');
+if(slip)slip.onclick=function(){ location.href='ground.html?from=gate'+MODE_Q; };
 } // end boot
 
 // T16 fixture resolution: explicit ?match= wins outright (unchanged — literal-table
