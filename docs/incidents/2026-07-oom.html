@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ROOOT — Stands OOM: root cause & resolution</title>
+<style>
+  :root{
+    --paper:#faf7f0; --ink:#211c14; --ink-soft:#5c5344; --line:#e3dccc;
+    --gold:#b07d1a; --gold-soft:#f3ead3; --green:#3f6b3a; --green-soft:#e6efe0;
+    --red:#9a3b2f; --card:#fffdf8; --shadow:0 1px 2px rgba(33,28,20,.05),0 8px 28px rgba(33,28,20,.06);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --paper:#141109; --ink:#efe8d9; --ink-soft:#a99e88; --line:#2e281c;
+      --gold:#d6a441; --gold-soft:#2a2213; --green:#8fbf7f; --green-soft:#1c2617;
+      --red:#d98a7c; --card:#1b160d; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 30px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="light"]{
+    --paper:#faf7f0; --ink:#211c14; --ink-soft:#5c5344; --line:#e3dccc;
+    --gold:#b07d1a; --gold-soft:#f3ead3; --green:#3f6b3a; --green-soft:#e6efe0;
+    --red:#9a3b2f; --card:#fffdf8; --shadow:0 1px 2px rgba(33,28,20,.05),0 8px 28px rgba(33,28,20,.06);
+  }
+  :root[data-theme="dark"]{
+    --paper:#141109; --ink:#efe8d9; --ink-soft:#a99e88; --line:#2e281c;
+    --gold:#d6a441; --gold-soft:#2a2213; --green:#8fbf7f; --green-soft:#1c2617;
+    --red:#d98a7c; --card:#1b160d; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 30px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:760px; margin:0 auto; padding:56px 24px 96px}
+  .serif{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif}
+  .eyebrow{font-size:12.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--gold); font-weight:600; margin:0 0 14px}
+  h1{font-size:33px; line-height:1.2; margin:0 0 18px; letter-spacing:-.01em; font-weight:600}
+  h2{font-size:13px; letter-spacing:.13em; text-transform:uppercase; color:var(--ink-soft); font-weight:700; margin:52px 0 16px; padding-bottom:9px; border-bottom:1px solid var(--line)}
+  h3{font-size:17px; margin:0 0 4px; font-weight:650}
+  p{margin:0 0 15px}
+  .lede{font-size:19px; line-height:1.55; color:var(--ink); margin:0 0 8px}
+  .muted{color:var(--ink-soft)}
+  a{color:var(--gold)}
+  .pill{display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:650; padding:6px 14px; border-radius:999px; background:var(--green-soft); color:var(--green); border:1px solid color-mix(in srgb,var(--green) 30%, transparent)}
+  .dot{width:8px; height:8px; border-radius:50%; background:var(--green); box-shadow:0 0 0 3px color-mix(in srgb,var(--green) 20%, transparent)}
+  .meta{display:flex; flex-wrap:wrap; gap:10px 22px; margin:22px 0 2px; font-size:13.5px; color:var(--ink-soft)}
+  .meta b{color:var(--ink); font-weight:600}
+  .callout{background:var(--card); border:1px solid var(--line); border-left:3px solid var(--gold); border-radius:10px; padding:18px 20px; margin:20px 0; box-shadow:var(--shadow)}
+  .callout.red{border-left-color:var(--red)}
+  .callout.green{border-left-color:var(--green)}
+  .callout h3{margin-bottom:6px}
+  .steps{list-style:none; padding:0; margin:8px 0 0; counter-reset:s}
+  .steps li{position:relative; padding:14px 0 14px 46px; border-top:1px solid var(--line)}
+  .steps li:first-child{border-top:0}
+  .steps li::before{counter-increment:s; content:counter(s); position:absolute; left:0; top:13px; width:28px; height:28px; border-radius:50%; background:var(--gold-soft); color:var(--gold); font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center; border:1px solid color-mix(in srgb,var(--gold) 35%, transparent)}
+  table{width:100%; border-collapse:collapse; margin:6px 0 4px; font-size:14.5px}
+  th,td{text-align:left; padding:11px 12px; border-bottom:1px solid var(--line); vertical-align:top}
+  th{font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-soft); font-weight:700}
+  td.k{font-weight:600; white-space:nowrap; padding-right:18px}
+  .ok{color:var(--green); font-weight:600}
+  code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:13px; background:var(--gold-soft); color:var(--ink); padding:1.5px 6px; border-radius:5px; word-break:break-word}
+  .tl{list-style:none; padding:0; margin:0}
+  .tl li{display:grid; grid-template-columns:74px 1fr; gap:16px; padding:11px 0; border-top:1px solid var(--line)}
+  .tl li:first-child{border-top:0}
+  .tl time{font-size:13px; color:var(--gold); font-weight:650; font-variant-numeric:tabular-nums; padding-top:1px}
+  .tl b{font-weight:600}
+  .followups li{padding:13px 0; border-top:1px solid var(--line)}
+  .followups li:first-child{border-top:0}
+  .tag{display:inline-block; font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-soft); background:var(--gold-soft); padding:2px 8px; border-radius:5px; margin-right:8px}
+  footer{margin-top:56px; padding-top:22px; border-top:1px solid var(--line); font-size:13px; color:var(--ink-soft)}
+  footer .mono{background:none; padding:0}
+  hr.soft{border:0; border-top:1px solid var(--line); margin:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="eyebrow">ROOOT · Stands service · Incident report</p>
+  <h1 class="serif">The stands service ran out of memory for three nights. Here is why, and the fix that shipped.</h1>
+  <p class="lede muted">It was never the crowd, the feed, or bad luck. The service simply never let go of a match once it ended — so every game we played stacked on top of the last until the machine was killed. That is now fixed at the root and live in production.</p>
+
+  <div class="meta">
+    <span><span class="pill"><span class="dot"></span>Resolved &amp; deployed</span></span>
+    <span>Detected <b>Jul 10–12, 2026</b></span>
+    <span>Resolved <b>Jul 13, 08:22 UTC</b></span>
+    <span>Next match <b>Tue Jul 14, 19:00 UTC</b></span>
+  </div>
+
+  <h2>What you saw</h2>
+  <p>Three nights of the same failure: mid-match, the service stopped accepting new connections and health checks, then the machine restarted itself. Each crash carried the Linux out-of-memory signature — <code>exit code 137, oom_killed=true</code>. Last night it compounded: while the service thrashed, a footage-capture tool I built wrote an event log with no size limit and grew it to roughly <b>200&nbsp;GB</b>, filling a quarter of the disk. Deleting that log freed the disk; it was a symptom of the same lesson, not the disease.</p>
+
+  <h2>Root cause</h2>
+  <div class="callout">
+    <h3>The service never evicted a finished match.</h3>
+    <p class="muted" style="margin-bottom:0">A match created at kickoff stayed fully resident in memory forever — its market-tick buffers, its join-replay history, its sentiment accumulator, and eleven per-match caches. Nothing ever removed it. Three games across three days on a process that only restarted when it crashed meant three games' worth of state piled up on a 256&nbsp;MB guest until the kernel killed it. The earlier fixes — swap, a self-probe, a liveness watchdog — softened the fall but never stopped the climb.</p>
+  </div>
+  <p class="muted">The soak test that had reported a "flat heap" replayed a <i>single</i> match quickly. It never modelled several games persisting over many hours, which was the only thing that mattered. That gap is why this recurred.</p>
+
+  <h2>The fix</h2>
+  <ol class="steps">
+    <li><h3>Evict finished matches</h3><p class="muted">A resolved match with no one watching and no activity for 15 minutes (or any match idle for 3 hours) is now swept out of the registry and all eleven per-match caches through a single cleanup seam. What is <i>persisted</i> — the durable sentiment record on the volume — is untouched; only the in-memory bulk is released.</p></li>
+    <li><h3>Make settlement idempotent on disk</h3><p class="muted">A match is never crystallized or anchored twice: before writing, the service checks the volume for an existing record and skips both the write and the on-chain anchor if one is there. This survives eviction, restart, and lost in-memory state.</p></li>
+    <li><h3>Count every watcher in the evict gate</h3><p class="muted">The "no one watching" check now counts feed-only spectators too, so a finished match someone is still viewing can never be evicted out from under them.</p></li>
+  </ol>
+
+  <div class="callout red">
+    <h3>The bug the fix almost introduced — caught in review</h3>
+    <p class="muted" style="margin-bottom:0">Eviction, on its own, <i>re-opened</i> an old hole: an evicted match dropped from the snapshot could be re-settled and <b>anchored on-chain a second time</b> after a restart — the same defect that produced a duplicate record earlier this week. Review reproduced it before deploy (two records, two hashes). Step&nbsp;2 above closes it permanently, and a new test locks it: it fails on the old code, passes on the new.</p>
+  </div>
+
+  <h2>Deployed &amp; verified in production</h2>
+  <p class="muted">Verified the way a user would — against the live service, not just a green build.</p>
+  <table>
+    <thead><tr><th>Check</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Deploy</td><td>Image <code>deployment-01KXD9…</code> landed, machine reached good state, health checks pass, DNS verified.</td></tr>
+      <tr><td class="k">Memory</td><td><span class="ok">512&nbsp;MB confirmed live.</span> Pinned in <code>fly.toml</code> so the deploy preserved your scale-up instead of reverting to the 256&nbsp;MB OOM size.</td></tr>
+      <tr><td class="k">Fresh process</td><td>Uptime reset to seconds; new build serving on <code>:8080</code>.</td></tr>
+      <tr><td class="k">Double-anchor (C1)</td><td><span class="ok">Held.</span> Boot re-dispatched full-time for the finished game (<code>full-time@18222446</code> in the log) — the exact path that used to double-anchor — yet <b>zero</b> new records were written. The volume still holds 4 files, newest stamped 03:52 (the real game), none from the 08:22 boot.</td></tr>
+      <tr><td class="k">Eviction / heap</td><td><span class="ok">Flat.</span> Soak drove 3 heavy matches to full-time: heap 58 → 61 → <b>58&nbsp;MB</b> back to baseline, and flat across 5 evict rounds (a leak would climb ~3&nbsp;MB/round).</td></tr>
+      <tr><td class="k">Regression suite</td><td>Full existing check suite green + repo typecheck; new <code>check:mem-evict</code> deterministic across 3 runs.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Timeline</h2>
+  <ul class="tl">
+    <li><time>Jul 10–12</time><span class="muted"><b>Recurring OOM crashes</b> mid-match; swap, self-probe, and watchdog mitigations shipped — symptoms eased, root cause untouched.</span></li>
+    <li><time>Jul 13</time><span class="muted"><b>~200 GB footage log</b> found filling the disk; deleted, disk freed, Bash unblocked.</span></li>
+    <li><time>08:0x</time><span class="muted"><b>Root cause identified:</b> no match eviction; <code>matchesActive</code> stuck at 1 seventeen hours after full-time.</span></li>
+    <li><time>08:1x</time><span class="muted"><b>Fix built, reviewed twice</b> — the double-anchor risk found and closed on the second pass.</span></li>
+    <li><time>08:22</time><span class="muted"><b>Deployed &amp; verified.</b> 512 MB preserved, disk guard confirmed live, heap flat.</span></li>
+  </ul>
+
+  <h2>Follow-ups — not urgent, no live game affected</h2>
+  <ul class="followups">
+    <li><span class="tag">Cleanup</span><b>One duplicate record to reconcile.</b> <span class="muted">Match <code>18213979</code> has two sentiment files from before this fix (yesterday, 23:46 and 23:57) — the historical footprint of the now-closed double-crystallize bug. Needs an offline judgement call on which to keep; the fix guarantees no new duplicates.</span></li>
+    <li><span class="tag">Hardening</span><b>Footage rig byte cap — <span class="ok">done Jul 13</span>.</b> <span class="muted"><code>events.jsonl</code> now carries a hard 256&nbsp;MB ceiling (past it the file freezes; the console and the rest of the rig carry on) plus a hot-loop collapse that folds a flood of one event type into a periodic tally instead of a million identical lines — both in the one seam every subsystem funnels through, <code>lib/events.mjs</code>. A deterministic check (<code>npm run check:eventlog-cap</code>) drives 1,000,000 identical events to 150 lines / 19&nbsp;KB and freezes a varied flood at the ceiling.</span></li>
+  </ul>
+
+  <footer>
+    <p style="margin:0 0 4px">Main <span class="mono">0ea1104</span> · fix <span class="mono">76877cf</span> + <span class="mono">36960fd</span> · fly.toml pin <span class="mono">f0d4071</span> · app <span class="mono">rooot-stands</span> @ <span class="mono">iad</span>, 512&nbsp;MB.</p>
+    <p style="margin:0" class="muted">The instinct to keep every match alive and never let go was the whole bug — hiding in plain sight since the beginning. For the first time this week, we fixed the disease, not the symptom.</p>
+  </footer>
+
+</div>
+</body>
+</html>
