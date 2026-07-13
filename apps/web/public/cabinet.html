@@ -171,6 +171,12 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
   <div class="foot reveal">your cabinet fills as you live matches · each scarf is the match woven from the real feed<br>provenance sits on-chain — yours to keep, worthless to flip · sample shown until wired</div>
 </div>
 
+<!-- SEAT — walletless self-custody album (Face/Touch-ID passkey PRF -> ed25519). Load order is
+     load-bearing: nacl (sets window.nacl) BEFORE seat-passkey (window.seatPasskey) BEFORE seat-adapter
+     (window.__seat / window.__album — resolve()/render() below already consume both). -->
+<script src="plate/nacl.min.js"></script>
+<script src="seat-passkey.js"></script>
+<script src="seat-adapter.js"></script>
 <script>
 var el=function(id){return document.getElementById(id);};
 var DEMO=/[?&]demo=1/.test(location.search), Q=DEMO?'?demo=1':(/[?&]live=1/.test(location.search)?'?live=1':'?demo=0');
