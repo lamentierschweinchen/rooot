@@ -63,6 +63,14 @@ swap_size_mb = 256
     method = "GET"
     path = "/health"
 
+# 512mb (was 256): the root cause of the Jul 10-12 OOM crashes was the service
+# never evicting finished matches (registry + ~11 per-match caches grew across
+# games until the guest was killed) - fixed in code (registry.sweepEvictions +
+# onEvict, verified by check:mem-evict: heap returns to baseline). 512 is
+# headroom on top of that fix, not the fix: it covers Node/tsx's ~90mb baseline
+# so the guest never sits at the edge. Pinned here so `flyctl deploy` preserves
+# the live scale-up (a machine scaled with `fly scale memory` reverts to this
+# file's value on the next deploy).
 [[vm]]
   size = "shared-cpu-1x"
-  memory = "256mb"
+  memory = "512mb"
