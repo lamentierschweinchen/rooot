@@ -11,7 +11,7 @@
 import { createServer, get as httpGet } from 'node:http';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { randomBytes } from 'node:crypto';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { WebSocket, WebSocketServer } from 'ws';
 import type { CallMsg, CallReceiptMsg, CheerEchoMsg, ClientMsg, MomentKind, MomentOpenMsg, MomentResultMsg, RoomStateMsg, SeatTokenGrantMsg, ServerMsg, Side, WelcomeMsg } from '@contracts/crowd';
@@ -146,6 +146,13 @@ function errDetail(err: unknown): string {
 
 /** Broadcast to every connection currently in matchId's room. */
 function broadcastToMatch(matchId: string, msg: ServerMsg | FeedMsg): void {
+  // Keep this match's eviction clock warm: every feed message AND every 4 Hz
+  // stands tick flows through here, so a match stops being "quiet" exactly
+  // when its wire falls silent AND its last client leaves (a client-less match
+  // never ticks — registry.tick skips idle matches — so ticks can't falsely
+  // keep a dead match alive). The memory-eviction sweep measures quiet time
+  // against this stamp. One Map.set; never throws.
+  registry.noteActivity(matchId);
   const stamped = withMatchId(matchId, msg);
   const payload = JSON.stringify(stamped);
   for (const [ws, state] of conns) {
@@ -497,12 +504,29 @@ function feedSentiment(matchId: string, msg: ServerMsg | FeedMsg): void {
   acc.onFeed(msg);
 }
 
+/** True if a crystallized sentiment record for this match is already on the
+ * volume (the durable dedup for C1 — see the guard in crystallizeSentiment).
+ * Matches the `${matchId}-<timestamp>.json` naming written below; the trailing
+ * `-` in the prefix prevents a shorter id from matching a longer one's file.
+ * readdirSync on a small per-match dir is cheap and only runs once per
+ * FULL_TIME. Absent/unreadable dir ⇒ nothing crystallized yet (false), never
+ * throws into the FT branch. */
+function sentimentRecordExistsOnDisk(matchId: string): boolean {
+  const prefix = `${matchId}-`;
+  try {
+    return readdirSync(path.join(DATA_DIR, 'sentiment')).some((f) => f.startsWith(prefix) && f.endsWith('.json'));
+  } catch {
+    return false;
+  }
+}
+
 /** Full-time crystallization, persisted on the SAME durable dir the restart
  * snapshot uses (Task 3 — volume-ready: /data on Fly when the volume is
  * mounted, /tmp otherwise). One timestamped file per crystallization — never
  * overwritten by a later match — except the async anchor-tx-sig fill-in
  * below, which updates THIS SAME file (it's the same crystallization event,
- * just completing its on-chain anchor a little later). */
+ * just completing its on-chain anchor a little later). Idempotent across
+ * eviction + restart via the on-disk guard at the top (review C1). */
 function crystallizeSentiment(
   matchId: string,
   match: ReturnType<MatchRegistry['get']>,
@@ -515,6 +539,24 @@ function crystallizeSentiment(
 ): void {
   const acc = accumulators.get(matchId);
   if (!acc || !match) return;
+  // ── C1 idempotency backstop (review — the same dup mechanism as the
+  // ARG-SUI double record): eviction clears the in-memory resolvedMatches
+  // guard AND drops the match from the restart snapshot, so a post-eviction
+  // RESTART re-dispatches this fixture's FULL_TIME at boot (TxLINE seedSnapshot
+  // / a REPLAY-from-0), predictLifecycle sees !resolvedMatches.has() with a
+  // cached score, and re-enters here. The DURABLE record was already written
+  // to the volume at the first FULL_TIME — so if any sentiment record file for
+  // this matchId already exists on disk, this is a re-crystallize: skip the
+  // record write AND the on-chain anchor entirely. The disk is the durable
+  // dedup that survives eviction, restart, AND a lost in-memory guard; the
+  // resolvedMatches Set stays the cheap same-process fast-path (predictLifecycle
+  // never even calls this twice within one process). One honest log line, then
+  // return — anchorRecordHash below is downstream of the write, so skipping the
+  // write provably skips the anchor.
+  if (sentimentRecordExistsOnDisk(matchId)) {
+    console.log(`[sentiment] ${matchId} already crystallized on disk — skipping re-crystallize + re-anchor (idempotent; the on-disk record is the durable dedup)`);
+    return;
+  }
   try {
     const record = acc.crystallize(
       { consensus: match.consensus(), rooted: match.counts() },
@@ -580,6 +622,20 @@ const ODDS_HISTORY_GAP_MS = 12000; // ~1 belief point / 12s of wire time → a s
 const EVENT_HISTORY_MAX = 1200;
 const PRESSURE_HISTORY_MAX = 700; // ALL danger events (not thinned) — attack/high-danger counts exact on join
 const SPELL_HISTORY_MAX = 1600;   // ALL possession spells — possession% + territory exact on join
+/** The join-replay buffer caps, exported for the dev soak (src/dev/
+ * mem-evict-check.ts) to assert the bound directly rather than hard-coding
+ * magic numbers that could drift from the splice()s below. These already
+ * ring-buffer via splice-oldest in rememberForJoin — the HONESTY tradeoff:
+ * odds/pressure/spell are downsampled/rolling so a late joiner sees RECENT
+ * market + pressure context (not a fabricated gap), while eventHistory keeps
+ * the whole discrete story (goals/cards/subs) up to a generous cap so the
+ * loom's late-join weaves every REAL event. */
+export const JOIN_BUFFER_CAPS = {
+  odds: ODDS_HISTORY_MAX,
+  events: EVENT_HISTORY_MAX,
+  pressure: PRESSURE_HISTORY_MAX,
+  spells: SPELL_HISTORY_MAX,
+} as const;
 // loom-woven marks…
 const WOVEN_KINDS = new Set(['goal', 'yellow-card', 'red-card', 'var', 'shot', 'corner', 'possible', 'penalty-kick']);
 // …plus the stats-only families the stadium/count tally but the loom doesn't weave. Without
@@ -787,6 +843,52 @@ const registry = new MatchRegistry(
     // omitted from the snapshot, never zero-filled).
     get: (matchId) => finalScores.get(matchId) ?? null,
     restore: (matchId, score) => { finalScores.set(matchId, score); },
+  },
+  // ── THE EVICTION SEAM (the memory fix) ──────────────────────────────────
+  // registry.ts decides WHEN a finished/stale match dies (FT + 15 min quiet +
+  // zero clients, or 3 h idle); this callback frees WHAT that death must free
+  // on the server side. ONE place, mirroring the persistence hooks above — so
+  // the audited list of per-match maps lives here and only here (the dev soak
+  // asserts the SAME list, via perMatchStateFootprint, goes empty). Every
+  // entry below is keyed by matchId except seatTokens (keyed by opaque token —
+  // purged by its bound matchId). These consts are declared later in the file
+  // but this arrow only RUNS during a sweep, long after module load, so the
+  // forward references resolve fine (same pattern the nextGoalResolvedIds hook
+  // above already relies on).
+  (matchId: string) => {
+    // clear the open drama-window timer FIRST — clearTimeout before dropping
+    // the ref, or the pending close would fire on an already-freed match.
+    const timer = openMomentTimers.get(matchId);
+    if (timer) {
+      clearTimeout(timer);
+      openMomentTimers.delete(matchId);
+    }
+    resolvedMatches.delete(matchId);
+    finalScores.delete(matchId);
+    tripleWindow.delete(matchId);
+    openedTriggerIds.delete(matchId);
+    accumulators.delete(matchId); // frees the accumulator's per-tick market curve too
+    joinSnapshots.delete(matchId); // frees the capped odds/event/pressure/spell replay buffers
+    lastFeedState.delete(matchId);
+    cheerEchoCounters.delete(matchId);
+    nextGoalResolvedIds.delete(matchId);
+    // seatTokens are keyed by opaque token, not matchId — purge any still
+    // bound to this match (they are short-lived + single-use + swept on issue,
+    // so this is belt-and-braces: a match evicted 15 min post-FT has only long-
+    // expired tokens, but leaving them would pin a stale per-match entry).
+    for (const [tok, rec] of seatTokens) {
+      if (rec.matchId === matchId) seatTokens.delete(tok);
+    }
+  },
+  // ── I2: the eviction gate's client count ────────────────────────────────
+  // ALL open sockets seated in this room — helloed fans AND feed-only
+  // spectators (LiveSource seats via ?matchId= at connect, never hellos, so
+  // MatchState.presenceCount() can't see it). broadcastToMatch already fans out
+  // to exactly these sockets, so this is the honest "is anyone watching?".
+  (matchId: string) => {
+    let n = 0;
+    for (const state of conns.values()) if (state.matchId === matchId) n++;
+    return n;
   },
 );
 
@@ -1301,6 +1403,45 @@ export function currentScoreSnapshot(matchId: string): LiveScoreSnapshot {
     return { home: 0, away: 0, decided: false }; // resolved but no genuine score known — refuse, never fabricate
   }
   return { home: ev?.home ?? 0, away: ev?.away ?? 0, decided: false };
+}
+
+/** Dev-soak introspection (src/dev/mem-evict-check.ts) — NEVER imported by
+ * index.ts. Returns, for every server-side per-match collection, whether it
+ * still holds an entry for matchId. This is the SAME enumeration the onEvict
+ * seam clears (wired into the registry above), so the check asserts the map
+ * that actually exists rather than a hand-copied list that could silently
+ * drift from it. After an eviction every value here MUST be false. */
+export function perMatchStateFootprint(matchId: string) {
+  return {
+    resolvedMatches: resolvedMatches.has(matchId),
+    finalScores: finalScores.has(matchId),
+    openMomentTimers: openMomentTimers.has(matchId),
+    tripleWindow: tripleWindow.has(matchId),
+    openedTriggerIds: openedTriggerIds.has(matchId),
+    accumulators: accumulators.has(matchId),
+    joinSnapshots: joinSnapshots.has(matchId),
+    lastFeedState: lastFeedState.has(matchId),
+    cheerEchoCounters: cheerEchoCounters.has(matchId),
+    nextGoalResolvedIds: nextGoalResolvedIds.has(matchId),
+    seatTokens: [...seatTokens.values()].some((r) => r.matchId === matchId),
+  };
+}
+
+/** Dev-soak introspection (src/dev/mem-evict-check.ts) — the current length of
+ * each join-replay ring buffer for matchId, or null if the match has no
+ * join-snapshot cache. Asserted ≤ JOIN_BUFFER_CAPS to prove the buffers stay
+ * bounded even under a pathological message flood. */
+export function joinBufferSizes(
+  matchId: string,
+): { odds: number; events: number; pressure: number; spells: number } | null {
+  const s = joinSnapshots.get(matchId);
+  if (!s) return null;
+  return {
+    odds: s.oddsHistory.length,
+    events: s.eventHistory.length,
+    pressure: s.pressureHistory.length,
+    spells: s.spellHistory.length,
+  };
 }
 
 function sendJson(res: ServerResponse, status: number, body: unknown): void {

@@ -20,6 +20,7 @@
     "check:self-probe": "tsx src/dev/self-probe-check.ts",
     "check:next-goal": "tsx src/dev/next-goal-check.ts",
     "check:seat": "tsx src/dev/seat-check.ts",
+    "check:mem-evict": "node --expose-gc --import tsx src/dev/mem-evict-check.ts",
     "prove:claim-mint": "tsx src/dev/prove-claim-mint.ts",
     "prove:owned-mint": "tsx src/mint/scripts/proveOwnedMint.ts"
   },
