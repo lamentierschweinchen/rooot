@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>State of ROOOT — 13 Jul 2026</title>
+<style>
+  :root{
+    --paper:#faf7f0; --ink:#211c14; --soft:#5c5344; --line:#e3dccc; --card:#fffdf8;
+    --gold:#b07d1a; --green:#3f6b3a; --green-bg:#e7efe1; --amber:#a86a1f; --amber-bg:#f6ead0;
+    --grey:#8a8272; --grey-bg:#eeeadf; --shed:#a9a091; --red:#9a3b2f; --red-bg:#f4e2dd;
+    --shadow:0 1px 2px rgba(33,28,20,.05),0 8px 28px rgba(33,28,20,.06);
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --paper:#141109; --ink:#efe8d9; --soft:#a99e88; --line:#2e281c; --card:#1b160d;
+    --gold:#d6a441; --green:#8fbf7f; --green-bg:#1c2617; --amber:#d8a24d; --amber-bg:#2a2113;
+    --grey:#8f8674; --grey-bg:#221d13; --shed:#6f6656; --red:#d98a7c; --red-bg:#2c1a15;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 30px rgba(0,0,0,.35);
+  }}
+  :root[data-theme="dark"]{
+    --paper:#141109; --ink:#efe8d9; --soft:#a99e88; --line:#2e281c; --card:#1b160d;
+    --gold:#d6a441; --green:#8fbf7f; --green-bg:#1c2617; --amber:#d8a24d; --amber-bg:#2a2113;
+    --grey:#8f8674; --grey-bg:#221d13; --shed:#6f6656; --red:#d98a7c; --red-bg:#2c1a15;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 30px rgba(0,0,0,.35);
+  }
+  :root[data-theme="light"]{
+    --paper:#faf7f0; --ink:#211c14; --soft:#5c5344; --line:#e3dccc; --card:#fffdf8;
+    --gold:#b07d1a; --green:#3f6b3a; --green-bg:#e7efe1; --amber:#a86a1f; --amber-bg:#f6ead0;
+    --grey:#8a8272; --grey-bg:#eeeadf; --shed:#a9a091; --red:#9a3b2f; --red-bg:#f4e2dd;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:840px;margin:0 auto;padding:52px 24px 96px}
+  .serif{font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif}
+  .eyebrow{font-size:12.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);font-weight:600;margin:0 0 12px}
+  h1{font-size:34px;line-height:1.15;margin:0 0 16px;letter-spacing:-.01em;font-weight:600}
+  h2{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--soft);font-weight:700;margin:48px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+  p{margin:0 0 14px}.lede{font-size:19px;line-height:1.55;margin:0 0 6px}.muted{color:var(--soft)}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;background:var(--grey-bg);padding:1.5px 6px;border-radius:5px;word-break:break-word}
+  .callout{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:10px;padding:18px 20px;margin:18px 0;box-shadow:var(--shadow)}
+  .callout.red{border-left-color:var(--red)}
+  .callout h3{margin:0 0 6px;font-size:17px;font-weight:650}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:6px 0}
+  @media(max-width:640px){.grid{grid-template-columns:1fr}}
+  .col h4{margin:0 0 9px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;display:flex;align-items:center;gap:8px}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+  .d-green{background:var(--green)}.d-amber{background:var(--amber)}.d-grey{background:var(--grey)}.d-shed{background:var(--shed)}
+  .chips{display:flex;flex-direction:column;gap:6px}
+  .chip{font-size:13.5px;padding:8px 11px;border-radius:8px;border:1px solid var(--line);background:var(--card)}
+  .chip b{font-weight:650}.chip .n{display:block;color:var(--soft);font-size:12px;margin-top:1px}
+  .chip.green{background:var(--green-bg)}.chip.amber{background:var(--amber-bg)}.chip.grey{background:var(--grey-bg)}
+  .chip.shed{opacity:.72}.chip.shed b{text-decoration:line-through;text-decoration-color:var(--shed)}
+  ol.pri{list-style:none;counter-reset:p;padding:0;margin:8px 0 0}
+  ol.pri>li{position:relative;padding:15px 0 15px 44px;border-top:1px solid var(--line)}
+  ol.pri>li:first-child{border-top:0}
+  ol.pri>li::before{counter-increment:p;content:counter(p);position:absolute;left:0;top:14px;width:28px;height:28px;border-radius:50%;
+    background:var(--grey-bg);color:var(--ink);font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line)}
+  ol.pri>li.crit::before{background:var(--red-bg);color:var(--red);border-color:color-mix(in srgb,var(--red) 35%,transparent)}
+  ol.pri h4{margin:0 0 3px;font-size:15.5px;font-weight:650}
+  ol.pri .n{color:var(--soft);font-size:13.5px}
+  .tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:5px;margin-left:8px;vertical-align:middle}
+  .tag.crit{background:var(--red-bg);color:var(--red)}.tag.done{background:var(--green-bg);color:var(--green)}
+  .arch{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:640px){.arch{grid-template-columns:1fr}}
+  .box{border:1px solid var(--line);border-radius:10px;padding:15px 17px;background:var(--card)}
+  .box h4{margin:0 0 8px;font-size:13px;font-weight:700}
+  .box ul{margin:0;padding-left:17px}.box li{font-size:13px;margin-bottom:4px;color:var(--soft)}
+  .box.did{border-left:3px solid var(--green)}.box.ask{border-left:3px solid var(--amber)}
+  footer{margin-top:52px;padding-top:20px;border-top:1px solid var(--line);font-size:13px;color:var(--soft)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="eyebrow">ROOOT · Full project diagnosis · 13 Jul 2026</p>
+  <h1 class="serif">The build is real and honest. The map stopped matching it — that's the drift, and it's fixable.</h1>
+  <p class="lede muted">Where everything actually stands the night before France–Spain, where we're going, the honest gap, and a clean sweep of what's stale. This is the picture; we pick tomorrow's moves from it together.</p>
+
+  <div class="callout">
+    <h3>The reframe worth holding onto</h3>
+    <p class="muted" style="margin:0">The shipped product — one Fly service, live feed or replay through the same parser, everything rendered from <code>public/*.html</code> — is coherent, honest, and deployed, with <b>three real devnet writes live today</b> (call receipts, a full-time record anchor, Metaplex scarf mints). What drifted is the <i>paperwork</i>: the four orientation docs still sell the retired "golden tide on a night pitch" and route to a dead <code>src/</code> tree. Doc drift, not build rot. That mismatch is most of why the last stretch felt scrambled — the docs describe a product we no longer build.</p>
+  </div>
+
+  <h2>Where every pillar stands</h2>
+  <div class="grid">
+    <div class="col">
+      <h4><span class="dot d-green"></span>Shipped &amp; honest</h4>
+      <div class="chips">
+        <div class="chip green"><b>Honest market number</b><span class="n">de-vigged probability, woven — not a tide. Real odds feed.</span></div>
+        <div class="chip green"><b>Root · Cheer · Call</b><span class="n">gate turnstile · decayed taps · NEXT GOAL predictions</span></div>
+        <div class="chip green"><b>On-chain receipts + FT anchor</b><span class="n">real devnet memos; record hash-anchored at the whistle</span></div>
+        <div class="chip green"><b>Stands score + verdict</b><span class="n">"won the stands" card, hash-anchored record</span></div>
+        <div class="chip green"><b>Replay mode</b><span class="n">first-class, same parser as live</span></div>
+      </div>
+    </div>
+    <div class="col">
+      <h4><span class="dot d-amber"></span>Partial — real but unfinished</h4>
+      <div class="chips">
+        <div class="chip amber"><b>Woven scarf + Collect mint</b><span class="n">mint proven on devnet; Collect UI staged, not deployed; on-chain image is a placeholder</span></div>
+        <div class="chip amber"><b>Trophy cabinet / album</b><span class="n">built; lights up with real mints + the Helius key (now staged)</span></div>
+        <div class="chip amber"><b>Pulse reactions</b><span class="n">reacts exist; the 6-emoji split-reveal unverified</span></div>
+        <div class="chip amber"><b>Market provenance</b><span class="n">proof path exercised; metadata wiring staged</span></div>
+      </div>
+    </div>
+    <div class="col">
+      <h4><span class="dot d-grey"></span>Stub — not built</h4>
+      <div class="chips">
+        <div class="chip grey"><b>Rosette / pin relic</b><span class="n">design gens only</span></div>
+        <div class="chip grey"><b>Attendance Merkle root</b><span class="n">doc-only aspiration</span></div>
+      </div>
+    </div>
+    <div class="col">
+      <h4><span class="dot d-shed"></span>Shed — consciously dropped</h4>
+      <div class="chips">
+        <div class="chip shed"><b>Golden tide / night pitch</b><span class="n">the whole original aesthetic — retired for paper+cloth</span></div>
+        <div class="chip shed"><b>Rows / share-link XI</b><span class="n">top of the fallback ladder</span></div>
+        <div class="chip shed"><b>Press-hold "R-O-O-O" · smoke crowd</b><span class="n">simplified / cut</span></div>
+      </div>
+    </div>
+  </div>
+  <p class="muted" style="margin-top:14px;font-size:14.5px"><b>The delta in one line:</b> the <i>systems</i> shipped honestly; the original <i>aesthetic</i> (tide/fog) and the <i>social layer</i> (rows, split-reveal, rosette, attendance) were shed or stubbed. The pitch doc oversells both of those.</p>
+
+  <h2>The drift, precisely</h2>
+  <p class="muted">Four docs a new reader (or judge) is told to follow still describe the retired product:</p>
+  <div class="callout">
+    <p class="muted" style="margin:0">
+    <code>AGENTS.md:4</code> — "market belief as a golden tide on a night pitch" + a lane map pointing writers at <code>src/stage · crowd · mint</code> (empty/dead dirs).<br>
+    <code>docs/PRODUCT.md:13-15</code> — the whole "The stage" section: "vertical floodlit night pitch… light vs fog."<br>
+    <code>docs/ARCHITECTURE.md:17</code> — "the tide-on-pitch renderer" + the dead <code>src/</code> tree as the architecture.<br>
+    <code>design/REFERENCES.md:14-16</code> — <i>binding under law #6</i>, still headlines "the market's belief is a luminous tide."<br>
+    <span style="color:var(--ink)"><b>The correct version already exists</b> one file over — <code>README.md</code>, <code>docs/SUBMISSION-tech-doc.md</code>, and <code>design/PAPER-AND-CLOTH.md</code> describe the real paper+cloth product. Reconciling four files is the cheapest credibility fix before judges browse the repo.</span></p>
+  </div>
+
+  <h2>What actually matters for tomorrow — France–Spain, 19:00 UTC</h2>
+  <ol class="pri">
+    <li class="crit"><h4>Register fixture <code>18237038</code>, then cut over <span class="tag crit">critical hole</span></h4>
+      <div class="n">It's in <b>no repo file</b> — <code>fixture.json</code>, <code>vercel.json</code>, <code>teams.ts</code>, and cutover all still point at the finished ARG–SUI game. Add it to <code>teams.ts</code> + the cutover KICKOFFS, run cutover. Without this, <code>/live</code> serves the wrong match and names/colours mis-resolve.</div></li>
+    <li><h4>Stands live ≥60 min before kickoff — and no restart through KO</h4>
+      <div class="n">Line-ups are a one-shot feed event ~45 min pre-KO that the restart snapshot doesn't recover — an OOM restart in that window empties the team sheet and nulls scorer names (exactly what killed the Starting XI last time). The OOM fix makes this safe now; just don't redeploy across kickoff. <b>No France–Spain replay fallback exists</b> — a live failure drops to the canned SUI–COL demo.</div></li>
+    <li><h4>Ship the money-shot: Collect + Helius + rehearse the passkey</h4>
+      <div class="n">Collect is committed on its branch only — unpushed, undeployed. Deploy it, ensure Fly has the mint keypair + collection + Helius key (staged), and <b>rehearse the Face/Touch-ID path on the exact demo device</b> — it's the only working browser mechanism, no fallback.</div></li>
+    <li><h4>Reconcile the four orientation docs</h4>
+      <div class="n">So the repo a judge reads matches the demo they watch. Cheapest high-value edit on the board.</div></li>
+    <li><h4>Optional on-camera: anchor-durability</h4>
+      <div class="n">Staged, reviewed clean. Only needed if the demo leans on receipts surviving a restart. Not needed for the inline mint.</div></li>
+  </ol>
+
+  <h2>The archive sweep</h2>
+  <div class="arch">
+    <div class="box did">
+      <h4>Moved to <code>archive/</code> now <span class="tag done">done</span></h4>
+      <ul>
+        <li>Old dated check-in screenshots (Jul 10 / 11 / 11-prod)</li>
+        <li>Superseded design audit (audit-2026-07-10)</li>
+        <li>Loom verification-harness evidence</li>
+        <li>Old direction experiments + tide-era protos</li>
+        <li>Earliest GPT explorations + brand-book PDF</li>
+      </ul>
+      <p class="muted" style="font-size:12px;margin:8px 0 0">All untracked evidence/protos — reversible moves, nothing in git touched.</p>
+    </div>
+    <div class="box ask">
+      <h4>Holding for your confirm <span class="tag" style="background:var(--amber-bg);color:var(--amber)">ask</span></h4>
+      <ul>
+        <li>The dead <code>apps/web/src/</code> SPA tree — it's abandoned, but it's <i>code</i></li>
+        <li>Retired individual gens (tide balls, rejected one-offs) — mixed in with the source masters we keep</li>
+        <li>~40 consumed handoff/brief/prompt docs — history, in git already</li>
+        <li>Stale git worktrees — need <code>git worktree prune</code>, not a move</li>
+        <li><code>contracts/</code> — frozen seams, keep by default</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>Where I understand we're going — correct me</h2>
+  <div class="callout">
+    <p class="muted" style="margin:0">ROOOT is <b>the honest, beautiful keepsake of living a match on your phone</b>, in a printed paper-and-cloth world — not a night pitch, not a dashboard. You <b>root once, cheer constantly, call rarely.</b> The market is a plain number; the crowd is a real roar, counted, never a percentage. When the whistle blows you <b>keep what you lived</b> — a woven scarf, a struck pin, a sealed poster — yours forever, provable on-chain, worthless to flip. The tide is gone; the loom stays. <b>If any of that is off, that's the thing to fix before the docs — it's the north star everything else measures against.</b></p>
+  </div>
+
+  <footer>
+    Sources: the OOM incident, the design/on-chain/mint/Starting-XI maps, and a full repo archaeology → <code>scratchpad/project-diagnosis.md</code>. Staged &amp; unshipped: <code>anchor-durability</code>, <code>mint-claim-ui</code> — both reviewed, neither on main. Nothing deploys until we've decided from this page.
+  </footer>
+
+</div>
+</body>
+</html>
