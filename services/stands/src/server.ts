@@ -521,6 +521,49 @@ function sentimentRecordExistsOnDisk(matchId: string): boolean {
   }
 }
 
+/** The newest crystallized sentiment record for matchId, read straight off the
+ * volume (DATA_DIR/sentiment/<matchId>-<timestamp>.json) — the fix for a fan
+ * who joins AFTER full time (post-mortem: replaySnapshot replayed
+ * oddsHistory/eventHistory/status/score/etc from the joinSnapshots cache but
+ * never checked whether the match had already crystallized, so a post-FT
+ * joiner's room stayed "LIVE" forever with no verdict card, no Collect).
+ * DISK, not memory: joinSnapshots/resolvedMatches are cleared by eviction
+ * (registry.sweepEvictions) and don't survive a restart either, but a fan can
+ * join hours later against a cold process — the record FILE is the one truth
+ * that outlives both, same reasoning as sentimentRecordExistsOnDisk's own
+ * on-disk C1 guard just above. Sorts defensively by the numeric `-<timestamp>`
+ * suffix and returns the newest (today's dedup keeps exactly one file per
+ * match, but never trust that blindly). Deliberately UNCACHED: writeAnchorSig
+ * can rewrite this SAME file later (filling in anchorTxSig once the on-chain
+ * anchor lands), and joins are rare enough that a fresh read every time is the
+ * honest choice over a cache that could hand a joiner a stale
+ * anchorTxSig:null. Absent dir / no match / unreadable / bad JSON ⇒ null —
+ * NEVER fabricates a record; a genuinely unresolved match stays live-looking. */
+function latestSentimentRecordOnDisk(matchId: string): SentimentRecord | null {
+  const dir = path.join(DATA_DIR, 'sentiment');
+  const prefix = `${matchId}-`;
+  let files: string[];
+  try {
+    files = readdirSync(dir).filter((f) => f.startsWith(prefix) && f.endsWith('.json'));
+  } catch {
+    return null; // no sentiment dir yet (or unreadable) — nothing crystallized
+  }
+  if (files.length === 0) return null;
+  // newest by the timestamp suffix (readdir order is not guaranteed to be
+  // chronological) — defensive even though the C1 dedup keeps exactly one.
+  files.sort((a, b) => {
+    const ta = Number(a.slice(prefix.length, -'.json'.length));
+    const tb = Number(b.slice(prefix.length, -'.json'.length));
+    return tb - ta;
+  });
+  try {
+    return JSON.parse(readFileSync(path.join(dir, files[0]!), 'utf8')) as SentimentRecord;
+  } catch (err) {
+    console.warn(`[sentiment] join replay: unreadable record for ${matchId} (${files[0]}): ${errDetail(err)}`);
+    return null;
+  }
+}
+
 /**
  * Merge a freshly-earned anchor signature into the ON-DISK sentiment record
  * without clobbering any concurrent update: re-read the file, set ONLY
@@ -926,6 +969,20 @@ function rememberForJoin(matchId: string, msg: ServerMsg | FeedMsg): void {
 /** Replay the cached match state to a freshly-seated socket (order: identity →
  * feed health → status/score → the tide → recent story). Only sends what exists. */
 function replaySnapshot(ws: WebSocket, matchId: string): void {
+  // THE SEAL: a fan joining AFTER full time still deserves the sealed
+  // sentiment record (post-mortem — see latestSentimentRecordOnDisk's doc
+  // comment). Checked FIRST and independent of `snap` below on purpose: this
+  // must still fire for a COLD match (evicted from every in-memory map, or a
+  // fan returning after a restart) — the on-disk file is the only truth that
+  // survives either. Sent ONLY to this joining socket (`sendReplay`, never a
+  // room broadcast — the room already got it live via crystallizeSentiment),
+  // tagged _replay like the rest of this catch-up bundle so a client's reveal
+  // animation can't re-fire for a record that crystallized hours ago. Never
+  // fabricates: no file on disk -> nothing sent, a genuinely unresolved match
+  // stays live-looking.
+  const sealedRecord = latestSentimentRecordOnDisk(matchId);
+  if (sealedRecord) sendReplay(ws, { type: 'sentiment', record: sealedRecord } as unknown as ServerMsg);
+
   // the crowd's prediction so far — a joiner sees the consensus instantly.
   const match = registry.get(matchId);
   if (match && match.predictionCount() > 0) send(ws, match.consensus());
