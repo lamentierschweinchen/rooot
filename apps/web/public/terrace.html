@@ -54,7 +54,6 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .end.them .ehdr .nm b{color:#9a7508}.end.you .ehdr .nm b{color:var(--you)}
 .ehdr .rt{text-align:right;color:var(--sub);font-size:8px;letter-spacing:.06em;line-height:1.5}
 .ehdr .rt .ct{color:var(--ink);font-weight:900;font-size:10px}
-.ehdr .xp{color:var(--gold)}
 .faith{display:none;font-weight:900;font-size:7px;letter-spacing:.08em;color:var(--ink);background:var(--gold);padding:2px 6px;border-radius:2px;margin-left:6px}
 .faith.on{display:inline-block}
 
@@ -147,6 +146,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .pk.feel.on span{color:var(--ink)}
 
 .taphint{position:absolute;left:50%;bottom:52px;transform:translateX(-50%);z-index:5;font-weight:800;font-size:8px;letter-spacing:.16em;color:var(--fldink);opacity:.7;pointer-events:none;transition:opacity .3s}
+.taphint.done{opacity:0}
 /* pop-art (Lichtenstein) cheer/goal burst */
 .burst{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%) scale(.5);width:210px;opacity:0;pointer-events:none;z-index:8}
 .burst svg{width:100%;display:block;overflow:visible}
@@ -253,7 +253,7 @@ body.embed .backg,body.embed .foot{display:none}
   <div class="end you" id="youEnd">
     <div class="tifo" id="tilesYou"></div>
     <div class="ehdr"><span class="nm"><b>SWITZERLAND</b> · YOUR END<span class="faith" id="faithYou">◆ STILL SINGING</span></span>
-      <span class="rt">you + <span class="ct" id="ctYou">8,203</span> · <span class="xp">XP <span id="xp">0</span></span> · <span id="rH">0</span>–<span id="rA">0</span></span></div>
+      <span class="rt">you + <span class="ct" id="ctYou">8,203</span><span id="readsWrap" hidden> · CALLS <span id="rH">0</span>✓ <span id="rA">0</span>✗</span></span></div>
     <div class="burst" id="burst" aria-hidden="true">
       <svg viewBox="0 0 220 176">
         <defs><pattern id="bday" width="9" height="9" patternUnits="userSpaceOnUse"><circle cx="2.6" cy="2.6" r="2" fill="rgba(26,24,21,.22)"/></pattern></defs>
@@ -320,7 +320,7 @@ var REACT={
   'goal-a':{you:['HEARTBREAK',74,6100],them:['JOY',77,10900]},
   'card-a':{you:['RELIEF',46,3800],them:['ANGER',68,9600]}
 };
-// mini-predictions — optional, resolve against the replay, earn light XP + fan-team reads
+// mini-predictions — optional, resolve against the replay, count your right/wrong calls + fan-team reads
 var PREDS=[
   {popT:24, resolveT:29, q:'WHO WINS THE NEXT CORNER?', opts:['SUI','COL'], correct:'SUI'},
   {popT:37, resolveT:41.5, q:'WILL HE SCORE THE PEN?', opts:['SCORES','MISSES'], correct:'SCORES', mkt:'the market: 76% scored'}
@@ -340,7 +340,7 @@ var FIXTURES={
   '18222446':{home:{tri:'ARG',name:'ARGENTINA',color:'#5C8CB8',sec:'#EDE9DE'},away:{tri:'SUI',name:'SWITZERLAND',color:'#D52B1E',sec:'#EDE9DE'}}
 };
 var FX=FIXTURES[MATCH_ID]||FIXTURES['18218149'], HOME_TRI=FX.home.tri, AWAY_TRI=FX.away.tri, YOU_TEAM=FX.home, THEM_TEAM=FX.away;
-var M={t:0,score:[0,0],rY:0,rT:0,run:true,lastMs:0,fired:{},await:null,dur:92,xp:0,reads:{h:0,a:0},pred:null,predShown:{},predResolved:{},
+var M={t:0,score:[0,0],rY:0,rT:0,run:true,lastMs:0,fired:{},await:null,dur:92,reads:{h:0,a:0},pred:null,predShown:{},predResolved:{},
   cheerN:0,reacts:{},vSec:0};   // the card's honest counters — your own actions, counted locally
 var SPEED=1.3; // match-minutes per second (slowed so events + calls are catchable)
 
@@ -382,7 +382,8 @@ function liveRoarLevel(v){return v>0?Math.min(1,0.28+v*1.6):0;}   // one real ta
 function bumpEnd(node,list,k){ if(!node)return; node.classList.remove('surge'); void node.offsetWidth; node.classList.add('surge'); ripple(list,k||7); setTimeout(function(){node.classList.remove('surge');},520); }
 
 // your tap = roar (your end surges — the field, not a gauge)
-function tap(){ if((DEMO||LIVE)&&window.__stands){window.__stands.cheer(); M.cheerN++;} else {M.rY=Math.min(1,M.rY+0.16);} ripple(tilesYou,6);var e=el('youEnd');e.classList.remove('surge');void e.offsetWidth;e.classList.add('surge');}
+function tap(){ if((DEMO||LIVE)&&window.__stands){window.__stands.cheer(); M.cheerN++;} else {M.rY=Math.min(1,M.rY+0.16);} ripple(tilesYou,6);var e=el('youEnd');e.classList.remove('surge');void e.offsetWidth;e.classList.add('surge');
+  if(!tap.done){tap.done=true; el('taphint').classList.add('done');} }   // the hint retires after your first cheer — the burst does the talking
 setInterval(function(){ if(document.visibilityState==='visible'&&!M._ft)M.vSec+=10; },10000);   // minutes watched = visible time until FT
 el('youEnd').addEventListener('pointerdown',function(e){ if(e.target.closest('.pk')||e.target.closest('.sk-keep'))return; tap(); });
 
@@ -458,10 +459,13 @@ function resolvePred(i){
   [].forEach.call(el('predOpts').children,function(c){ c.classList.remove('on'); c.classList.add(c.textContent===p.correct?'win':'lose'); });
   var right=(M.pred.called===p.correct), rs=el('predRes');
   if(M.pred.called){ rs.className='pres '+(right?'win':'lose');
-    rs.textContent=right?('✓ '+p.correct+' — you called it  ·  +10 XP'):('✗ '+p.correct+' took it — next time'); }
+    rs.textContent=right?('✓ '+p.correct+' — you called it'):('✗ '+p.correct+' took it — next time'); }
   else { rs.className='pres'; rs.textContent=p.correct+' — you sat this one out'; }
-  if(right){ M.xp+=10; el('xp').textContent=M.xp; M.reads.h++; el('rH').textContent=M.reads.h; }
-  else { M.reads.a++; el('rA').textContent=M.reads.a; }
+  if(M.pred.called){   // count only real calls — sitting one out is not a wrong call
+    if(right){ M.reads.h++; el('rH').textContent=M.reads.h; }
+    else { M.reads.a++; el('rA').textContent=M.reads.a; }
+    el('readsWrap').hidden=false;   // the ledger appears once a call has resolved — no dead zeros pre-KO
+  }
   setTimeout(function(){ el('pred').classList.remove('on'); if(M.pred&&M.pred.i===i)M.pred=null; },3600);
 }
 function dismissPred(){ el('pred').classList.remove('on'); if(M.pred)M.pred.done=true; M.pred=null; }
@@ -596,13 +600,20 @@ requestAnimationFrame(function(t){M.lastMs=t;step(t);});
 // the box's two cells: crowd = the aggregate predicted score (owner call, 10 Jul) · market = the leader
 function ccUpdate(c){ var cv=el('ccCrowd'), cn=el('ccCrowdN'); if(!cv)return;
   if(c.all){
-    if(Array.isArray(c.all)){   // demo shape: pre-formatted mean pair from the sim
-      cv.textContent=HOME_TRI+' '+c.all[0]+' – '+c.all[1]+' '+AWAY_TRI;
+    if(Array.isArray(c.all)){   // demo shape: the sim carries only a mean pair — state the lean, never a mean in score type
+      var lh=+c.all[0], la=+c.all[1];
+      cv.textContent=lh===la?'LEVEL':('LEANS '+(lh>la?HOME_TRI:AWAY_TRI));
       if(cn)cn.textContent='SIMULATED CROWD';
     } else if(c.all.mean){
       if(!c.all.n){ cv.innerHTML='<span class="ccwait">THE CROWD IS ARRIVING</span>'; if(cn)cn.textContent='NONE YET'; }   // n:0 = silence, never zeros
-      else { cv.textContent=HOME_TRI+' '+c.all.mean.home.toFixed(1)+' – '+c.all.mean.away.toFixed(1)+' '+AWAY_TRI;
-        if(cn)cn.textContent='FROM '+c.all.n+' FAN'+(c.all.n===1?'':'S'); }
+      else {   // the crowd is COUNTS (law 1) — the wire's outcome tallies + modal call, never the mean as a scoreline
+        var o=c.all.outcome, n=c.all.n;
+        if(o){ var rows=[[o.homeWin||0,HOME_TRI],[o.draw||0,'DRAW'],[o.awayWin||0,AWAY_TRI]].sort(function(x,y){return y[0]-x[0];});
+          cv.textContent=rows[0][0]+' OF '+n+' SAY '+rows[0][1];
+          var mo=c.all.modal;
+          if(cn)cn.textContent=(mo&&n>1)?('TOP SCORE '+mo.home+'–'+mo.away):('FROM '+n+' FAN'+(n===1?'':'S'));
+        } else { cv.textContent=n+' CALL'+(n===1?'':'S')+' IN'; if(cn)cn.textContent='FROM '+n+' FAN'+(n===1?'':'S'); }   // old wire without tallies: state the count alone
+      }
     }
   }
   if(c.market){ marketUpdate(Array.isArray(c.market)?{home:c.market[0],draw:c.market[1],away:c.market[2]}:c.market); }
