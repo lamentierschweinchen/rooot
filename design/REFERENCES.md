@@ -6,16 +6,22 @@ after viewing all 25.*
 
 ## The verdict in one line
 
-**Light made visible by particulate, in near-monochrome worlds with one accent — and a
-collection culture rendered in retro grammar: Topps grounds, Panini packs, pennants,
-badges, and a dark spotlit vitrine to keep it all in.** The live world is atmosphere;
-the kept world is print, cloth, and stitch.
+**A near-monochrome world of paper and cloth: printed documents in retro grammar —
+Topps grounds, Panini packs, pennants, badges, ticket stubs — and the match woven as
+real cloth, mounted on the page and kept in a dark spotlit vitrine.** The live world
+is the loom (woven cloth on paper); the kept world is print, cloth, and stitch. The
+tide-on-a-night-pitch stage is retired — `design/PAPER-AND-CLOTH.md` is the ruling
+site language.
 
-## atmosphere/ → the stage (7)
+## atmosphere/ → night ground & goal-light (7)
 
-- **floodlight and fog** ⭐ THE LIGHTING MODEL — eight beams with body through haze,
-  ground a whisper of glitter. TAKE: light-as-material, enormous negative space.
-  REFUSE: flat dark-mode-UI black.
+*The live stage these were curated for is retired (`design/PAPER-AND-CLOTH.md` is the
+law now); the corpus itself stays binding. Read them for the PRESS-BLACK night ground
+and the rare goal-light moment on the paper surface — not as a live tide.*
+
+- **floodlight and fog** — eight beams with body through haze, ground a whisper of
+  glitter. TAKE: light-as-material, enormous negative space. REFUSE: flat
+  dark-mode-UI black.
 - **floodlight aesthetic** — one mast smearing into mist. TAKE: the smear (our
   probability edge). REFUSE: architecture detail.
 - **rain & floodlights** — teal grain inside beam cones. TAKE: grain as ambient

@@ -1,85 +1,114 @@
 # ROOOT — Product Ground Truth
 
-*The distilled deck. If you're an agent: this is what we're building and why. The
+*The as-built truth. If you're an agent: this is what we shipped and why. The
 human-facing deck lives on claude.ai; this file is your food.*
 
-**One breath:** Watch the most beautiful live match page in the world; root once,
-cheer constantly, call rarely; talk with your row, roar with your end; and walk away
-owning what you all just lived. Lose the match, win the stands. Free, no wager, no
-token. On Solana, forever. `rooot.club`.
+**One breath:** ROOOT is a match programme that comes alive on your phone. You root
+once, cheer constantly, call rarely. The market's read prints plainly beside the
+crowd's roar — real people, really counted, never faked. When the whistle blows you
+keep what you lived: a woven scarf and the printed record of the match, yours on
+Solana devnet, worthless to flip on purpose. Free, no wager, no token. Lose the
+match, win the stands. `rooot.club`.
 
-## The stage (live experience)
+**Why it matters (stated once, plainly):** two things carry the value here — the
+*data* the match generates (what real fans believed, stamped against what the market
+believed that second, resolved by what actually happened) and the *engagement* the
+mechanism proves (a fan roots, cheers, and calls, and walks away with a real record
+of it). The business case is developed elsewhere; this file is the product.
 
-- **Fog of war (the stage — see design/REFERENCES.md, owner-curated):** vertical
-  floodlit night pitch (phone-first; your goal at your thumb). The market's belief =
-  **light vs fog**: your end's floodlight bank presses illuminated territory across
-  the grass; the exact de-vigged probability is where your light dies into the fog.
-  **The halfway line is 50/50.** The draw = the fog bank itself — width = p(draw),
-  uncertainty as the region you cannot see through (it thickens late in a level
-  game: penalties as weather). Goals = FIRE plumes at the real goal mouth. Entry =
-  the tunnel (walk out of the dark into the light). Grain everywhere, subtly.
-  Monochrome + one accent per moment. No fake players/ball, no stadium architecture —
-  light, fog, smoke, grass, chalk.
-- **The two ends:** crowds behind each goal = **bengalo smoke + phone-light
-  starfield in team colors**, rising vertically at the stands (market = horizontal
-  on the pitch; crowd = vertical at the ends — the honesty separation is spatial
-  and material). Rooted counts = the counter (12,431 v 8,207); the roar = smoke
-  density/glow from decayed cheers/sec. Faith is *visible*: your end burning while
-  your light retreats.
-- **The pulse (v2 — corrected per owner + early reader):** NOT always-on reacts and
-  NOT a guessing game (owner explicitly dislikes guess-the-crowd mechanics).
-  **Pulse Moments:** at drama triggers (post hit, goal, VAR, red card, FT) a set of
-  SIX curated ambiguous emojis pops (🔥 👀 🚀 💪 💀 🤡 — multi-context, never
-  literal; sets can rotate). Everyone picks what they FEEL — then **the reveal: a
-  split screen, each crowd's top emoji + the % behind it.** Two ends, two moods,
-  face to face (their 💀 vs your 🚀). Pure expression + honest counts; no
-  correctness scoring. Preset chants EN/ES stay; free text ONLY in rows.
-- **The scarf weaves live along the touchline** — the relic forming in plain sight
-  all match; it lifts at the whistle.
+## The world: paper and cloth
 
-## Three verbs, three frequencies
+Two registers, never blurred (`design/PAPER-AND-CLOTH.md`, the law): **paper**
+documents — tickets, margins, scorecards, the album, every number and label — and
+**cloth**, the match itself, woven on the loom and mounted on paper like a specimen.
+Paper steps (snaps, stamps, flips); cloth breathes (the weave scrolls). Cream
+newsprint by day, press-black by night. The tide-on-a-night-pitch aesthetic is
+retired — see "Cut on the way."
+
+## The seven surfaces
+
+Static pages a fan reaches directly (`apps/web/public/`), each fed by an adapter:
+
+- **the gate** (`gate.html`) — the turnstile. Pick an end and name the score: two
+  claims, editable to kickoff, then locked. `NINETY MINUTES. TWO CLAIMS.`
+- **the ground** (`ground.html`) — the hub. Navigation as stadium anatomy; your seat;
+  the doors to the match and the cabinet.
+- **the woven-loom** (`woven-loom.html`, served at `/live` and `/loom`) — THE MATCH.
+  The cloth fills the page, woven live from the feed; the market's number is one
+  thread; event marks form at the shuttle. The one live surface.
+- **the terrace** (`terrace.html`) — the crowd. Cheer (one tap, rate-decayed per
+  fan); the crowd's counted prediction; the pulse react windows (present; the
+  curated split-screen reveal is unverified in the shipped surface); NEXT GOAL calls;
+  the full-time stands verdict; the Collect button for the scarf.
+- **the stadium** (`stadium.html`) — the stats. The market's read and the match's
+  proprietary counts as stat-cards, each a self-contained collectible.
+- **the cabinet** (`cabinet.html`) — the keepsake case. The album of what you kept;
+  empty slots are promises.
+- **the showcase** (`showcase.html`, served at `/demo`) — the front door. What ROOOT
+  is, in plain words, for a first-time reader or judge.
+
+## The mechanics
 
 | Verb | Frequency | What happens |
 |---|---|---|
-| **ROOT** | once | pick a side → you're in that end; counter updates; neutrals may adopt an end for 90 min |
-| **CHEER** | constantly | one tap → your end's roar flickers; rate-decayed per user; feeds the stands score |
-| **CALL** | rarely | surfaced at drama spikes; press-and-hold (the O stretches: R-O-O-O-O…), release commits on-chain **stamped with the market's probability at that second** — the receipt |
+| **ROOT** | once | at the gate, pick an end — you're in it for the match; the count updates (real numbers, never a %). |
+| **CHEER** | constantly | one tap → your end's roar; rate-decayed per fan; feeds the stands count. |
+| **CALL** | rarely | surfaced at spikes: name which end scores next (NEXT GOAL), or the score at the gate. The server stamps the live market at the moment of the call; it resolves on the next real goal or at full time — a real devnet receipt. |
+| **COLLECT** | at full time | keep what you lived — the scarf mints to your seat (walletless) and the record seals. Status and detail below. |
 
-## The systems
+## The honesty laws (how the systems are shaped)
 
-- **Stands score** (lose the match, win the stands): loudness (cheers) + **faith**
-  (cheering while behind, ×2) + presence + foresight (receipts proved). Whistle →
-  verdict card: *"They won the match. We won the stands."* Season-long → the stands
-  table (the World Cup of Fans).
-- **Rows:** one share link = your row, a starting XI (11 seats), named presence,
-  free talk. We are the shared object the group chat gathers around — never a chat app.
-- **Receipts:** call + minute + market-p, relayer-signed (walletless) or
-  wallet-signed, devnet memo. Vindication is notarized, never manufactured.
-- **Relics (both render live, crystallize at FT, mintable):** the **scarf** —
-  pixel-jacquard knit (the ManU-reference craft): probability record as knit stripe
-  structure over 90 min, flag fragments patchworked RL-style at the ends, goals as
-  metallic weft rows, calls as gold embroidery at their minute, roar in the edge
-  bands, verdict in the fringe; cream + black colorways; an edition per attendee,
-  attendee Merkle root = "I'm in the crowd photo." And the **rosette** (personal —
-  the 70s club rosette): ribbons in your colors, your faith curve coiled in the
-  center button on the roar-ring O. Print/make-ready from day one.
-- **Trophy case:** every match you attended; scarves on a rail, pins beneath.
+- **Market ≠ crowd, ever.** The market travels as one message family (a de-vigged
+  probability); the crowd as another (real counts). They meet only on screen,
+  visibly distinct, and are never converted into each other. Counts are never shown
+  as a percentage or a mean.
+- **Nothing renders that didn't happen.** Replay runs recorded real matches through
+  the exact live parser (`contracts/normalize.ts`) — never a simulation. Empty crowd
+  sections ship as n=0, not synthesized.
+- **The stands verdict is arithmetic, not a trophy.** At full time the match
+  crystallizes exactly one sentiment record; the verdict states what happened.
 
-## The judged criteria (fan track, verbatim keywords)
+## The keepsake economy
 
-Fan accessibility & UX (walletless, mainstream) · Real-time responsiveness (SSE-driven,
-fluid) · Originality (crowd-vs-market theatre + communal relics — not a repackaged feed)
-· Commercial path (free for fans; sponsor relic drops, prints, broadcaster white-label)
-· Completeness (deliberately small, end-to-end, **replay mode ships in v1** — judging
-happens after the tournament, the demo video is the primary artifact).
+At the whistle the fan keeps what they lived. **The scarf** renders live (woven in
+CSS) and mints on devnet as a Metaplex Core asset to the fan's own passkey seat while
+the service pays the fee — walletless, idempotent, and only if the match truly
+reached full time. The mint is proven on devnet; the in-app Collect flow is landing
+(the on-chain cover image is still a placeholder — the woven scarf is the CSS render).
+**The printed record** — scorecard, call stubs, the sealed match page — is the paper
+half; at the whistle its hash is anchored in a devnet memo. All of it collects in the
+cabinet. No token, no wager: the record is provenance and memory, worthless to flip
+on purpose (law 3).
 
-## Fallback ladder (pre-agreed, shed in this order)
+## Cut on the way (consciously, not forgotten)
 
-rows → trophy case → pulse free-text → stands score (verdict stays as arithmetic) →
-calls → floor = theatre + cheer + relic (still complete and submittable).
+- **The golden-tide stage.** The original live surface — a floodlit night pitch with
+  the market's belief as a luminous tide — retired Jul 5 for paper + cloth. The
+  `src/stage` canvas is dead.
+- **Rows / the shared XI.** One share-link = a starting XI of 11 seats with free
+  talk; the social layer was shed.
+- **Press-and-hold R-O-O-O.** The call gesture where the O stretched as you held;
+  calls ship as the NEXT GOAL card and the gate score-call instead.
+- **Bengalo-smoke ends.** The crowd-as-smoke-and-phone-light visual; the crowd now
+  reads as printed counts and blocks.
+
+## Backlog (real, not built — don't describe as shipped)
+
+- **The rosette / pin relic** — the personal keepsake; design generations exist, not
+  built.
+- **The attendance Merkle root** — "I'm in the crowd photo," a root of attendee
+  anonIds per match; shape in `contracts/relic.ts`, not live.
+- **Market provenance in relic metadata** — TxLINE's own Merkle refs carried inside
+  the minted record; the proof path is exercised (`fixtures/provenance/`), the wiring
+  is staged.
+- **Season-long stands table** — the World Cup of Fans across matches; the per-match
+  verdict ships, the table doesn't.
 
 ## Voice
 
-Stadium plain-speak; crypto backstage ("Keep this forever" / footnote: "minted on
-Solana · verifiable · yours"). Examples: "They won the match. We won the stands." ·
-"Minute 71. Market said 12%. You called it." · "Down a goal. Cheers count double now."
+Plain words first; say things as they are (`design/COPY-BRIEF.md`). Labels in caps,
+short. Numbers speak alone; the market shows plainly ("favoured", a percent); the
+crowd is a count ("6 of 9 called England", never "67%"). No exclamation marks; no
+"devnet"/"mint"/"de-vigged"/"1X2" as fan-facing words. Examples: `NINETY MINUTES.
+TWO CLAIMS.` · `STAMPED 19:58 · MARKET 61·27·12` · `They won the match. We won the
+stands.` · `FULL TIME · THE SCARF IS YOURS`.
