@@ -35,6 +35,13 @@ swap_size_mb = 256
 
 [env]
   PORT = "8080"
+  # Anchor durability (services/stands/src/server.ts armAnchorBackfill): sweep the
+  # sentiment records on the volume at boot + every minute and re-anchor any whose
+  # on-chain sig write-back was lost (confirmation timeout / suspend / OOM before
+  # the fire-and-forget .then resolved). Opt-in so dev checks that boot the real
+  # entrypoint never fire devnet anchors; ON here because prod holds the funded
+  # relayer keypair and the durable /data volume the records live on.
+  STANDS_ANCHOR_BACKFILL = "1"
   # Ingest mode is set per-deploy via `flyctl deploy -e` or fly secrets, e.g.
   #   REPLAY-driven demo:   TXLINE_ENABLE unset,  REPLAY_FILE + REPLAY_FIXTURE set
   #   LIVE ingest:          TXLINE_ENABLE=1,       TXLINE_FIXTURES=<id[,id]>

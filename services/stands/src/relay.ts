@@ -62,11 +62,31 @@ function permille(v: number): number {
 }
 
 /**
+ * Dev/test seam — NEVER used in prod (STANDS_ANCHOR_STUB is unset there). When
+ * set, `anchorRecordHash` returns a deterministic fake signature WITHOUT
+ * touching devnet, so the anchor-durability check (src/dev/anchor-durability-
+ * check.ts) can drive the REAL crystallize + backfill paths with a relayer that
+ * "lands" a sig, on a machine with no keypair and no network. The sig is derived
+ * from the recordHash so it is stable and verifiably tied to the record it
+ * anchors. Honest: it is visibly a `STUB…` value and logged as such — never
+ * presented as a real on-chain tx. Checked BEFORE relayer() so it works with no
+ * keypair loaded and can be toggled per-call (env read fresh each time). */
+function stubAnchorSig(recordHash: string): string | null {
+  if (!process.env.STANDS_ANCHOR_STUB) return null;
+  return `STUB${createHash('sha256').update(recordHash).digest('hex').slice(0, 40)}`;
+}
+
+/**
  * Anchor a SentimentRecord's hash on devnet — the collectible's provenance
  * (docs/SENTIMENT.md). A tiny memo tx binding the record to the chain, so the
  * dataset is provable, not just persisted. Best-effort; returns null on failure.
  */
 export async function anchorRecordHash(matchId: string, recordHash: string): Promise<string | null> {
+  const stub = stubAnchorSig(recordHash);
+  if (stub) {
+    console.log(`[relay] STUB anchor for ${matchId} -> ${stub.slice(0, 12)}… (STANDS_ANCHOR_STUB set; NO devnet tx)`);
+    return stub;
+  }
   const r = relayer();
   if (!r) return null;
   const memo = JSON.stringify({ v: 1, app: 'rooot', kind: 'sentiment', m: matchId, h: recordHash });

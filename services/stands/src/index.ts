@@ -42,7 +42,7 @@
  *   SELF_PROBE_DISABLE=1       disarm the self-probe entirely
  */
 import type { FeedMsg } from '@contracts/feed';
-import { armSelfProbe, createStandsServer } from './server';
+import { armAnchorBackfill, armSelfProbe, createStandsServer } from './server';
 import { startTxLineIngest } from './ingest/txline';
 import { startReplayIngest } from './ingest/replay';
 
@@ -107,6 +107,12 @@ function main(): void {
     // probe our own /health through the real listener; exit(1) for a
     // supervisor restart after SELF_PROBE_MAX_MISSES consecutive failures.
     armSelfProbe(actualPort);
+    // Anchor durability (opt-in via STANDS_ANCHOR_BACKFILL=1, set in fly.toml):
+    // sweep DATA_DIR/sentiment/*.json at boot + periodically, re-anchoring any
+    // record whose on-chain sig write-back was lost (server.ts armAnchorBackfill).
+    // Disarmed by default so dev checks that boot this entrypoint never fire
+    // real devnet anchors.
+    armAnchorBackfill();
   });
 
   const routeFeedMsg = (matchId: string, msg: FeedMsg) => broadcastToMatch(matchId, msg);
