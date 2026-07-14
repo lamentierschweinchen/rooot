@@ -1,5 +1,30 @@
 # design-pass-jul14 → coordinator handoff (14 Jul, for reconciliation)
 
+## ⚑ LATEST (supersedes the reconciliation notes below) — prediction card + a new law
+
+**Prediction card is built and lives on the owner's GENERATED ART** (commits through `2ede0b7`).
+The terrace crowd/market box is no longer a code-drawn frame — the surface is his generated
+portrait card, optimised to **`apps/web/public/plate/prediction-card.jpg`** (181 KB, source
+`design/generations/predictions/predictions mobile.png`). Live data is overlaid into its two
+cream fields; **every element ID was preserved, so no consensus/market wire shapes changed** —
+`setPBar`/`refreshHvH`/`setMove`/`ccUpdate`/`marketUpdate` are display-only as before. Rig-verified
+on ARG–CPV over WS (86% from real odds, 100% fan bar from 1 real prediction, heart-v-head +14),
+console clean, `fixture.json` untouched. States shot 40–43 in this folder.
+
+**NEW LAW — please add to AGENTS.md §laws (it cost us a full owner blow-up on 14 Jul):**
+> **Generated art is the surface.** The owner's generated assets (cards, loom, scarf, any
+> surface he generates) are the design and the source of truth. Live data is *overlaid* onto the
+> actual asset — never rebuild or replace a generated surface with a code reproduction, however
+> faithful. If an asset doesn't fit a target size/orientation, request a regen with a precise
+> spec; do not substitute a code frame or shrink the asset until the data squishes.
+
+Rationale + the incident are in my memory `never-substitute-generated-art`. The old code-frame
+commits (`54b28ab`, `ab095a0`) are superseded by `2ede0b7` on this branch — reconcile to the
+image-surface tree, not the code frame.
+
+---
+
+
 Branch clean, all pushed (HEAD `ad0f3de`). 19 commits off `main`. I've stopped;
 not starting new surfaces until you hand back a branch on current main. Per-surface
 below, with **seam flags** = the JS paths I touched or that need your eyes on merge.
