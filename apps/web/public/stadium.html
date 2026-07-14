@@ -223,10 +223,10 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
        Names pending the owner's rename round; THE STANDS gives the bare-canvas door a visible handle. -->
   <div class="program" id="program">
     <button data-place="stands">THE STANDS</button>
-    <button data-place="goal">GOAL-MOUTH</button>
+    <button data-place="goal">THE GOAL</button>
     <button data-place="arc">SET PIECES</button>
     <button data-place="control">CONTROL</button>
-    <button data-place="book">THE BOOK</button>
+    <button data-place="book">THE WHISTLE</button>
     <button data-place="bench">TEAM SHEET</button>
     <button data-place="odds">THE MARKET</button>
   </div>
@@ -234,7 +234,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
 
   <!-- DETAIL: THE GOAL-MOUTH -->
   <section class="sheet" id="sheet-goal">
-    <div class="sh-head"><span class="t">THE GOAL-MOUTH<small>SHOTS · IN OR HELD</small></span><button class="close" data-close>✕</button></div>
+    <div class="sh-head"><span class="t">THE GOAL<small>SHOTS · IN OR HELD</small></span><button class="close" data-close>✕</button></div>
     <div class="hostband"><i class="v"></i><i class="r"></i><i class="a"></i><i class="g"></i></div>
     <div class="art"><div style="position:relative"><img src="plate/gens/goal-mouth.png" alt="goal"><div id="shots"></div></div></div>
     <div class="splabel"><span class="t h" id="gH">SUI</span><span>THE SHOTS</span><span class="t a" id="gA">COL</span></div>
@@ -285,7 +285,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
 
   <!-- DETAIL: THE BOOK -->
   <section class="sheet" id="sheet-book">
-    <div class="sh-head"><span class="t">THE BOOK<small>THE REFEREE'S RECORD</small></span><button class="close" data-close>✕</button></div>
+    <div class="sh-head"><span class="t">THE WHISTLE<small>THE REFEREE'S RECORD</small></span><button class="close" data-close>✕</button></div>
     <div class="hostband"><i class="v"></i><i class="r"></i><i class="a"></i><i class="g"></i></div>
     <div class="art"><div style="position:relative"><img src="plate/gens/book-ledger.png" alt="the book"><div class="bpage h" id="bookH"></div><div class="bpage a" id="bookA"></div></div></div>
     <div class="varstrip" id="varStrip"></div>
@@ -619,7 +619,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
 
   // ---- zoom interaction + inter-card nav ----
   var openSheet=null, toastT=null;
-  var CARDS=[['goal','GOAL-MOUTH'],['arc','SET PIECES'],['control','CONTROL'],['book','THE BOOK'],['bench','TEAM SHEET'],['odds','THE MARKET']];   // built detail cards, in order (pens folded into GOAL-MOUTH — in-game pens are rare)
+  var CARDS=[['goal','THE GOAL'],['arc','SET PIECES'],['control','CONTROL'],['book','THE WHISTLE'],['bench','TEAM SHEET'],['odds','THE MARKET']];   // built detail cards, in order (pens folded into THE GOAL — in-game pens are rare). 'bench' label pending owner rename (bench vs lineups)
   function toast(msg){var t=el('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove('show');},1800);}
   var SOON={stands:'THE STANDS'};   // only truly-unbuilt places left (book/bench/control now have sheets)
   function syncNav(place){
