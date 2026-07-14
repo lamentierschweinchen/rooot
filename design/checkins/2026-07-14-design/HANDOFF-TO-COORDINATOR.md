@@ -10,7 +10,10 @@ below, with **seam flags** = the JS paths I touched or that need your eyes on me
    `4ecf0b2` first *removed* XP + the mean scoreline (built to COPY-BRIEF §2/§4), then the
    owner reversed it and `4656ff3` *restored* both. **Reconcile to the final tree state**
    (XP token on, aggregate mean scoreline on, `FROM n FANS`). Don't resurrect the strike.
-   XP on-screen wording is pending the owner's explicit call (asking now) — the mechanic stays.
+   **XP naming RESOLVED (owner, 14 Jul): the progression reads as `POINTS`** (interim — "go
+   points for now, change later if we think of something better"). Mechanic unchanged, label
+   only. I apply `XP`→`POINTS` in the terrace footer (+ anywhere it reads) as part of the
+   prediction/XP UX build on the reconciled branch — not on these stale files.
 
 2. **TERRACE `revealFromWire` byEnd fix (`4089fbd`) — live-path, demo-critical.** The
    momentResult handler read `r.home/r.away`; the wire nests ends under `r.byEnd`
