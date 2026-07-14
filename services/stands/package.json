@@ -21,6 +21,7 @@
     "check:next-goal": "tsx src/dev/next-goal-check.ts",
     "check:seat": "tsx src/dev/seat-check.ts",
     "check:anchor-durability": "tsx src/dev/anchor-durability-check.ts",
+    "check:fingerprint-anchor": "tsx src/dev/fingerprint-anchor-check.ts",
     "check:mem-evict": "node --expose-gc --import tsx src/dev/mem-evict-check.ts",
     "check:seal-on-join": "tsx src/dev/seal-on-join-check.ts",
     "check:seal-consume": "tsx src/dev/seal-consume-check.ts",
