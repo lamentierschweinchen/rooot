@@ -71,6 +71,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .matchbar .cl{font-size:9px;font-weight:800;letter-spacing:.1em;color:var(--sub)}
 .matchbar .rp{display:inline-flex;align-items:center;gap:4px;font-size:7px;font-weight:800;letter-spacing:.14em;color:var(--sub)}
 .matchbar .rp .d{width:5px;height:5px;border-radius:50%;background:var(--you);animation:pulse 1.3s infinite}
+.ehdr .xp{color:var(--gold)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 /* the consensus — the scoreline the crowd holds up, BESIDE the market (never blended) */
 /* the seam's data block — one keylined box, two cells, the centre rule is the crowd/market boundary */
@@ -254,7 +255,7 @@ body.embed .backg,body.embed .foot,body.embed .matchbar{display:none}
   <div class="end you" id="youEnd">
     <div class="tifo" id="tilesYou"></div>
     <div class="ehdr"><span class="nm"><b>SWITZERLAND</b> · YOUR END<span class="faith" id="faithYou">◆ STILL SINGING</span></span>
-      <span class="rt">you + <span class="ct" id="ctYou">8,203</span><span id="readsWrap" hidden> · CALLS <span id="rH">0</span>✓ <span id="rA">0</span>✗</span></span></div>
+      <span class="rt">you + <span class="ct" id="ctYou">8,203</span> · <span class="xp">XP <span id="xp">0</span></span><span id="readsWrap" hidden> · CALLS <span id="rH">0</span>✓ <span id="rA">0</span>✗</span></span></div>
     <div class="burst" id="burst" aria-hidden="true">
       <svg viewBox="0 0 220 176">
         <defs><pattern id="bday" width="9" height="9" patternUnits="userSpaceOnUse"><circle cx="2.6" cy="2.6" r="2" fill="rgba(26,24,21,.22)"/></pattern></defs>
@@ -341,7 +342,7 @@ var FIXTURES={
   '18222446':{home:{tri:'ARG',name:'ARGENTINA',color:'#5C8CB8',sec:'#EDE9DE'},away:{tri:'SUI',name:'SWITZERLAND',color:'#D52B1E',sec:'#EDE9DE'}}
 };
 var FX=FIXTURES[MATCH_ID]||FIXTURES['18218149'], HOME_TRI=FX.home.tri, AWAY_TRI=FX.away.tri, YOU_TEAM=FX.home, THEM_TEAM=FX.away;
-var M={t:0,score:[0,0],rY:0,rT:0,run:true,lastMs:0,fired:{},await:null,dur:92,reads:{h:0,a:0},pred:null,predShown:{},predResolved:{},
+var M={t:0,score:[0,0],rY:0,rT:0,run:true,lastMs:0,fired:{},await:null,dur:92,xp:0,reads:{h:0,a:0},pred:null,predShown:{},predResolved:{},
   cheerN:0,reacts:{},vSec:0};   // the card's honest counters — your own actions, counted locally
 var SPEED=1.3; // match-minutes per second (slowed so events + calls are catchable)
 
@@ -460,10 +461,10 @@ function resolvePred(i){
   [].forEach.call(el('predOpts').children,function(c){ c.classList.remove('on'); c.classList.add(c.textContent===p.correct?'win':'lose'); });
   var right=(M.pred.called===p.correct), rs=el('predRes');
   if(M.pred.called){ rs.className='pres '+(right?'win':'lose');
-    rs.textContent=right?('✓ '+p.correct+' — you called it'):('✗ '+p.correct+' took it — next time'); }
+    rs.textContent=right?('✓ '+p.correct+' — you called it  ·  +10 XP'):('✗ '+p.correct+' took it — next time'); }
   else { rs.className='pres'; rs.textContent=p.correct+' — you sat this one out'; }
   if(M.pred.called){   // count only real calls — sitting one out is not a wrong call
-    if(right){ M.reads.h++; el('rH').textContent=M.reads.h; }
+    if(right){ M.xp+=10; el('xp').textContent=M.xp; M.reads.h++; el('rH').textContent=M.reads.h; }
     else { M.reads.a++; el('rA').textContent=M.reads.a; }
     el('readsWrap').hidden=false;   // the ledger appears once a call has resolved — no dead zeros pre-KO
   }
@@ -601,20 +602,13 @@ requestAnimationFrame(function(t){M.lastMs=t;step(t);});
 // the box's two cells: crowd = the aggregate predicted score (owner call, 10 Jul) · market = the leader
 function ccUpdate(c){ var cv=el('ccCrowd'), cn=el('ccCrowdN'); if(!cv)return;
   if(c.all){
-    if(Array.isArray(c.all)){   // demo shape: the sim carries only a mean pair — state the lean, never a mean in score type
-      var lh=+c.all[0], la=+c.all[1];
-      cv.textContent=lh===la?'LEVEL':('LEANS '+(lh>la?HOME_TRI:AWAY_TRI));
+    if(Array.isArray(c.all)){   // demo shape: pre-formatted aggregate pair from the sim (owner call, 14 Jul: the aggregate score stays)
+      cv.textContent=HOME_TRI+' '+c.all[0]+' – '+c.all[1]+' '+AWAY_TRI;
       if(cn)cn.textContent='SIMULATED CROWD';
     } else if(c.all.mean){
       if(!c.all.n){ cv.innerHTML='<span class="ccwait">THE CROWD IS ARRIVING</span>'; if(cn)cn.textContent='NONE YET'; }   // n:0 = silence, never zeros
-      else {   // the crowd is COUNTS (law 1) — the wire's outcome tallies + modal call, never the mean as a scoreline
-        var o=c.all.outcome, n=c.all.n;
-        if(o){ var rows=[[o.homeWin||0,HOME_TRI],[o.draw||0,'DRAW'],[o.awayWin||0,AWAY_TRI]].sort(function(x,y){return y[0]-x[0];});
-          cv.textContent=rows[0][0]+' OF '+n+' SAY '+rows[0][1];
-          var mo=c.all.modal;
-          if(cn)cn.textContent=(mo&&n>1)?('TOP SCORE '+mo.home+'–'+mo.away):('FROM '+n+' FAN'+(n===1?'':'S'));
-        } else { cv.textContent=n+' CALL'+(n===1?'':'S')+' IN'; if(cn)cn.textContent='FROM '+n+' FAN'+(n===1?'':'S'); }   // old wire without tallies: state the count alone
-      }
+      else { cv.textContent=HOME_TRI+' '+c.all.mean.home.toFixed(1)+' – '+c.all.mean.away.toFixed(1)+' '+AWAY_TRI;
+        if(cn)cn.textContent='FROM '+c.all.n+' FAN'+(c.all.n===1?'':'S'); }
     }
   }
   if(c.market){ marketUpdate(Array.isArray(c.market)?{home:c.market[0],draw:c.market[1],away:c.market[2]}:c.market); }
