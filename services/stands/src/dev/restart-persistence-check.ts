@@ -290,7 +290,7 @@ function buildMomentDedupReplayFixture(matchId: string): string {
   const fid = Number(matchId);
   const lines = [
     { at: base, env: { FixtureId: fid, Participant1IsHome: true, Action: 'status', StatusId: 1, Data: { StatusId: 1 } } }, // PRE — gives the fan time to hello before the goal fires
-    { at: base + 2000, env: { FixtureId: fid, Participant1IsHome: true, Action: 'goal', Participant: 1, Score: { Participant1: { Total: { Goals: 1 } }, Participant2: { Total: { Goals: 0 } } }, Clock: { Running: true, Seconds: 600 } } }, // the ONE trigger — a real ledger 'goal' event, hard:true, sourceId=ev.id
+    { at: base + 2000, env: { FixtureId: fid, Participant1IsHome: true, Action: 'goal', Participant: 1, Confirmed: true, Score: { Participant1: { Total: { Goals: 1 } }, Participant2: { Total: { Goals: 0 } } }, Clock: { Running: true, Seconds: 600 } } }, // the ONE trigger — a real, SETTLED ledger 'goal' event (Confirmed:true — docs/POSTMORTEM-2026-07-14-live.md: detectMoment now requires this before it opens a celebration), hard:true, sourceId=ev.id
   ];
   return lines.map(({ at, env }) => JSON.stringify({ receivedAtMs: at, event: 'message', data: JSON.stringify(env) })).join('\n') + '\n';
 }

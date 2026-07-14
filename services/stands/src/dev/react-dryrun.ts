@@ -100,14 +100,33 @@ check('the home end that reacted is not empty', !!C && C.byEnd.home.n === 1 && C
 console.log('\nDETECTION  wire shapes → drama triggers');
 type Wire = Parameters<typeof detectMoment>[1];
 const wire = (o: unknown): Wire => o as Wire;
-const goalTrig = detectMoment('det', wire({ type: 'ledger', msg: { type: 'event', ev: { id: 'det:1', kind: 'goal', side: 'home', minute: 23 } } }));
-check('a goal ledger event → a hard goal moment on the scoring side', goalTrig?.kind === 'goal' && goalTrig.hard === true && goalTrig.side === 'home' && goalTrig.sourceId === 'det:1');
+const goalTrig = detectMoment('det', wire({ type: 'ledger', msg: { type: 'event', ev: { id: 'det:1', kind: 'goal', side: 'home', minute: 23, confirmed: true } } }));
+check('a CONFIRMED goal ledger event → a hard goal moment on the scoring side', goalTrig?.kind === 'goal' && goalTrig.hard === true && goalTrig.side === 'home' && goalTrig.sourceId === 'det:1');
+// docs/POSTMORTEM-2026-07-14-live.md: a goal arrives Confirmed:false first and
+// can still be VAR-overturned (tonight's Id570, discarded 26s later) —
+// celebrating it before it's settled is the honesty bug. Never a moment.
+const unconfirmedGoalTrig = detectMoment('det', wire({ type: 'ledger', msg: { type: 'event', ev: { id: 'det:1p', kind: 'goal', side: 'home', minute: 23, confirmed: false } } }));
+check('a PROVISIONAL (Confirmed:false) goal → no moment yet', unconfirmedGoalTrig === null);
+const neverConfirmedGoalTrig = detectMoment('det', wire({ type: 'ledger', msg: { type: 'event', ev: { id: 'det:1x', kind: 'goal', side: 'away', minute: 61 } } }));
+check('a goal event with no confirmed field at all → no moment (never celebrate on an absence of proof)', neverConfirmedGoalTrig === null);
 const ftTrig = detectMoment('det', wire({ type: 'status', ev: { phase: 'FULL_TIME', minute: 94 } }));
 check('a FULL_TIME status → a hard full-time moment', ftTrig?.kind === 'full-time' && ftTrig.hard === true);
 const woodTrig = detectMoment('det', wire({ type: 'ledger', msg: { type: 'event', ev: { id: 'det:2', kind: 'shot', side: 'away', minute: 61, detail: 'Woodwork' } } }));
 check('a shot off the woodwork → a soft near-miss', woodTrig?.kind === 'near-miss' && woodTrig.hard === false);
 const plainShot = detectMoment('det', wire({ type: 'ledger', msg: { type: 'event', ev: { id: 'det:3', kind: 'shot', side: 'away', minute: 62, detail: 'OnTarget' } } }));
 check('an ordinary shot → no moment (not every shot is drama)', plainShot === null);
+// the flood fix: 'possible' ("the held breath") must never be able to
+// supersede a real hard moment — it has to be soft.
+const possibleTrig = detectMoment('det', wire({ type: 'ledger', msg: { type: 'event', ev: { id: 'det:4', kind: 'possible', side: 'home', minute: 30 } } }));
+check('a possible/held-breath event → a SOFT possible moment (never interrupts a real one)', possibleTrig?.kind === 'possible' && possibleTrig.hard === false);
+// side was silently dropped for red cards (hardcoded null) even though the
+// wire's Participant was already parsed — fans couldn't tell which side.
+const redTrig = detectMoment('det', wire({ type: 'ledger', msg: { type: 'event', ev: { id: 'det:5', kind: 'red-card', side: 'away', minute: 71 } } }));
+check('a red card → a hard red moment carrying the REAL side (not always null)', redTrig?.kind === 'red' && redTrig.hard === true && redTrig.side === 'away');
+// penalty-kick had no case at all — one of the task's required minimum kinds
+// could never fire.
+const penTrig = detectMoment('det', wire({ type: 'ledger', msg: { type: 'event', ev: { id: 'det:6', kind: 'penalty-kick', side: 'home', minute: 88 } } }));
+check('a penalty-kick event → a hard penalty moment (previously: no case at all, never fired)', penTrig?.kind === 'penalty' && penTrig.hard === true && penTrig.side === 'home');
 // WINDOWED swing detection (tonight-gate folded fix): compares the current
 // tick against the OLDEST tick still inside SWING_WINDOW_MS, not the
 // immediately-previous one — a consecutive-tick comparison is invisible on a

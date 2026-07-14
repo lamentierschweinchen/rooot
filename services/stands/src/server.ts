@@ -359,13 +359,40 @@ export function detectMoment(matchId: string, msg: ServerMsg | FeedMsg): MomentT
     const ev = msg.msg.ev;
     switch (ev.kind) {
       case 'goal':
+        // Honesty (docs/POSTMORTEM-2026-07-14-live.md): a goal arrives
+        // Confirmed:false first (provisional — can still be VAR-overturned and
+        // discarded, exactly as tonight's Id570 was, 26s later) then
+        // Confirmed:true once settled. Only a SETTLED goal opens a
+        // celebration window — never celebrate a goal that hasn't stood.
+        // Proven against the captured feed: gating here means Id570 (which
+        // never reached Confirmed:true — it went straight to
+        // action_discarded) never opens a moment at all, while Id551 (the
+        // real goal) opens exactly once, off its Confirmed:true sighting.
+        if (ev.confirmed !== true) return null;
         return { kind: 'goal', side: ev.side, minute: ev.minute, hard: true, sourceId: ev.id };
       case 'possible':
-        return { kind: 'possible', side: ev.side, minute: ev.minute, hard: true, sourceId: ev.id };
+        // SOFT, not hard: "the held breath" is real drama but it is frequent
+        // and mostly resolves to nothing (tonight: ~16 across the match, for
+        // one real goal). Hard meant every one of these could supersede —
+        // and cut short — an actually-open goal/red/var/penalty window. Soft
+        // means it never interrupts a real moment and still respects the
+        // cooldown, so the flood can no longer crowd out the moments fans
+        // actually want to react to (docs/POSTMORTEM-2026-07-14-live.md).
+        return { kind: 'possible', side: ev.side, minute: ev.minute, hard: false, sourceId: ev.id };
       case 'red-card':
-        return { kind: 'red', side: null, minute: ev.minute, hard: true, sourceId: ev.id };
+        // side was hardcoded null — the wire's Participant (ev.side) is
+        // already parsed above and was simply never read here, so a red
+        // card opened a window with no team attached.
+        return { kind: 'red', side: ev.side, minute: ev.minute, hard: true, sourceId: ev.id };
       case 'var':
         return { kind: 'var', side: null, minute: ev.minute, hard: true, sourceId: ev.id };
+      case 'penalty-kick':
+        // Never wired at all — 'penalty' already had a palette
+        // (contracts/crowd.ts FEELING_PALETTES) and a client title
+        // (terrace.html MOMENT_TITLE) but no trigger path ever produced one,
+        // so a real in-game or shootout penalty could never open a window —
+        // one of the task's required minimum kinds.
+        return { kind: 'penalty', side: ev.side, minute: ev.minute, hard: true, sourceId: ev.id };
       case 'shot': {
         const d = (ev.detail ?? '').toLowerCase();
         // a shot off the frame — the "OOOH" without a goal (soft: yields to goals)
