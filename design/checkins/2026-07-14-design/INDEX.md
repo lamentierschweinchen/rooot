@@ -17,3 +17,20 @@ Every shot: mobile 390×844 @2x (unless named desktop), console clean.
 
 Staged-state notes (honesty): 09/16 inject wire-shaped messages via the harness to
 photograph live-only states; 15a–c stage 1–1 34′ and are pixel surgery, not code.
+
+---
+
+# ROUND 2 — the tweak round (owner slip + notes, 14 Jul)
+
+| Shot | What it is | Status |
+|---|---|---|
+| `21-showcase-thesis-v2-desktop.png` | Thesis cut to the owner's line — "Predict, cheer, and collect." | built, committed |
+| `22-terrace-aggregate-xp-restored.png` | Aggregate score + XP back (hint-retire, sat-out fix, CALLS ledger kept) | built, committed |
+| `23a/23b` | Seam-box "love" variants: **L1 plate** (heavier two-cell pin) · **L2 ribbon** (full-width two-row ticker) | SKETCHES — pick one |
+| `24-stadium-B-built.png` | **B built for real**: bowl bleeds, no pitch numbers, no legend bar, THE PROGRAM strip (7 doors incl. THE STANDS) | built, committed |
+| `25a/25b/25c` | Dot treatments on B: **punched** (cream die-cut + ink ring, zones dashed) · **pins** (ink sticker + gold core) · **ink-breath** (quiet dark pulse) | SKETCHES — pick one |
+| `26-…program-opens-market.png` | Program strip tap opens the deck | proof |
+| `19/20-scarf-v2` | Scarf v2 (brand type in-asset + event-woven) | awaiting approval → wire |
+
+US English recorded as default. Name proposals live in the chat round (LINEUPS,
+SHOTS, THE WHISTLE, FIELD-for-PITCH…) — nothing renamed until the owner picks.
