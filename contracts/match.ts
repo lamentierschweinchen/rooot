@@ -66,6 +66,23 @@ export interface ScoreEvent {
   away: number;
   side?: 'home' | 'away';
   scorer?: string;
+  /**
+   * CHANGELOG (coordinator, Jul 14 — FRA–ESP disallowed-goal incident): is this
+   * an AUTHORITATIVE SETTLED scoreline, one the displayed score may advance or
+   * revert to? A PROVISIONAL goal (the wire's Action:'goal' with Confirmed:false
+   * and PossibleEvent.Goal set — the "held breath") is `false`: the moment /
+   * ledger 'possible' path carries that suspense, but the big scoreline must NOT
+   * flip to a goal that hasn't been given (honesty law #1 — never render a goal
+   * that didn't stand). A confirmed goal, a confirmed penalty outcome, a feed
+   * correction (action_discarded carrying the corrected Total.Goals), and a
+   * plain goal the wire does NOT explicitly mark Confirmed:false (older
+   * captures / hand-built replays omit the field for a goal that simply counts)
+   * are all `true`. SettledScore (services/stands/src/match-state.ts) holds
+   * the scoreline back ONLY on an explicit `false`; an absent value
+   * (legacy/snapshot events that predate this field) is treated as SETTLED, so
+   * nothing prior changes behaviour.
+   */
+  confirmed?: boolean;
   source: 'live' | 'replay';
   raw?: unknown;
 }

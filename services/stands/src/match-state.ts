@@ -777,3 +777,66 @@ export class MatchState {
     };
   }
 }
+
+/** The settled scoreline a SettledScore currently shows. */
+export interface SettledScoreLine {
+  home: number;
+  away: number;
+}
+
+/**
+ * SETTLED SCORE — the honest displayed scoreline, reduced from the score
+ * channel (contracts/normalize.ts parseScoreMessage → ScoreEvent). One per
+ * match. The score wire is otherwise STATELESS — every message reports its own
+ * absolute Total.Goals, provisional goals included — so this is the ONE place
+ * that decides which of those lines the fan is actually shown, per honesty
+ * law #1 (never render a goal that didn't stand):
+ *
+ *   · a PROVISIONAL goal (ScoreEvent.confirmed === false — the wire's
+ *     Action:'goal' Confirmed:false with Parti{1,2}State.PossibleEvent.Goal,
+ *     the "held breath") NEVER advances the scoreline. The moment / ledger
+ *     'possible' path carries that suspense; the big number holds until the
+ *     goal is SETTLED.
+ *   · a SETTLED score (a confirmed goal, a confirmed penalty outcome, or a
+ *     correction — action_discarded carrying the corrected Total.Goals — and,
+ *     for backward compatibility, any event that predates the `confirmed`
+ *     field, i.e. confirmed === undefined) replaces the scoreline with the
+ *     feed's authoritative Total.Goals, DOWN as well as up (a chalked-off goal
+ *     reverts).
+ *
+ * The feed is the source of truth: we honour its absolute Total.Goals and never
+ * hand-track goal deltas. FRA–ESP (Jul 14, fixture 18237038): the offside 0–3
+ * (seq638 goal/Confirmed:false) is held; the confirmed goals settle at 0–2; the
+ * correction (seq642 action_discarded/0–2) keeps 0–2 — the app never shows 0–3.
+ */
+export class SettledScore {
+  private home = 0;
+  private away = 0;
+  private settled = false;
+
+  /**
+   * Feed one ScoreEvent. Returns the settled scoreline to DISPLAY when it
+   * actually CHANGED (so the caller broadcasts / caches it), or null when the
+   * event moves nothing — a provisional (unconfirmed) goal, or a settled score
+   * identical to what's already shown (a re-emission, or a correction back to
+   * the current value). Callers drop the null cases: the scoreline just holds.
+   */
+  apply(ev: { home: number; away: number; confirmed?: boolean }): SettledScoreLine | null {
+    if (ev.confirmed === false) return null; // held breath — an explicit provisional goal never settles
+    if (this.settled && ev.home === this.home && ev.away === this.away) return null; // no change (dedup / no-op correction)
+    this.home = ev.home;
+    this.away = ev.away;
+    this.settled = true;
+    return { home: this.home, away: this.away };
+  }
+
+  /** The current settled scoreline (0–0 until the first settled score). */
+  current(): SettledScoreLine {
+    return { home: this.home, away: this.away };
+  }
+
+  /** True once any settled score has been applied. */
+  hasSettled(): boolean {
+    return this.settled;
+  }
+}

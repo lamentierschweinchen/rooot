@@ -19,6 +19,7 @@
     "check:sse-idle": "tsx src/dev/sse-idle-watchdog-check.ts",
     "check:self-probe": "tsx src/dev/self-probe-check.ts",
     "check:next-goal": "tsx src/dev/next-goal-check.ts",
+    "check:score-confirm": "tsx src/dev/score-confirm-check.ts",
     "check:seat": "tsx src/dev/seat-check.ts",
     "check:anchor-durability": "tsx src/dev/anchor-durability-check.ts",
     "check:fingerprint-anchor": "tsx src/dev/fingerprint-anchor-check.ts",
