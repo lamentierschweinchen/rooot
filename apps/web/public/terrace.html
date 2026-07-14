@@ -66,10 +66,11 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .mid{position:relative;flex:none;z-index:6;background:var(--card);border-top:2px solid var(--ink);border-bottom:2px solid var(--ink);
   padding:8px 14px;min-height:92px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
   box-shadow:0 0 20px rgba(26,24,21,.28)}
-.matchbar{display:flex;align-items:baseline;gap:9px;font-weight:900;font-size:15px;letter-spacing:.02em}
+.matchbar{display:grid;grid-template-columns:1fr auto 1fr;align-items:baseline;font-weight:900;font-size:15px;letter-spacing:.02em}   /* score dead-centre; clock left, mode right */
+.matchbar .score{display:inline-flex;align-items:baseline;gap:9px;justify-self:center}
 .matchbar .h{color:var(--you)}.matchbar .a{color:var(--them)}
-.matchbar .cl{font-size:9px;font-weight:800;letter-spacing:.1em;color:var(--sub)}
-.matchbar .rp{display:inline-flex;align-items:center;gap:4px;font-size:7px;font-weight:800;letter-spacing:.14em;color:var(--sub)}
+.matchbar .cl{justify-self:start;font-size:9px;font-weight:800;letter-spacing:.1em;color:var(--sub)}
+.matchbar .rp{justify-self:end;display:inline-flex;align-items:center;gap:4px;font-size:7px;font-weight:800;letter-spacing:.14em;color:var(--sub)}
 .matchbar .rp .d{width:5px;height:5px;border-radius:50%;background:var(--you);animation:pulse 1.3s infinite}
 .ehdr .xp{color:var(--gold)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
@@ -299,8 +300,10 @@ body.embed .backg,body.embed .foot,body.embed .matchbar{display:none}
 
   <!-- the halfway seam — the match between the terraces -->
   <div class="mid" id="mid">
-    <div class="matchbar"><span class="h">SUI</span> <span id="scH">0</span>–<span id="scA">0</span> <span class="a">COL</span>
-      <span class="cl" id="clock">0'</span><span class="rp"><span class="d"></span>REPLAY</span></div>
+    <div class="matchbar">
+      <span class="cl" id="clock">0'</span>
+      <span class="score"><span class="h">SUI</span> <span id="scH">0</span>–<span id="scA">0</span> <span class="a">COL</span></span>
+      <span class="rp"><span class="d"></span>REPLAY</span></div>
     <div class="crowdcall" id="crowdcall">
       <div class="plate">
         <div class="pfield crowd" id="secCrowd">
@@ -318,7 +321,7 @@ body.embed .backg,body.embed .foot,body.embed .matchbar{display:none}
           <div class="pwait" id="cWait">THE CROWD IS ARRIVING</div>
         </div>
         <div class="pfield market">
-          <div class="plbl">CHANCE TO WIN</div>
+          <div class="plbl">ODDS</div>
           <div class="pcbar"><i class="h" id="mkH"></i><i class="d" id="mkD"></i><i class="a" id="mkA"></i></div>
           <div class="pends"><span class="e1" id="mkHe">SUI</span><span class="e2">DRAW</span><span class="e3" id="mkAe">COL</span></div>
           <div class="pdiv">
