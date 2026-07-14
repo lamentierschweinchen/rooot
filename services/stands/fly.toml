@@ -46,6 +46,12 @@ swap_size_mb = 256
   # entrypoint never fire devnet anchors; ON here because prod holds the funded
   # relayer keypair and the durable /data volume the records live on.
   STANDS_ANCHOR_BACKFILL = "1"
+  # MATCH-DAY belt-and-suspenders (Jul 14 FRA-ESP): hold finished matches in
+  # memory for 24h instead of 15min so post-FT late joiners never depend on
+  # the eviction-cold paths alone (seal-consume covers them; this removes all
+  # doubt for the live demo). One match held = trivial on 512mb. REVERT to
+  # default (delete this line) after Jul 15's ENG-ARG match.
+  STANDS_EVICT_FT_GRACE_MS = "86400000"
   # Ingest mode is set per-deploy via `flyctl deploy -e` or fly secrets, e.g.
   #   REPLAY-driven demo:   TXLINE_ENABLE unset,  REPLAY_FILE + REPLAY_FIXTURE set
   #   LIVE ingest:          TXLINE_ENABLE=1,       TXLINE_FIXTURES=<id[,id]>
