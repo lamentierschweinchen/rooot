@@ -408,8 +408,13 @@
           // theme the loom from the WIRE (home/away tricodes + kit colours), so any
           // fixture themes itself — loom-proto also themes from its own FIXTURES table
           // (idempotent); woven-loom depends on this to leave the ARG/CPV demo default.
+          // adopt-#1 (docs/DATA-ARCHITECTURE.md §4): resolution-chain priority — a page's
+          // own in-page fixture map is the override layer and must win when it already
+          // themed synchronously (woven-loom.html sets L.__themedLocally when its FX table
+          // has ?match=); this wire message is the FALLBACK for a fixture that table
+          // doesn't carry, never a later override of a page that already resolved one.
           var fx = msg.fixture;
-          if (fx && typeof L.teams === 'function') {
+          if (fx && typeof L.teams === 'function' && !L.__themedLocally) {
             var mkTeam = function (t) { return t ? { tri: t.code, name: t.name, primary: t.colors && t.colors[0], secondary: t.colors && t.colors[1] } : null; };
             L.teams(mkTeam(fx.home), mkTeam(fx.away));
           }

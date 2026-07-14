@@ -40,7 +40,7 @@ pass-accuracy** is unavailable.
 - **Derived free from counts**: accuracy, conversion, save%, possession%,
   danger-share%, set-piece share.
 
-**CONFIRMED (coordinator, Jul 7)** — `design/BRIEF-STATS.md` is the canonical
+**CONFIRMED (coordinator, Jul 7)** — `archive/design-docs-consumed/design/BRIEF-STATS.md` is the canonical
 `window.__stats` contract; ALL families now computable & wired (subs w/ in-out names,
 injuries w/ name+outcome, penalties, scorer+type, MATCH-LEVEL `var` block). Names via
 the wire roster. Possession % gated → territory fallback. VAR/warming-up not per-side.

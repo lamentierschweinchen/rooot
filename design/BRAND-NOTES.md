@@ -1,6 +1,6 @@
 # ROOOT — Brand Lane Notes
 
-*Companion to `apps/web/public/brand-lab.html` (open it — the marks live there, animated,
+*Companion to `archive/web-prototypes/apps/web/public/brand-lab.html` (open it — the marks live there, animated,
 tested at 16px). This file is the coordinator's TL;DR + the decisions to lock into
 `design/IDENTITY.md` once the owner reacts.*
 
@@ -79,4 +79,4 @@ is borderline (spokes crowd the ring — uses a fatter-spoke 16px cut).
 4. **Team-accent demo pair** in the lab is Mexico green/magenta (reference-blessed). Fine
    as the demo, or want a neutral demo pair so it doesn't read as "Mexico is the default"?
 
-*Touched only: `apps/web/public/brand-lab.html` (new) + this file. No commits.*
+*Touched only: `archive/web-prototypes/apps/web/public/brand-lab.html` (new) + this file. No commits.*

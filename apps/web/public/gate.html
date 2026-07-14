@@ -169,7 +169,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 <script>
 var side=null, sco={h:0,a:0}, touched=false, conv=0;
 var PARAMS=new URLSearchParams(location.search);
-var DEMO=PARAMS.get('demo')==='1', LIVE=PARAMS.get('live')==='1';
+var DEMO=PARAMS.get('demo')==='1', LIVE=!DEMO, WS=PARAMS.get('ws');   // live is the default; specimen only under ?demo=1
 var explicitMatch=PARAMS.get('match');
 var ends=document.getElementById('ends'),
     score=document.getElementById('score'), pips=document.getElementById('pips'),
@@ -181,6 +181,8 @@ var FIXTURES={
   '18218149':{home:{tri:'ESP',name:'SPAIN',color:'#AA151B',flag:'SPA'},away:{tri:'BEL',name:'BELGIUM',color:'#1A1A18',flag:'BEL'},kick:'TONIGHT 21:00'},
   '18213979':{home:{tri:'NOR',name:'NORWAY',color:'#BA0C2F',flag:'NOR'},away:{tri:'ENG',name:'ENGLAND',color:'#1A1A18',flag:'ENG'},kick:'TONIGHT 23:00'},
   '18222446':{home:{tri:'ARG',name:'ARGENTINA',color:'#5C8CB8',flag:'ARG'},away:{tri:'SUI',name:'SWITZERLAND',color:'#D52B1E',flag:'SUI'},kick:'LATE 03:00'},
+  '18237038':{home:{tri:'FRA',name:'FRANCE',color:'#0055A4',flag:'FRA'},away:{tri:'ESP',name:'SPAIN',color:'#AA151B',flag:'SPA'},kick:'TONIGHT 21:00'},
+  '18241006':{home:{tri:'ENG',name:'ENGLAND',color:'#1A1A18',flag:'ENG'},away:{tri:'ARG',name:'ARGENTINA',color:'#5C8CB8',flag:'ARG'},kick:'TONIGHT 21:00'},
 };
 // T16 — the __fixture manifest is the one truth; FIXTURES above is now only the
 // explicit-?match lookup + the last-resort fallback (never invent a fixture). Asset-key
@@ -212,9 +214,21 @@ function fromManifest(mf){
     kick:kickLabel(mf.kickoffUtc)
   };
 }
+// adopt-#1 (docs/DATA-ARCHITECTURE.md §4): the server's fixtureInfo (sentiment/teams.ts,
+// ANY known fixture — not just tonight's manifest cutover) — same team mapping as
+// fromManifest above (fixture.home/away share the {code,name,colors} shape with the
+// manifest's), but teams.ts carries a calendar date only (dateISO), never a kickoff
+// clock — 'MATCHDAY' is an honest label, not a guessed time.
+function fromFixtureInfo(fx){
+  return {
+    home:{tri:fx.home.code,name:String(fx.home.name).toUpperCase(),color:mastInk(fx.home.colors[0]),flag:FLAG_EXC[fx.home.code]||fx.home.code},
+    away:{tri:fx.away.code,name:String(fx.away.name).toUpperCase(),color:mastInk(fx.away.colors[0]),flag:FLAG_EXC[fx.away.code]||fx.away.code},
+    kick:'MATCHDAY'
+  };
+}
 
 function boot(MATCH_ID,FX){
-var MODE_Q=DEMO?'&demo=1':(LIVE?'&live=1&match='+encodeURIComponent(MATCH_ID):'&demo=0');
+var MODE_Q=(DEMO?'&demo=1':'&live=1&match='+encodeURIComponent(MATCH_ID))+(WS?'&ws='+encodeURIComponent(WS):'');   // carry match always; ws only when present
 var SIDECOL={h:FX.home.color,a:FX.away.color};
 
 // flags: upgrade each end's flag to its generated sticker-badge if we have that nation;
@@ -236,7 +250,10 @@ function paintFixture(){
     node.querySelector('.tri').textContent=team.tri;
     node.querySelector('.nm').textContent=team.name;
     var f=node.querySelector('.flag');
-    if(f&&FLAGSET[flag]){ f.classList.add('tile'); f.innerHTML='<img src="plate/gens/flags/'+flag+'.png" alt="'+team.tri+'">'; }
+    if(f){
+      if(FLAGSET[flag]){ f.classList.add('tile'); f.innerHTML='<img src="plate/gens/flags/'+flag+'.png" alt="'+team.tri+'">'; }
+      else{ f.classList.remove('tile'); f.innerHTML=''; f.style.background=team.color; }   // honest neutral — never another nation's flag
+    }
   });
   [].forEach.call(score.querySelectorAll('.sct'),function(n,i){ n.textContent=i?FX.away.tri:FX.home.tri; });
   var st=document.querySelector('.stamp span'); if(st)st.textContent=FX.home.tri+' v '+FX.away.tri+' · '+FX.kick;
@@ -316,14 +333,16 @@ go.onclick=function(){
 // opinionated app; root + cheer + predict is the product AND the data)
 } // end boot
 
-// T16 fixture resolution: explicit ?match= wins outright (unchanged — literal-table
-// lookup, no async wait) → else, on a live route, the __fixture manifest (raced
-// against a ~1500ms timeout, same idiom as stands-adapter.js, so a hung fetch never
-// blocks the gate) → else today's literal default (never invent a fixture; fetch-fail
-// is exactly today's behavior). A live explicit ?match= that isn't one of the literal
-// entries (e.g. ground forwarding this page's own manifest-resolved id back in) still
-// checks the manifest before giving up, so gate→ground→lens never shows a mismatched
-// fixture once any one surface has resolved the real one.
+// T16/adopt-#1 fixture resolution chain: explicit ?match= + a literal FIXTURES entry wins
+// outright (unchanged — no async wait) → else, on a live route: the __fixture manifest
+// IF it matches the requested match (tonight's one cutover — fromManifest) is equally
+// trustworthy and settles immediately → else fixtureInfo, the server's sentiment/teams.ts
+// truth for ANY known fixture, not just tonight's cutover (fixes the CPV case: a fixture
+// absent from FIXTURES above whose manifest doesn't happen to match either) → else, if
+// NEITHER resolves inside the budget, an honest neutral placeholder (never a stale
+// OTHER match's literal — that was the bug: FIXTURES['18218149'] shown mislabeled under
+// an unrelated matchId). FIXTURES above stays the override layer — a fixture living
+// there never waits on the wire.
 if(explicitMatch&&FIXTURES[explicitMatch]){
   boot(explicitMatch,FIXTURES[explicitMatch]);
 }else if(!LIVE){
@@ -331,13 +350,31 @@ if(explicitMatch&&FIXTURES[explicitMatch]){
   boot(mid,FIXTURES[mid]||FIXTURES['18218149']);
 }else{
   var done=false, fallbackId=explicitMatch||'18218149';
+  var NEUTRAL_FX={home:{tri:'—',name:'',color:'#8C8467',flag:''},away:{tri:'—',name:'',color:'#8C8467',flag:''},kick:'PRE-MATCH'};
   function finish(id,fx){ if(done)return; done=true; boot(id,fx); }
+  // fixtureInfo — poll for window.__stands (stands-adapter.js resolves + connects async,
+  // same idiom as wireLiveGate below); onFixtureInfo replays instantly if it already
+  // arrived (onSentiment idiom), so this rarely waits the full interval in practice.
+  // Guarded to this exact match — window.__stands could rarely resolve a different
+  // fallback id than this page's own (each keeps its own last-resort literal).
+  (function waitForFixtureInfo(){
+    if(window.__stands&&window.__stands.onFixtureInfo){
+      window.__stands.onFixtureInfo(function(fx){
+        if(!fx||!fx.home||!fx.away)return;
+        if(fx.id&&fx.id!==fallbackId)return;
+        finish(fallbackId,fromFixtureInfo(fx));
+      });
+      return;
+    }
+    setTimeout(waitForFixtureInfo,120);
+  })();
   window.__fixtureReady=window.__fixtureReady||fetch('/fixture.json').then(function(r){return r.ok?r.json():null;}).catch(function(){return null;});
   window.__fixtureReady.then(function(mf){
     if(mf&&mf.matchId&&mf.home&&mf.away&&(!explicitMatch||explicitMatch===mf.matchId)){ finish(mf.matchId,fromManifest(mf)); }
-    else{ finish(fallbackId,FIXTURES['18218149']); }
-  },function(){ finish(fallbackId,FIXTURES['18218149']); });
-  setTimeout(function(){ finish(fallbackId,FIXTURES['18218149']); },1500);
+    // else: a manifest for a DIFFERENT match tells us nothing about this one — never commit
+    // it as if it did. Wait for fixtureInfo, or the final neutral timeout below.
+  },function(){ /* fetch failed — same: wait for fixtureInfo or the timeout */ });
+  setTimeout(function(){ finish(fallbackId,NEUTRAL_FX); },1500);
 }
 </script>
 </body>

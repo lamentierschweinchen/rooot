@@ -1,22 +1,22 @@
 {
-  "matchId": "18222446",
+  "matchId": "18237038",
   "home": {
-    "code": "ARG",
-    "name": "Argentina",
+    "code": "FRA",
+    "name": "France",
     "colors": [
-      "#75AADB",
-      "#F6B40E"
+      "#002395",
+      "#ED2939"
     ]
   },
   "away": {
-    "code": "SUI",
-    "name": "Switzerland",
+    "code": "ESP",
+    "name": "Spain",
     "colors": [
-      "#D52B1E",
-      "#FFFFFF"
+      "#AA151B",
+      "#F1BF00"
     ]
   },
-  "kickoffUtc": "2026-07-12T01:00:00Z",
+  "kickoffUtc": "2026-07-14T19:00:00Z",
   "competition": "World Cup",
-  "dateISO": "2026-07-12"
+  "dateISO": "2026-07-14"
 }

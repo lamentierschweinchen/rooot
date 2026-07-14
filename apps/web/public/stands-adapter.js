@@ -19,9 +19,11 @@
 (function () {
   'use strict';
   var q = new URLSearchParams(location.search);
-  var ON = location.pathname === '/' || location.pathname === '/live'
-    || q.get('live') === '1'
-    || q.get('site') === '1' || q.get('loomfeed') === '1' || q.get('standsfeed') === '1';
+  // Live is the default on every surface that loads this adapter. The one opt-OUT is
+  // ?demo=1: there the baked crowd-sim engine owns window.__stands, so this adapter must
+  // stand down or it would clobber the tape. (?live=1 / ?site=1 / ?loomfeed=1 /
+  // ?standsfeed=1 kept working, now redundant.)
+  var ON = q.get('demo') !== '1';
   if (!ON) return;
   var explicitMatch = q.get('match');   // ?match= always wins — never touches the manifest
   var wsBase = q.get('ws') || 'wss://rooot-stands.fly.dev/';
@@ -70,7 +72,22 @@
   var lastTriple = null;                 // live de-vigged market, for the predict stamp
   var trailing = null;                   // side currently behind → faith
   var lastScore = { home: 0, away: 0 };
-  var cb = { state: [], consensus: [], verdict: [], moment: [], momentResult: [], market: [], cheerEcho: [], nextGoalState: [], nextGoalVerdict: [] };
+  var lastSentiment = null;              // THE SEAL (delta-review Bug A2) — cached like lastTriple, below.
+                                          // The join-replay burst (this match's sentiment record, if any)
+                                          // can land BEFORE the page finishes its own async setup (e.g.
+                                          // terrace.html's fixture-manifest fetch, which gates when
+                                          // wireLive() registers onSentiment) — a post-FT joiner's WS
+                                          // connects and replays near-instantly, faster than that fetch
+                                          // can resolve. Cache it so a callback registered AFTER the
+                                          // message already arrived still gets it (same idiom as onMarket
+                                          // replaying lastTriple immediately below).
+  var lastFixtureInfo = null;            // adopt-#1 (docs/DATA-ARCHITECTURE.md §4): the server's
+                                          // sentiment/teams.ts-sourced team identity for this match —
+                                          // same cache-and-replay idiom as lastSentiment/lastTriple above,
+                                          // since fixtureInfo rides the SAME near-instant join-replay burst
+                                          // (server.ts replaySnapshot) and a page's own onFixtureInfo
+                                          // registration can easily lose that race.
+  var cb = { state: [], consensus: [], verdict: [], moment: [], momentResult: [], market: [], cheerEcho: [], nextGoalState: [], nextGoalVerdict: [], sentiment: [], fixtureInfo: [] };
   function fire(list, v) { for (var i = 0; i < list.length; i++) { try { list[i](v); } catch (e) {} } }
 
   function send(m) {
@@ -112,6 +129,19 @@
     onMarket: function (fn) { cb.market.push(fn); if (lastTriple) try { fn(lastTriple); } catch (e) {} },
     onNextGoal: function (fn) { cb.nextGoalState.push(fn); },        // the crowd's live next-goal split — {ts, open:{n,home,away,none}, marketAtTs}
     onNextGoalVerdict: function (fn) { cb.nextGoalVerdict.push(fn); }, // your personal verdict at resolution — {call, outcome, happened, marketAtCall}
+    // THE SEAL (delta-review Bug A2): the durable sentiment record — sent live on crystallize
+    // AND replayed to a fresh joiner (even a cold, post-eviction one — server.ts's
+    // latestSentimentRecordOnDisk). Fires with the record itself (finalScore + verdict data),
+    // already matchId-filtered below, so a page never has to unwrap the envelope. Replays the
+    // cached record immediately on registration (lastSentiment, above) in case it already
+    // arrived on the wire before this callback was registered.
+    onSentiment: function (fn) { cb.sentiment.push(fn); if (lastSentiment) try { fn(lastSentiment); } catch (e) {} },
+    // adopt-#1 (docs/DATA-ARCHITECTURE.md §4): the server's team identity for this match
+    // (contracts/feed.ts FeedMsg 'fixtureInfo', sourced from services/stands/src/sentiment/
+    // teams.ts — never fabricated; simply absent for a fixture teams.ts doesn't know). Fires
+    // with the fixture itself ({id,home,away,kickoffISO} — home/away are {code,name,colors,
+    // flag}), same replay-cached-value-on-registration idiom as onSentiment/onMarket above.
+    onFixtureInfo: function (fn) { cb.fixtureInfo.push(fn); if (lastFixtureInfo) try { fn(lastFixtureInfo); } catch (e) {} },
   };
   function flushCheer() { cheerTimer = null; var n = pendingCheer; pendingCheer = 0; if (n > 0 && mySide) send({ type: 'cheer', matchId: matchId, side: mySide, n: n, atMs: Date.now() }); }
   // trailing-edge throttle (~250ms, <=4 fires/s): view is mutated synchronously by every
@@ -144,6 +174,12 @@
       case 'cheerEcho': if (m.matchId === matchId) fire(cb.cheerEcho, { side: m.side, atMs: m.atMs }); break;
       case 'nextGoalState': if (m.matchId === matchId) fire(cb.nextGoalState, m); break;
       case 'nextGoalVerdict': if (m.matchId === matchId && m.anonId === me) fire(cb.nextGoalVerdict, m); break;
+      case 'sentiment': if (m.record && m.record.matchId === matchId) { lastSentiment = m.record; fire(cb.sentiment, m.record); } break;
+      // fixtureInfo carries no top-level matchId (contracts/feed.ts — only odds/score/status/
+      // ledger/feedState get server-stamped); the room itself is already scoped to matchId (one
+      // room per connection), so no filter is needed here — same as loom-adapter.js/match-read.js's
+      // existing 'fixtureInfo' handling.
+      case 'fixtureInfo': if (m.fixture) { lastFixtureInfo = m.fixture; fire(cb.fixtureInfo, m.fixture); } break;
       case 'odds': {
         // Fix 4: guard by matchId when the server stamps one; tolerate its
         // absence (older server) by falling through to prior behavior.

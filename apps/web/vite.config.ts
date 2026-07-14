@@ -6,9 +6,10 @@ const fixturesDir = fileURLToPath(new URL('../../fixtures', import.meta.url));
 
 /**
  * DEV-ONLY: serve the repo-root fixtures/ folder at /fixtures/* so the watching-shell
- * dev entry (app-dev.html?ledger) can replay the AUS–EGY story JSONL through the frozen
- * parser to light the ledger with real events. These files are gitignored + never
- * bundled; this middleware only runs in `vite dev`. Not a product surface.
+ * dev entry (archive/src-spa-frozen/apps/web/app-dev.html?ledger, archived 2026-07-13)
+ * could replay the AUS–EGY story JSONL through the frozen parser to light the ledger
+ * with real events. These files are gitignored + never bundled; this middleware only
+ * runs in `vite dev`. Not a product surface.
  */
 function serveFixtures() {
   return {
@@ -47,19 +48,12 @@ export default defineConfig({
   server: { port: 5173 },
   build: {
     rollupOptions: {
-      // multi-page: `/` = the real-replay stage; /stage-dev.html = the scripted
-      // judgment harness (jump buttons for pre/dark/GOOOL/late/FT — clearly
-      // badged DEV · SCRIPTED MATCH · NOT LIVE, deliberately public so states
-      // can be judged without sitting through a replay); /app-dev.html = the
-      // watching-shell verification entry (Lane A — real ARG–CPV replay @60).
+      // single-page: `/` = the shipped matchday entrance (index.html). The
+      // src/ SPA dev harnesses (stage-dev/relic-dev/app-dev/loom-dev) were
+      // archived 2026-07-13 (archive/src-spa-frozen/) — see
+      // archive/ARCHIVED-2026-07-13-tracked.md to restore.
       input: {
         main: fileURLToPath(new URL('./index.html', import.meta.url)),
-        stagedev: fileURLToPath(new URL('./stage-dev.html', import.meta.url)),
-        relicdev: fileURLToPath(new URL('./relic-dev.html', import.meta.url)),
-        appdev: fileURLToPath(new URL('./app-dev.html', import.meta.url)),
-        // /loom-dev.html — the living loom (fabrication lane): the cloth that
-        // weaves itself from the real ARG–CPV replay. Additive entry only.
-        loomdev: fileURLToPath(new URL('./loom-dev.html', import.meta.url)),
       },
     },
   },

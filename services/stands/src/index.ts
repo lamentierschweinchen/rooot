@@ -42,7 +42,7 @@
  *   SELF_PROBE_DISABLE=1       disarm the self-probe entirely
  */
 import type { FeedMsg } from '@contracts/feed';
-import { armSelfProbe, createStandsServer } from './server';
+import { armAnchorBackfill, armSelfProbe, createStandsServer } from './server';
 import { startTxLineIngest } from './ingest/txline';
 import { startReplayIngest } from './ingest/replay';
 
@@ -82,6 +82,16 @@ function fixtureIdOfFeedMsg(msg: FeedMsg): string | null {
     return m.fixtureKey || null;
   }
   if (msg.type === 'spell') return msg.fixtureId; // tagged at emit (Spell has no id)
+  // xi-seed-recovery, Jul 13: MISSING THIS CASE dropped every lineup FeedMsg
+  // silently (fell through to `return null` below, same failure shape as the
+  // ledger case above) — not just after a restart, on EVERY delivery, live
+  // or seeded, because this function runs before broadcastToMatch is ever
+  // called. The team sheet stayed "NOT IN YET" forever even on a service
+  // that never restarted; goal/card scorer names were unaffected (the roster
+  // latch in txline.ts's dispatch() runs unconditionally, before this
+  // function is even consulted) — this is what let the bug hide behind
+  // correct scorer names. lineup carries fixtureId directly, same as spell.
+  if (msg.type === 'lineup') return msg.fixtureId;
   let raw: unknown;
   if (msg.type === 'odds') raw = msg.tick.raw;
   else if (msg.type === 'score') raw = msg.ev.raw;
@@ -94,7 +104,7 @@ function fixtureIdOfFeedMsg(msg: FeedMsg): string | null {
 }
 
 function main(): void {
-  const { httpServer, port, broadcastToMatch } = createStandsServer();
+  const { httpServer, port, broadcastToMatch, ensureFixtureInfoSent } = createStandsServer();
 
   httpServer.listen(port, () => {
     // read back the REAL bound port (PORT=0 asks the OS for a free one — `port`
@@ -107,6 +117,12 @@ function main(): void {
     // probe our own /health through the real listener; exit(1) for a
     // supervisor restart after SELF_PROBE_MAX_MISSES consecutive failures.
     armSelfProbe(actualPort);
+    // Anchor durability (opt-in via STANDS_ANCHOR_BACKFILL=1, set in fly.toml):
+    // sweep DATA_DIR/sentiment/*.json at boot + periodically, re-anchoring any
+    // record whose on-chain sig write-back was lost (server.ts armAnchorBackfill).
+    // Disarmed by default so dev checks that boot this entrypoint never fire
+    // real devnet anchors.
+    armAnchorBackfill();
   });
 
   const routeFeedMsg = (matchId: string, msg: FeedMsg) => broadcastToMatch(matchId, msg);
@@ -117,6 +133,13 @@ function main(): void {
       console.warn('[stands] TXLINE_ENABLE=1 but TXLINE_FIXTURES is empty — no fixtures will be ingested');
     } else {
       console.log(`[stands] TXLINE ingest enabled for fixtures: ${[...fixtureIds].join(', ')}`);
+      // adopt-#1 (docs/DATA-ARCHITECTURE.md §4): "match creation" — the moment this
+      // process starts tracking a fixture, before its first live envelope even
+      // arrives, so a room already occupied pre-kickoff gets team identity live
+      // too (room-join alone only covers joiners after this point). Unknown-to-
+      // teams.ts fixtures are silently skipped inside ensureFixtureInfoSent —
+      // never invented.
+      for (const matchId of fixtureIds) ensureFixtureInfoSent(matchId);
       try {
         startTxLineIngest({
           fixtureIds,
@@ -152,6 +175,7 @@ function main(): void {
     } else {
       const speed = Number(process.env.REPLAY_SPEED ?? '1');
       console.log(`[stands] replay ingest: ${REPLAY_FILE} as fixture=${fixtureId} speed=${speed}x`);
+      ensureFixtureInfoSent(fixtureId); // adopt-#1 — same "match creation" hook as the TXLINE branch above
       routeFeedMsg(fixtureId, { type: 'feedState', state: 'replay' });
       startReplayIngest({
         file: REPLAY_FILE,

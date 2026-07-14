@@ -23,14 +23,11 @@
   'use strict';
   var q = new URLSearchParams(location.search);
   var DEMO = q.get('demo') === '1';   // live by default; demo only when explicitly asked
-  // NB: production serves clean URLs (cleanUrls) — the path is '/stadium', not
-  // '/stadium.html'. Match by substring so BOTH the clean route and the .html file
-  // (preview / direct open) activate the adapter. Exact '.html' checks silently
-  // failed on prod → stadium + count-live showed the fallback, never live (Jul 7).
-  var p = location.pathname;
-  var ON = p === '/' || p === '/live'
-    || p.indexOf('/count-live') >= 0 || p.indexOf('/count') >= 0 || p.indexOf('/stadium') >= 0
-    || q.get('site') === '1' || q.get('loomfeed') === '1' || q.get('statsfeed') === '1' || q.get('live') === '1' || DEMO;
+  // Live is the default on every surface that loads this adapter. ?demo=1 is served by
+  // the baked stats path below (handled via DEMO downstream), never opted out here; and
+  // nothing that loads this adapter wants it off — so the old path/param opt-in gate
+  // (which silently failed on prod's clean URLs, Jul 7) is gone. Live, always.
+  var ON = true;
   if (!ON) return;
   var explicitMatch = q.get('match');   // ?match= always wins — never touches the manifest
   var wsBase = q.get('ws') || 'wss://rooot-stands.fly.dev/';

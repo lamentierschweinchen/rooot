@@ -69,7 +69,9 @@ The betting-app tells, clustered on the most-viewed panels — replace with plai
 
 ### 4 · Gate fixes
 **Lurker lockout:** `ready()` (`gate.html:272`) requires a score call — a pure lurker
-can't enter. Lurking must be a complete experience (law). Let them through honestly.
+can't enter. Lurking must be a complete experience (law). This lockout is intended
+(owner ruling, 2026-07-13): the gate requires side+score — predictions are the data,
+no watch-only door.
 Also: NOR-side flag sticker missing (ENG has one) — generalize for FRA/ESP tomorrow.
 
 ### 5 · Stadium de-dashboard — the weak room (Jul-19 scope, SKETCH FIRST)

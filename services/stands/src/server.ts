@@ -10,24 +10,27 @@
  */
 import { createServer, get as httpGet } from 'node:http';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { randomBytes } from 'node:crypto';
-import { mkdirSync, readdirSync } from 'node:fs';
+import { createHash, randomBytes } from 'node:crypto';
+import { mkdirSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { WebSocket, WebSocketServer } from 'ws';
 import type { CallMsg, CallReceiptMsg, CheerEchoMsg, ClientMsg, MomentKind, MomentOpenMsg, MomentResultMsg, RoomStateMsg, SeatTokenGrantMsg, ServerMsg, Side, WelcomeMsg } from '@contracts/crowd';
 import { FEELING_PALETTES } from '@contracts/crowd';
 import type { FeedMsg } from '@contracts/feed';
 import type { LedgerEvent } from '@contracts/ledger';
-import type { MatchPhase } from '@contracts/match';
+import type { Fixture, MatchPhase } from '@contracts/match';
+import type { FanbaseSentiment, SentimentRecord } from '@contracts/sentiment';
 import { REACT_WINDOW_MS, RollingCounter, SWING_DELTA_MIN, SWING_WINDOW_MS } from './decay';
+import { fetchProvenanceRefs } from './ingest/txline';
 import { MatchRegistry } from './registry';
 import { anchorRecordHash, relayCall } from './relay';
 import { DATA_DIR, writeFileAtomic } from './snapshot';
 import { SentimentAccumulator } from './sentiment/accumulator';
+import { foldFingerprints } from './sentiment/builder';
 import { fixtureInfo } from './sentiment/teams';
 // ── SEAT: self-custodial fan identity + mint-to-fan relics (YOUR SEAT) ─────
 // Reconciled from the your-seat worktree branch onto this file's current shape —
-// docs/HANDOFF-2026-07-10-coordinator-session.md §5. Imports grouped here so the
+// archive/docs-consumed/docs/HANDOFF-2026-07-10-coordinator-session.md §5. Imports grouped here so the
 // whole SEAT surface (imports + the function block below + the route wiring
 // inside createStandsServer) is easy to lift as one unit.
 import { networkFor } from './mint/config';
@@ -268,7 +271,25 @@ function predictLifecycle(matchId: string, msg: ServerMsg | FeedMsg): void {
       // 2-1 on the wire — two parallel trackers of "the final score" can
       // drift; this collapses onto the one already proven correct instead of
       // trying to root-cause the second tracker's own gap.
-      crystallizeSentiment(matchId, match, { home: fh, away: fa }); // the record — persist + emit (docs/SENTIMENT.md)
+      // fire-and-forget (matches this file's existing anchorRecordHash
+      // convention) — crystallizeSentiment is now async (it awaits the
+      // provenance-refs fetch, docs/DATA-ARCHITECTURE.md §4 item 2, before
+      // hashing), and predictLifecycle itself must stay sync. Kept
+      // fire-and-forget rather than moving snapshotNow() to run after it:
+      // the immediate snapshot below is a TESTED invariant (verdict-replay-
+      // check.ts asserts a snapshot exists on disk synchronously, by the
+      // time this function returns — Fix 1, review I1) that must keep
+      // firing in the SAME tick as FULL_TIME, not after an await. The
+      // resulting gap — resolvedMatches persisted here before the async
+      // crystallize's write lands — is closed at RESTORE time instead (see
+      // the `resolved` snapshot hook below, MatchRegistry construction):
+      // a restored resolved=true is trusted only if a durable sentiment
+      // record actually exists on disk for the match; otherwise the flag is
+      // left unset so a redelivered FULL_TIME retries crystallize for real
+      // (resolvePredictions/sendToAnon are idempotent — match-state.ts's
+      // resolvePredictions simply recomputes+overwrites the same verdicts
+      // from the same predictions+final score, never accumulates).
+      void crystallizeSentiment(matchId, match, { home: fh, away: fa }); // the record — persist + emit (docs/SENTIMENT.md)
       // Fix 1 (review I1): snapshot IMMEDIATELY instead of waiting up to 30s
       // for the periodic timer — a machine death in that window would restore
       // predictions with no verdicts/resolved flag, letting a re-delivered
@@ -520,14 +541,105 @@ function sentimentRecordExistsOnDisk(matchId: string): boolean {
   }
 }
 
+/** The newest crystallized sentiment record for matchId, read straight off the
+ * volume (DATA_DIR/sentiment/<matchId>-<timestamp>.json) — the fix for a fan
+ * who joins AFTER full time (post-mortem: replaySnapshot replayed
+ * oddsHistory/eventHistory/status/score/etc from the joinSnapshots cache but
+ * never checked whether the match had already crystallized, so a post-FT
+ * joiner's room stayed "LIVE" forever with no verdict card, no Collect).
+ * DISK, not memory: joinSnapshots/resolvedMatches are cleared by eviction
+ * (registry.sweepEvictions) and don't survive a restart either, but a fan can
+ * join hours later against a cold process — the record FILE is the one truth
+ * that outlives both, same reasoning as sentimentRecordExistsOnDisk's own
+ * on-disk C1 guard just above. Sorts defensively by the numeric `-<timestamp>`
+ * suffix and returns the newest (today's dedup keeps exactly one file per
+ * match, but never trust that blindly). Deliberately UNCACHED: writeAnchorSig
+ * can rewrite this SAME file later (filling in anchorTxSig once the on-chain
+ * anchor lands), and joins are rare enough that a fresh read every time is the
+ * honest choice over a cache that could hand a joiner a stale
+ * anchorTxSig:null. Absent dir / no match / unreadable / bad JSON ⇒ null —
+ * NEVER fabricates a record; a genuinely unresolved match stays live-looking. */
+function latestSentimentRecordOnDisk(matchId: string): SentimentRecord | null {
+  const dir = path.join(DATA_DIR, 'sentiment');
+  const prefix = `${matchId}-`;
+  let files: string[];
+  try {
+    files = readdirSync(dir).filter((f) => f.startsWith(prefix) && f.endsWith('.json'));
+  } catch {
+    return null; // no sentiment dir yet (or unreadable) — nothing crystallized
+  }
+  if (files.length === 0) return null;
+  // newest by the timestamp suffix (readdir order is not guaranteed to be
+  // chronological) — defensive even though the C1 dedup keeps exactly one.
+  files.sort((a, b) => {
+    const ta = Number(a.slice(prefix.length, -'.json'.length));
+    const tb = Number(b.slice(prefix.length, -'.json'.length));
+    return tb - ta;
+  });
+  try {
+    return JSON.parse(readFileSync(path.join(dir, files[0]!), 'utf8')) as SentimentRecord;
+  } catch (err) {
+    console.warn(`[sentiment] join replay: unreadable record for ${matchId} (${files[0]}): ${errDetail(err)}`);
+    return null;
+  }
+}
+
+/**
+ * Merge a freshly-earned anchor signature into the ON-DISK sentiment record
+ * without clobbering any concurrent update: re-read the file, set ONLY
+ * provenance.anchorTxSig (never re-serialize a possibly-stale in-memory copy),
+ * write it back atomically, and re-emit. Shared by the live anchor path (the
+ * .then in crystallizeSentiment) and the durable backfill sweep (backfillAnchors
+ * below) — the re-read is exactly what makes it safe to call LATE, from either.
+ * Returns true iff it wrote (record found, parseable, provenance present, sig
+ * was still absent). Idempotent: a record that already carries a sig is left
+ * untouched (returns false), so two racing fills can't double-write and a
+ * re-anchor of an already-filled record is a no-op. Best-effort: any fs/parse
+ * fault logs and returns false, never throws into a timer or promise chain.
+ */
+function writeAnchorSig(filePath: string, matchId: string, sig: string): boolean {
+  try {
+    const rec = JSON.parse(readFileSync(filePath, 'utf8')) as SentimentRecord;
+    if (!rec.provenance) return false;
+    if (rec.provenance.anchorTxSig) return false; // already anchored — never clobber
+    rec.provenance.anchorTxSig = sig;
+    writeFileAtomic(filePath, JSON.stringify(rec, null, 2));
+    broadcastToMatch(matchId, { type: 'sentiment', record: rec } as unknown as ServerMsg);
+    return true;
+  } catch (err) {
+    console.warn(`[sentiment] anchor sig write-back failed for ${matchId} (${path.basename(filePath)}): ${errDetail(err)}`);
+    return false;
+  }
+}
+
 /** Full-time crystallization, persisted on the SAME durable dir the restart
  * snapshot uses (Task 3 — volume-ready: /data on Fly when the volume is
  * mounted, /tmp otherwise). One timestamped file per crystallization — never
  * overwritten by a later match — except the async anchor-tx-sig fill-in
  * below, which updates THIS SAME file (it's the same crystallization event,
  * just completing its on-chain anchor a little later). Idempotent across
- * eviction + restart via the on-disk guard at the top (review C1). */
-function crystallizeSentiment(
+ * eviction + restart via the on-disk guard at the top (review C1).
+ *
+ * ASYNC (docs/DATA-ARCHITECTURE.md §4 item 2 — relic provenance): fetches
+ * this match's TxLINE validation refs BEFORE building the record, because
+ * SentimentRecord.provenance.txlineRefs is part of what recordHash covers
+ * (unlike anchorTxSig, deliberately excluded so it CAN be filled in later —
+ * see writeAnchorSig above). That fetch is bounded but not instant, so the
+ * call site (predictLifecycle) fires this fire-and-forget (`void`) rather
+ * than awaiting it — same convention as anchorRecordHash below — and its own
+ * registry.snapshotNow() keeps firing SYNCHRONOUSLY, in the same tick as
+ * FULL_TIME (a tested invariant, verdict-replay-check.ts), not after this
+ * function's await. Consequence: resolvedMatches can now be durably
+ * persisted (by that synchronous snapshotNow) BEFORE this function's write
+ * lands, if the process dies mid-fetch. Closed at RESTORE time instead of
+ * by reordering: the `resolved` snapshot hook (MatchRegistry construction,
+ * below) only trusts a restored resolved=true when a durable sentiment
+ * record actually exists on disk for the match; otherwise it leaves the
+ * flag unset so a redelivered FULL_TIME retries crystallize for real
+ * (predictLifecycle's resolvePredictions/sendToAnon re-run harmlessly —
+ * match-state.ts's resolvePredictions recomputes+overwrites the same
+ * verdicts from the same predictions+final score, never accumulates). */
+async function crystallizeSentiment(
   matchId: string,
   match: ReturnType<MatchRegistry['get']>,
   /** The known-good final score (predictLifecycle's own resolvePredictions
@@ -536,7 +648,7 @@ function crystallizeSentiment(
    * own optional 3rd param) fall back to the accumulator's live-tracked
    * total. */
   finalScore?: { home: number; away: number },
-): void {
+): Promise<void> {
   const acc = accumulators.get(matchId);
   if (!acc || !match) return;
   // ── C1 idempotency backstop (review — the same dup mechanism as the
@@ -558,27 +670,344 @@ function crystallizeSentiment(
     return;
   }
   try {
+    // Relic provenance refs (docs/DATA-ARCHITECTURE.md §4 item 2): never
+    // throws (ingest/txline.ts's fetchProvenanceRefs catches everything
+    // internally and honest-degrades to []); awaited here so the hash below
+    // covers them, same call for a replay/demo match (no TxLINE ingest ⇒ no
+    // candidates ⇒ [] with zero I/O) as for a live one.
+    const txlineRefs = await fetchProvenanceRefs(matchId);
     const record = acc.crystallize(
       { consensus: match.consensus(), rooted: match.counts() },
       { serial: 1, editionSize: null, caption: matchId },
       finalScore,
+      txlineRefs,
     );
     const dir = path.join(DATA_DIR, 'sentiment');
     const filePath = path.join(dir, `${matchId}-${Date.now()}.json`);
     mkdirSync(dir, { recursive: true });
     writeFileAtomic(filePath, JSON.stringify(record, null, 2));
     broadcastToMatch(matchId, { type: 'sentiment', record } as unknown as ServerMsg);
-    console.log(`[sentiment] crystallized ${matchId}: ${record.headline} (hash ${record.provenance.recordHash.slice(0, 12)}) -> ${filePath}`);
-    // anchor the hash on-chain (best-effort) → persist + re-emit with the txSig.
-    void anchorRecordHash(matchId, record.provenance.recordHash).then((sig: string | null) => {
-      if (!sig) return;
-      record.provenance.anchorTxSig = sig;
-      writeFileAtomic(filePath, JSON.stringify(record, null, 2));
-      broadcastToMatch(matchId, { type: 'sentiment', record } as unknown as ServerMsg);
-    });
+    console.log(
+      `[sentiment] crystallized ${matchId}: ${record.headline} (hash ${record.provenance.recordHash.slice(0, 12)}, ${txlineRefs.length} txlineRef${txlineRefs.length === 1 ? '' : 's'}) -> ${filePath}`,
+    );
+    // Anchor the hash on-chain (best-effort). Kept ASYNC so the dispatch loop is
+    // never blocked for the up-to-20s confirmation — but the write-back is now
+    // robust: writeAnchorSig re-reads the file and merges ONLY provenance.
+    // anchorTxSig, so a late .then can never clobber a concurrent update, and
+    // both outcomes are logged honestly. If the sig is lost here (confirmation
+    // timeout, machine suspend, or OOM before this resolves — the exact
+    // durability bug the backfill sweep below closes), the record simply stays
+    // on disk with anchorTxSig:null and backfillAnchors() re-anchors its
+    // EXISTING hash on a later sweep/boot.
+    void anchorRecordHash(matchId, record.provenance.recordHash)
+      .then((sig: string | null) => {
+        if (!sig) {
+          console.warn(`[sentiment] ${matchId} live anchor did not land — leaving anchorTxSig:null for the backfill sweep to retry (hash ${record.provenance.recordHash.slice(0, 12)})`);
+          return;
+        }
+        if (writeAnchorSig(filePath, matchId, sig)) {
+          console.log(`[sentiment] ${matchId} anchored on-chain ${sig.slice(0, 12)}… — sig persisted to ${path.basename(filePath)} (live path)`);
+        }
+      })
+      .catch((err) => console.warn(`[sentiment] ${matchId} live anchor write-back errored: ${errDetail(err)}`));
+    // Tournament-long fold + its own on-chain commitment (docs/DATA-ARCHITECTURE.md
+    // §4 adopt #5) — re-fold DATA_DIR/sentiment into fingerprints.json and anchor
+    // it, at the same "match seal" moment as the per-match record just above.
+    refoldAndAnchorFingerprints();
   } catch (err) {
     console.warn(`[sentiment] crystallize failed for ${matchId}: ${errDetail(err)}`);
   }
+}
+
+/* ── ANCHOR DURABILITY — the backfill sweep (the durable fix) ─────────────
+ * The live anchor above is fire-and-forget by design (never block the dispatch
+ * loop for the up-to-20s confirmation). Its write-back can therefore be lost —
+ * to the confirmation timeout, a machine suspend, or an OOM before the .then
+ * resolves — leaving a persisted record with a REAL on-chain memo but
+ * anchorTxSig:null on disk (the bug this closes: memos landed, records read
+ * null). This sweep heals that FROM DISK: it scans DATA_DIR/sentiment/*.json and
+ * for any record still carrying a null sig, re-anchors its EXISTING recordHash
+ * and writes back ONLY the sig.
+ *
+ * Why it is safe next to the on-disk crystallize skip (sentimentRecordExistsOnDisk,
+ * review C1): that guard prevents a re-CRYSTALLIZE (recompute the hash / write a
+ * 2nd record / re-emit a full record) after eviction+restart. This sweep NEVER
+ * crystallizes and NEVER recomputes the hash — it operates on the persisted
+ * record exactly as-is and only fills provenance.anchorTxSig. Two orthogonal
+ * disk-driven paths that never touch the same field.
+ *
+ * Disk-driven ⇒ it heals records for matches long EVICTED from memory (their
+ * in-memory state is gone, but the file remains). Idempotent: a record that
+ * already has a sig is skipped untouched. Bounded: a record whose anchor keeps
+ * failing is retried at most STANDS_BACKFILL_MAX_ATTEMPTS times across this
+ * process's life (tracked in memory, keyed by filename), so a permanently-
+ * failing anchor is not hammered every sweep. No keypair (dev/replay) ⇒
+ * anchorRecordHash returns null ⇒ every record is left exactly as-is, no crash.
+ *
+ * Re-anchoring a record whose memo DID land but whose sig write-back was lost
+ * creates a 2nd identical-hash memo — ACCEPTABLE: same hash, the record ends
+ * with one valid sig. We deliberately do NOT chain-query for a prior memo to
+ * dedup (weekend scale; a duplicate provenance memo is harmless).
+ */
+const backfillAttempts = new Map<string, number>();
+function backfillMaxAttempts(): number {
+  const raw = Number(process.env.STANDS_BACKFILL_MAX_ATTEMPTS ?? 5);
+  return Number.isFinite(raw) && raw >= 1 ? Math.floor(raw) : 5;
+}
+let backfillInFlight = false;
+
+export interface BackfillResult {
+  /** record files inspected */
+  scanned: number;
+  /** null-sig records that got a sig this sweep */
+  filled: number;
+  /** records skipped because they already carry a sig */
+  alreadyOk: number;
+  /** null-sig records the anchor could not fill this sweep (no keypair / failure / attempt cap) */
+  stillNull: number;
+}
+
+/**
+ * One backfill sweep over DATA_DIR/sentiment/*.json. Never throws; returns a
+ * tally. Exported so the dev check drives it directly and armAnchorBackfill runs
+ * it on a timer. Deliberately NOT called from createStandsServer — dev checks
+ * import the server module and manage their own relayer/keypair, and an
+ * auto-sweep would fire real devnet anchors inside unrelated checks (mirrors
+ * armSelfProbe's "not armed inside createStandsServer" reasoning).
+ */
+export async function backfillAnchors(): Promise<BackfillResult> {
+  const result: BackfillResult = { scanned: 0, filled: 0, alreadyOk: 0, stillNull: 0 };
+  if (backfillInFlight) return result; // never overlap a slow sweep with the next tick
+  backfillInFlight = true;
+  try {
+    const dir = path.join(DATA_DIR, 'sentiment');
+    let files: string[];
+    try {
+      files = readdirSync(dir).filter((f) => f.endsWith('.json'));
+    } catch {
+      return result; // no sentiment dir yet — nothing crystallized, nothing to heal
+    }
+    const maxAttempts = backfillMaxAttempts();
+    for (const f of files) {
+      // fingerprints.json (the tournament-long fold, refoldAndAnchorFingerprints
+      // below) is NOT a per-match record: it carries its own provenance envelope
+      // (recordHash/anchorTxSig) that would otherwise structurally pass the
+      // well-formed-record check below and get "healed" here — WRONGLY, via
+      // writeAnchorSig's per-match merge (no matchId, no staleness guard against
+      // a fold that's moved on since). It has its own fire-and-forget anchor,
+      // self-retried at every subsequent match seal — explicitly excluded here.
+      if (f === 'fingerprints.json') continue;
+      const filePath = path.join(dir, f);
+      let rec: SentimentRecord;
+      try {
+        rec = JSON.parse(readFileSync(filePath, 'utf8')) as SentimentRecord;
+      } catch (err) {
+        console.warn(`[sentiment:backfill] unreadable ${f} — skipping: ${errDetail(err)}`);
+        continue;
+      }
+      result.scanned++;
+      const prov = rec.provenance;
+      if (!prov || typeof prov.recordHash !== 'string') continue; // not a well-formed record
+      if (prov.anchorTxSig) {
+        result.alreadyOk++; // already anchored — untouched (idempotent skip)
+        continue;
+      }
+      const attempts = backfillAttempts.get(f) ?? 0;
+      if (attempts >= maxAttempts) {
+        result.stillNull++; // gave up (bounded) — don't hammer a permanently-failing anchor
+        continue;
+      }
+      const matchId = typeof rec.matchId === 'string' && rec.matchId ? rec.matchId : f.replace(/-\d+\.json$/, '');
+      backfillAttempts.set(f, attempts + 1);
+      let sig: string | null;
+      try {
+        sig = await anchorRecordHash(matchId, prov.recordHash);
+      } catch (err) {
+        console.warn(`[sentiment:backfill] anchor threw for ${matchId} (${f}): ${errDetail(err)}`);
+        result.stillNull++;
+        continue;
+      }
+      if (!sig) {
+        result.stillNull++; // no keypair / anchor failed — retry next sweep, until the cap
+        continue;
+      }
+      if (writeAnchorSig(filePath, matchId, sig)) {
+        backfillAttempts.delete(f);
+        result.filled++;
+        console.log(`[sentiment:backfill] ${matchId} back-anchored ${sig.slice(0, 12)}… (${f}) — sig recovered onto disk, recordHash unchanged`);
+      } else {
+        result.alreadyOk++; // filled by a concurrent path between our read and write
+      }
+    }
+  } finally {
+    backfillInFlight = false;
+  }
+  if (result.filled > 0 || result.stillNull > 0) {
+    console.log(`[sentiment:backfill] sweep done — filled ${result.filled}, still-null ${result.stillNull}, already-ok ${result.alreadyOk}, scanned ${result.scanned}`);
+  }
+  return result;
+}
+
+/**
+ * Arm the anchor-durability backfill: one sweep shortly after boot (heals any
+ * record a prior process left null before it died) plus a periodic sweep
+ * thereafter (retries transient anchor failures). Opt-in via
+ * STANDS_ANCHOR_BACKFILL=1 — default OFF so importing/booting the server in a
+ * dev check never fires real devnet anchors; prod turns it on in fly.toml.
+ * Returns a disposer clearing the timers. Called by index.ts once, at boot;
+ * never by createStandsServer (same reasoning as armSelfProbe). Env:
+ * STANDS_ANCHOR_BACKFILL_INTERVAL_MS (default 60000, floor 5000).
+ */
+export function armAnchorBackfill(): () => void {
+  if (process.env.STANDS_ANCHOR_BACKFILL !== '1') {
+    console.log('[sentiment:backfill] disarmed (set STANDS_ANCHOR_BACKFILL=1 to enable the lost-sig backfill sweep)');
+    return () => {};
+  }
+  const raw = Number(process.env.STANDS_ANCHOR_BACKFILL_INTERVAL_MS ?? 60_000);
+  const intervalMs = Number.isFinite(raw) && raw >= 5_000 ? raw : 60_000;
+  const run = (why: string): void => {
+    void backfillAnchors()
+      .then((r) => {
+        if (r.filled > 0) console.log(`[sentiment:backfill] ${why}: recovered ${r.filled} lost sig(s)`);
+      })
+      .catch((err) => console.warn(`[sentiment:backfill] ${why} errored: ${errDetail(err)}`));
+  };
+  // boot sweep on a short delay so it never sits in the listen() hot path.
+  const bootTimer = setTimeout(() => run('boot sweep'), 2_000);
+  (bootTimer as { unref?: () => void }).unref?.();
+  const timer = setInterval(() => run('periodic sweep'), intervalMs);
+  (timer as { unref?: () => void }).unref?.();
+  console.log(`[sentiment:backfill] armed — boot sweep + every ${intervalMs}ms (heals sentiment records whose on-chain sig write-back was lost)`);
+  return () => {
+    clearTimeout(bootTimer);
+    clearInterval(timer);
+  };
+}
+
+/* ── FINGERPRINTS ANCHOR — the sellable per-fan dataset's on-chain commitment ──
+ * (docs/DATA-ARCHITECTURE.md §4 adopt #5: "Anchor fingerprints.json (same
+ * helper, new kind) ... 'yours forever' becomes on-chain fact.") DATA_DIR/
+ * sentiment/fingerprints.json is the tournament-long fold of every crystallized
+ * match's fingerprint.home/away (builder.ts's foldFingerprints) — NOT part of
+ * the frozen contracts/sentiment.ts (FanbaseSentiment there is a per-record
+ * embed, not a persisted-FILE shape), so the on-disk envelope is defined
+ * locally, right here. */
+
+/** Local on-disk envelope for the folded artifact. Wraps foldFingerprints' Map
+ * output with the SAME provenance idiom SentimentRecord carries (recordHash +
+ * anchorTxSig), so the longitudinal dataset gets the same on-chain commitment
+ * its per-match records do. */
+interface FingerprintsFile {
+  version: 1;
+  fanbases: Record<string, FanbaseSentiment>;
+  provenance: { recordHash: string; anchorTxSig: string | null };
+}
+
+/**
+ * Merge an anchor sig into fingerprints.json IFF its recordHash still matches
+ * what was anchored. Unlike writeAnchorSig (a per-match record file, written
+ * exactly ONCE), this file is REWRITTEN by every match's seal (below) — so by
+ * the time an async anchor resolves, the fold may already have moved on to a
+ * newer hash. Writing a stale sig onto a newer hash would misattribute the
+ * memo (law #1: every mark maps to reality) — so this checks recordHash
+ * equality, not just sig-absence, before merging. Best-effort; never throws.
+ */
+function writeFingerprintsAnchorSig(filePath: string, expectedHash: string, sig: string): boolean {
+  try {
+    const cur = JSON.parse(readFileSync(filePath, 'utf8')) as FingerprintsFile;
+    if (!cur.provenance || cur.provenance.recordHash !== expectedHash) return false; // superseded by a later seal — don't clobber
+    if (cur.provenance.anchorTxSig) return false; // already anchored (e.g. a concurrent write got there first)
+    cur.provenance.anchorTxSig = sig;
+    writeFileAtomic(filePath, JSON.stringify(cur, null, 2));
+    return true;
+  } catch (err) {
+    console.warn(`[fingerprints] anchor sig write-back failed: ${errDetail(err)}`);
+    return false;
+  }
+}
+
+export interface FingerprintsFoldResult {
+  /** per-match record files folded in */
+  records: number;
+  /** distinct fanbases in the fold */
+  fanbases: number;
+  recordHash: string;
+}
+
+/**
+ * Re-fold every persisted per-match record (DATA_DIR/sentiment/<matchId>-
+ * <timestamp>.json — the live-crystallized naming; excludes fingerprints.json
+ * itself) into the tournament-long fingerprints.json, and anchor its hash —
+ * REUSING anchorRecordHash's exact pattern (relay.ts), kind:'fingerprints'.
+ * Called at the END of crystallizeSentiment, i.e. at every match seal, so the
+ * fold (and its anchor) are always current as of the latest match. The
+ * fold+write is synchronous (a handful of small files); the ANCHOR itself is
+ * fire-and-forget, same reasoning as the per-match anchor above — never block
+ * the dispatch loop for the up-to-20s confirmation.
+ *
+ * DURABILITY, WITH A NOTED GAP (task instruction: prefer fire-and-forget + an
+ * honest comment over bolting this onto the backfill sweep if it can't be
+ * surgical): a failed anchor here is naturally retried at the NEXT match's
+ * seal, because every seal re-folds AND re-anchors from scratch — self-healing
+ * by cadence, unlike a per-match record, which anchors exactly once ever. The
+ * gap: the LAST fold of a session (no subsequent match to retry it) has no
+ * sweep to heal a lost sig. backfillAnchors() EXPLICITLY SKIPS fingerprints.json
+ * (see the filename check at the top of its loop) rather than silently
+ * mishandling it — its scan assumes a SentimentRecord's shape (a matchId +
+ * provenance.recordHash keyed per match, healed via a per-match writeAnchorSig
+ * merge with no staleness check); this file has no matchId and its provenance
+ * can legitimately move between the read and the write-back (a newer seal
+ * landing mid-sweep), so folding it in properly needs writeFingerprintsAnchorSig's
+ * hash-equality guard wired through the sweep too — real code, not a one-line
+ * generalization — judged not surgical enough for tonight. Acceptable for a
+ * hackathon demo; a real fix is a small scheduled sweep (or a filename branch
+ * in backfillAnchors that reuses writeFingerprintsAnchorSig), left as follow-up.
+ */
+export function refoldAndAnchorFingerprints(): FingerprintsFoldResult | null {
+  const dir = path.join(DATA_DIR, 'sentiment');
+  let files: string[];
+  try {
+    // per-match record files only (live naming = `<matchId>-<ts>.json`) —
+    // excludes fingerprints.json itself (no numeric suffix) and anything else.
+    files = readdirSync(dir).filter((f) => /-\d+\.json$/.test(f));
+  } catch {
+    return null; // no sentiment dir yet — nothing to fold
+  }
+  const records: SentimentRecord[] = [];
+  for (const f of files) {
+    try {
+      records.push(JSON.parse(readFileSync(path.join(dir, f), 'utf8')) as SentimentRecord);
+    } catch (err) {
+      console.warn(`[fingerprints] unreadable record ${f} — skipped from fold: ${errDetail(err)}`);
+    }
+  }
+  if (records.length === 0) return null;
+  const fold = foldFingerprints(records);
+  const fanbases = Object.fromEntries(fold);
+  const recordHash = createHash('sha256').update(JSON.stringify(fanbases)).digest('hex');
+  const filePath = path.join(dir, 'fingerprints.json');
+  const file: FingerprintsFile = { version: 1, fanbases, provenance: { recordHash, anchorTxSig: null } };
+  try {
+    writeFileAtomic(filePath, JSON.stringify(file, null, 2));
+    console.log(`[fingerprints] refolded ${records.length} record(s) -> ${fold.size} fanbase(s) (hash ${recordHash.slice(0, 12)}) -> ${filePath}`);
+  } catch (err) {
+    console.warn(`[fingerprints] refold write failed: ${errDetail(err)}`);
+    return null; // don't anchor a hash that never made it to disk
+  }
+  void anchorRecordHash('fingerprints', recordHash, 'fingerprints')
+    .then((sig) => {
+      if (!sig) {
+        console.warn(`[fingerprints] anchor did not land — the next match's seal will re-fold + retry (hash ${recordHash.slice(0, 12)})`);
+        return;
+      }
+      if (writeFingerprintsAnchorSig(filePath, recordHash, sig)) {
+        console.log(`[fingerprints] anchored on-chain ${sig.slice(0, 12)}… — sig persisted (live path)`);
+      } else {
+        console.log(`[fingerprints] anchor ${sig.slice(0, 12)}… landed but the fold moved on (superseded by a newer seal) — not written back`);
+      }
+    })
+    .catch((err) => console.warn(`[fingerprints] anchor write-back errored: ${errDetail(err)}`));
+  return { records: records.length, fanbases: fold.size, recordHash };
 }
 
 /**
@@ -727,6 +1156,20 @@ function rememberForJoin(matchId: string, msg: ServerMsg | FeedMsg): void {
 /** Replay the cached match state to a freshly-seated socket (order: identity →
  * feed health → status/score → the tide → recent story). Only sends what exists. */
 function replaySnapshot(ws: WebSocket, matchId: string): void {
+  // THE SEAL: a fan joining AFTER full time still deserves the sealed
+  // sentiment record (post-mortem — see latestSentimentRecordOnDisk's doc
+  // comment). Checked FIRST and independent of `snap` below on purpose: this
+  // must still fire for a COLD match (evicted from every in-memory map, or a
+  // fan returning after a restart) — the on-disk file is the only truth that
+  // survives either. Sent ONLY to this joining socket (`sendReplay`, never a
+  // room broadcast — the room already got it live via crystallizeSentiment),
+  // tagged _replay like the rest of this catch-up bundle so a client's reveal
+  // animation can't re-fire for a record that crystallized hours ago. Never
+  // fabricates: no file on disk -> nothing sent, a genuinely unresolved match
+  // stays live-looking.
+  const sealedRecord = latestSentimentRecordOnDisk(matchId);
+  if (sealedRecord) sendReplay(ws, { type: 'sentiment', record: sealedRecord } as unknown as ServerMsg);
+
   // the crowd's prediction so far — a joiner sees the consensus instantly.
   const match = registry.get(matchId);
   if (match && match.predictionCount() > 0) send(ws, match.consensus());
@@ -766,6 +1209,42 @@ function replaySnapshot(ws: WebSocket, matchId: string): void {
   }
 }
 
+/** adopt-#1 (docs/DATA-ARCHITECTURE.md §4): bridge sentiment/teams.ts's leaner
+ * reference row (Fx = SentimentRecord['fixture'] — code/name/colors per side, no
+ * id/kickoff/flag) into contracts/feed.ts's FeedMsg Fixture shape (id/kickoffISO/
+ * flag required). Never invents: `id` is the matchId already in hand, `flag`
+ * defaults to the tri-code (the same convention every page's own fixture map
+ * already uses — see gate.html's FLAG_EXC comment "default flag=code"),
+ * `kickoffISO` reuses the real calendar date teams.ts carries (no time-of-day is
+ * known from this table — a client must never format it as a precise kickoff
+ * clock, only a date). Unknown fixture -> null, never a placeholder. */
+function fixtureForWire(matchId: string): Fixture | null {
+  const fx = fixtureInfo(matchId);
+  if (!fx) return null;
+  return {
+    id: matchId,
+    home: { code: fx.home.code, name: fx.home.name, colors: [fx.home.colors[0], fx.home.colors[1]], flag: fx.home.code },
+    away: { code: fx.away.code, name: fx.away.name, colors: [fx.away.colors[0], fx.away.colors[1]], flag: fx.away.code },
+    kickoffISO: fx.dateISO,
+  };
+}
+
+/** Broadcast this match's fixtureInfo exactly once. Two call sites (adopt-#1's
+ * design): room join (the WS `?matchId=` connect handler below, right before
+ * replaySnapshot — so THIS same joiner's replay already carries it, via
+ * rememberForJoin's existing `case 'fixtureInfo'` cache) and match creation
+ * (index.ts, when ingest first learns a fixtureId — TXLINE_FIXTURES/
+ * REPLAY_FIXTURE at boot), so a room that's already occupied when ingest starts
+ * also gets it live, not just future joiners. Idempotent: the join-snapshot
+ * cache is the guard, so calling this repeatedly for the same match after the
+ * first success is a cheap no-op, never a duplicate broadcast. */
+function ensureFixtureInfoSent(matchId: string): void {
+  if (joinSnapshots.get(matchId)?.fixtureInfo) return; // already sent — never re-broadcast
+  const fixture = fixtureForWire(matchId);
+  if (!fixture) return; // unknown fixture — never invent
+  broadcastToMatch(matchId, { type: 'fixtureInfo', fixture });
+}
+
 const registry = new MatchRegistry(
   (matchId, msg) => broadcastToMatch(matchId, msg),
   {
@@ -784,8 +1263,43 @@ const registry = new MatchRegistry(
     // above. `restore` runs during registry.loadSnapshot(), BEFORE index.ts
     // starts TXLINE/REPLAY ingest, so a restart can never re-fire a real
     // devnet anchor tx for a match that already resolved in a prior process.
+    //
+    // Provenance-fetch crash-window guard (docs/DATA-ARCHITECTURE.md §4 item
+    // 2, crystallizeSentiment's own doc comment): resolvedMatches can now be
+    // snapshotted (by predictLifecycle's synchronous, same-tick snapshotNow)
+    // BEFORE crystallizeSentiment's awaited provenance fetch finishes writing
+    // the sentiment record — a process dying in that EXACT narrow window
+    // would otherwise restore resolved=true with NO record ever having been
+    // written, permanently skipping crystallize on every future restart
+    // (predictLifecycle's guard would never re-enter).
+    //
+    // Distinguish that failure signature from the PRE-EXISTING, already-
+    // handled "resolved but score unknown" case (seat-check.ts's v5-snapshot
+    // scenario: an old/doctored file with resolved=true and NO finalScore —
+    // currentScoreSnapshot's caller is SUPPOSED to trust resolved=true there
+    // and refuse-to-mint with a friendly retryable note, never retry
+    // crystallize): predictLifecycle sets finalScores SYNCHRONOUSLY, in the
+    // SAME tick as resolvedMatches, strictly BEFORE crystallizeSentiment is
+    // even called — so a genuinely crash-interrupted match's snapshot always
+    // carries a finalScore alongside resolved=true, while the old/unrelated
+    // "score unknown" case never does. Only withhold trust when BOTH signals
+    // of the NEW failure mode are present (finalScore known + no record on
+    // disk); a resolved=true with no finalScore restores exactly as before
+    // (snapshot.ts's applySnapshot restores finalScore before calling this,
+    // specifically so finalScores.has() below is already accurate here).
+    // Withheld -> the NEXT redelivered FULL_TIME (the same TXLINE
+    // seedSnapshot / REPLAY-from-0 path the eviction case below already
+    // relies on) retries crystallize for real; re-running
+    // resolvePredictions/sendToAnon ahead of it is harmless (idempotent —
+    // see match-state.ts's resolvePredictions doc).
     get: (matchId) => resolvedMatches.has(matchId),
-    restore: (matchId) => { resolvedMatches.add(matchId); },
+    restore: (matchId) => {
+      if (!finalScores.has(matchId) || sentimentRecordExistsOnDisk(matchId)) {
+        resolvedMatches.add(matchId);
+      } else {
+        console.warn(`[sentiment] ${matchId} restored as resolved with a known final score but no sentiment record on disk — treating as unresolved so a redelivered FULL_TIME retries crystallize (provenance-fetch crash window)`);
+      }
+    },
   },
   {
     // Post-mortem fix (fanStats review follow-up): openedTriggerIds lives here
@@ -948,7 +1462,7 @@ function handleHello(ws: WebSocket, state: ConnState, msg: Extract<ClientMsg, { 
   state.anonId = msg.anonId;
   if (msg.side) {
     match.root(msg.anonId, msg.side);
-    // THE FAN SERIAL (design/HANDOFF-2026-07-10-fan-serial.md, the
+    // THE FAN SERIAL (archive/design-docs-consumed/design/HANDOFF-2026-07-10-fan-serial.md, the
     // coordinator's accepted MARGIN amendment): mints on the first hello
     // that CARRIES A SIDE — side-less hellos (diagnostics, the write-proof
     // smoke canary) never reach this branch, so they structurally can never
@@ -1388,21 +1902,32 @@ function handleMessage(ws: WebSocket, state: ConnState, raw: string): void {
  * attribute. Order of truth for a RESOLVED match: `finalScores` first (the resolution-time score
  * the verdicts were graded with — persisted in the snapshot, restored on boot), then the live
  * join-snapshot cache (covers a resolved-in-this-process match; identical by construction, since
- * predictLifecycle sourced fh/fa from that same cache); neither known -> decided:false, and the
- * claim path refuses the mint honestly (retryable) rather than fabricating a score. For an
- * UNRESOLVED match this stays the live-cache read it always was ({0,0} before any score message —
- * a real, true tally, and decided:false keeps the mint gate shut anyway).
- * Exported for the dev check (src/dev/seat-check.ts) — this is the exact value handleSeatClaim
- * hands to mintScarfForClaim, so asserting it post-restore IS asserting what a mint would carry. */
+ * predictLifecycle sourced fh/fa from that same cache); neither known -> fall through to the disk
+ * fallback below rather than refusing outright.
+ * EVICTION fallback (delta-review Bug E): `onEvict` clears `resolvedMatches`/`finalScores`/
+ * `joinSnapshots` together, so a finished-then-evicted match looks in-memory exactly like one that
+ * never started — a post-eviction hello resurrects an empty, unresolved MatchState (registry.ts's
+ * getOrCreate), so neither branch above fires. Before giving up, check the SAME durable on-disk
+ * sentiment record the seal-on-join path already trusts (`latestSentimentRecordOnDisk`, above,
+ * crystallized once at FULL_TIME and outliving both eviction and a restart) — its `finalScore` is
+ * real, resolution-time truth, never fabricated. Absent/unresolved on disk too -> decided:false,
+ * same honest refusal as before (a genuinely live or never-seen match still reports undecided).
+ * For an UNRESOLVED match this stays the live-cache read it always was ({0,0} before any score
+ * message — a real, true tally) unless the disk fallback finds a record, and decided:false keeps
+ * the mint gate shut anyway.
+ * Exported for the dev check (src/dev/seat-check.ts, src/dev/seal-consume-check.ts) — this is the
+ * exact value handleSeatClaim hands to mintScarfForClaim, so asserting it post-restore/post-evict
+ * IS asserting what a mint would carry. */
 export function currentScoreSnapshot(matchId: string): LiveScoreSnapshot {
   const ev = joinSnapshots.get(matchId)?.score?.ev;
   if (resolvedMatches.has(matchId)) {
     const final = finalScores.get(matchId);
     if (final) return { home: final.home, away: final.away, decided: true };
     if (ev && typeof ev.home === 'number' && typeof ev.away === 'number') return { home: ev.home, away: ev.away, decided: true };
-    return { home: 0, away: 0, decided: false }; // resolved but no genuine score known — refuse, never fabricate
   }
-  return { home: ev?.home ?? 0, away: ev?.away ?? 0, decided: false };
+  const disk = latestSentimentRecordOnDisk(matchId);
+  if (disk) return { home: disk.finalScore.home, away: disk.finalScore.away, decided: true };
+  return { home: ev?.home ?? 0, away: ev?.away ?? 0, decided: false }; // no memory, no disk record — refuse, never fabricate
 }
 
 /** Dev-soak introspection (src/dev/mem-evict-check.ts) — NEVER imported by
@@ -1473,8 +1998,8 @@ function readBody(req: IncomingMessage): Promise<string> {
   });
 }
 
-/** Resolve the side the fan actually rooted for into its team tricode (design/
- * HANDOFF-coordinator-data-wiring.md: profile.sides must be tricodes, e.g. ['SUI','ARG'], never
+/** Resolve the side the fan actually rooted for into its team tricode
+ * (archive/design-docs-consumed/design/HANDOFF-coordinator-data-wiring.md: profile.sides must be tricodes, e.g. ['SUI','ARG'], never
  * 'home'/'away' — the cabinet renders flag stickers from these). Null when the fan never rooted, or
  * the match has no known fixture identity — never guessed. */
 function sideTricode(matchId: string, side: Side | null): string | null {
@@ -1714,6 +2239,11 @@ export function createStandsServer() {
       const mid = url.searchParams.get('matchId');
       if (mid) {
         state.matchId = mid;
+        // adopt-#1: on room join, make sure this match's fixtureInfo exists before
+        // the replay below — a first-ever joiner for a known fixture gets it in
+        // THIS join's own burst, not just future joiners (idempotent; see doc
+        // comment on ensureFixtureInfoSent).
+        try { ensureFixtureInfoSent(mid); } catch (err) { console.warn(`[fixtureInfo] emit failed for ${mid}: ${String(err)} - join replay continues`); }
         // catch a mid-match joiner up to the live state immediately (phase,
         // score, tide, recent story) — not just feed health.
         replaySnapshot(ws, mid);
@@ -1740,7 +2270,7 @@ export function createStandsServer() {
     clearInterval(heartbeatTimer);
   });
 
-  return { httpServer, wss, registry, port: PORT, broadcastToMatch };
+  return { httpServer, wss, registry, port: PORT, broadcastToMatch, ensureFixtureInfoSent };
 }
 
 /* ── SELF-PROBE DEAD-MAN (Jul 11 NOR–ENG wedge post-mortem) ───────────────

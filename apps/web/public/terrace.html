@@ -199,6 +199,20 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .scarf .sk-keep{margin-top:7px;width:100%;padding:11px;background:var(--ink);color:var(--card);border:none;font-family:var(--disp);font-weight:900;font-size:11px;letter-spacing:.12em;cursor:pointer;
   box-shadow:3px 3px 0 rgba(26,24,21,.32);transition:box-shadow .08s,transform .08s}
 .scarf .sk-keep:active{transform:translate(2px,2px);box-shadow:1px 1px 0 rgba(26,24,21,.32)}   /* the stamp presses */
+/* SEAT — one honest Collect. The local keepsake seals first, then the fan's own passkey
+   claims a real self-custody scarf. States show only what is true: a plain proof link on
+   success, an honest note on a not-yet / cancelled / offline claim — the local keepsake is
+   already sealed, and nothing here is ever faked. */
+.scarf .sk-keep.collecting{background:var(--verde);opacity:.72;cursor:progress}
+.scarf .sk-keep.collecting::after{content:"";display:inline-block;width:6px;height:6px;margin-left:9px;border-radius:50%;background:var(--card);vertical-align:middle;animation:skPulse 1s ease-in-out infinite}
+.scarf .sk-keep.done{background:var(--verde);cursor:default;box-shadow:none}
+.scarf .sk-keep.retry{background:#9a3a2a}
+@keyframes skPulse{0%,100%{opacity:.28}50%{opacity:1}}
+.sk-chain{margin-top:7px;font-weight:700;font-size:8px;letter-spacing:.08em;color:var(--sub);text-align:center;line-height:1.75}
+.sk-chain .live{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--verde);margin-right:5px;vertical-align:middle;animation:skPulse 1.4s ease-in-out infinite}
+.sk-chain a{color:var(--verde);text-decoration:underline;text-underline-offset:2px;padding:2px 0;display:inline-block}
+.sk-chain a.cab{color:var(--sub)}
+.sk-chain .err{color:#9a3a2a}
 
 /* honesty footer */
 .foot{flex:none;padding:5px 14px;text-align:center;font-weight:700;font-size:7px;letter-spacing:.11em;color:var(--sub);background:var(--paper);border-top:1px solid var(--line);z-index:6}
@@ -279,7 +293,8 @@ body.embed .backg,body.embed .foot,body.embed .matchbar{display:none}
       <div class="kmoms" id="kMoms"></div>
       <div class="krow"><span class="l">MINUTES WATCHED</span><b id="kMins">0</b></div>
       <div class="k-prov"><span id="kFx">—</span><span id="kNo">Nº —</span></div>
-      <button class="sk-keep" id="skKeep">KEEP IT</button>
+      <button class="sk-keep" id="skKeep">Collect</button>
+      <div class="sk-chain" id="skChain" hidden></div>
     </div>
   </div>
 
@@ -290,6 +305,12 @@ body.embed .backg,body.embed .foot,body.embed .matchbar{display:none}
 <script>if(/[?&]demo=1/.test(location.search))document.write('<scr'+'ipt src="plate/demo-suicol.js"></scr'+'ipt><scr'+'ipt src="demo-feed.js"></scr'+'ipt><scr'+'ipt src="match-read.js"></scr'+'ipt><scr'+'ipt src="crowd-sim.js"></scr'+'ipt>');</script>
 <script src="stands-adapter.js"></script>
 <script src="stats-adapter.js"></script>
+<!-- SEAT — walletless self-custody scarf mint (Face/Touch-ID passkey PRF -> ed25519, in-browser).
+     Load order is load-bearing: nacl (sets window.nacl) BEFORE seat-passkey (window.seatPasskey)
+     BEFORE seat-adapter (window.__seat / window.__album). -->
+<script src="plate/nacl.min.js"></script>
+<script src="seat-passkey.js"></script>
+<script src="seat-adapter.js"></script>
 <script>
 var FEELINGS=[
   {k:'JOY',img:'plate/gens/reactions/joy.png'},
@@ -332,14 +353,16 @@ var el=function(id){return document.getElementById(id);};
 var PASS=null; try{ PASS=JSON.parse(localStorage.getItem('rooot.pass')||'null'); }catch(e){}   // the fan's pass from the door (side + call + conviction)
 if(/[?&]embed=1/.test(location.search))document.body.classList.add('embed');   // nested as the ground's STANDS lens
 var PARAMS=new URLSearchParams(location.search);
-var DEMO=PARAMS.get('demo')==='1', LIVE=PARAMS.get('live')==='1';   // demo uses the baked engine; live uses the real stands wire
+var DEMO=PARAMS.get('demo')==='1', LIVE=!DEMO, WS=PARAMS.get('ws');   // live is the default; ?demo=1 is the only baked-engine opt-out
 var MATCH_ID=PARAMS.get('match')||(LIVE?'18218149':'18202783');
 var FIXTURES={
   '18202783':{home:{tri:'SUI',name:'SWITZERLAND',color:'#D52B1E'},away:{tri:'COL',name:'COLOMBIA',color:'#E8B10A'}},
   '18209181':{home:{tri:'FRA',name:'FRANCE',color:'#0055A4'},away:{tri:'MAR',name:'MOROCCO',color:'#C1272D'}},
   '18218149':{home:{tri:'ESP',name:'SPAIN',color:'#AA151B',sec:'#F1BF00'},away:{tri:'BEL',name:'BELGIUM',color:'#1A1A18',sec:'#FDDA24',sec2:'#C8102E'}},
   '18213979':{home:{tri:'NOR',name:'NORWAY',color:'#BA0C2F',sec:'#EDE9DE',sec2:'#00205B'},away:{tri:'ENG',name:'ENGLAND',color:'#1A1A18',sec:'#EDE9DE',sec2:'#C8102E'}},
-  '18222446':{home:{tri:'ARG',name:'ARGENTINA',color:'#5C8CB8',sec:'#EDE9DE'},away:{tri:'SUI',name:'SWITZERLAND',color:'#D52B1E',sec:'#EDE9DE'}}
+  '18222446':{home:{tri:'ARG',name:'ARGENTINA',color:'#5C8CB8',sec:'#EDE9DE'},away:{tri:'SUI',name:'SWITZERLAND',color:'#D52B1E',sec:'#EDE9DE'}},
+  '18237038':{home:{tri:'FRA',name:'FRANCE',color:'#0055A4'},away:{tri:'ESP',name:'SPAIN',color:'#AA151B',sec:'#F1BF00'}},
+  '18241006':{home:{tri:'ENG',name:'ENGLAND',color:'#1A1A18',sec:'#EDE9DE',sec2:'#C8102E'},away:{tri:'ARG',name:'ARGENTINA',color:'#5C8CB8',sec:'#EDE9DE'}}
 };
 var FX=FIXTURES[MATCH_ID]||FIXTURES['18218149'], HOME_TRI=FX.home.tri, AWAY_TRI=FX.away.tri, YOU_TEAM=FX.home, THEM_TEAM=FX.away;
 var M={t:0,score:[0,0],rY:0,rT:0,run:true,lastMs:0,fired:{},await:null,dur:92,xp:0,reads:{h:0,a:0},pred:null,predShown:{},predResolved:{},
@@ -527,10 +550,10 @@ function showKeepsake(){
   el('kFx').textContent=HOME_TRI+'–'+AWAY_TRI+' · '+d.getDate()+' '+MON[d.getMonth()]+' '+d.getFullYear();
   setTimeout(function(){ el('keepsake').classList.add('on'); },900);
 }
-el('skKeep').onclick=function(){
-  var b=el('skKeep');
-  if(b.dataset.kept){ location.href='cabinet.html?from=keep'+(LIVE?'&live=1':(DEMO?'&demo=1':'')); return; }   // second tap walks you home
-  // first tap: the record writes (colours ride along so the cabinet can print the card without this page)
+// BEAT 1 — the LOCAL keepsake (unchanged): the record writes (colours ride along so the cabinet can
+// print the card without this page) and the card presses. This always runs first, unblocked — the
+// stand IS the trophy, and it is kept the instant you tap, no biometric, no network in the way.
+function keepLocal(){
   var cs=getComputedStyle(document.documentElement);
   try{ localStorage.setItem('rooot.kept.'+MATCH_ID, JSON.stringify({matchId:MATCH_ID,home:HOME_TRI,away:AWAY_TRI,
     final:{h:M.score[0],a:M.score[1]}, pred:PASS&&PASS.call||null, cheers:M.cheerN, reacts:M.reacts,
@@ -538,7 +561,49 @@ el('skKeep').onclick=function(){
     colors:[(cs.getPropertyValue('--you')||'').trim(),(cs.getPropertyValue('--yousec')||'').trim(),(cs.getPropertyValue('--yousec2')||'').trim()],
     ts:Date.now()})); }catch(e){}
   var sc=document.querySelector('.keepsake .scarf'); if(sc){ sc.classList.remove('kept'); void sc.offsetWidth; sc.classList.add('kept'); }   // the press
-  b.dataset.kept='1'; b.textContent='KEPT ✓ — IN YOUR CABINET →';
+}
+function cabHref(){ return 'cabinet.html?from=keep'+(DEMO?'&demo=1':'&live=1&match='+encodeURIComponent(MATCH_ID))+(WS?'&ws='+encodeURIComponent(WS):''); }
+function chainMsg(html,cls){ var c=el('skChain'); if(!c)return; c.hidden=false; c.className='sk-chain'+(cls?' '+cls:''); c.innerHTML=html; }
+function showCab(){   // the walk-home stays reachable in EVERY branch (preserves the old KEPT→cabinet step)
+  var c=el('skChain'); if(!c||c.querySelector('a.cab'))return;
+  if(c.innerHTML.trim())c.appendChild(document.createElement('br'));
+  var a=document.createElement('a'); a.className='cab'; a.href=cabHref(); a.textContent='→ in your cabinet';
+  c.appendChild(a); c.hidden=false;
+}
+function assetUrl(asset){ return 'https://explorer.solana.com/address/'+encodeURIComponent(asset)+'?cluster=devnet'; }
+
+// COLLECT — one honest tap. The local keepsake seals FIRST (keepLocal, above — so "your scarf
+// is safe" is literally true even if the claim fails), then the fan's OWN key derives from
+// Face/Touch ID (self-custody, walletless) and window.__seat.claim() records a REAL Metaplex Core
+// scarf, and we show a plain proof link. One tap, not two: the biometric is expected because the
+// fan asked to collect, so there is no surprise to guard against. Never fabricates an asset or a tx.
+el('skKeep').onclick=function(){
+  var b=el('skKeep');
+  if(b.dataset.busy) return;                                  // a claim is in flight (~5-20s) — ignore re-taps
+  if(b.dataset.stage==='done') return;                        // already collected — it is permanently theirs
+  keepLocal();                                                // seal the local keepsake FIRST, always, unblocked
+  // no adapter → stay honest: the keepsake is kept, offer a retry, never fake a claim.
+  if(!window.__seat || typeof window.__seat.claim!=='function'){
+    b.classList.remove('collecting'); b.classList.add('retry'); b.textContent='Try again';
+    chainMsg('<span class="err">Something went wrong — try again.</span>',''); showCab(); return;
+  }
+  b.dataset.busy='1'; b.classList.remove('retry'); b.classList.add('collecting'); b.textContent='Collecting…';
+  chainMsg('<span class="live"></span>collecting your scarf — a few seconds',''); showCab();
+  window.__seat.claim({matchId:MATCH_ID}).then(function(res){
+    b.dataset.busy=''; b.classList.remove('collecting');
+    if(res && res.mint){                                      // a REAL claim — show a plain proof link
+      b.classList.add('done'); b.dataset.stage='done'; b.textContent='Collected ✓';
+      var url=res.mint.asset?assetUrl(res.mint.asset):res.mint.txUrl;
+      chainMsg('<span class="live" style="animation:none"></span>permanently yours<br>'+
+        '<a href="'+url+'" target="_blank" rel="noopener">view it ↗</a>',''); showCab();
+    } else {                                                  // seat saved, scarf not yet ready (before full time) — honest, retryable
+      b.textContent='Collect';                                // back to idle — collect again at full time
+      chainMsg('your seat is saved — your scarf is ready at full time.',''); showCab();
+    }
+  }).catch(function(){                                        // cancelled Face ID / unsupported / offline — keep local, offer retry, NEVER fake
+    b.dataset.busy=''; b.classList.remove('collecting'); b.classList.add('retry'); b.textContent='Try again';
+    chainMsg('<span class="err">Something went wrong — try again.</span>',''); showCab();
+  });
 };
 el('keepsake').addEventListener('click',function(e){ if(e.target===el('keepsake'))el('keepsake').classList.remove('on'); });   // tap outside: stay in the stands
 
@@ -665,6 +730,18 @@ function wireLive(){
     window.__stands.onConsensus(ccUpdate);
     if(window.__stands.onMarket)window.__stands.onMarket(marketUpdate);
     window.__stands.onVerdict(function(v){ M.verdictMsg=v; ngEnd(); if(!M._ft){M._ft=true; showKeepsake();} });   // FT: the card ends with the keepsake beat
+    // THE SEAL (delta-review Bug A2): a fan joining AFTER full time (evicted match, cold
+    // process, or just a late share-link open) gets no live 'predictVerdict' — but the server
+    // replays the durable sentiment record on join regardless. Drive the SAME keepsake beat the
+    // live path uses: never a second card, never a fabricated score. matchId re-checked here too
+    // (belt-and-suspenders against the wire/page manifest-fallback divergence, review risk D) even
+    // though the adapter already filters it.
+    if(window.__stands.onSentiment)window.__stands.onSentiment(function(record){
+      if(!record||record.matchId!==MATCH_ID)return;
+      if(M._ft)return;   // live FT already fired — this is additive data, never a re-trigger
+      if(record.finalScore)M.verdictMsg={final:record.finalScore};   // showKeepsake() already reads vm.final; no personal call/verdict to add — never invented
+      ngEnd(); M._ft=true; showKeepsake();
+    });
     if(window.__stands.onCheer)window.__stands.onCheer(function(e){
       ripple(e.side===sideKey?tilesYou:tilesThem,1);   // ONE seat flickers — someone, right now (never volume; roar carries that)
     });
@@ -686,7 +763,7 @@ function wireLive(){
 }
 
 // ── NEXT GOAL — the live in-game call (LIVE only; DEMO/specimen never call wireLive()).
-// Contract: design/HANDOFF-2026-07-10-tonight-data-shapes.md §7. Copy law (owner, 11 Jul):
+// Contract: archive/design-docs-consumed/design/HANDOFF-2026-07-10-tonight-data-shapes.md §7. Copy law (owner, 11 Jul):
 // the label is the thing itself — no explainers, no register lines, no confirmation prose.
 // Owner rules (11 Jul, binding): IF THE CARD IS SHOWN, IT IS CLICKABLE — no client-side
 // gate (the SERVER is the honest gate: it silently drops non-live calls). THE TAP IS THE
@@ -871,22 +948,47 @@ function wireDemo(){ if(!window.__match||!window.__stands)return false;
   return true;
 }
 if(DEMO){ if(!wireDemo()){ var _wt=setInterval(function(){ if(wireDemo())clearInterval(_wt); },200); } }
-// T16 fixture resolution (same idiom as stadium.html / stands-adapter): explicit ?match= wins
-// outright → else, on live, the __fixture manifest raced against ~1500ms → else today's literal.
-// Fixes the standalone live terrace theming the previous fixture over tonight's wire.
+// T16/adopt-#1 fixture resolution (same idiom as stadium.html / stands-adapter): explicit
+// ?match= wins outright → else, on live, the __fixture manifest raced against ~1500ms →
+// else fixtureInfo (server truth, sentiment/teams.ts — ANY known fixture, not just
+// tonight's manifest cutover; the CPV-case fix) → else an honest neutral placeholder
+// (never a stale OTHER match's literal). Fixes the standalone live terrace theming the
+// previous fixture over tonight's wire.
 function fxFromManifest(mf){ function side(t){ return {tri:t.code,name:(t.name||t.code).toUpperCase(),color:(t.colors&&t.colors[0])||'#8C8467',sec:(t.colors&&t.colors[1])||null}; }
   return {home:side(mf.home),away:side(mf.away)}; }
+var fxFromFixtureInfo=fxFromManifest; // fixture.home/away share the manifest's {code,name,colors} shape
+var NEUTRAL_TERR_FX={home:{tri:'—',name:'',color:'#8C8467',sec:null},away:{tri:'—',name:'',color:'#8C8467',sec:null}};
 function startLive(){ if(!wireLive()){ var _liveTerrace=setInterval(function(){ if(wireLive())clearInterval(_liveTerrace); },160); } }
 if(LIVE){
-  if(PARAMS.get('match')){ startLive(); }
-  else{
+  var explicitTerr=PARAMS.get('match');
+  if(explicitTerr&&FIXTURES[explicitTerr]){ startLive(); }   // explicit AND in the literal table → FX already correct, no async wait
+  else{                                                       // no ?match, OR a ?match we have no literal for → consult the manifest, then fixtureInfo (honest fallbacks: never a stale literal)
     var _fxDone=false;
     var _fxGo=function(id,fx){ if(_fxDone)return; _fxDone=true;
-      if(id&&id!==MATCH_ID){ MATCH_ID=id; FX=fx||FIXTURES[id]||FX; HOME_TRI=FX.home.tri; AWAY_TRI=FX.away.tri; YOU_TEAM=FX.home; THEM_TEAM=FX.away; }
+      if(id){ MATCH_ID=id; FX=fx||FIXTURES[id]||FX; HOME_TRI=FX.home.tri; AWAY_TRI=FX.away.tri; YOU_TEAM=FX.home; THEM_TEAM=FX.away; }
       startLive(); };
+    // fixtureInfo only needs awaiting when an explicit ?match= isn't in FIXTURES — the
+    // no-?match path already resolves to a real FIXTURES entry synchronously (MATCH_ID's
+    // own default, line above, is '18218149') so it settles instantly, same as before.
+    if(explicitTerr){
+      (function waitForFixtureInfoTerr(){
+        if(window.__stands&&window.__stands.onFixtureInfo){
+          window.__stands.onFixtureInfo(function(fx){
+            if(!fx||!fx.home||!fx.away)return;
+            if(fx.id&&fx.id!==explicitTerr)return;
+            _fxGo(fx.id,fxFromFixtureInfo(fx));
+          });
+          return;
+        }
+        setTimeout(waitForFixtureInfoTerr,120);
+      })();
+    }
     window.__fixtureReady=window.__fixtureReady||fetch('/fixture.json').then(function(r){return r.ok?r.json():null;}).catch(function(){return null;});
-    window.__fixtureReady.then(function(mf){ if(mf&&mf.matchId&&mf.home&&mf.away)_fxGo(mf.matchId,FIXTURES[mf.matchId]||fxFromManifest(mf)); else _fxGo(null); },function(){ _fxGo(null); });
-    setTimeout(function(){ _fxGo(null); },1500);
+    window.__fixtureReady.then(function(mf){
+      if(mf&&mf.matchId&&mf.home&&mf.away&&(!explicitTerr||explicitTerr===mf.matchId))_fxGo(mf.matchId,FIXTURES[mf.matchId]||fxFromManifest(mf));
+      else if(!explicitTerr)_fxGo(null);   // a manifest for a DIFFERENT match tells us nothing about this one — wait for fixtureInfo/timeout instead
+    },function(){ if(!explicitTerr)_fxGo(null); });
+    setTimeout(function(){ _fxGo(explicitTerr||null,explicitTerr?NEUTRAL_TERR_FX:null); },1500);
   }
 }
 

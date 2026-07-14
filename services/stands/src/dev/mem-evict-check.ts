@@ -31,9 +31,13 @@
  *      reclaims a round's per-match growth, and heapUsed does NOT climb
  *      monotonically across repeated feed→evict rounds (forced GC via v8).
  *   6. HONEST LATE JOIN — a join/claim against an EVICTED match never crashes
- *      and never fabricates live state: the registry entry is gone, the score
- *      snapshot is honestly undecided, and a real ws re-hello gets a fresh
- *      EMPTY room (no resurrected verdict), not a fabricated one.
+ *      and never fabricates: the registry entry is gone, but a match that
+ *      GENUINELY reached FULL_TIME reports its score as DECIDED, sourced from
+ *      the durable on-disk sentiment record (delta-review Bug E's fix —
+ *      currentScoreSnapshot's disk fallback; eviction must not re-lock a real
+ *      Collect out of a fan who shows up late). A real ws re-hello gets a
+ *      fresh EMPTY room (no resurrected PERSONAL verdict — that per-fan state
+ *      is genuinely gone), never a fabricated one.
  *
  * Hermetic: STANDS_DATA_DIR → a fresh temp dir, and the periodic snapshot +
  * auto-eviction timers are pushed out of the way (env below) BEFORE the server
@@ -318,17 +322,29 @@ async function main(): Promise<void> {
 
     /* ═══ PART 6 — honest late join to an evicted match ════════════════ */
     console.log('\n── PART 6: a join/claim against an evicted match is honest, never a crash');
-    const dead = FT_MATCHES[0]!; // evicted back in PART 1
+    const dead = FT_MATCHES[0]!; // evicted back in PART 1 — genuinely reached FULL_TIME first
     check('evicted match: registry entry gone', registry.get(dead) === undefined);
     check('evicted match: every per-match map still empty', footprintAllFalse(dead).ok);
     const snap = currentScoreSnapshot(dead);
-    check('evicted match: score snapshot is honestly UNDECIDED (no fabricated 0–0 decided)', snap.decided === false, JSON.stringify(snap));
-    // a real re-hello must not crash and must give a FRESH EMPTY room — no
-    // resurrected verdict, no decided score fabricated from thin air.
+    // delta-review Bug E fix: a match that GENUINELY finished must not look undecided just
+    // because eviction wiped memory — currentScoreSnapshot falls back to the durable on-disk
+    // sentiment record (the SAME real score driveToFullTime fed it), so a late Collect isn't
+    // refused. Still honest, not fabricated: it's the real crystallized score (contrast the
+    // genuinely-unresolved case below, which has no disk record to fall back to).
+    check("evicted match that GENUINELY finished: score is DECIDED with the REAL disk-crystallized score (Bug E fix — eviction doesn't re-lock a late Collect)", snap.decided === true && snap.home === 2 && snap.away === 1, JSON.stringify(snap));
+    // a real re-hello must not crash and must give a FRESH EMPTY room — no resurrected
+    // PERSONAL verdict (that per-fan state is genuinely gone), even though the MATCH score
+    // itself still honestly reflects the disk record.
     const rejoin = await connectAndHello(dead, 'late-returner');
     check('evicted match: a real re-hello round-trips without crashing the server', rejoin.readyState === WebSocket.OPEN);
     const reborn = registry.get(dead);
-    check('evicted match: re-hello yields a fresh EMPTY room (honest, not fabricated)', !!reborn && reborn.presenceCount() === 1 && reborn.verdictFor('late-returner') === undefined && currentScoreSnapshot(dead).decided === false);
+    check('evicted match: re-hello yields a fresh EMPTY room (no resurrected personal verdict) while the match score stays honestly decided', !!reborn && reborn.presenceCount() === 1 && reborn.verdictFor('late-returner') === undefined && currentScoreSnapshot(dead).decided === true);
+
+    // the other half of the honesty gate: a match EVICTED WITHOUT ever finishing (IDLE_MATCH,
+    // PART 3 — fed odds, never a FULL_TIME, no sentiment record ever crystallized) has no disk
+    // record to fall back to, and must stay honestly undecided — "no record + no memory = still
+    // refused" (see also src/dev/seal-consume-check.ts's dedicated negative case).
+    check('evicted match that NEVER finished: score stays honestly UNDECIDED (no disk record to fall back to — never fabricated)', currentScoreSnapshot(IDLE_MATCH).decided === false, JSON.stringify(currentScoreSnapshot(IDLE_MATCH)));
 
     /* ═══ PART 7 — post-eviction RESTART re-dispatch must NOT re-crystallize /
      * re-anchor (review C1 — the same dup mechanism as last night's ARG-SUI

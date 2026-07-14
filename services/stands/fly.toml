@@ -35,6 +35,23 @@ swap_size_mb = 256
 
 [env]
   PORT = "8080"
+  # Scarf-mint payer: the funded devnet keypair lives on the durable volume
+  # (uploaded once via ssh stdin, never argv). Without this pointer the mint
+  # code generates a fresh UNFUNDED key per deploy and Collect fails silently.
+  MINT_DEVNET_KEYPAIR = "/data/mint-devnet.json"
+  # Anchor durability (services/stands/src/server.ts armAnchorBackfill): sweep the
+  # sentiment records on the volume at boot + every minute and re-anchor any whose
+  # on-chain sig write-back was lost (confirmation timeout / suspend / OOM before
+  # the fire-and-forget .then resolved). Opt-in so dev checks that boot the real
+  # entrypoint never fire devnet anchors; ON here because prod holds the funded
+  # relayer keypair and the durable /data volume the records live on.
+  STANDS_ANCHOR_BACKFILL = "1"
+  # MATCH-DAY belt-and-suspenders (Jul 14 FRA-ESP): hold finished matches in
+  # memory for 24h instead of 15min so post-FT late joiners never depend on
+  # the eviction-cold paths alone (seal-consume covers them; this removes all
+  # doubt for the live demo). One match held = trivial on 512mb. REVERT to
+  # default (delete this line) after Jul 15's ENG-ARG match.
+  STANDS_EVICT_FT_GRACE_MS = "86400000"
   # Ingest mode is set per-deploy via `flyctl deploy -e` or fly secrets, e.g.
   #   REPLAY-driven demo:   TXLINE_ENABLE unset,  REPLAY_FILE + REPLAY_FIXTURE set
   #   LIVE ingest:          TXLINE_ENABLE=1,       TXLINE_FIXTURES=<id[,id]>

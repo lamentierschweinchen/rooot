@@ -7,7 +7,7 @@
  *   - every line (any event type: message/heartbeat/__meta/__disconnect)
  *     from BOTH the odds and scores files that belongs to --fixture, merged
  *     by receivedAtMs into one chronological stream — ReplaySource reads a
- *     single merged file (see apps/web/src/data/ReplaySource.ts).
+ *     single merged file (see archive/src-spa-frozen/apps/web/src/data/ReplaySource.ts).
  *   - heartbeats are dropped entirely (ReplaySource ignores them anyway, and
  *     they're pure filler — cutting them is the first, free size win).
  *   - every score/status-bearing line is ALWAYS kept, uncapped — the task

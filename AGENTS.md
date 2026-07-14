@@ -1,18 +1,22 @@
 # ROOOT — Agent Operating Rules
 
-You are working on ROOOT: the world's most beautiful and fun fan experience for the
-World Cup — on your phone, and on-chain forever. Live market belief as a golden tide
-on a night pitch; root once, cheer constantly, call rarely; keep what you lived
-(scarf, pin, trophy case). Built for the TxODDS hackathon on Solana (deadline
-Jul 19, 23:59 UTC). Read `docs/PRODUCT.md` for what we're building, `docs/DATA.md`
-for the data truth, `docs/ARCHITECTURE.md` for what runs where.
+You are working on ROOOT: a free, live fan experience for the World Cup — a match
+programme that comes alive on your phone, and on-chain forever. Root once, cheer
+constantly, call rarely. The market's read prints plainly beside the crowd's roar
+— real people, really counted, never faked — in a printed world of paper and cloth.
+At the whistle you keep what you lived: a woven scarf, a struck pin, a sealed poster
+of the match. The tide-on-a-night-pitch look is retired; the loom stays
+(`design/PAPER-AND-CLOTH.md`). Built for the TxODDS hackathon on Solana devnet
+(deadline Jul 19, 23:59 UTC). Read `docs/PRODUCT.md` for what we're building,
+`docs/DATA.md` for the data truth, `docs/ARCHITECTURE.md` for what runs where.
 
 ## The laws (violations don't ship)
 
-1. **Honesty.** Every pixel/sound maps to the feed, the taps, or the chain. The market
-   has the *number* (gold tide, de-vigged probability). The crowd has the *roar*
-   (real counts — NEVER dressed as a percentage, never blended with market data).
-   No fake players, no fake ball, no synthetic events in honest layers.
+1. **Honesty.** Every mark maps to the feed, the taps, or the chain. The market has
+   the *number* (a de-vigged probability, shown plainly — a percent or "favoured",
+   never the plumbing). The crowd has the *roar* (real counts — NEVER dressed as a
+   percentage, never a mean, never blended with market data). Nothing renders that
+   didn't happen: no synthetic events, no fabricated counts, no fake aging.
 2. **The game is the game.** ROOOT rides alongside the match, never competes for
    attention. Lurking must stay a complete experience.
 3. **No token, no wager.** The chain is for provenance, commitment, settlement — the
@@ -22,26 +26,34 @@ for the data truth, `docs/ARCHITECTURE.md` for what runs where.
 5. **Secrets.** Keys/tokens live in `.secrets/` (gitignored) or env. Never in code,
    argv, logs, or commits. Devnet only unless the coordinator says otherwise.
 6. **Reference-driven design.** Visual work is judged against `design/references/`
-   (+ `design/REFERENCES.md` once distilled) — never against generic taste. If your
-   render drifts toward betting-app/dashboard/AI-gradient looks, it dies in review.
+   and the paper-and-cloth site language (`design/PAPER-AND-CLOTH.md`,
+   `design/REFERENCES.md`) — never against generic taste. If your render drifts
+   toward betting-app/dashboard/AI-gradient looks, it dies in review.
 7. **Build-green ≠ done.** Gate at runtime, the way a user does it. Visual work =
    screenshot it yourself (the owner can't see your screen). Console must be clean.
 
 ## The map (lane = directory = one writer)
 
+The shipping product is the static surfaces in `apps/web/public/` plus their vanilla
+adapters, served by one stands service. That is what a fan reaches. Everything else
+is the seams it rides on.
+
 | Directory | Lane | Who writes |
 |---|---|---|
-| `contracts/` | the frozen seams (match, crowd, relic) | **coordinator only** — need a field? ask |
-| `apps/web/src/main.ts` | composition root | **coordinator only** (integration) |
-| `apps/web/src/stage/` | L3 · tide-on-pitch renderer | stage lane |
-| `apps/web/src/crowd/` | L5 · ends, cheer, pulse, rows UI | crowd lane |
-| `apps/web/src/relics/` | L4 · scarf, pin, trophy case | relic lane |
-| `apps/web/src/mint/` | L4b · Metaplex Core mint (port of STRATA's) | mint lane |
-| `apps/web/src/data/` | L1 · TxLineDataSource, ReplaySource, MockSource | data lane |
-| `apps/web/src/lib/` | shared utils + theme tokens | additive only; don't edit others' exports |
-| `services/stands/` | L2 · aggregation, fanout, relayer | stands lane |
-| `scripts/` | ops (auth, record, inspect) | data lane / coordinator |
-| `docs/`, `design/` | ground truth | coordinator + design lane |
+| `apps/web/public/*.html` + `*-adapter.js` | **THE shipping product** — the seven surfaces (gate · ground · woven-loom · terrace · stadium · cabinet · showcase) and the adapters that feed them | frontend/design lane |
+| `services/stands/` | L2 · the one server — TxLINE ingest, crowd aggregation, verdicts, durable persistence, devnet relayer + scarf mint | stands lane |
+| `contracts/` | the frozen seams (feed · crowd · relic · sentiment · normalize) | **coordinator only** — need a field? ask |
+| `scripts/` | ops — TxLINE auth, stream recording, the release canary, night-report, fixture cutover | ops / coordinator |
+| `docs/`, `design/` | ground truth + owner-curated references | coordinator + design lane |
+| `archive/` | retired material — the tide-era `src/` SPA, old prototypes | **nobody builds here** |
+
+The one fixture manifest (`apps/web/public/fixture.json`) and the deploy/routing
+config (`vercel.json`, `services/stands/fly.toml`) are integration seams — the
+coordinator repoints them at cutover.
+
+The old `apps/web/src/` SPA (`main.ts` + `stage/`, `crowd/`, `relics/`, `mint/`,
+`data/`, `lib/`) is frozen and unused — nothing a fan reaches runs it. It is being
+retired to `archive/src-spa-frozen/`; don't build there.
 
 Stay in your lane's directories + your own new files. If two lanes must touch the
 same file, stop and tell the coordinator.

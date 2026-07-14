@@ -10,7 +10,7 @@
  * what, who-already-saw-their-verdict, each fan's accumulated card (THE
  * STANDS CARD substrate — write-only tonight, see match-state.ts's FanStats
  * doc comment), and each fan's global first-come serial (design/
- * HANDOFF-2026-07-10-fan-serial.md, see MatchRegistry.fanNoFor).
+ * archive/design-docs-consumed/design/HANDOFF-2026-07-10-fan-serial.md, see MatchRegistry.fanNoFor).
  *
  * Deliberately NOT snapshotting roar/pulse rolling counters — those are
  * seconds-old by nature and honestly should reset to silence on restart
@@ -86,7 +86,7 @@ export const SNAPSHOT_INTERVAL_MS = resolveSnapshotIntervalMs();
  * read and defaults rather than fabricates. v3 adds fanStats (THE STANDS CARD
  * substrate) — absent on a v1/v2 file, which defaults to no stats for every
  * fan, never a fabricated zeroed row. v4 adds `fans` (THE FAN SERIAL,
- * design/HANDOFF-2026-07-10-fan-serial.md) — a top-level, REGISTRY-GLOBAL
+ * archive/design-docs-consumed/design/HANDOFF-2026-07-10-fan-serial.md) — a top-level, REGISTRY-GLOBAL
  * field (not per-match, unlike everything else here) — absent on a v1/v2/v3
  * file, which defaults to an empty registry: numbering then starts fresh at
  * 1, never fabricated retroactively for fans who connected before this
@@ -193,7 +193,7 @@ interface SnapshotMatch {
   finalScore?: { home: number; away: number };
 }
 
-/** v4+. THE FAN SERIAL (design/HANDOFF-2026-07-10-fan-serial.md) — a
+/** v4+. THE FAN SERIAL (archive/design-docs-consumed/design/HANDOFF-2026-07-10-fan-serial.md) — a
  * REGISTRY-GLOBAL counter + map (not per-match; lives at the top level of
  * SnapshotFile, not inside SnapshotMatch — see the field below). `nextFanNo`
  * is persisted explicitly for a human reading the file, but applySnapshot
@@ -342,7 +342,7 @@ export function readSnapshot(): SnapshotFile | null {
  * verdicts at all".
  *
  * `restoreFanSerial`, if given, is called ONCE (not per-match — THE FAN
- * SERIAL is registry-global, design/HANDOFF-2026-07-10-fan-serial.md) when
+ * SERIAL is registry-global, archive/design-docs-consumed/design/HANDOFF-2026-07-10-fan-serial.md) when
  * `snap.fans` is present. Absent on a v1/v2/v3 file — the registry stays at
  * its default empty state (numbering starts fresh at 1), never fabricated.
  *
@@ -398,11 +398,19 @@ export function applySnapshot(
     if (restoreOpenedTriggers && sm.openedTriggerIds && sm.openedTriggerIds.length > 0) restoreOpenedTriggers(sm.matchId, sm.openedTriggerIds);
     if (restoreNextGoalResolved && sm.nextGoalResolvedIds && sm.nextGoalResolvedIds.length > 0) restoreNextGoalResolved(sm.matchId, sm.nextGoalResolvedIds);
     if (restoreNextGoalRows && sm.nextGoalRows && sm.nextGoalRows.length > 0) restoreNextGoalRows(sm.matchId, sm.nextGoalRows);
-    const hadVerdicts = (sm.verdicts?.length ?? 0) > 0;
-    if (markResolved && (sm.resolved === true || hadVerdicts)) markResolved(sm.matchId);
+    // finalScore BEFORE resolved (order matters, docs/DATA-ARCHITECTURE.md §4
+    // item 2's provenance-fetch crash-window guard, server.ts's `resolved`
+    // hook): that hook distinguishes "genuinely crashed mid-crystallize"
+    // (finalScore WAS captured — predictLifecycle sets it synchronously,
+    // same tick as resolved — but no sentiment record landed) from an old/
+    // doctored snapshot with no finalScore at all (trust resolved as-is,
+    // unrelated case) — it can only tell them apart if finalScores is
+    // already populated by the time markResolved runs.
     if (restoreFinalScore && sm.finalScore && typeof sm.finalScore.home === 'number' && typeof sm.finalScore.away === 'number') {
       restoreFinalScore(sm.matchId, { home: sm.finalScore.home, away: sm.finalScore.away });
     }
+    const hadVerdicts = (sm.verdicts?.length ?? 0) > 0;
+    if (markResolved && (sm.resolved === true || hadVerdicts)) markResolved(sm.matchId);
   }
   if (restoreFanSerial && snap.fans) restoreFanSerial(snap.fans.nextFanNo ?? 1, snap.fans.numbers ?? []);
 }

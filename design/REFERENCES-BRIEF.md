@@ -8,18 +8,20 @@ images — never against vibes. Drop 3–6 images per category into
 
 ## What we need, and why
 
-### 1. `night-pitch/` — the stage's ground
-Floodlit pitches at night, from above (drone aerials, broadcast wides, empty stadiums).
-**Why:** how grass actually reads under floodlight — the green-black falloff, the chalk
-lines' luminance, the pooled light. The stage must feel like a real place at night, not
-a dark-mode UI.
+### 1. `programme-and-ticket/` — the paper world  *(replaces `night-pitch/`; the stage is retired)*
+Vintage matchday programmes · ticket stubs · scorecards · bureaucratic-beautiful print
+grids — the printed documents ROOOT is built from.
+**Why:** paper is a register with physics (`design/PAPER-AND-CLOTH.md`, the law): fat
+benday ink, warm newsprint, registration snaps. The surfaces must read as printed
+documents, not a dark-mode UI. (The old floodlit-pitch reference retired with the
+stage; any night mood now lives as the PRESS-BLACK paper ground.)
 
-### 2. `tide-light/` — the belief's material
-Bioluminescent surf at night · long-exposure tides from above · gold light moving on
-dark water · slow lava fronts.
-**Why:** the market's belief is a luminous tide with a defined front edge. These teach
-how a glowing liquid boundary reads as *pressure* — not as a chart fill. This is the
-single most important category.
+### 2. `print-poster/` — the keepsake poster & album page  *(replaces `tide-light/`; the tide is retired)*
+Bold print posters · album covers and pages · big display type on flat spot-ink grounds.
+**Why:** at full time the match seals into a printed poster kept in the album — the
+paper keepsake's ground: flat spot inks, huge display faces, no gradients
+(`design/PAPER-AND-CLOTH.md`). The market's number prints plainly here, never as a
+luminous tide.
 
 ### 3. `scarf-weave/` — the relic's cloth
 Real club scarves, macro: weave texture, jacquard lettering, selvage edges, tassels,
@@ -31,11 +33,12 @@ Material realism is the whole bet.
 Jacquard/data-weaving art, tapestry timelines, embroidered notation, stitched marks.
 **Why:** proof that data → textile can be art. The calls are *embroidered*, not plotted.
 
-### 5. `ends-light/` — the crowd's material
-Curvas/ends at night: phone-light seas, flare glow, tifo from across the stadium,
-the mass of a stand as texture.
-**Why:** the ends are crowds rendered as light. These images say what ten thousand
-people look like as a single luminous body.
+### 5. `ends-light/` — the crowd's mass  *(reframed; crowds-as-light retired with the stage)*
+Curvas/ends at night: tifo from across the stadium, terrace blocks from afar, the
+mass of a stand as texture.
+**Why:** the crowd now PRINTS — ink bars, crowd-block dots, counted heads, never a
+percentage (`design/PAPER-AND-CLOTH.md`). These images still teach what ten thousand
+people read as one mass: the density and texture the printed blocks must carry.
 
 ### 6. `type-print/` — the words' ground
 Vintage matchday programmes · stadium scoreboards/dot-matrix · ticket stubs.

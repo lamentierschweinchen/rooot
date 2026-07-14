@@ -336,8 +336,8 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
 
 <script src="plate/gens/stadium-data.js"></script>
 <!-- demo engine — private prototype default: baked recording → window.__match (score/clock/market/marketSeries) -->
-<script>if(!/[?&](live=1|demo=0)/.test(location.search))document.write('<scr'+'ipt src="plate/demo-suicol.js"></scr'+'ipt><scr'+'ipt src="demo-feed.js"></scr'+'ipt><scr'+'ipt src="match-read.js"></scr'+'ipt><scr'+'ipt src="crowd-sim.js"></scr'+'ipt>');</script>
-<script>if(/[?&]live=1/.test(location.search))document.write('<scr'+'ipt src="match-read.js"></scr'+'ipt>');</script>
+<script>if(/[?&]demo=1/.test(location.search))document.write('<scr'+'ipt src="plate/demo-suicol.js"></scr'+'ipt><scr'+'ipt src="demo-feed.js"></scr'+'ipt><scr'+'ipt src="match-read.js"></scr'+'ipt><scr'+'ipt src="crowd-sim.js"></scr'+'ipt>');</script>
+<script>if(!/[?&]demo=1/.test(location.search))document.write('<scr'+'ipt src="match-read.js"></scr'+'ipt>');</script>
 <script>
 (function(){
   'use strict';
@@ -352,10 +352,12 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
    '18218149':['ESP','SPAIN','#AA151B','BEL','BELGIUM','#1A1A18'],
    '18213979':['NOR','NORWAY','#BA0C2F','ENG','ENGLAND','#1A1A18'],
    '18222446':['ARG','ARGENTINA','#5C8CB8','SUI','SWITZERLAND','#D52B1E'],
+   '18237038':['FRA','FRANCE','#0055A4','ESP','SPAIN','#AA151B'],
+   '18241006':['ENG','ENGLAND','#1A1A18','ARG','ARGENTINA','#5C8CB8'],
    'argcpv':['ARG','ARGENTINA','#2049AA','CPV','CABO VERDE','#C8504D']};
   // secondary (change-strip) colours — so two same-primary teams never read as one
   var SEC={ARG:'#EDE9DE',CPV:'#12388C',BRA:'#1E8C4C',NOR:'#00205B',MEX:'#C8102E',ENG:'#EDE9DE',POR:'#DA020E',ESP:'#F1BF00',USA:'#B4232B',BEL:'#FDDA24',EGY:'#111111',SUI:'#EDE9DE',COL:'#003893',FRA:'#EDE9DE',MAR:'#006233'};
-  var q=new URLSearchParams(location.search), LIVE=q.get('live')==='1', DEMO=!LIVE&&q.get('demo')!=='0';
+  var q=new URLSearchParams(location.search), DEMO=q.get('demo')==='1', LIVE=!DEMO, WS=q.get('ws');   // live is the default; specimen only under ?demo=1
   var explicitMatch=q.get('match');
   // T16 — the __fixture manifest is the one truth; FIX/SEC above are now only the
   // explicit-?match lookup + the last-resort fallback (never invent a fixture). SEC is
@@ -380,6 +382,9 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     SEC[mf.away.code]=mf.away.colors[1]||SEC[mf.away.code]||'#EDE9DE';
     return [mf.home.code,String(mf.home.name).toUpperCase(),mastInk(mf.home.colors[0]),mf.away.code,String(mf.away.name).toUpperCase(),mastInk(mf.away.colors[0])];
   }
+  // adopt-#1 (docs/DATA-ARCHITECTURE.md §4): fixture.home/away (contracts/feed.ts) share the
+  // manifest's {code,name,colors} shape — same mapping, different (any-known-fixture) source.
+  var fromFixtureInfo=fromManifest;
 
   function boot(mid,fx){
   if(q.get('embed')){document.body.classList.add('embed');var es=document.createElement('style');es.textContent='.mast{display:none!important}.program{display:none!important}';document.head.appendChild(es);}  // framed inside the composite — the composite owns the masthead + navigation
@@ -632,7 +637,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     dots.innerHTML=CARDS.map(function(c){return '<i data-go="'+c[0]+'" title="'+c[1]+'"'+(c[0]===place?' class="on"':'')+'></i>';}).join('');
   }
   function open(place,origin){
-    if(place==='stands'){ location.href='terrace.html'+(DEMO?'?demo=1':(LIVE?'?live=1&match='+encodeURIComponent(mid):'')); return; }   // the stands lead INTO the stands — carrying the resolved fixture
+    if(place==='stands'){ location.href='terrace.html'+(DEMO?'?demo=1':'?live=1&match='+encodeURIComponent(mid))+(WS?'&ws='+encodeURIComponent(WS):''); return; }   // the stands lead INTO the stands — carrying the resolved fixture + wire
     var sh=el('sheet-'+place);
     if(!sh){ toast((SOON[place]||place.toUpperCase())+' · NEXT'); return; }
     if(openSheet && openSheet!==sh){ openSheet.style.transformOrigin='50% 50%'; openSheet.classList.remove('open'); }
@@ -706,14 +711,14 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
   }
   } // end boot
 
-  // T16 fixture resolution: explicit ?match= wins outright (unchanged — literal-table
-  // lookup, no async wait) → else, on a live route, the __fixture manifest (raced
-  // against a ~1500ms timeout, same idiom as stands-adapter.js) → else today's literal
-  // default (never invent a fixture; fetch-fail is exactly today's behavior). A live
-  // explicit ?match= that isn't one of the literal entries (e.g. ground forwarding its
-  // own manifest-resolved id into this embedded lens) still checks the manifest before
-  // giving up, so gate→ground→stadium never shows a mismatched fixture once any
-  // surface has resolved the real one.
+  // T16/adopt-#1 fixture resolution: explicit ?match= wins outright (unchanged — literal-table
+  // lookup, no async wait) → else, on a live route, the __fixture manifest IF it matches this
+  // match (raced against a ~1500ms timeout, same idiom as stands-adapter.js) → else fixtureInfo
+  // (server truth, sentiment/teams.ts — ANY known fixture, the CPV-case fix) → else an honest
+  // neutral placeholder (never a stale OTHER match's literal). A live explicit ?match= that
+  // isn't one of the literal entries (e.g. ground forwarding its own manifest-resolved id into
+  // this embedded lens) still checks the manifest before giving up, so gate→ground→stadium
+  // never shows a mismatched fixture once any surface has resolved the real one.
   if(explicitMatch&&FIX[explicitMatch]){
     boot(explicitMatch,FIX[explicitMatch]);
   }else if(!LIVE){
@@ -721,16 +726,29 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     boot(mid,FIX[mid]||FIX['18202783']);
   }else{
     var done=false, fallbackId=explicitMatch||'18218149';
+    var NEUTRAL_FIX=['—','',mastInk('#8C8467'),'—','',mastInk('#8C8467')];
     function finish(id,fx){ if(done)return; done=true; boot(id,fx); }
+    (function waitForFixtureInfo(){
+      if(window.__stands&&window.__stands.onFixtureInfo){
+        window.__stands.onFixtureInfo(function(fx){
+          if(!fx||!fx.home||!fx.away)return;
+          if(fx.id&&fx.id!==fallbackId)return;
+          finish(fallbackId,fromFixtureInfo(fx));
+        });
+        return;
+      }
+      setTimeout(waitForFixtureInfo,120);
+    })();
     window.__fixtureReady=window.__fixtureReady||fetch('/fixture.json').then(function(r){return r.ok?r.json():null;}).catch(function(){return null;});
     window.__fixtureReady.then(function(mf){
       if(mf&&mf.matchId&&mf.home&&mf.away&&(!explicitMatch||explicitMatch===mf.matchId)){ finish(mf.matchId,fromManifest(mf)); }
-      else{ finish(fallbackId,FIX['18218149']); }
-    },function(){ finish(fallbackId,FIX['18218149']); });
-    setTimeout(function(){ finish(fallbackId,FIX['18218149']); },1500);
+      // else: a manifest for a DIFFERENT match tells us nothing about this one — wait for fixtureInfo/timeout instead.
+    },function(){ /* fetch failed — same: wait for fixtureInfo or the timeout */ });
+    setTimeout(function(){ finish(fallbackId,NEUTRAL_FIX); },1500);
   }
 })();
 </script>
+<script src="/stands-adapter.js"></script>
 <script src="/stats-adapter.js"></script>
 </body>
 </html>
