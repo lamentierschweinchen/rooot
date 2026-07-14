@@ -774,7 +774,7 @@ var ngLastState=null, ngMode='open', ngEnded=false, ngDismissed=false, ngResetT=
 function ngFmtSide(s){ return s==='home'?HOME_TRI:s==='away'?AWAY_TRI:null; }
 function ngTap(call){
   if(window.__stands&&window.__stands.nextGoal)window.__stands.nextGoal(call);
-  ngMode='gone'; el('pred').classList.remove('on');   // the tap IS the lock — the card leaves with it
+  ngMode='gone'; try{sessionStorage.setItem('rooot.ng.called.'+MATCH_ID,'1');}catch(e){} el('pred').classList.remove('on');   // the tap IS the lock — the card leaves with it (persist so a page-return doesn't re-ask the window you already answered; cleared next cycle at ngReset)
 }
 // the crowd's live split — counts with n, never a percentage; n:0 is honest silence, never zeros.
 // ALWAYS cached, even while the card is gone/verdict: state broadcasts fire on every accepted
@@ -812,6 +812,7 @@ function ngReset(){   // the 10s beat — the ONLY path that flips the card back
   clearTimeout(ngResetT); ngResetT=null;
   if(!ngInit._done||ngEnded||ngDismissed)return;
   ngMode='open';
+  try{sessionStorage.removeItem('rooot.ng.called.'+MATCH_ID);}catch(e){}   // a fresh window — the answered-state is obsolete, the card is askable again
   ngBuildCard();
 }
 function ngEnd(){   // FULL_TIME — the card is gone (fires with the page's existing FT beat, the keepsake)
@@ -846,6 +847,7 @@ function ngInit(){
   el('predX').onclick=function(){ ngDismissed=true; try{sessionStorage.setItem(key,'1');}catch(e){} clearTimeout(ngResetT); el('pred').classList.remove('on'); };   // dismissed = stays away for the session, through any rebuild
   if(window.__stands.onNextGoal)window.__stands.onNextGoal(ngOnState);
   if(window.__stands.onNextGoalVerdict)window.__stands.onNextGoalVerdict(ngOnVerdict);
+  try{ if(sessionStorage.getItem('rooot.ng.called.'+MATCH_ID)==='1') ngMode='gone'; }catch(e){}   // you already answered this window — don't re-ask on a page return; the replayed verdict (or next cycle's ngReset) brings the card back
   ngBuildCard();
 }
 // ── the pulse, on the live moment schema — every kind opens a feeling window (T6) ──
