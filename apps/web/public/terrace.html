@@ -75,7 +75,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 /* the consensus — the scoreline the crowd holds up, BESIDE the market (never blended) */
 /* the seam's data block — one keylined box, two cells, the centre rule is the crowd/market boundary */
-.crowdcall{transition:opacity .3s}
+.crowdcall{align-self:stretch;transition:opacity .3s}   /* .mid centres its children — stretch the plate wrapper to the full seam width */
 /* THE PLATE — a printed prediction card, THE CROWD over THE MARKET (portrait, phone-legible).
    Crowd = fan predictions · avg prediction · heart-v-head (each fanbase vs the market).
    Market = chance to win (mirrors the fan bar) · move since kickoff. Team inks; never blended. */
@@ -110,7 +110,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .fvconn{position:absolute;top:50%;height:3px;transform:translateY(-50%);z-index:1}
 .fvconn.t1{background:var(--you)}.fvconn.t3{background:var(--them)}
 .mdot,.fdot{position:absolute;top:50%;transform:translate(-50%,-50%);border-radius:50%;border:1.5px solid var(--ink);z-index:2}
-.mdot{width:8px;height:8px;background:var(--paper)}
+.mdot{width:8px;height:8px;background:var(--paper);z-index:3}   /* hollow market dot rides above the filled fans dot so a tiny gap still reads as two markers */
 .fdot{width:10px;height:10px}.fdot.t1{background:var(--you)}.fdot.t3{background:var(--them)}
 .fvgap{font-weight:900;font-size:9px;text-align:right;color:var(--ink);font-variant-numeric:tabular-nums}
 .fvkey{display:flex;gap:11px;font-weight:800;font-size:6px;letter-spacing:.04em;color:var(--sub);margin-top:5px;align-items:center}
@@ -775,7 +775,7 @@ function ccUpdate(c){ if(!c)return;
   if(wait)wait.style.display='none'; if(sec)sec.classList.remove('lite');
   if(A.outcome){ setPBar(A.outcome.homeWin,A.outcome.draw,A.outcome.awayWin,'fpH','fpD','fpA'); }   // FAN PREDICTIONS
   if(A.mean){ setAvg(A.mean.home.toFixed(1),A.mean.away.toFixed(1)); }
-  var sub=el('crowdSub'); if(sub)sub.textContent='FROM '+A.n+' CALL'+(A.n===1?'':'S');
+  var sub=el('crowdSub'); if(sub)sub.textContent='FROM '+A.n+' PREDICTION'+(A.n===1?'':'S');
   M.br=c.byRoot||null; refreshHvH();
 }
 function marketUpdate(m){ if(!m||m.home==null)return; M.mkt=m;
