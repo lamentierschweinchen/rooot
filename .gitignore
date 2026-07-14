@@ -4,6 +4,7 @@ dist/
 .env
 .env.*
 fixtures/*.jsonl
+fixtures/**/*.jsonl
 docs/txline/probe/
 .DS_Store
 .vercel/

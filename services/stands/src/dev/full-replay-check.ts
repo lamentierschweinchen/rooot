@@ -8,14 +8,18 @@
  * calls for both TXLINE and REPLAY ingest) with a real ws fan connected,
  * asserting:
  *
- *   1. at least the KNOWN moment count opens (every distinct hard trigger in
- *      the capture — goal/possible/red/var ledger ids + the FULL_TIME status
- *      — must open exactly one window; the expected total is COMPUTED from
- *      the capture, then cross-checked against the known figure for this
- *      file, 29, so a silently-changed capture can't hollow the check out),
- *   2. each real goal id and the full-time id opened EXACTLY once — the
- *      capture carries the wire's real re-emissions (7 goal messages, 3
- *      distinct ids), so this also proves dedup over real re-emission shapes,
+ *   1. at least the KNOWN moment count opens (every distinct GENUINELY hard
+ *      trigger in the capture — confirmed goal/red-card/var/penalty-kick
+ *      ledger ids + the FULL_TIME status — must open exactly one window; the
+ *      expected total is COMPUTED from the capture, then cross-checked
+ *      against the known figure for this file, 5, so a silently-changed
+ *      capture can't hollow the check out),
+ *   2. each goal id that actually SETTLES (confirmed:true somewhere in the
+ *      capture) opened EXACTLY once — the capture carries the wire's real
+ *      re-emissions (7 goal messages, 3 distinct ids), so this also proves
+ *      dedup over real re-emission shapes — and the one goal id that never
+ *      settles in this capture window (still Confirmed:false when the
+ *      recording ends) opened ZERO times,
  *   3. ZERO pipeline error lines (the broadcastToMatch fan-out isolation
  *      catches: rememberForJoin/feedSentiment/predictLifecycle/
  *      momentLifecycle/close-timer/crystallize) across the whole replay.
@@ -29,6 +33,20 @@
  * moments — if a live match ever goes silent again while this stays green,
  * the cause is environmental (and the hard-trigger breadcrumb log in
  * momentLifecycle will say exactly how far triggers got).
+ *
+ * Post docs/POSTMORTEM-2026-07-14-live.md (Jul 14 FRA-ESP): 'possible' — the
+ * held-breath "checking…" trigger — moved from hard to SOFT (it must never
+ * supersede a real hard moment; this capture alone carries 24 of them, and
+ * treating every one as hard is exactly the "flood" the post-mortem names),
+ * and a 'goal' trigger now requires `confirmed === true` (never celebrate a
+ * goal that hasn't settled). Both changes are proven here against a SECOND
+ * real capture, independent of the FRA-ESP feed the fix was diagnosed
+ * against: this file's own 18209181:495 sits at Confirmed:false with no
+ * later re-emission in the recorded window (the capture ends before it
+ * settles either way) — exactly the shape that must open NO celebration.
+ * `penalty-kick` — previously wired to nothing — now opens too; this capture
+ * happens to carry one real penalty (18209181:302), so it is proof, not
+ * just theory.
  *
  * Hermetic: STANDS_DATA_DIR is pointed at a fresh temp dir BEFORE the server
  * module loads (snapshot.ts resolves DATA_DIR at import time — hence the
@@ -67,31 +85,41 @@ interface CaptureMsg {
 }
 const capture = JSON.parse(readFileSync(CAPTURE_PATH, 'utf8')) as { messages: CaptureMsg[] };
 
-/** Every distinct HARD trigger the capture carries — computed the same way
- * detectMoment classifies them (goal/possible/red-card/var ledger events are
- * hard with sourceId = ev.id; FULL_TIME status is hard with `${matchId}:ft`).
- * Soft triggers (near-miss/swing) are deliberately NOT counted: during a
- * fast replay a window is open nearly continuously (each hard trigger
- * supersedes the last; the 25s close timer never fires inside the replay's
- * few seconds), so softs are deterministically suppressed — hence the `>=`
- * in the main assertion rather than `===`. */
-const HARD_LEDGER_KINDS = new Set(['goal', 'possible', 'red-card', 'var']);
+/** Every distinct GENUINELY hard trigger the capture carries — computed the
+ * same way detectMoment classifies them post-fix
+ * (docs/POSTMORTEM-2026-07-14-live.md): red-card/var/penalty-kick ledger
+ * events are unconditionally hard with sourceId = ev.id; a goal event is
+ * hard ONLY if some sighting of that same wire id reaches `confirmed: true`
+ * (never celebrate a goal that hasn't settled — an id that stays
+ * Confirmed:false for its entire life in the capture must open NOTHING);
+ * FULL_TIME status is hard with `${matchId}:ft`. 'possible' is deliberately
+ * EXCLUDED here — it is soft now, so whether it opens depends on timing
+ * (nothing else active + past cooldown), not a fixed per-id count; that
+ * behavior is covered by services/stands/src/dev/reactions-live-check.ts
+ * Scenario 3 instead. Soft triggers (near-miss/swing) were never counted
+ * here either. */
+const HARD_LEDGER_KINDS = new Set(['red-card', 'var', 'penalty-kick']);
 const hardIds = new Set<string>();
-const goalIds = new Set<string>();
+const goalIdsAll = new Set<string>();
+const goalIdsConfirmed = new Set<string>();
 let sawFullTime = false;
 for (const m of capture.messages) {
   if (m.type === 'ledger' && m.msg?.type === 'event' && m.msg.ev?.id && HARD_LEDGER_KINDS.has(m.msg.ev.kind ?? '')) {
     hardIds.add(m.msg.ev.id);
-    if (m.msg.ev.kind === 'goal') goalIds.add(m.msg.ev.id);
+  }
+  if (m.type === 'ledger' && m.msg?.type === 'event' && m.msg.ev?.kind === 'goal' && m.msg.ev.id) {
+    goalIdsAll.add(m.msg.ev.id);
+    if ((m.msg.ev as { confirmed?: boolean }).confirmed === true) goalIdsConfirmed.add(m.msg.ev.id);
   }
   if (m.type === 'status' && m.ev?.phase === 'FULL_TIME') sawFullTime = true;
 }
 const FT_ID = `${CAPTURE_MATCH}:ft`;
-const expectedHard = hardIds.size + (sawFullTime ? 1 : 0);
-/** The known figure for THIS capture file (3 goal + 24 possible + 1 var +
- * 1 full-time) — cross-checked below so a silently-swapped capture can't
- * turn the whole check vacuous. */
-const KNOWN_MOMENT_COUNT = 29;
+const expectedHard = hardIds.size + goalIdsConfirmed.size + (sawFullTime ? 1 : 0);
+/** The known figure for THIS capture file (2 confirmed goals — a 3rd,
+ * 18209181:495, stays Confirmed:false all through the capture and must NOT
+ * open — + 1 var + 1 penalty-kick + 1 full-time) — cross-checked below so a
+ * silently-swapped capture can't turn the whole check vacuous. */
+const KNOWN_MOMENT_COUNT = 5;
 
 /* ── pipeline error interception — console.warn is the pipeline's error
  * channel; any of these markers during the replay is a failure. ─────────── */
@@ -112,9 +140,9 @@ console.warn = (...args: unknown[]) => {
 };
 
 async function main(): Promise<void> {
-  console.log(`[full-replay-check] capture: ${capture.messages.length} real messages, ${goalIds.size} distinct goal ids, expected hard moments=${expectedHard}`);
+  console.log(`[full-replay-check] capture: ${capture.messages.length} real messages, ${goalIdsAll.size} distinct goal ids (${goalIdsConfirmed.size} settle), expected hard moments=${expectedHard}`);
   check('capture sanity: the computed hard-trigger count matches the known figure for this capture file', expectedHard === KNOWN_MOMENT_COUNT, `computed=${expectedHard} known=${KNOWN_MOMENT_COUNT}`);
-  check('capture sanity: 3 distinct real goal ids + a FULL_TIME status present', goalIds.size === 3 && sawFullTime, `goals=${[...goalIds].join(',')} ft=${sawFullTime}`);
+  check('capture sanity: 3 distinct real goal ids (2 settling) + a FULL_TIME status present', goalIdsAll.size === 3 && goalIdsConfirmed.size === 2 && sawFullTime, `goals=${[...goalIdsAll].join(',')} confirmed=${[...goalIdsConfirmed].join(',')} ft=${sawFullTime}`);
 
   // dynamic import so CHECK_DATA_DIR is already in env when snapshot.ts
   // resolves DATA_DIR at module load (see the header comment).
@@ -166,11 +194,17 @@ async function main(): Promise<void> {
     );
     const opensById = new Map<string, number>();
     for (const o of momentOpens) opensById.set(o.momentId, (opensById.get(o.momentId) ?? 0) + 1);
-    const goalsOpenedOnce = [...goalIds].every((id) => opensById.get(id) === 1);
+    const confirmedGoalsOpenedOnce = [...goalIdsConfirmed].every((id) => opensById.get(id) === 1);
     check(
-      'every real goal id opened EXACTLY once (the capture carries 7 goal re-emissions across 3 ids — dedup over real wire shapes)',
-      goalsOpenedOnce,
-      `goals=${[...goalIds].map((id) => `${id}:${opensById.get(id) ?? 0}`).join(' ')}`,
+      'every goal id that SETTLES opened EXACTLY once (the capture carries 7 goal re-emissions across 3 ids — dedup over real wire shapes)',
+      confirmedGoalsOpenedOnce,
+      `confirmed goals=${[...goalIdsConfirmed].map((id) => `${id}:${opensById.get(id) ?? 0}`).join(' ')}`,
+    );
+    const unconfirmedGoalIds = [...goalIdsAll].filter((id) => !goalIdsConfirmed.has(id));
+    check(
+      "the goal id that never settles in this capture (still Confirmed:false when the recording ends) opened ZERO times — honesty: never celebrate a goal that hasn't stood (docs/POSTMORTEM-2026-07-14-live.md)",
+      unconfirmedGoalIds.length === 1 && (opensById.get(unconfirmedGoalIds[0]!) ?? 0) === 0,
+      `unconfirmed=${unconfirmedGoalIds.map((id) => `${id}:${opensById.get(id) ?? 0}`).join(' ')}`,
     );
     check('the full-time moment opened exactly once', opensById.get(FT_ID) === 1, `ft opens=${opensById.get(FT_ID) ?? 0}`);
     check(

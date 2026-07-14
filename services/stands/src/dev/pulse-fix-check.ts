@@ -103,19 +103,45 @@ interface Capture {
 }
 const capture = JSON.parse(readFileSync(CAPTURE_PATH, 'utf8')) as Capture;
 
+/**
+ * One representative message per distinct real goal id — confirmed-eventually
+ * ids first (each holding its LATEST sighting), never-confirmed ids last.
+ * Two things changed here post-fix (docs/POSTMORTEM-2026-07-14-live.md):
+ * detectMoment now requires `confirmed === true` before it will open a
+ * celebration (never celebrate a goal that hasn't stood — tonight's real
+ * VAR-overturned goal proved why), so
+ *  (1) each id now carries its LATEST sighting, not its first: a real goal
+ *      re-emits as it upgrades (Confirmed:false → true, then again with the
+ *      scorer filled in) and the wire only ever ADDS information across
+ *      those re-emissions, never retracts it;
+ *  (2) confirmed-eventually ids sort first: this capture has one goal id
+ *      (18209181:495) whose only sighting is Confirmed:false — a real
+ *      provisional goal the capture window ended before settling — which
+ *      can now never open a moment no matter which sighting is kept, so a
+ *      scenario expecting "a real goal ledger event opens a moment" (they
+ *      only ever read the front of this array) must not land on it.
+ * The distinct-id SET and .length are unchanged either way — scenario 6's
+ * independent cross-check (every distinct real goal id, confirmed or not,
+ * still lands once in the crystallized ledger) reads only .length.
+ */
 function realGoalMessages(): Array<FeedMsg & { type: 'ledger' }> {
-  const seen = new Set<string>();
-  const out: Array<FeedMsg & { type: 'ledger' }> = [];
+  const order: string[] = [];
+  const latestById = new Map<string, FeedMsg & { type: 'ledger' }>();
+  const confirmedById = new Set<string>();
   for (const m of capture.messages) {
     if (m.type !== 'ledger') continue;
-    const inner = (m as { msg?: { type?: string; ev?: { kind?: string; id?: string } } }).msg;
+    const inner = (m as { msg?: { type?: string; ev?: { kind?: string; id?: string; confirmed?: boolean } } }).msg;
     if (inner?.type !== 'event' || inner.ev?.kind !== 'goal') continue;
     const id = inner.ev.id;
-    if (!id || seen.has(id)) continue;
-    seen.add(id);
-    out.push(m as FeedMsg & { type: 'ledger' });
+    if (!id) continue;
+    if (!latestById.has(id)) order.push(id);
+    latestById.set(id, m as FeedMsg & { type: 'ledger' });
+    if (inner.ev.confirmed === true) confirmedById.add(id);
   }
-  return out;
+  // stable sort: ties (both confirmed, or both never-confirmed) keep their
+  // original first-seen relative order.
+  const ordered = [...order].sort((a, b) => Number(confirmedById.has(b)) - Number(confirmedById.has(a)));
+  return ordered.map((id) => latestById.get(id)!);
 }
 function realFullTimeMessage(): FeedMsg & { type: 'status' } {
   const m = capture.messages.find((x) => x.type === 'status' && (x as { ev?: { phase?: string } }).ev?.phase === 'FULL_TIME');
