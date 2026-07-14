@@ -36,6 +36,13 @@ body.embed .wrap{padding:6px 8px 8px}
 @keyframes gool{0%{opacity:0;transform:scale(.4)}14%{opacity:1;transform:scale(1.12)}30%{transform:scale(1)}78%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.05)}}
 /* THE SHOOTOUT — the loom frame becomes a board when a match goes to penalties */
 .loomv.pens{overflow:hidden}
+/* headless mint capture (?keepsake=1&export=1): unclip the scroll chain so the whole sealed cloth lays out for one screenshot of #loomsvg */
+html.lexport,html.lexport body{height:auto;overflow:visible}
+html.lexport .wrap{height:auto}
+html.lexport .loomwrap{flex:none}
+html.lexport .loomv{flex:none;overflow:visible}
+html.lexport .ksSeal{animation:none;opacity:1}            /* the seal 'prints' 1.35s after render live — in a static capture, show it at once */
+html.lexport .ksFrame{animation:none;stroke-dashoffset:0}  /* and the gold selvage fully woven, not mid-draw */
 .board{position:absolute;inset:0;z-index:7;background:var(--card);display:none;flex-direction:column;align-items:center;justify-content:center;padding:26px 22px}
 .board.on{display:flex}
 .board.on.fold{animation:boardfold .7s ease-out .2s both}   /* the board lifts; the pressed cloth is beneath */
@@ -120,7 +127,8 @@ body.embed .wrap{padding:6px 8px 8px}
   var Q=new URLSearchParams(location.search);
   var DEMOQ=Q.get('demo')==='1';               // the baked walkthrough is a TAPE — it must never wear the live dot
   var KEEP=/keepsake/.test(location.search);   // the collectible: the whole match on one cloth, frozen at full time
-  var KEEPID=KEEP?Q.get('match'):null;         // which kept cloth — resolved against the local rail (rooot.cloth.<id>)
+  var EXPORT=KEEP&&(Q.get('export')==='1'||/(^|[#&])export/.test(location.hash));   // headless mint capture: settle instantly, unclip the scroll so the whole cloth lays out, then signal ready
+  var KEEPID=KEEP?Q.get('match'):null;         // which kept cloth — resolved from an injected seed / #cloth= / the local rail (rooot.cloth.<id>)
   var KEEPEMPTY=false;                         // asked for a kept cloth that was never woven — say so, never substitute
   var SEALED=KEEP;                              // THE PRESSING — the weave has stopped and the cloth has sealed into the keepsake
   var PENS=null;                                // a shootout's verdict, once decided — printed into the seal
@@ -603,7 +611,7 @@ body.embed .wrap{padding:6px 8px 8px}
   var REPLAY_SPEED=1.5;   // replay minutes per real second (whole match ~in 80s)
   var lastMs=(window.performance&&performance.now())||Date.now(), userScrolled=0;
   loomEl.addEventListener('scroll',function(){ userScrolled=Date.now(); },{passive:true});
-  var unroll=(KEEP&&!KEEPEMPTY)?0:1;   // a kept scarf UNROLLS when opened — the reveal sweeps the sealed cloth down once
+  var unroll=(KEEP&&!KEEPEMPTY&&!EXPORT)?0:1;   // a kept scarf UNROLLS when opened — the reveal sweeps the sealed cloth down once (export skips it: whole cloth shown at once)
   function step(now){
     if(KEEPEMPTY)return;
     var dt=Math.min(0.3,(now-lastMs)/1000); lastMs=now;   // clamp only the rare huge gap (tab resurfacing); the live clock is anchor-based so this only paces the replay
@@ -613,7 +621,7 @@ body.embed .wrap{padding:6px 8px 8px}
     // replay: the score climbs as each goal weaves past the shuttle (live gets it from __loom.score)
     if(!M.live&&!KEEP){ var hh=0,aa=0; for(var gi=0;gi<goolQ.length;gi++){ if(M.t>=goolQ[gi].m){ if(goolQ[gi].side===1)hh++;else aa++; } } M.score=[hh,aa]; }
     if(!M.live && !SEALED && M.t>=M.dur-0.3)seal();        // the seed replay presses itself at its own full time; driven cloth seals off the wire (FULL_TIME)
-    if(unroll<1)unroll=REDMO?1:Math.min(1,unroll+dt/1.15);
+    if(unroll<1)unroll=(REDMO||EXPORT)?1:Math.min(1,unroll+dt/1.15);
     // reveal + shuttle (cheap per-frame updates, no full re-render)
     var edgeY=ty(M.t), tt=now/1000;
     var rr=document.getElementById('revrect'); if(rr)rr.setAttribute('height',(edgeY*unroll).toFixed(1));
@@ -650,6 +658,11 @@ body.embed .wrap{padding:6px 8px 8px}
     document.getElementById('rp').textContent=lbl;
     var _d=document.getElementById('liveDot'); if(_d.className!==dcls)_d.className=dcls;
     if(dirty){ dirty=false; renderCloth(); }
+    // export-ready: the sealed cloth is drawn and fully unrolled — the mint capture waits on this,
+    // then screenshots #loomsvg. 'empty' tells it the record was missing so it never mints a blank.
+    if(KEEP && !M._ready && (KEEPEMPTY||unroll>=1)){ M._ready=true;
+      document.documentElement.setAttribute('data-loom', KEEPEMPTY?'empty':'sealed');
+      window.__loomKeepsake={ ready:true, empty:KEEPEMPTY, matchId:KEEPID||null }; }
   }
   function loop(now){ step(now); requestAnimationFrame(loop); }   // smooth while watched
 
@@ -693,12 +706,24 @@ body.embed .wrap{padding:6px 8px 8px}
       setTimeout(function(){ finish('18213979'); },1500);
     }
   })();
-  // THE KEPT CLOTH — resolve this match's own record from the rail; never substitute another match's
+  // THE KEPT CLOTH — resolve this match's own record; never substitute another match's.
+  // The record is the sealed seed the cabinet unrolls; the mint pipeline re-renders it headlessly.
+  // Order: (1) an injected seed — window.__loomKeepsakeRecord, set before boot by the capture
+  // harness / server; (2) a self-contained URL — #cloth=<base64 json> (no server length limit,
+  // survives a headless nav); (3) the local rail — localStorage rooot.cloth.<id> (the client unroll).
+  function validRec(r){ return r && r.v===1 && r.home && r.belief; }
+  function resolveKeptRecord(id){
+    try{ if(validRec(window.__loomKeepsakeRecord))return window.__loomKeepsakeRecord; }catch(e){}
+    var h=/[#&?]cloth=([^&]+)/.exec(location.hash||'');
+    if(h){ try{ var s=atob(decodeURIComponent(h[1]).replace(/-/g,'+').replace(/_/g,'/'));
+      var r=JSON.parse(s); if(validRec(r))return r; }catch(e){} }
+    if(id){ try{ var lr=JSON.parse(localStorage.getItem('rooot.cloth.'+id)||'null'); if(validRec(lr))return lr; }catch(e){} }
+    return null;
+  }
   if(KEEP){
-    if(KEEPID){
-      var rec=null; try{ rec=JSON.parse(localStorage.getItem('rooot.cloth.'+KEEPID)||'null'); }catch(e){}
-      if(rec&&rec.v===1&&rec.home&&rec.belief){ loadRecord(rec); } else { KEEPEMPTY=true; }
-    }
+    if(EXPORT)document.documentElement.classList.add('lexport');
+    var rec=resolveKeptRecord(KEEPID);
+    if(rec){ loadRecord(rec); if(!KEEPID&&rec.fx)KEEPID=rec.fx; } else { KEEPEMPTY=true; }
     // a kept scarf is sealed — the wire may not weave into it (no adapter playback, ever);
     // only the binding seam stays open (edition Nº, owner, the proven call)
     Object.keys(window.__loom).forEach(function(k){ if(k!=='keepsake')window.__loom[k]=function(){}; });
