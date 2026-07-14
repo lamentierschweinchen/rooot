@@ -79,14 +79,16 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 /* THE PLATE — a printed prediction card, THE CROWD over THE MARKET (portrait, phone-legible).
    Crowd = fan predictions · avg prediction · heart-v-head (each fanbase vs the market).
    Market = chance to win (mirrors the fan bar) · move since kickoff. Team inks; never blended. */
-.plate{align-self:stretch;margin:7px 12px 4px;background:var(--card);border:1.5px solid var(--ink)}   /* .mid centres its children — stretch so the card fills the seam width */
-.psec{padding:8px 11px 10px;position:relative}
-.psec+.psec{border-top:1.5px solid var(--ink)}
-.phd{display:flex;align-items:baseline;justify-content:space-between}
-.phd b{font-weight:900;font-size:10px;letter-spacing:.1em}
-.phd.c b{color:var(--ink)}.phd.m b{color:var(--gold)}
-.phd .sub{font-weight:800;font-size:6.5px;letter-spacing:.1em;color:var(--sub)}
+/* THE CARD IS THE OWNER'S GENERATED ART (plate/prediction-card.jpg): the printed frame, the
+   THE CROWD / THE MARKET headers, the corner marks and the woven selvage. We NEVER redraw the
+   frame in code — we only lay the live data into its two empty cream fields (measured off the art). */
+.plate{position:relative;width:100%;aspect-ratio:1278/1231;margin:6px auto 2px;background:url(plate/prediction-card.jpg) center/100% 100% no-repeat}
+.pfield{position:absolute;left:8.5%;right:8.5%;display:flex;flex-direction:column;justify-content:center}
+.pfield.crowd{top:12.6%;height:36%}
+.pfield.market{top:60.4%;height:34.5%}
 .plbl{font-weight:900;font-size:7px;letter-spacing:.12em;color:var(--sub)}
+.plbl.row{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.pcount{font-weight:800;font-size:6.5px;letter-spacing:.08em;color:var(--sub);white-space:nowrap}
 .pcbar{display:flex;height:22px;border:1.5px solid var(--ink);overflow:hidden;background:var(--paper);margin-top:6px}
 .pcbar i{display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:900;font-size:9px;overflow:hidden;white-space:nowrap;min-width:0;transition:flex-basis .45s cubic-bezier(.4,0,.2,1)}
 .pcbar .h{background:var(--you);color:var(--youInk,var(--card))}
@@ -129,8 +131,9 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .pdbar.dn .pdval{right:100%;margin-right:5px}.pdbar.up .pdval{left:100%;margin-left:5px}
 .pdaxis{display:grid;grid-template-columns:30px 1fr;gap:8px;margin-top:6px}
 .pdaxis .c{text-align:center;font-weight:800;font-size:6.5px;letter-spacing:.1em;color:var(--sub)}
-.pwait{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;background:var(--card);font-weight:800;font-size:8.5px;letter-spacing:.1em;color:var(--sub);padding:0 12px;z-index:3}
-.psec.lite .needsfans{display:none}   /* the sim carries no per-fan predictions — hide the split + heart-v-head, never fabricate them */
+.pwait{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;background:#F1DEBF;font-weight:800;font-size:8.5px;letter-spacing:.1em;color:var(--sub);padding:0 12px;z-index:3}   /* matches the card's printed cream (sampled) so it cleanly veils the empty crowd field */
+.pfield.lite .needsfans{display:none}   /* the sim carries no per-fan predictions — hide the split + heart-v-head, never fabricate them */
+.pfield.lite .pcrow{justify-content:center}   /* sim shows only the average — centre the lone scoreboard instead of floating it left */
 .moment{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:var(--card);gap:2px}
 .moment.on{display:flex}
 .moment .big{font-weight:900;font-size:25px;letter-spacing:.02em;line-height:1}
@@ -300,9 +303,8 @@ body.embed .backg,body.embed .foot,body.embed .matchbar{display:none}
       <span class="cl" id="clock">0'</span><span class="rp"><span class="d"></span>REPLAY</span></div>
     <div class="crowdcall" id="crowdcall">
       <div class="plate">
-        <div class="psec" id="secCrowd">
-          <div class="phd c"><b>THE CROWD</b><span class="sub" id="crowdSub"></span></div>
-          <div class="plbl needsfans" style="margin-top:7px">FAN PREDICTIONS</div>
+        <div class="pfield crowd" id="secCrowd">
+          <div class="plbl row needsfans"><span>FAN PREDICTIONS</span><span class="pcount" id="crowdSub"></span></div>
           <div class="pcbar needsfans"><i class="h" id="fpH"></i><i class="d" id="fpD"></i><i class="a" id="fpA"></i></div>
           <div class="pends needsfans"><span class="e1" id="fpHe">SUI</span><span class="e2">DRAW</span><span class="e3" id="fpAe">COL</span></div>
           <div class="pcrow">
@@ -315,8 +317,8 @@ body.embed .backg,body.embed .foot,body.embed .matchbar{display:none}
           </div>
           <div class="pwait" id="cWait">THE CROWD IS ARRIVING</div>
         </div>
-        <div class="psec">
-          <div class="phd m"><b>THE MARKET</b><span class="sub">CHANCE TO WIN</span></div>
+        <div class="pfield market">
+          <div class="plbl">CHANCE TO WIN</div>
           <div class="pcbar"><i class="h" id="mkH"></i><i class="d" id="mkD"></i><i class="a" id="mkA"></i></div>
           <div class="pends"><span class="e1" id="mkHe">SUI</span><span class="e2">DRAW</span><span class="e3" id="mkAe">COL</span></div>
           <div class="pdiv">
