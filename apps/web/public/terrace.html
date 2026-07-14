@@ -76,15 +76,33 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 /* the consensus — the scoreline the crowd holds up, BESIDE the market (never blended) */
 /* the seam's data block — one keylined box, two cells, the centre rule is the crowd/market boundary */
 .crowdcall{transition:opacity .3s}
-.ccbox{display:flex;margin:7px 14px 2px;border:1.5px solid var(--ink);text-align:left;background:var(--card)}
-.ccbox .cell{flex:1;padding:7px 10px 8px;min-width:0}
-.ccbox .cell+.cell{border-left:1.5px solid var(--ink)}
-.ccbox .lb{font-weight:800;font-size:7px;letter-spacing:.18em;color:var(--sub);white-space:nowrap}
-.ccbox .cell.m .lb{color:var(--gold)}
-.ccbox .v{font-weight:900;font-size:12px;letter-spacing:.02em;color:var(--ink);margin-top:3px;white-space:nowrap}
-.ccbox .cell.m .v{color:var(--gold)}
-.ccbox .n{font-weight:800;font-size:7px;letter-spacing:.1em;color:var(--sub);margin-top:2px;white-space:nowrap}
-.ccbox .ccwait{font-weight:800;font-size:8.5px;letter-spacing:.12em;color:var(--sub);white-space:normal;display:block;line-height:1.3}   /* silence, not zeros — wraps inside its cell */
+/* THE PLATE — the crowd (solid counted blocks) beside the market (a live wheel), never blended.
+   Bauhaus geometry in the team inks; the centre rule is the crowd/market boundary (honesty law). */
+.plate{display:flex;margin:7px 12px 2px;border:1.5px solid var(--ink);background:var(--card)}
+.plate .pc{flex:1.5;padding:8px 10px 9px;min-width:0;position:relative}
+.plate .pm{flex:1;padding:8px 6px 9px;border-left:1.5px solid var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:0}
+.ph{font-weight:900;font-size:9px;letter-spacing:.14em;color:var(--ink)}
+.ph.m{color:var(--gold)}
+.xcap{font-weight:800;font-size:6.5px;letter-spacing:.13em;color:var(--sub);margin:6px 0 3px}
+.csplit{display:flex;height:20px;border:1.25px solid var(--ink);overflow:hidden}
+.csplit i{display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:900;font-size:8px;overflow:hidden;white-space:nowrap;min-width:0;transition:flex-basis .45s cubic-bezier(.4,0,.2,1)}
+.csplit .csh{background:var(--you);color:var(--youInk,var(--card));flex:0 0 34%}
+.csplit .csd{background:var(--oat,#D0C29E);color:var(--ink);border-left:1.25px solid var(--ink);border-right:1.25px solid var(--ink);flex:0 0 33%}
+.csplit .csa{background:var(--them);color:var(--themInk,var(--ink));flex:0 0 33%}
+.crow{display:flex;align-items:baseline;justify-content:space-between;margin-top:6px;gap:8px}
+.ck{font-weight:800;font-size:6.5px;letter-spacing:.12em;color:var(--sub);white-space:nowrap}
+.cscore{font-weight:900;font-size:15px;letter-spacing:.01em;color:var(--ink);white-space:nowrap}
+.cscore .nh{color:var(--you)}.cscore .na{color:var(--them)}
+.chvh{font-weight:900;font-size:13px;color:var(--ink);white-space:nowrap}
+.cwait{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;background:var(--card);font-weight:800;font-size:8.5px;letter-spacing:.1em;color:var(--sub);padding:0 12px}
+.wheel{width:76px;height:76px;display:block}
+.wpath{stroke:var(--ink);stroke-width:2;stroke-linejoin:round}
+#wH{fill:var(--you)}#wD{fill:var(--oat,#D0C29E)}#wA{fill:var(--them)}
+.wct{font-family:var(--disp);font-weight:900;font-size:20px;fill:var(--ink)}
+.mdrift{font-weight:800;font-size:7px;letter-spacing:.05em;color:var(--sub);white-space:nowrap;text-align:center;margin-top:1px}
+.mdrift .up{color:var(--verde)}.mdrift .dn{color:var(--them)}
+.pc.lite .needsfans{display:none}   /* the sim has no per-fan predictions — show only the aggregate it honestly holds, never a fabricated split */
+.pc.lite .crow{margin-top:10px}.pc.lite .cscore{font-size:19px}
 .moment{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:var(--card);gap:2px}
 .moment.on{display:flex}
 .moment .big{font-weight:900;font-size:25px;letter-spacing:.02em;line-height:1}
@@ -253,9 +271,23 @@ body.embed .backg,body.embed .foot,body.embed .matchbar{display:none}
     <div class="matchbar"><span class="h">SUI</span> <span id="scH">0</span>–<span id="scA">0</span> <span class="a">COL</span>
       <span class="cl" id="clock">0'</span><span class="rp"><span class="d"></span>REPLAY</span></div>
     <div class="crowdcall" id="crowdcall">
-      <div class="ccbox">
-        <div class="cell c"><div class="lb">FAN PREDICTIONS</div><div class="v" id="ccCrowd"><span class="ccwait">THE CROWD IS ARRIVING</span></div><div class="n" id="ccCrowdN">NONE YET</div></div>
-        <div class="cell m"><div class="lb">THE MARKET</div><div class="v" id="ccMkt">—</div><div class="n" id="ccMktN">WAITING</div></div>
+      <div class="plate">
+        <div class="pc" id="pcCrowd">
+          <div class="ph">THE CROWD</div>
+          <div class="xcap needsfans">WHO THEY CALL TO WIN</div>
+          <div class="csplit needsfans"><i class="csh" id="csH"></i><i class="csd" id="csD"></i><i class="csa" id="csA"></i></div>
+          <div class="crow"><span class="ck">THEY EXPECT</span><span class="cscore" id="cScore">—</span></div>
+          <div class="crow needsfans"><span class="ck">HEART v HEAD</span><span class="chvh" id="cHvh">—</span></div>
+          <div class="cwait" id="cWait">THE CROWD IS ARRIVING</div>
+        </div>
+        <div class="pm">
+          <div class="ph m">THE MARKET</div>
+          <svg class="wheel" id="mWheel" viewBox="0 0 120 120" aria-hidden="true">
+            <path id="wH" class="wpath"></path><path id="wD" class="wpath"></path><path id="wA" class="wpath"></path>
+            <text id="wCtr" class="wct" x="60" y="68" text-anchor="middle">—</text>
+          </svg>
+          <div class="mdrift" id="mDrift">SINCE KICKOFF</div>
+        </div>
       </div>
     </div>
     <div class="moment" id="moment"><div class="big" id="momentBig">GOAL</div><div class="min" id="momentMin">23'</div></div>
@@ -269,7 +301,7 @@ body.embed .backg,body.embed .foot,body.embed .matchbar{display:none}
   <div class="end you" id="youEnd">
     <div class="tifo" id="tilesYou"></div>
     <div class="ehdr"><span class="nm"><b>SWITZERLAND</b> · YOUR END<span class="faith" id="faithYou">◆ STILL SINGING</span></span>
-      <span class="rt">you + <span class="ct" id="ctYou">8,203</span> · <span class="xp">XP <span id="xp">0</span></span><span id="readsWrap" hidden> · CALLS <span id="rH">0</span>✓ <span id="rA">0</span>✗</span></span></div>
+      <span class="rt">you + <span class="ct" id="ctYou">8,203</span> · <span class="xp">POINTS <span id="xp">0</span></span><span id="readsWrap" hidden> · CALLS <span id="rH">0</span>✓ <span id="rA">0</span>✗</span></span></div>
     <div class="burst" id="burst" aria-hidden="true">
       <svg viewBox="0 0 220 176">
         <defs><pattern id="bday" width="9" height="9" patternUnits="userSpaceOnUse"><circle cx="2.6" cy="2.6" r="2" fill="rgba(26,24,21,.22)"/></pattern></defs>
@@ -484,7 +516,7 @@ function resolvePred(i){
   [].forEach.call(el('predOpts').children,function(c){ c.classList.remove('on'); c.classList.add(c.textContent===p.correct?'win':'lose'); });
   var right=(M.pred.called===p.correct), rs=el('predRes');
   if(M.pred.called){ rs.className='pres '+(right?'win':'lose');
-    rs.textContent=right?('✓ '+p.correct+' — you called it  ·  +10 XP'):('✗ '+p.correct+' took it — next time'); }
+    rs.textContent=right?('✓ '+p.correct+' — you called it  ·  +10 POINTS'):('✗ '+p.correct+' took it — next time'); }
   else { rs.className='pres'; rs.textContent=p.correct+' — you sat this one out'; }
   if(M.pred.called){   // count only real calls — sitting one out is not a wrong call
     if(right){ M.xp+=10; el('xp').textContent=M.xp; M.reads.h++; el('rH').textContent=M.reads.h; }
@@ -665,25 +697,49 @@ requestAnimationFrame(function(t){M.lastMs=t;step(t);});
 
 // ===== ?demo=1 — drive THE STANDS off the real crowd-sim (__stands) + match (__match) engine =====
 // the box's two cells: crowd = the aggregate predicted score (owner call, 10 Jul) · market = the leader
-function ccUpdate(c){ var cv=el('ccCrowd'), cn=el('ccCrowdN'); if(!cv)return;
-  if(c.all){
-    if(Array.isArray(c.all)){   // demo shape: pre-formatted aggregate pair from the sim (owner call, 14 Jul: the aggregate score stays)
-      cv.textContent=HOME_TRI+' '+c.all[0]+' – '+c.all[1]+' '+AWAY_TRI;
-      if(cn)cn.textContent='SIMULATED CROWD';
-    } else if(c.all.mean){
-      if(!c.all.n){ cv.innerHTML='<span class="ccwait">THE CROWD IS ARRIVING</span>'; if(cn)cn.textContent='NONE YET'; }   // n:0 = silence, never zeros
-      else { cv.textContent=HOME_TRI+' '+c.all.mean.home.toFixed(1)+' – '+c.all.mean.away.toFixed(1)+' '+AWAY_TRI;
-        if(cn)cn.textContent='FROM '+c.all.n+' FAN'+(c.all.n===1?'':'S'); }
-    }
-  }
+// THE PLATE — the crowd as solid counted blocks (split · expected score · heart-v-head),
+// the market as a live wheel + its drift since kickoff. All from the wire; never blended.
+function setCScore(h,a){ var s=el('cScore'); if(s)s.innerHTML='<b class="nh">'+h+'</b> – <b class="na">'+a+'</b>'; }
+function setCSplit(h,d,a){ var t=h+d+a; if(!t)return;
+  var ph=Math.round(h/t*100), pd=Math.round(d/t*100), pa=100-ph-pd;
+  var H=el('csH'),D=el('csD'),A=el('csA');
+  H.style.flexBasis=ph+'%'; D.style.flexBasis=pd+'%'; A.style.flexBasis=pa+'%';
+  H.textContent=ph>=15?ph+'%':''; D.textContent=pd>=15?pd+'%':''; A.textContent=pa>=15?pa+'%':''; }
+function ccUpdate(c){ if(!c)return;
   if(c.market){ marketUpdate(Array.isArray(c.market)?{home:c.market[0],draw:c.market[1],away:c.market[2]}:c.market); }
+  if(!c.all)return;
+  var wait=el('cWait');
+  var pc=el('pcCrowd');
+  if(Array.isArray(c.all)){   // demo/sim shape: only the aggregate pair — no per-fan tallies to count honestly
+    if(pc)pc.classList.add('lite'); setCScore(c.all[0],c.all[1]); if(wait)wait.style.display='none'; return;
+  }
+  var A=c.all;
+  if(!A.n){ if(wait)wait.style.display=''; return; }   // silence, never zeros
+  if(wait)wait.style.display='none'; if(pc)pc.classList.remove('lite');
+  setCScore(A.mean.home.toFixed(1),A.mean.away.toFixed(1));
+  if(A.outcome){ setCSplit(A.outcome.homeWin||0,A.outcome.draw||0,A.outcome.awayWin||0); }
+  var hvh=el('cHvh'), br=c.byRoot;   // heart v head — % of rooted fans who call their OWN team to win
+  if(hvh&&br){ var hn=(br.home&&br.home.n)||0, an=(br.away&&br.away.n)||0, tot=hn+an,
+    own=((br.home&&br.home.outcome&&br.home.outcome.homeWin)||0)+((br.away&&br.away.outcome&&br.away.outcome.awayWin)||0);
+    hvh.textContent=tot?Math.round(own/tot*100)+'%':'—'; }
 }
-function marketUpdate(m){
-  var mv=el('ccMkt'), mn=el('ccMktN'); if(!mv||!m)return;
-  var h=Math.round(m.home*100), d=Math.round(m.draw*100), a=Math.round(m.away*100);
-  var rows=[[h,HOME_TRI],[d,'DRAW'],[a,AWAY_TRI]].sort(function(x,y){return y[0]-x[0];});
-  mv.textContent=rows[0][1]+' '+rows[0][0]+'%';
-  if(mn)mn.textContent=rows[1][1]+' '+rows[1][0]+' · '+rows[2][1]+' '+rows[2][0];
+function donutSeg(cx,cy,R,r,a0,a1){
+  function P(rad,deg){var t=(deg-90)*Math.PI/180;return (cx+rad*Math.cos(t)).toFixed(2)+' '+(cy+rad*Math.sin(t)).toFixed(2);}
+  if(a1-a0>=359.999)a1=a0+359.99; var lg=(a1-a0)>180?1:0;
+  return 'M'+P(R,a0)+' A'+R+' '+R+' 0 '+lg+' 1 '+P(R,a1)+' L'+P(r,a1)+' A'+r+' '+r+' 0 '+lg+' 0 '+P(r,a0)+' Z';
+}
+function drawWheel(h,d,a){ var cx=60,cy=60,R=52,r=30,s=0,H=el('wH'),D=el('wD'),A=el('wA'); if(!H)return;
+  H.setAttribute('d',donutSeg(cx,cy,R,r,s,s+h*360)); s+=h*360;
+  D.setAttribute('d',donutSeg(cx,cy,R,r,s,s+d*360)); s+=d*360;
+  A.setAttribute('d',donutSeg(cx,cy,R,r,s,s+a*360)); }
+function marketUpdate(m){ if(!m||m.home==null)return;
+  var h=m.home,d=m.draw,a=m.away; drawWheel(h,d,a);
+  var rows=[[Math.round(h*100),HOME_TRI,'h'],[Math.round(d*100),'DRAW','d'],[Math.round(a*100),AWAY_TRI,'a']].sort(function(x,y){return y[0]-x[0];});
+  var ctr=el('wCtr'); if(ctr)ctr.textContent=rows[0][0]+'%';
+  if(!M.mkt0)M.mkt0={h:h,d:d,a:a};   // baseline ≈ the first read at/after kickoff
+  var dr=el('mDrift'); if(dr){ var key=rows[0][2], cur=key==='h'?h:key==='d'?d:a, delta=Math.round((cur-M.mkt0[key])*100);
+    dr.innerHTML = delta===0 ? (rows[0][1]+' STEADY SINCE KO')
+      : rows[0][1]+' <span class="'+(delta>0?'up':'dn')+'">'+(delta>0?'▲':'▼')+Math.abs(delta)+'</span> SINCE KO'; }
 }
 function applyFixture(sideKey){
   sideKey=sideKey||'home';
@@ -704,8 +760,8 @@ function applyFixture(sideKey){
   var youHdr=document.querySelector('.end.you .ehdr .nm b'), themHdr=document.querySelector('.end.them .ehdr .nm b');
   if(youHdr)youHdr.textContent=YOU_TEAM.name; if(themHdr)themHdr.textContent=THEM_TEAM.name;
   // no predictions yet → silence, never zeros-as-data (owner copy, 10 Jul: short)
-  var cv=el('ccCrowd'); if(cv)cv.innerHTML='<span class="ccwait">THE CROWD IS ARRIVING</span>';
-  var cn=el('ccCrowdN'); if(cn)cn.textContent='NONE YET';
+  var wait=el('cWait'); if(wait)wait.style.display='';   // the plate returns to silence on a fixture change (no zeros)
+  M.mkt0=null;   // drop the market baseline so drift re-bases at the new match's kickoff
   var rp=document.querySelector('.matchbar .rp'); if(rp)rp.lastChild.textContent=LIVE?'LIVE':'REPLAY';
 }
 function wireLive(){
