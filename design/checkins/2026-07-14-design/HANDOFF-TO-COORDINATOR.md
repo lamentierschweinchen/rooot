@@ -22,6 +22,19 @@ Rationale + the incident are in my memory `never-substitute-generated-art`. The 
 commits (`54b28ab`, `ab095a0`) are superseded by `2ede0b7` on this branch — reconcile to the
 image-surface tree, not the code frame.
 
+**LOOM→SCARF KEEPSAKE CAPTURE is built (commit `221f991`) — your pipeline half is open.**
+`woven-loom.html` keepsake mode now re-renders headlessly for the mint image: seed resolves from
+an injected `window.__loomKeepsakeRecord` / `#cloth=<base64>` / localStorage (not localStorage-
+only), and `?export=1` makes the sealed render export-stable (instant settle, unclipped, a
+`<html data-loom="sealed|empty">` wait-signal, and the seal's 1.35s print animation neutralised —
+that last one is a real trap: a naïve shot mints a **seal-less** cloth). Reference harness + full
+recipe (record shape, invocation, gotchas): `design/scarf-artwork/CAPTURE-RECIPE.md` +
+`loom-keepsake-capture.mjs`. Verified end-to-end → `design/loom-object/scarf-keepsake-demo.png`.
+**Yours:** emit the record from the stands service's match events → run the capture → set
+`metadata.ts` `imageUri` to the PNG; keep the ordered fallback (scarf-svg → gradient) when the seed
+is unavailable — never mint the wrong/empty match. All loom IDs preserved; live/replay/cabinet
+unchanged.
+
 ---
 
 
