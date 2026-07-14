@@ -940,23 +940,47 @@ function wireDemo(){ if(!window.__match||!window.__stands)return false;
   return true;
 }
 if(DEMO){ if(!wireDemo()){ var _wt=setInterval(function(){ if(wireDemo())clearInterval(_wt); },200); } }
-// T16 fixture resolution (same idiom as stadium.html / stands-adapter): explicit ?match= wins
-// outright → else, on live, the __fixture manifest raced against ~1500ms → else today's literal.
-// Fixes the standalone live terrace theming the previous fixture over tonight's wire.
+// T16/adopt-#1 fixture resolution (same idiom as stadium.html / stands-adapter): explicit
+// ?match= wins outright → else, on live, the __fixture manifest raced against ~1500ms →
+// else fixtureInfo (server truth, sentiment/teams.ts — ANY known fixture, not just
+// tonight's manifest cutover; the CPV-case fix) → else an honest neutral placeholder
+// (never a stale OTHER match's literal). Fixes the standalone live terrace theming the
+// previous fixture over tonight's wire.
 function fxFromManifest(mf){ function side(t){ return {tri:t.code,name:(t.name||t.code).toUpperCase(),color:(t.colors&&t.colors[0])||'#8C8467',sec:(t.colors&&t.colors[1])||null}; }
   return {home:side(mf.home),away:side(mf.away)}; }
+var fxFromFixtureInfo=fxFromManifest; // fixture.home/away share the manifest's {code,name,colors} shape
+var NEUTRAL_TERR_FX={home:{tri:'—',name:'',color:'#8C8467',sec:null},away:{tri:'—',name:'',color:'#8C8467',sec:null}};
 function startLive(){ if(!wireLive()){ var _liveTerrace=setInterval(function(){ if(wireLive())clearInterval(_liveTerrace); },160); } }
 if(LIVE){
   var explicitTerr=PARAMS.get('match');
   if(explicitTerr&&FIXTURES[explicitTerr]){ startLive(); }   // explicit AND in the literal table → FX already correct, no async wait
-  else{                                                       // no ?match, OR a ?match we have no literal for → consult the manifest (honest fallback: its codes, never a stale literal)
+  else{                                                       // no ?match, OR a ?match we have no literal for → consult the manifest, then fixtureInfo (honest fallbacks: never a stale literal)
     var _fxDone=false;
     var _fxGo=function(id,fx){ if(_fxDone)return; _fxDone=true;
       if(id){ MATCH_ID=id; FX=fx||FIXTURES[id]||FX; HOME_TRI=FX.home.tri; AWAY_TRI=FX.away.tri; YOU_TEAM=FX.home; THEM_TEAM=FX.away; }
       startLive(); };
+    // fixtureInfo only needs awaiting when an explicit ?match= isn't in FIXTURES — the
+    // no-?match path already resolves to a real FIXTURES entry synchronously (MATCH_ID's
+    // own default, line above, is '18218149') so it settles instantly, same as before.
+    if(explicitTerr){
+      (function waitForFixtureInfoTerr(){
+        if(window.__stands&&window.__stands.onFixtureInfo){
+          window.__stands.onFixtureInfo(function(fx){
+            if(!fx||!fx.home||!fx.away)return;
+            if(fx.id&&fx.id!==explicitTerr)return;
+            _fxGo(fx.id,fxFromFixtureInfo(fx));
+          });
+          return;
+        }
+        setTimeout(waitForFixtureInfoTerr,120);
+      })();
+    }
     window.__fixtureReady=window.__fixtureReady||fetch('/fixture.json').then(function(r){return r.ok?r.json():null;}).catch(function(){return null;});
-    window.__fixtureReady.then(function(mf){ if(mf&&mf.matchId&&mf.home&&mf.away&&(!explicitTerr||explicitTerr===mf.matchId))_fxGo(mf.matchId,FIXTURES[mf.matchId]||fxFromManifest(mf)); else _fxGo(null); },function(){ _fxGo(null); });
-    setTimeout(function(){ _fxGo(null); },1500);
+    window.__fixtureReady.then(function(mf){
+      if(mf&&mf.matchId&&mf.home&&mf.away&&(!explicitTerr||explicitTerr===mf.matchId))_fxGo(mf.matchId,FIXTURES[mf.matchId]||fxFromManifest(mf));
+      else if(!explicitTerr)_fxGo(null);   // a manifest for a DIFFERENT match tells us nothing about this one — wait for fixtureInfo/timeout instead
+    },function(){ if(!explicitTerr)_fxGo(null); });
+    setTimeout(function(){ _fxGo(explicitTerr||null,explicitTerr?NEUTRAL_TERR_FX:null); },1500);
   }
 }
 
