@@ -84,19 +84,19 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
    frame in code — we only lay the live data into its two empty cream fields (measured off the art). */
 .plate{position:relative;width:100%;aspect-ratio:1278/1231;margin:6px auto 2px;background:url(plate/prediction-card.jpg) center/100% 100% no-repeat}
 .pfield{position:absolute;left:8.5%;right:8.5%;display:flex;flex-direction:column;justify-content:center}
-.pfield.crowd{top:12.6%;height:36%}
+.pfield.crowd{top:11.8%;height:31%}   /* bottom ~42.8% — clears the printed divider domes (measured top ~45.8%) */
 .pfield.market{top:60.4%;height:34.5%}
 .plbl{font-weight:900;font-size:7px;letter-spacing:.12em;color:var(--sub)}
 .plbl.row{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
 .pcount{font-weight:800;font-size:6.5px;letter-spacing:.08em;color:var(--sub);white-space:nowrap}
-.pcbar{display:flex;height:22px;border:1.5px solid var(--ink);overflow:hidden;background:var(--paper);margin-top:6px}
+.pcbar{display:flex;height:22px;border:1.5px solid var(--ink);overflow:hidden;background:var(--paper);margin-top:4px}
 .pcbar i{display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:900;font-size:9px;overflow:hidden;white-space:nowrap;min-width:0;transition:flex-basis .45s cubic-bezier(.4,0,.2,1)}
 .pcbar .h{background:var(--you);color:var(--youInk,var(--card))}
 .pcbar .d{background:var(--oat,#CDBE97);color:var(--ink);border-left:1.5px solid var(--ink);border-right:1.5px solid var(--ink)}
 .pcbar .a{background:var(--them);color:var(--themInk,var(--ink))}
-.pends{display:flex;justify-content:space-between;font-weight:900;font-size:7.5px;letter-spacing:.05em;margin-top:3px}
+.pends{display:flex;justify-content:space-between;font-weight:900;font-size:7.5px;letter-spacing:.05em;margin-top:2px}
 .pends .e1{color:var(--you)}.pends .e2{color:var(--sub)}.pends .e3{color:var(--them)}
-.pcrow{display:flex;gap:14px;margin-top:9px;align-items:flex-start}
+.pcrow{display:flex;gap:14px;margin-top:5px;align-items:flex-start}
 .pboard{display:inline-flex;background:var(--ink);border-radius:3px;overflow:hidden}
 .pbt{display:flex;flex-direction:column;align-items:center;padding:4px 10px 5px}
 .pbt+.pbt{border-left:1.5px solid #4a463c}
@@ -115,7 +115,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .mdot{width:8px;height:8px;background:var(--paper);z-index:3}   /* hollow market dot rides above the filled fans dot so a tiny gap still reads as two markers */
 .fdot{width:10px;height:10px}.fdot.t1{background:var(--you)}.fdot.t3{background:var(--them)}
 .fvgap{font-weight:900;font-size:9px;text-align:right;color:var(--ink);font-variant-numeric:tabular-nums}
-.fvkey{display:flex;gap:11px;font-weight:800;font-size:6px;letter-spacing:.04em;color:var(--sub);margin-top:5px;align-items:center}
+.fvkey{display:inline-flex;gap:11px;font-weight:800;font-size:6px;letter-spacing:.04em;color:var(--sub);margin-top:3px;align-items:center;align-self:flex-start;background:#F1DEBF;padding:1px 3px;border-radius:2px}   /* cream backing (matches the card) so the legend + its filled dot never vanish on a printed accent */
 .fvkey i{display:inline-block;width:7px;height:7px;border-radius:50%;border:1.25px solid var(--ink);vertical-align:-1px;margin-right:3px}
 .fvkey .km{background:var(--paper)}.fvkey .kf{background:var(--ink)}
 .pdiv{margin-top:8px}
