@@ -21,6 +21,7 @@ import type { LedgerEvent } from '@contracts/ledger';
 import type { MatchPhase } from '@contracts/match';
 import type { SentimentRecord } from '@contracts/sentiment';
 import { REACT_WINDOW_MS, RollingCounter, SWING_DELTA_MIN, SWING_WINDOW_MS } from './decay';
+import { fetchProvenanceRefs } from './ingest/txline';
 import { MatchRegistry } from './registry';
 import { anchorRecordHash, relayCall } from './relay';
 import { DATA_DIR, writeFileAtomic } from './snapshot';
@@ -269,7 +270,25 @@ function predictLifecycle(matchId: string, msg: ServerMsg | FeedMsg): void {
       // 2-1 on the wire — two parallel trackers of "the final score" can
       // drift; this collapses onto the one already proven correct instead of
       // trying to root-cause the second tracker's own gap.
-      crystallizeSentiment(matchId, match, { home: fh, away: fa }); // the record — persist + emit (docs/SENTIMENT.md)
+      // fire-and-forget (matches this file's existing anchorRecordHash
+      // convention) — crystallizeSentiment is now async (it awaits the
+      // provenance-refs fetch, docs/DATA-ARCHITECTURE.md §4 item 2, before
+      // hashing), and predictLifecycle itself must stay sync. Kept
+      // fire-and-forget rather than moving snapshotNow() to run after it:
+      // the immediate snapshot below is a TESTED invariant (verdict-replay-
+      // check.ts asserts a snapshot exists on disk synchronously, by the
+      // time this function returns — Fix 1, review I1) that must keep
+      // firing in the SAME tick as FULL_TIME, not after an await. The
+      // resulting gap — resolvedMatches persisted here before the async
+      // crystallize's write lands — is closed at RESTORE time instead (see
+      // the `resolved` snapshot hook below, MatchRegistry construction):
+      // a restored resolved=true is trusted only if a durable sentiment
+      // record actually exists on disk for the match; otherwise the flag is
+      // left unset so a redelivered FULL_TIME retries crystallize for real
+      // (resolvePredictions/sendToAnon are idempotent — match-state.ts's
+      // resolvePredictions simply recomputes+overwrites the same verdicts
+      // from the same predictions+final score, never accumulates).
+      void crystallizeSentiment(matchId, match, { home: fh, away: fa }); // the record — persist + emit (docs/SENTIMENT.md)
       // Fix 1 (review I1): snapshot IMMEDIATELY instead of waiting up to 30s
       // for the periodic timer — a machine death in that window would restore
       // predictions with no verdicts/resolved flag, letting a re-delivered
@@ -598,8 +617,28 @@ function writeAnchorSig(filePath: string, matchId: string, sig: string): boolean
  * overwritten by a later match — except the async anchor-tx-sig fill-in
  * below, which updates THIS SAME file (it's the same crystallization event,
  * just completing its on-chain anchor a little later). Idempotent across
- * eviction + restart via the on-disk guard at the top (review C1). */
-function crystallizeSentiment(
+ * eviction + restart via the on-disk guard at the top (review C1).
+ *
+ * ASYNC (docs/DATA-ARCHITECTURE.md §4 item 2 — relic provenance): fetches
+ * this match's TxLINE validation refs BEFORE building the record, because
+ * SentimentRecord.provenance.txlineRefs is part of what recordHash covers
+ * (unlike anchorTxSig, deliberately excluded so it CAN be filled in later —
+ * see writeAnchorSig above). That fetch is bounded but not instant, so the
+ * call site (predictLifecycle) fires this fire-and-forget (`void`) rather
+ * than awaiting it — same convention as anchorRecordHash below — and its own
+ * registry.snapshotNow() keeps firing SYNCHRONOUSLY, in the same tick as
+ * FULL_TIME (a tested invariant, verdict-replay-check.ts), not after this
+ * function's await. Consequence: resolvedMatches can now be durably
+ * persisted (by that synchronous snapshotNow) BEFORE this function's write
+ * lands, if the process dies mid-fetch. Closed at RESTORE time instead of
+ * by reordering: the `resolved` snapshot hook (MatchRegistry construction,
+ * below) only trusts a restored resolved=true when a durable sentiment
+ * record actually exists on disk for the match; otherwise it leaves the
+ * flag unset so a redelivered FULL_TIME retries crystallize for real
+ * (predictLifecycle's resolvePredictions/sendToAnon re-run harmlessly —
+ * match-state.ts's resolvePredictions recomputes+overwrites the same
+ * verdicts from the same predictions+final score, never accumulates). */
+async function crystallizeSentiment(
   matchId: string,
   match: ReturnType<MatchRegistry['get']>,
   /** The known-good final score (predictLifecycle's own resolvePredictions
@@ -608,7 +647,7 @@ function crystallizeSentiment(
    * own optional 3rd param) fall back to the accumulator's live-tracked
    * total. */
   finalScore?: { home: number; away: number },
-): void {
+): Promise<void> {
   const acc = accumulators.get(matchId);
   if (!acc || !match) return;
   // ── C1 idempotency backstop (review — the same dup mechanism as the
@@ -630,17 +669,26 @@ function crystallizeSentiment(
     return;
   }
   try {
+    // Relic provenance refs (docs/DATA-ARCHITECTURE.md §4 item 2): never
+    // throws (ingest/txline.ts's fetchProvenanceRefs catches everything
+    // internally and honest-degrades to []); awaited here so the hash below
+    // covers them, same call for a replay/demo match (no TxLINE ingest ⇒ no
+    // candidates ⇒ [] with zero I/O) as for a live one.
+    const txlineRefs = await fetchProvenanceRefs(matchId);
     const record = acc.crystallize(
       { consensus: match.consensus(), rooted: match.counts() },
       { serial: 1, editionSize: null, caption: matchId },
       finalScore,
+      txlineRefs,
     );
     const dir = path.join(DATA_DIR, 'sentiment');
     const filePath = path.join(dir, `${matchId}-${Date.now()}.json`);
     mkdirSync(dir, { recursive: true });
     writeFileAtomic(filePath, JSON.stringify(record, null, 2));
     broadcastToMatch(matchId, { type: 'sentiment', record } as unknown as ServerMsg);
-    console.log(`[sentiment] crystallized ${matchId}: ${record.headline} (hash ${record.provenance.recordHash.slice(0, 12)}) -> ${filePath}`);
+    console.log(
+      `[sentiment] crystallized ${matchId}: ${record.headline} (hash ${record.provenance.recordHash.slice(0, 12)}, ${txlineRefs.length} txlineRef${txlineRefs.length === 1 ? '' : 's'}) -> ${filePath}`,
+    );
     // Anchor the hash on-chain (best-effort). Kept ASYNC so the dispatch loop is
     // never blocked for the up-to-20s confirmation — but the write-back is now
     // robust: writeAnchorSig re-reads the file and merges ONLY provenance.
@@ -1040,8 +1088,43 @@ const registry = new MatchRegistry(
     // above. `restore` runs during registry.loadSnapshot(), BEFORE index.ts
     // starts TXLINE/REPLAY ingest, so a restart can never re-fire a real
     // devnet anchor tx for a match that already resolved in a prior process.
+    //
+    // Provenance-fetch crash-window guard (docs/DATA-ARCHITECTURE.md §4 item
+    // 2, crystallizeSentiment's own doc comment): resolvedMatches can now be
+    // snapshotted (by predictLifecycle's synchronous, same-tick snapshotNow)
+    // BEFORE crystallizeSentiment's awaited provenance fetch finishes writing
+    // the sentiment record — a process dying in that EXACT narrow window
+    // would otherwise restore resolved=true with NO record ever having been
+    // written, permanently skipping crystallize on every future restart
+    // (predictLifecycle's guard would never re-enter).
+    //
+    // Distinguish that failure signature from the PRE-EXISTING, already-
+    // handled "resolved but score unknown" case (seat-check.ts's v5-snapshot
+    // scenario: an old/doctored file with resolved=true and NO finalScore —
+    // currentScoreSnapshot's caller is SUPPOSED to trust resolved=true there
+    // and refuse-to-mint with a friendly retryable note, never retry
+    // crystallize): predictLifecycle sets finalScores SYNCHRONOUSLY, in the
+    // SAME tick as resolvedMatches, strictly BEFORE crystallizeSentiment is
+    // even called — so a genuinely crash-interrupted match's snapshot always
+    // carries a finalScore alongside resolved=true, while the old/unrelated
+    // "score unknown" case never does. Only withhold trust when BOTH signals
+    // of the NEW failure mode are present (finalScore known + no record on
+    // disk); a resolved=true with no finalScore restores exactly as before
+    // (snapshot.ts's applySnapshot restores finalScore before calling this,
+    // specifically so finalScores.has() below is already accurate here).
+    // Withheld -> the NEXT redelivered FULL_TIME (the same TXLINE
+    // seedSnapshot / REPLAY-from-0 path the eviction case below already
+    // relies on) retries crystallize for real; re-running
+    // resolvePredictions/sendToAnon ahead of it is harmless (idempotent —
+    // see match-state.ts's resolvePredictions doc).
     get: (matchId) => resolvedMatches.has(matchId),
-    restore: (matchId) => { resolvedMatches.add(matchId); },
+    restore: (matchId) => {
+      if (!finalScores.has(matchId) || sentimentRecordExistsOnDisk(matchId)) {
+        resolvedMatches.add(matchId);
+      } else {
+        console.warn(`[sentiment] ${matchId} restored as resolved with a known final score but no sentiment record on disk — treating as unresolved so a redelivered FULL_TIME retries crystallize (provenance-fetch crash window)`);
+      }
+    },
   },
   {
     // Post-mortem fix (fanStats review follow-up): openedTriggerIds lives here

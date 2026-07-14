@@ -208,8 +208,17 @@ export class SentimentAccumulator {
    * straight through instead of trusting this class's own separate 'score'
    * tracking to have landed it. Optional so existing callers with no
    * override — the offline crystallizer never calls this class at all, and
-   * the dev-check/dry-run callers — keep working unchanged off `this.final`. */
-  crystallize(crowd: CrowdInputs, edition: SentimentRecord['edition'], finalScoreOverride?: { home: number; away: number }): SentimentRecord {
+   * the dev-check/dry-run callers — keep working unchanged off `this.final`.
+   *
+   * `txlineRefs` (docs/DATA-ARCHITECTURE.md §4 item 2 — "relics carry their
+   * own provenance"): the caller's already-fetched, already-compacted TxLINE
+   * validation proofs (ingest/txline.ts's fetchProvenanceRefs), populated
+   * BEFORE this call so assembleSentimentRecord hashes them in — the record's
+   * recordHash then covers its own provenance for free. Optional, defaults to
+   * an honest [] so every existing caller (offline crystallizer, dev-check/
+   * dry-run callers, and a live match with no significant swing yet or a
+   * failed proof fetch) keeps working exactly as before. */
+  crystallize(crowd: CrowdInputs, edition: SentimentRecord['edition'], finalScoreOverride?: { home: number; away: number }, txlineRefs: string[] = []): SentimentRecord {
     const market = summarizeMarket(this.full, this.phaseSnaps, this.et);
     const con = crowd.consensus;
     // optimism = a fanbase's own-win prediction rate − the market's implied
@@ -247,7 +256,7 @@ export class SentimentAccumulator {
       edition,
       capture: { fromMs: this.fromMs === Infinity ? this.toMs : this.fromMs, toMs: this.toMs },
       network: 'devnet',
-      txlineRefs: [],
+      txlineRefs,
       attendeeRoot: null,
     });
   }
