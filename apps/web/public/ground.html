@@ -28,7 +28,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 
 /* THE DIAL — one control. THE STANDS at home; lean into LOOM (left) or STADIUM (right). */
 .dial{display:flex;border-bottom:1.5px solid var(--ink);background:var(--card)}
-.dseg{flex:1;padding:7px 4px 6px;text-align:center;background:var(--card);color:var(--sub);cursor:pointer;border:none;-webkit-tap-highlight-color:transparent;position:relative;transition:background .2s,color .2s}
+.dseg{flex:1;display:flex;flex-direction:column;justify-content:center;padding:7px 4px 6px;text-align:center;background:var(--card);color:var(--sub);cursor:pointer;border:none;-webkit-tap-highlight-color:transparent;position:relative;transition:background .2s,color .2s}
 .dseg+.dseg{border-left:1.5px solid var(--ink)}
 .dseg .dt{display:block;font-family:var(--disp);font-weight:900;font-size:10px;letter-spacing:.09em;line-height:1}
 .dseg .dhint{display:block;font-weight:700;font-size:6px;letter-spacing:.13em;margin-top:3px;opacity:.7}
@@ -89,7 +89,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
   <div class="dial" id="dial">
     <button class="dseg" data-lens="loom"><span class="dt">LOOM</span><span class="dhint">YOUR MATCH, WOVEN</span></button>
     <button class="dseg home on" data-lens="stands"><span class="dt">THE STANDS</span><span class="dhint">YOU'RE HERE</span></button>
-    <button class="dseg" data-lens="stadium"><span class="dt">STADIUM</span><span class="dhint">THE PITCH</span></button>
+    <button class="dseg" data-lens="stadium"><span class="dt">STADIUM</span></button>
   </div>
 
   <div class="them" id="themBand">
