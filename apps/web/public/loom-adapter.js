@@ -279,7 +279,22 @@
           break;
         }
         case 'score': {
-          if (msg.ev && typeof msg.ev.home === 'number') {
+          // Fix (Jul 14 FRA-ESP incident, docs/POSTMORTEM-2026-07-14-live.md — the stuck
+          // "0-3"): parseScoreMessage reports the running total off EVERY 'goal'/
+          // 'penalty_outcome' envelope, Confirmed:false included — a goal still under review
+          // already bumps this number optimistically. Trusting it unconditionally showed a
+          // score that counted an attempt VAR went on to overturn, and nothing ever corrected
+          // it back down: var_end/action_discarded carry the reverted total on the wire, but
+          // neither is 'goal'/'penalty_outcome' (parseScoreMessage never re-fires for them)
+          // and the ledger's own 'discard' message carries no score at all (see the
+          // `m.type !== 'event'` break below) — so an unconfirmed bump here is permanent
+          // unless it's never shown in the first place. Fail-closed on the SAME raw Confirmed
+          // flag the goal-weave path already gates on below (mirrors stands/server.ts's
+          // isWireConfirmed: absent/unreadable = NOT confirmed), so the mast only ever prints
+          // a score the wire actually settled — a goal that's later chalked off never had to
+          // be un-said because it was never said honestly in the first place (law #1).
+          var scoreConfirmed = !!(msg.ev && msg.ev.raw && msg.ev.raw.Confirmed === true);
+          if (msg.ev && typeof msg.ev.home === 'number' && scoreConfirmed) {
             L.score(msg.ev.home, msg.ev.away);
             report.score = msg.ev.home + '-' + msg.ev.away;
             reconcile(msg.ev.home, msg.ev.away); // chalk off any goal the score no longer supports
