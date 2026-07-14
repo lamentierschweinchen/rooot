@@ -724,6 +724,18 @@ function wireLive(){
     window.__stands.onConsensus(ccUpdate);
     if(window.__stands.onMarket)window.__stands.onMarket(marketUpdate);
     window.__stands.onVerdict(function(v){ M.verdictMsg=v; ngEnd(); if(!M._ft){M._ft=true; showKeepsake();} });   // FT: the card ends with the keepsake beat
+    // THE SEAL (delta-review Bug A2): a fan joining AFTER full time (evicted match, cold
+    // process, or just a late share-link open) gets no live 'predictVerdict' — but the server
+    // replays the durable sentiment record on join regardless. Drive the SAME keepsake beat the
+    // live path uses: never a second card, never a fabricated score. matchId re-checked here too
+    // (belt-and-suspenders against the wire/page manifest-fallback divergence, review risk D) even
+    // though the adapter already filters it.
+    if(window.__stands.onSentiment)window.__stands.onSentiment(function(record){
+      if(!record||record.matchId!==MATCH_ID)return;
+      if(M._ft)return;   // live FT already fired — this is additive data, never a re-trigger
+      if(record.finalScore)M.verdictMsg={final:record.finalScore};   // showKeepsake() already reads vm.final; no personal call/verdict to add — never invented
+      ngEnd(); M._ft=true; showKeepsake();
+    });
     if(window.__stands.onCheer)window.__stands.onCheer(function(e){
       ripple(e.side===sideKey?tilesYou:tilesThem,1);   // ONE seat flickers — someone, right now (never volume; roar carries that)
     });
