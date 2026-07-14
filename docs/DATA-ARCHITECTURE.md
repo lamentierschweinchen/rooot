@@ -81,7 +81,7 @@ ours. Honest counts are a product moat, and now a research-backed claim.
 |---|---|---|---|
 | 1 | Server emits `fixtureInfo` from `teams.ts`; surfaces consume by id | the 8-file hardcode, forever | hours |
 | 2 | Populate `txlineRefs` with real TxODDS validation proofs pre-hash | "relics carry their own provenance" — free under the existing anchor | hours |
-| 3 | `eventstore/` module: ONE canonical capture-reader + named projections | the 4× parser reinvention; the data-explorer seed | done tonight (shadow) |
+| 3 | `eventstore/` module: ONE canonical capture-reader + named projections | the 4× parser reinvention; the data-explorer seed | **MERGED** — `check:reproject` proves live-pipeline parity exactly |
 | 4 | Watermark log per fixture (last-dispatched `Ts`) + post-reseed assert | silent gap risk on reconnect | half-day |
 | 5 | Anchor `fingerprints.json` (same helper, new kind) + Core immutability flag | the sellable dataset gets a commitment; "yours forever" becomes on-chain fact | small |
 
