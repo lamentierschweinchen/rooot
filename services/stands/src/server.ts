@@ -1644,21 +1644,32 @@ function handleMessage(ws: WebSocket, state: ConnState, raw: string): void {
  * attribute. Order of truth for a RESOLVED match: `finalScores` first (the resolution-time score
  * the verdicts were graded with — persisted in the snapshot, restored on boot), then the live
  * join-snapshot cache (covers a resolved-in-this-process match; identical by construction, since
- * predictLifecycle sourced fh/fa from that same cache); neither known -> decided:false, and the
- * claim path refuses the mint honestly (retryable) rather than fabricating a score. For an
- * UNRESOLVED match this stays the live-cache read it always was ({0,0} before any score message —
- * a real, true tally, and decided:false keeps the mint gate shut anyway).
- * Exported for the dev check (src/dev/seat-check.ts) — this is the exact value handleSeatClaim
- * hands to mintScarfForClaim, so asserting it post-restore IS asserting what a mint would carry. */
+ * predictLifecycle sourced fh/fa from that same cache); neither known -> fall through to the disk
+ * fallback below rather than refusing outright.
+ * EVICTION fallback (delta-review Bug E): `onEvict` clears `resolvedMatches`/`finalScores`/
+ * `joinSnapshots` together, so a finished-then-evicted match looks in-memory exactly like one that
+ * never started — a post-eviction hello resurrects an empty, unresolved MatchState (registry.ts's
+ * getOrCreate), so neither branch above fires. Before giving up, check the SAME durable on-disk
+ * sentiment record the seal-on-join path already trusts (`latestSentimentRecordOnDisk`, above,
+ * crystallized once at FULL_TIME and outliving both eviction and a restart) — its `finalScore` is
+ * real, resolution-time truth, never fabricated. Absent/unresolved on disk too -> decided:false,
+ * same honest refusal as before (a genuinely live or never-seen match still reports undecided).
+ * For an UNRESOLVED match this stays the live-cache read it always was ({0,0} before any score
+ * message — a real, true tally) unless the disk fallback finds a record, and decided:false keeps
+ * the mint gate shut anyway.
+ * Exported for the dev check (src/dev/seat-check.ts, src/dev/seal-consume-check.ts) — this is the
+ * exact value handleSeatClaim hands to mintScarfForClaim, so asserting it post-restore/post-evict
+ * IS asserting what a mint would carry. */
 export function currentScoreSnapshot(matchId: string): LiveScoreSnapshot {
   const ev = joinSnapshots.get(matchId)?.score?.ev;
   if (resolvedMatches.has(matchId)) {
     const final = finalScores.get(matchId);
     if (final) return { home: final.home, away: final.away, decided: true };
     if (ev && typeof ev.home === 'number' && typeof ev.away === 'number') return { home: ev.home, away: ev.away, decided: true };
-    return { home: 0, away: 0, decided: false }; // resolved but no genuine score known — refuse, never fabricate
   }
-  return { home: ev?.home ?? 0, away: ev?.away ?? 0, decided: false };
+  const disk = latestSentimentRecordOnDisk(matchId);
+  if (disk) return { home: disk.finalScore.home, away: disk.finalScore.away, decided: true };
+  return { home: ev?.home ?? 0, away: ev?.away ?? 0, decided: false }; // no memory, no disk record — refuse, never fabricate
 }
 
 /** Dev-soak introspection (src/dev/mem-evict-check.ts) — NEVER imported by

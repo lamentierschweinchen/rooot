@@ -72,7 +72,16 @@
   var lastTriple = null;                 // live de-vigged market, for the predict stamp
   var trailing = null;                   // side currently behind → faith
   var lastScore = { home: 0, away: 0 };
-  var cb = { state: [], consensus: [], verdict: [], moment: [], momentResult: [], market: [], cheerEcho: [], nextGoalState: [], nextGoalVerdict: [] };
+  var lastSentiment = null;              // THE SEAL (delta-review Bug A2) — cached like lastTriple, below.
+                                          // The join-replay burst (this match's sentiment record, if any)
+                                          // can land BEFORE the page finishes its own async setup (e.g.
+                                          // terrace.html's fixture-manifest fetch, which gates when
+                                          // wireLive() registers onSentiment) — a post-FT joiner's WS
+                                          // connects and replays near-instantly, faster than that fetch
+                                          // can resolve. Cache it so a callback registered AFTER the
+                                          // message already arrived still gets it (same idiom as onMarket
+                                          // replaying lastTriple immediately below).
+  var cb = { state: [], consensus: [], verdict: [], moment: [], momentResult: [], market: [], cheerEcho: [], nextGoalState: [], nextGoalVerdict: [], sentiment: [] };
   function fire(list, v) { for (var i = 0; i < list.length; i++) { try { list[i](v); } catch (e) {} } }
 
   function send(m) {
@@ -114,6 +123,13 @@
     onMarket: function (fn) { cb.market.push(fn); if (lastTriple) try { fn(lastTriple); } catch (e) {} },
     onNextGoal: function (fn) { cb.nextGoalState.push(fn); },        // the crowd's live next-goal split — {ts, open:{n,home,away,none}, marketAtTs}
     onNextGoalVerdict: function (fn) { cb.nextGoalVerdict.push(fn); }, // your personal verdict at resolution — {call, outcome, happened, marketAtCall}
+    // THE SEAL (delta-review Bug A2): the durable sentiment record — sent live on crystallize
+    // AND replayed to a fresh joiner (even a cold, post-eviction one — server.ts's
+    // latestSentimentRecordOnDisk). Fires with the record itself (finalScore + verdict data),
+    // already matchId-filtered below, so a page never has to unwrap the envelope. Replays the
+    // cached record immediately on registration (lastSentiment, above) in case it already
+    // arrived on the wire before this callback was registered.
+    onSentiment: function (fn) { cb.sentiment.push(fn); if (lastSentiment) try { fn(lastSentiment); } catch (e) {} },
   };
   function flushCheer() { cheerTimer = null; var n = pendingCheer; pendingCheer = 0; if (n > 0 && mySide) send({ type: 'cheer', matchId: matchId, side: mySide, n: n, atMs: Date.now() }); }
   // trailing-edge throttle (~250ms, <=4 fires/s): view is mutated synchronously by every
@@ -146,6 +162,7 @@
       case 'cheerEcho': if (m.matchId === matchId) fire(cb.cheerEcho, { side: m.side, atMs: m.atMs }); break;
       case 'nextGoalState': if (m.matchId === matchId) fire(cb.nextGoalState, m); break;
       case 'nextGoalVerdict': if (m.matchId === matchId && m.anonId === me) fire(cb.nextGoalVerdict, m); break;
+      case 'sentiment': if (m.record && m.record.matchId === matchId) { lastSentiment = m.record; fire(cb.sentiment, m.record); } break;
       case 'odds': {
         // Fix 4: guard by matchId when the server stamps one; tolerate its
         // absence (older server) by falling through to prior behavior.
