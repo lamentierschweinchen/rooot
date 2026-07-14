@@ -279,22 +279,25 @@
           break;
         }
         case 'score': {
-          // Fix (Jul 14 FRA-ESP incident, docs/POSTMORTEM-2026-07-14-live.md — the stuck
-          // "0-3"): parseScoreMessage reports the running total off EVERY 'goal'/
-          // 'penalty_outcome' envelope, Confirmed:false included — a goal still under review
-          // already bumps this number optimistically. Trusting it unconditionally showed a
-          // score that counted an attempt VAR went on to overturn, and nothing ever corrected
-          // it back down: var_end/action_discarded carry the reverted total on the wire, but
-          // neither is 'goal'/'penalty_outcome' (parseScoreMessage never re-fires for them)
-          // and the ledger's own 'discard' message carries no score at all (see the
-          // `m.type !== 'event'` break below) — so an unconfirmed bump here is permanent
-          // unless it's never shown in the first place. Fail-closed on the SAME raw Confirmed
-          // flag the goal-weave path already gates on below (mirrors stands/server.ts's
-          // isWireConfirmed: absent/unreadable = NOT confirmed), so the mast only ever prints
-          // a score the wire actually settled — a goal that's later chalked off never had to
-          // be un-said because it was never said honestly in the first place (law #1).
-          var scoreConfirmed = !!(msg.ev && msg.ev.raw && msg.ev.raw.Confirmed === true);
-          if (msg.ev && typeof msg.ev.home === 'number' && scoreConfirmed) {
+          // The stands server SETTLES this channel before fan-out (Jul 14 FRA-ESP
+          // incident, docs/POSTMORTEM-2026-07-14-live.md — the stuck "0-3"):
+          // services/stands/src/server.ts broadcastToMatch → SettledScore HOLDS an
+          // explicit provisional goal (never fans it out) and applies a VAR/offside
+          // reversal (action_discarded) as a settled revert BEFORE this message is
+          // sent. So msg.ev.home/away is already the honest, confirmed scoreline —
+          // byte-identical to what the terrace shows. We render it, gating ONLY on an
+          // explicit provisional as defense-in-depth (a version-skewed non-settling
+          // server), matching the SCORE line's own rule: normalize.ts settles on
+          // `Confirmed !== false` (the running Total.Goals — normalize.ts:663), NOT
+          // the `=== true` rule that governs discrete penalty outcomes (isWireConfirmed).
+          // Gating this mast on `=== true` was WRONG for a score: it rejects the
+          // action_discarded revert (which carries no Confirmed:true of its own) and
+          // any goal whose envelope omits Confirmed, stranding the mast above the true
+          // score — the exact confirm/retract divergence this incident is about.
+          // reconcile() then un-weaves any medallion the settled score no longer
+          // supports (chalk-off), so a reverted goal is un-said honestly (law #1).
+          var scoreHeld = !!(msg.ev && msg.ev.raw && msg.ev.raw.Confirmed === false);
+          if (msg.ev && typeof msg.ev.home === 'number' && !scoreHeld) {
             L.score(msg.ev.home, msg.ev.away);
             report.score = msg.ev.home + '-' + msg.ev.away;
             reconcile(msg.ev.home, msg.ev.away); // chalk off any goal the score no longer supports
