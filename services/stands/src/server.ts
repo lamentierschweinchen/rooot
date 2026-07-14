@@ -18,13 +18,8 @@ import type { CallMsg, CallReceiptMsg, CheerEchoMsg, ClientMsg, MomentKind, Mome
 import { FEELING_PALETTES } from '@contracts/crowd';
 import type { FeedMsg } from '@contracts/feed';
 import type { LedgerEvent } from '@contracts/ledger';
-<<<<<<< HEAD
-import type { MatchPhase } from '@contracts/match';
-import type { FanbaseSentiment, SentimentRecord } from '@contracts/sentiment';
-=======
 import type { Fixture, MatchPhase } from '@contracts/match';
-import type { SentimentRecord } from '@contracts/sentiment';
->>>>>>> fixture-info
+import type { FanbaseSentiment, SentimentRecord } from '@contracts/sentiment';
 import { REACT_WINDOW_MS, RollingCounter, SWING_DELTA_MIN, SWING_WINDOW_MS } from './decay';
 import { MatchRegistry } from './registry';
 import { anchorRecordHash, relayCall } from './relay';
