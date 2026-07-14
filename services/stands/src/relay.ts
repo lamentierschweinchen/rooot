@@ -67,36 +67,47 @@ function permille(v: number): number {
  * touching devnet, so the anchor-durability check (src/dev/anchor-durability-
  * check.ts) can drive the REAL crystallize + backfill paths with a relayer that
  * "lands" a sig, on a machine with no keypair and no network. The sig is derived
- * from the recordHash so it is stable and verifiably tied to the record it
- * anchors. Honest: it is visibly a `STUB…` value and logged as such — never
+ * from `${kind}:${recordHash}` so it is stable AND verifiably tied to both the
+ * record it anchors and which kind anchored it (a check can recompute the exact
+ * expected value and assert on it — no log-scraping needed to prove which kind
+ * was used). Honest: it is visibly a `STUB…` value and logged as such — never
  * presented as a real on-chain tx. Checked BEFORE relayer() so it works with no
  * keypair loaded and can be toggled per-call (env read fresh each time). */
-function stubAnchorSig(recordHash: string): string | null {
+function stubAnchorSig(recordHash: string, kind: string): string | null {
   if (!process.env.STANDS_ANCHOR_STUB) return null;
-  return `STUB${createHash('sha256').update(recordHash).digest('hex').slice(0, 40)}`;
+  return `STUB${createHash('sha256').update(`${kind}:${recordHash}`).digest('hex').slice(0, 40)}`;
 }
 
 /**
- * Anchor a SentimentRecord's hash on devnet — the collectible's provenance
- * (docs/SENTIMENT.md). A tiny memo tx binding the record to the chain, so the
- * dataset is provable, not just persisted. Best-effort; returns null on failure.
+ * Anchor a hash on devnet — the collectible's provenance (docs/SENTIMENT.md).
+ * A tiny memo tx binding the hash to the chain, so the dataset is provable, not
+ * just persisted. Best-effort; returns null on failure.
+ *
+ * `kind` distinguishes what's being anchored — `'sentiment'` (default, the
+ * existing per-match SentimentRecord callers already use) or `'fingerprints'`
+ * (the tournament-long fold, docs/DATA-ARCHITECTURE.md §4 adopt #5: "Anchor
+ * fingerprints.json — same helper, new kind"). `id` is a matchId for
+ * `'sentiment'`; for `'fingerprints'` there's no single match, so callers pass
+ * a descriptive sentinel (server.ts passes the literal `'fingerprints'`)
+ * instead — kept as a plain string rather than forcing a matchId-shaped value
+ * onto an artifact that isn't per-match.
  */
-export async function anchorRecordHash(matchId: string, recordHash: string): Promise<string | null> {
-  const stub = stubAnchorSig(recordHash);
+export async function anchorRecordHash(id: string, recordHash: string, kind: 'sentiment' | 'fingerprints' = 'sentiment'): Promise<string | null> {
+  const stub = stubAnchorSig(recordHash, kind);
   if (stub) {
-    console.log(`[relay] STUB anchor for ${matchId} -> ${stub.slice(0, 12)}… (STANDS_ANCHOR_STUB set; NO devnet tx)`);
+    console.log(`[relay] STUB anchor for ${kind}:${id} -> ${stub.slice(0, 12)}… (STANDS_ANCHOR_STUB set; NO devnet tx)`);
     return stub;
   }
   const r = relayer();
   if (!r) return null;
-  const memo = JSON.stringify({ v: 1, app: 'rooot', kind: 'sentiment', m: matchId, h: recordHash });
+  const memo = JSON.stringify({ v: 1, app: 'rooot', kind, m: id, h: recordHash });
   try {
     const ix = new TransactionInstruction({ keys: [], programId: MEMO_PROGRAM_ID, data: Buffer.from(memo, 'utf8') });
     const sig = await Promise.race([
       sendAndConfirmTransaction(r.conn, new Transaction().add(ix), [r.payer], { commitment: 'confirmed' }),
       new Promise<never>((_, rej) => setTimeout(() => rej(new Error('anchor timeout')), SEND_TIMEOUT_MS)),
     ]);
-    console.log(`[relay] sentiment ${matchId} anchored ${sig.slice(0, 12)}…`);
+    console.log(`[relay] ${kind} ${id} anchored ${sig.slice(0, 12)}…`);
     return sig;
   } catch (err) {
     console.warn(`[relay] anchor failed (${(err as Error).message.slice(0, 50)})`);

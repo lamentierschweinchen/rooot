@@ -10,7 +10,7 @@
  */
 import { createServer, get as httpGet } from 'node:http';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { mkdirSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { WebSocket, WebSocketServer } from 'ws';
@@ -19,12 +19,13 @@ import { FEELING_PALETTES } from '@contracts/crowd';
 import type { FeedMsg } from '@contracts/feed';
 import type { LedgerEvent } from '@contracts/ledger';
 import type { MatchPhase } from '@contracts/match';
-import type { SentimentRecord } from '@contracts/sentiment';
+import type { FanbaseSentiment, SentimentRecord } from '@contracts/sentiment';
 import { REACT_WINDOW_MS, RollingCounter, SWING_DELTA_MIN, SWING_WINDOW_MS } from './decay';
 import { MatchRegistry } from './registry';
 import { anchorRecordHash, relayCall } from './relay';
 import { DATA_DIR, writeFileAtomic } from './snapshot';
 import { SentimentAccumulator } from './sentiment/accumulator';
+import { foldFingerprints } from './sentiment/builder';
 import { fixtureInfo } from './sentiment/teams';
 // ── SEAT: self-custodial fan identity + mint-to-fan relics (YOUR SEAT) ─────
 // Reconciled from the your-seat worktree branch onto this file's current shape —
@@ -661,6 +662,10 @@ function crystallizeSentiment(
         }
       })
       .catch((err) => console.warn(`[sentiment] ${matchId} live anchor write-back errored: ${errDetail(err)}`));
+    // Tournament-long fold + its own on-chain commitment (docs/DATA-ARCHITECTURE.md
+    // §4 adopt #5) — re-fold DATA_DIR/sentiment into fingerprints.json and anchor
+    // it, at the same "match seal" moment as the per-match record just above.
+    refoldAndAnchorFingerprints();
   } catch (err) {
     console.warn(`[sentiment] crystallize failed for ${matchId}: ${errDetail(err)}`);
   }
@@ -736,6 +741,14 @@ export async function backfillAnchors(): Promise<BackfillResult> {
     }
     const maxAttempts = backfillMaxAttempts();
     for (const f of files) {
+      // fingerprints.json (the tournament-long fold, refoldAndAnchorFingerprints
+      // below) is NOT a per-match record: it carries its own provenance envelope
+      // (recordHash/anchorTxSig) that would otherwise structurally pass the
+      // well-formed-record check below and get "healed" here — WRONGLY, via
+      // writeAnchorSig's per-match merge (no matchId, no staleness guard against
+      // a fold that's moved on since). It has its own fire-and-forget anchor,
+      // self-retried at every subsequent match seal — explicitly excluded here.
+      if (f === 'fingerprints.json') continue;
       const filePath = path.join(dir, f);
       let rec: SentimentRecord;
       try {
@@ -821,6 +834,132 @@ export function armAnchorBackfill(): () => void {
     clearTimeout(bootTimer);
     clearInterval(timer);
   };
+}
+
+/* ── FINGERPRINTS ANCHOR — the sellable per-fan dataset's on-chain commitment ──
+ * (docs/DATA-ARCHITECTURE.md §4 adopt #5: "Anchor fingerprints.json (same
+ * helper, new kind) ... 'yours forever' becomes on-chain fact.") DATA_DIR/
+ * sentiment/fingerprints.json is the tournament-long fold of every crystallized
+ * match's fingerprint.home/away (builder.ts's foldFingerprints) — NOT part of
+ * the frozen contracts/sentiment.ts (FanbaseSentiment there is a per-record
+ * embed, not a persisted-FILE shape), so the on-disk envelope is defined
+ * locally, right here. */
+
+/** Local on-disk envelope for the folded artifact. Wraps foldFingerprints' Map
+ * output with the SAME provenance idiom SentimentRecord carries (recordHash +
+ * anchorTxSig), so the longitudinal dataset gets the same on-chain commitment
+ * its per-match records do. */
+interface FingerprintsFile {
+  version: 1;
+  fanbases: Record<string, FanbaseSentiment>;
+  provenance: { recordHash: string; anchorTxSig: string | null };
+}
+
+/**
+ * Merge an anchor sig into fingerprints.json IFF its recordHash still matches
+ * what was anchored. Unlike writeAnchorSig (a per-match record file, written
+ * exactly ONCE), this file is REWRITTEN by every match's seal (below) — so by
+ * the time an async anchor resolves, the fold may already have moved on to a
+ * newer hash. Writing a stale sig onto a newer hash would misattribute the
+ * memo (law #1: every mark maps to reality) — so this checks recordHash
+ * equality, not just sig-absence, before merging. Best-effort; never throws.
+ */
+function writeFingerprintsAnchorSig(filePath: string, expectedHash: string, sig: string): boolean {
+  try {
+    const cur = JSON.parse(readFileSync(filePath, 'utf8')) as FingerprintsFile;
+    if (!cur.provenance || cur.provenance.recordHash !== expectedHash) return false; // superseded by a later seal — don't clobber
+    if (cur.provenance.anchorTxSig) return false; // already anchored (e.g. a concurrent write got there first)
+    cur.provenance.anchorTxSig = sig;
+    writeFileAtomic(filePath, JSON.stringify(cur, null, 2));
+    return true;
+  } catch (err) {
+    console.warn(`[fingerprints] anchor sig write-back failed: ${errDetail(err)}`);
+    return false;
+  }
+}
+
+export interface FingerprintsFoldResult {
+  /** per-match record files folded in */
+  records: number;
+  /** distinct fanbases in the fold */
+  fanbases: number;
+  recordHash: string;
+}
+
+/**
+ * Re-fold every persisted per-match record (DATA_DIR/sentiment/<matchId>-
+ * <timestamp>.json — the live-crystallized naming; excludes fingerprints.json
+ * itself) into the tournament-long fingerprints.json, and anchor its hash —
+ * REUSING anchorRecordHash's exact pattern (relay.ts), kind:'fingerprints'.
+ * Called at the END of crystallizeSentiment, i.e. at every match seal, so the
+ * fold (and its anchor) are always current as of the latest match. The
+ * fold+write is synchronous (a handful of small files); the ANCHOR itself is
+ * fire-and-forget, same reasoning as the per-match anchor above — never block
+ * the dispatch loop for the up-to-20s confirmation.
+ *
+ * DURABILITY, WITH A NOTED GAP (task instruction: prefer fire-and-forget + an
+ * honest comment over bolting this onto the backfill sweep if it can't be
+ * surgical): a failed anchor here is naturally retried at the NEXT match's
+ * seal, because every seal re-folds AND re-anchors from scratch — self-healing
+ * by cadence, unlike a per-match record, which anchors exactly once ever. The
+ * gap: the LAST fold of a session (no subsequent match to retry it) has no
+ * sweep to heal a lost sig. backfillAnchors() EXPLICITLY SKIPS fingerprints.json
+ * (see the filename check at the top of its loop) rather than silently
+ * mishandling it — its scan assumes a SentimentRecord's shape (a matchId +
+ * provenance.recordHash keyed per match, healed via a per-match writeAnchorSig
+ * merge with no staleness check); this file has no matchId and its provenance
+ * can legitimately move between the read and the write-back (a newer seal
+ * landing mid-sweep), so folding it in properly needs writeFingerprintsAnchorSig's
+ * hash-equality guard wired through the sweep too — real code, not a one-line
+ * generalization — judged not surgical enough for tonight. Acceptable for a
+ * hackathon demo; a real fix is a small scheduled sweep (or a filename branch
+ * in backfillAnchors that reuses writeFingerprintsAnchorSig), left as follow-up.
+ */
+export function refoldAndAnchorFingerprints(): FingerprintsFoldResult | null {
+  const dir = path.join(DATA_DIR, 'sentiment');
+  let files: string[];
+  try {
+    // per-match record files only (live naming = `<matchId>-<ts>.json`) —
+    // excludes fingerprints.json itself (no numeric suffix) and anything else.
+    files = readdirSync(dir).filter((f) => /-\d+\.json$/.test(f));
+  } catch {
+    return null; // no sentiment dir yet — nothing to fold
+  }
+  const records: SentimentRecord[] = [];
+  for (const f of files) {
+    try {
+      records.push(JSON.parse(readFileSync(path.join(dir, f), 'utf8')) as SentimentRecord);
+    } catch (err) {
+      console.warn(`[fingerprints] unreadable record ${f} — skipped from fold: ${errDetail(err)}`);
+    }
+  }
+  if (records.length === 0) return null;
+  const fold = foldFingerprints(records);
+  const fanbases = Object.fromEntries(fold);
+  const recordHash = createHash('sha256').update(JSON.stringify(fanbases)).digest('hex');
+  const filePath = path.join(dir, 'fingerprints.json');
+  const file: FingerprintsFile = { version: 1, fanbases, provenance: { recordHash, anchorTxSig: null } };
+  try {
+    writeFileAtomic(filePath, JSON.stringify(file, null, 2));
+    console.log(`[fingerprints] refolded ${records.length} record(s) -> ${fold.size} fanbase(s) (hash ${recordHash.slice(0, 12)}) -> ${filePath}`);
+  } catch (err) {
+    console.warn(`[fingerprints] refold write failed: ${errDetail(err)}`);
+    return null; // don't anchor a hash that never made it to disk
+  }
+  void anchorRecordHash('fingerprints', recordHash, 'fingerprints')
+    .then((sig) => {
+      if (!sig) {
+        console.warn(`[fingerprints] anchor did not land — the next match's seal will re-fold + retry (hash ${recordHash.slice(0, 12)})`);
+        return;
+      }
+      if (writeFingerprintsAnchorSig(filePath, recordHash, sig)) {
+        console.log(`[fingerprints] anchored on-chain ${sig.slice(0, 12)}… — sig persisted (live path)`);
+      } else {
+        console.log(`[fingerprints] anchor ${sig.slice(0, 12)}… landed but the fold moved on (superseded by a newer seal) — not written back`);
+      }
+    })
+    .catch((err) => console.warn(`[fingerprints] anchor write-back errored: ${errDetail(err)}`));
+  return { records: records.length, fanbases: fold.size, recordHash };
 }
 
 /**
