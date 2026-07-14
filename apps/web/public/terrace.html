@@ -76,33 +76,61 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 /* the consensus — the scoreline the crowd holds up, BESIDE the market (never blended) */
 /* the seam's data block — one keylined box, two cells, the centre rule is the crowd/market boundary */
 .crowdcall{transition:opacity .3s}
-/* THE PLATE — the crowd (solid counted blocks) beside the market (a live wheel), never blended.
-   Bauhaus geometry in the team inks; the centre rule is the crowd/market boundary (honesty law). */
-.plate{display:flex;margin:7px 12px 2px;border:1.5px solid var(--ink);background:var(--card)}
-.plate .pc{flex:1.5;padding:8px 10px 9px;min-width:0;position:relative}
-.plate .pm{flex:1;padding:8px 6px 9px;border-left:1.5px solid var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:0}
-.ph{font-weight:900;font-size:9px;letter-spacing:.14em;color:var(--ink)}
-.ph.m{color:var(--gold)}
-.xcap{font-weight:800;font-size:6.5px;letter-spacing:.13em;color:var(--sub);margin:6px 0 3px}
-.csplit{display:flex;height:20px;border:1.25px solid var(--ink);overflow:hidden}
-.csplit i{display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:900;font-size:8px;overflow:hidden;white-space:nowrap;min-width:0;transition:flex-basis .45s cubic-bezier(.4,0,.2,1)}
-.csplit .csh{background:var(--you);color:var(--youInk,var(--card));flex:0 0 34%}
-.csplit .csd{background:var(--oat,#D0C29E);color:var(--ink);border-left:1.25px solid var(--ink);border-right:1.25px solid var(--ink);flex:0 0 33%}
-.csplit .csa{background:var(--them);color:var(--themInk,var(--ink));flex:0 0 33%}
-.crow{display:flex;align-items:baseline;justify-content:space-between;margin-top:6px;gap:8px}
-.ck{font-weight:800;font-size:6.5px;letter-spacing:.12em;color:var(--sub);white-space:nowrap}
-.cscore{font-weight:900;font-size:15px;letter-spacing:.01em;color:var(--ink);white-space:nowrap}
-.cscore .nh{color:var(--you)}.cscore .na{color:var(--them)}
-.chvh{font-weight:900;font-size:13px;color:var(--ink);white-space:nowrap}
-.cwait{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;background:var(--card);font-weight:800;font-size:8.5px;letter-spacing:.1em;color:var(--sub);padding:0 12px}
-.wheel{width:76px;height:76px;display:block}
-.wpath{stroke:var(--ink);stroke-width:2;stroke-linejoin:round}
-#wH{fill:var(--you)}#wD{fill:var(--oat,#D0C29E)}#wA{fill:var(--them)}
-.wct{font-family:var(--disp);font-weight:900;font-size:20px;fill:var(--ink)}
-.mdrift{font-weight:800;font-size:7px;letter-spacing:.05em;color:var(--sub);white-space:nowrap;text-align:center;margin-top:1px}
-.mdrift .up{color:var(--verde)}.mdrift .dn{color:var(--them)}
-.pc.lite .needsfans{display:none}   /* the sim has no per-fan predictions — show only the aggregate it honestly holds, never a fabricated split */
-.pc.lite .crow{margin-top:10px}.pc.lite .cscore{font-size:19px}
+/* THE PLATE — a printed prediction card, THE CROWD over THE MARKET (portrait, phone-legible).
+   Crowd = fan predictions · avg prediction · heart-v-head (each fanbase vs the market).
+   Market = chance to win (mirrors the fan bar) · move since kickoff. Team inks; never blended. */
+.plate{align-self:stretch;margin:7px 12px 4px;background:var(--card);border:1.5px solid var(--ink)}   /* .mid centres its children — stretch so the card fills the seam width */
+.psec{padding:8px 11px 10px;position:relative}
+.psec+.psec{border-top:1.5px solid var(--ink)}
+.phd{display:flex;align-items:baseline;justify-content:space-between}
+.phd b{font-weight:900;font-size:10px;letter-spacing:.1em}
+.phd.c b{color:var(--ink)}.phd.m b{color:var(--gold)}
+.phd .sub{font-weight:800;font-size:6.5px;letter-spacing:.1em;color:var(--sub)}
+.plbl{font-weight:900;font-size:7px;letter-spacing:.12em;color:var(--sub)}
+.pcbar{display:flex;height:22px;border:1.5px solid var(--ink);overflow:hidden;background:var(--paper);margin-top:6px}
+.pcbar i{display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:900;font-size:9px;overflow:hidden;white-space:nowrap;min-width:0;transition:flex-basis .45s cubic-bezier(.4,0,.2,1)}
+.pcbar .h{background:var(--you);color:var(--youInk,var(--card))}
+.pcbar .d{background:var(--oat,#CDBE97);color:var(--ink);border-left:1.5px solid var(--ink);border-right:1.5px solid var(--ink)}
+.pcbar .a{background:var(--them);color:var(--themInk,var(--ink))}
+.pends{display:flex;justify-content:space-between;font-weight:900;font-size:7.5px;letter-spacing:.05em;margin-top:3px}
+.pends .e1{color:var(--you)}.pends .e2{color:var(--sub)}.pends .e3{color:var(--them)}
+.pcrow{display:flex;gap:14px;margin-top:9px;align-items:flex-start}
+.pboard{display:inline-flex;background:var(--ink);border-radius:3px;overflow:hidden}
+.pbt{display:flex;flex-direction:column;align-items:center;padding:4px 10px 5px}
+.pbt+.pbt{border-left:1.5px solid #4a463c}
+.pbt s{font-weight:900;font-size:6.5px;letter-spacing:.1em;text-decoration:none;margin-bottom:2px}
+.pbt.h s{color:var(--you)}.pbt.a s{color:var(--them)}
+.pbt b{font-weight:900;font-size:18px;color:var(--card);font-variant-numeric:tabular-nums;line-height:1}
+.fvm{flex:1;min-width:0}
+.fvrow{display:grid;grid-template-columns:24px 1fr 28px;align-items:center;gap:6px;height:14px}
+.fvrow+.fvrow{margin-top:4px}
+.ft{font-weight:900;font-size:8px}.ft.t1{color:var(--you)}.ft.t3{color:var(--them)}
+.fvtrack{position:relative;height:11px}
+.fvtrack::after{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:var(--line);transform:translateY(-50%)}
+.fvconn{position:absolute;top:50%;height:3px;transform:translateY(-50%);z-index:1}
+.fvconn.t1{background:var(--you)}.fvconn.t3{background:var(--them)}
+.mdot,.fdot{position:absolute;top:50%;transform:translate(-50%,-50%);border-radius:50%;border:1.5px solid var(--ink);z-index:2}
+.mdot{width:8px;height:8px;background:var(--paper)}
+.fdot{width:10px;height:10px}.fdot.t1{background:var(--you)}.fdot.t3{background:var(--them)}
+.fvgap{font-weight:900;font-size:9px;text-align:right;color:var(--ink);font-variant-numeric:tabular-nums}
+.fvkey{display:flex;gap:11px;font-weight:800;font-size:6px;letter-spacing:.04em;color:var(--sub);margin-top:5px;align-items:center}
+.fvkey i{display:inline-block;width:7px;height:7px;border-radius:50%;border:1.25px solid var(--ink);vertical-align:-1px;margin-right:3px}
+.fvkey .km{background:var(--paper)}.fvkey .kf{background:var(--ink)}
+.pdiv{margin-top:8px}
+.pdrow{display:grid;grid-template-columns:30px 1fr;align-items:center;gap:8px;height:14px}
+.pdrow+.pdrow{margin-top:4px}
+.pdt{font-weight:900;font-size:8px}.pdt.t1{color:var(--you)}.pdt.t2{color:var(--sub)}.pdt.t3{color:var(--them)}
+.pdtrack{position:relative;height:9px}
+.pdtrack::before{content:"";position:absolute;left:50%;top:-5px;height:19px;width:1.5px;background:var(--ink);transform:translateX(-50%);z-index:0}
+.pdbar{position:absolute;top:0;height:9px;border:1.25px solid var(--ink);z-index:1;transition:width .4s}
+.pdbar.dn{right:50%}.pdbar.up{left:50%}
+.pdbar.b1{background:var(--you)}.pdbar.b2{background:var(--oat,#CDBE97)}.pdbar.b3{background:var(--them)}
+.pdval{position:absolute;top:50%;transform:translateY(-50%);font-weight:900;font-size:8.5px;color:var(--ink);font-variant-numeric:tabular-nums}
+.pdbar.dn .pdval{right:100%;margin-right:5px}.pdbar.up .pdval{left:100%;margin-left:5px}
+.pdaxis{display:grid;grid-template-columns:30px 1fr;gap:8px;margin-top:6px}
+.pdaxis .c{text-align:center;font-weight:800;font-size:6.5px;letter-spacing:.1em;color:var(--sub)}
+.pwait{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;background:var(--card);font-weight:800;font-size:8.5px;letter-spacing:.1em;color:var(--sub);padding:0 12px;z-index:3}
+.psec.lite .needsfans{display:none}   /* the sim carries no per-fan predictions — hide the split + heart-v-head, never fabricate them */
 .moment{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:var(--card);gap:2px}
 .moment.on{display:flex}
 .moment .big{font-weight:900;font-size:25px;letter-spacing:.02em;line-height:1}
@@ -272,21 +300,32 @@ body.embed .backg,body.embed .foot,body.embed .matchbar{display:none}
       <span class="cl" id="clock">0'</span><span class="rp"><span class="d"></span>REPLAY</span></div>
     <div class="crowdcall" id="crowdcall">
       <div class="plate">
-        <div class="pc" id="pcCrowd">
-          <div class="ph">THE CROWD</div>
-          <div class="xcap needsfans">WHO THEY CALL TO WIN</div>
-          <div class="csplit needsfans"><i class="csh" id="csH"></i><i class="csd" id="csD"></i><i class="csa" id="csA"></i></div>
-          <div class="crow"><span class="ck">THEY EXPECT</span><span class="cscore" id="cScore">—</span></div>
-          <div class="crow needsfans"><span class="ck">HEART v HEAD</span><span class="chvh" id="cHvh">—</span></div>
-          <div class="cwait" id="cWait">THE CROWD IS ARRIVING</div>
+        <div class="psec" id="secCrowd">
+          <div class="phd c"><b>THE CROWD</b><span class="sub" id="crowdSub"></span></div>
+          <div class="plbl needsfans" style="margin-top:7px">FAN PREDICTIONS</div>
+          <div class="pcbar needsfans"><i class="h" id="fpH"></i><i class="d" id="fpD"></i><i class="a" id="fpA"></i></div>
+          <div class="pends needsfans"><span class="e1" id="fpHe">SUI</span><span class="e2">DRAW</span><span class="e3" id="fpAe">COL</span></div>
+          <div class="pcrow">
+            <div class="blk"><div class="plbl">AVG PREDICTION</div><div class="pboard"><div class="pbt h"><s id="apHt">SUI</s><b id="apH">—</b></div><div class="pbt a"><s id="apAt">COL</s><b id="apA">—</b></div></div></div>
+            <div class="blk fvm needsfans"><div class="plbl">HEART v HEAD</div>
+              <div class="fvrow"><span class="ft t1" id="hvHt">SUI</span><div class="fvtrack"><span class="fvconn t1" id="hvHconn"></span><span class="mdot" id="hvHm"></span><span class="fdot t1" id="hvHf"></span></div><span class="fvgap" id="hvHg">—</span></div>
+              <div class="fvrow"><span class="ft t3" id="hvAt">COL</span><div class="fvtrack"><span class="fvconn t3" id="hvAconn"></span><span class="mdot" id="hvAm"></span><span class="fdot t3" id="hvAf"></span></div><span class="fvgap" id="hvAg">—</span></div>
+              <div class="fvkey"><span><i class="km"></i>MARKET</span><span><i class="kf"></i>FANS</span></div>
+            </div>
+          </div>
+          <div class="pwait" id="cWait">THE CROWD IS ARRIVING</div>
         </div>
-        <div class="pm">
-          <div class="ph m">THE MARKET</div>
-          <svg class="wheel" id="mWheel" viewBox="0 0 120 120" aria-hidden="true">
-            <path id="wH" class="wpath"></path><path id="wD" class="wpath"></path><path id="wA" class="wpath"></path>
-            <text id="wCtr" class="wct" x="60" y="68" text-anchor="middle">—</text>
-          </svg>
-          <div class="mdrift" id="mDrift">SINCE KICKOFF</div>
+        <div class="psec">
+          <div class="phd m"><b>THE MARKET</b><span class="sub">CHANCE TO WIN</span></div>
+          <div class="pcbar"><i class="h" id="mkH"></i><i class="d" id="mkD"></i><i class="a" id="mkA"></i></div>
+          <div class="pends"><span class="e1" id="mkHe">SUI</span><span class="e2">DRAW</span><span class="e3" id="mkAe">COL</span></div>
+          <div class="pdiv">
+            <div class="plbl">MOVE SINCE KICKOFF · PTS</div>
+            <div class="pdrow" style="margin-top:6px"><span class="pdt t1" id="mvHt">SUI</span><div class="pdtrack"><div class="pdbar b1" id="mvH"><span class="pdval" id="mvHv"></span></div></div></div>
+            <div class="pdrow"><span class="pdt t2">DRAW</span><div class="pdtrack"><div class="pdbar b2" id="mvD"><span class="pdval" id="mvDv"></span></div></div></div>
+            <div class="pdrow"><span class="pdt t3" id="mvAt">COL</span><div class="pdtrack"><div class="pdbar b3" id="mvA"><span class="pdval" id="mvAv"></span></div></div></div>
+            <div class="pdaxis"><span></span><span class="c">◄ FELL · 0 · ROSE ►</span></div>
+          </div>
         </div>
       </div>
     </div>
@@ -699,47 +738,49 @@ requestAnimationFrame(function(t){M.lastMs=t;step(t);});
 // the box's two cells: crowd = the aggregate predicted score (owner call, 10 Jul) · market = the leader
 // THE PLATE — the crowd as solid counted blocks (split · expected score · heart-v-head),
 // the market as a live wheel + its drift since kickoff. All from the wire; never blended.
-function setCScore(h,a){ var s=el('cScore'); if(s)s.innerHTML='<b class="nh">'+h+'</b> – <b class="na">'+a+'</b>'; }
-function setCSplit(h,d,a){ var t=h+d+a; if(!t)return;
-  var ph=Math.round(h/t*100), pd=Math.round(d/t*100), pa=100-ph-pd;
-  var H=el('csH'),D=el('csD'),A=el('csA');
-  H.style.flexBasis=ph+'%'; D.style.flexBasis=pd+'%'; A.style.flexBasis=pa+'%';
-  H.textContent=ph>=15?ph+'%':''; D.textContent=pd>=15?pd+'%':''; A.textContent=pa>=15?pa+'%':''; }
+// a stacked bar normalised to 100% — works for counts (fan tallies) or fractions (market)
+function setPBar(h,d,a,ph,pd,pa){ var t=(h||0)+(d||0)+(a||0); if(!t)return; var H=el(ph),D=el(pd),A=el(pa); if(!H)return;
+  var th=Math.round(h/t*100), td=Math.round(d/t*100), ta=100-th-td;
+  H.style.flexBasis=th+'%'; D.style.flexBasis=td+'%'; A.style.flexBasis=ta+'%';
+  H.textContent=th>=13?th+'%':''; D.textContent=td>=13?td+'%':''; A.textContent=ta>=13?ta+'%':''; }
+function setAvg(h,a){ var H=el('apH'),A2=el('apA'); if(H)H.textContent=h; if(A2)A2.textContent=a; }
+// HEART v HEAD — per team: the market's win-chance (hollow dot) vs that fanbase's own belief (filled dot)
+function refreshHvH(){ if(!M.br||!M.mkt)return; var br=M.br, mk=M.mkt;
+  function row(g, mktChance, mDot, fDot, conn, gapEl){
+    var mp=Math.round((mktChance||0)*100), n=(g&&g.n)||0, own=(g&&g.outcome&&g.outcome.win)||0,
+        fp=n?Math.round(own/n*100):null, m=el(mDot), f=el(fDot), c=el(conn), ge=el(gapEl);
+    if(fp==null){ if(m)m.style.opacity='0'; if(f)f.style.opacity='0'; if(c)c.style.width='0'; if(ge)ge.textContent='—'; return; }
+    if(m){m.style.opacity='';m.style.left=mp+'%';} if(f){f.style.opacity='';f.style.left=fp+'%';}
+    if(c){c.style.left=Math.min(mp,fp)+'%'; c.style.width=Math.abs(fp-mp)+'%';}
+    if(ge)ge.textContent=(fp-mp>0?'+':'')+(fp-mp); }
+  row(br.home?{n:br.home.n,outcome:{win:br.home.outcome&&br.home.outcome.homeWin}}:null, mk.home, 'hvHm','hvHf','hvHconn','hvHg');
+  row(br.away?{n:br.away.n,outcome:{win:br.away.outcome&&br.away.outcome.awayWin}}:null, mk.away, 'hvAm','hvAf','hvAconn','hvAg');
+}
+// MOVE SINCE KICKOFF — a diverging bar per result, points off the baseline captured at first read
+function setMove(mk){ if(!M.mkt0)M.mkt0={h:mk.home,d:mk.draw,a:mk.away};
+  var defs=[['h',mk.home,M.mkt0.h,'mvH','mvHv','b1'],['d',mk.draw,M.mkt0.d,'mvD','mvDv','b2'],['a',mk.away,M.mkt0.a,'mvA','mvAv','b3']];
+  for(var i=0;i<defs.length;i++){ var q=defs[i], delta=Math.round((q[1]-q[2])*100), bar=el(q[3]), val=el(q[4]); if(!bar)continue;
+    bar.className='pdbar '+q[5]+' '+(delta<0?'dn':'up'); bar.style.width=Math.min(48,Math.abs(delta)*4.5)+'%';
+    if(val)val.textContent=(delta>0?'+':delta<0?'−':'')+Math.abs(delta); }
+}
 function ccUpdate(c){ if(!c)return;
   if(c.market){ marketUpdate(Array.isArray(c.market)?{home:c.market[0],draw:c.market[1],away:c.market[2]}:c.market); }
   if(!c.all)return;
-  var wait=el('cWait');
-  var pc=el('pcCrowd');
-  if(Array.isArray(c.all)){   // demo/sim shape: only the aggregate pair — no per-fan tallies to count honestly
-    if(pc)pc.classList.add('lite'); setCScore(c.all[0],c.all[1]); if(wait)wait.style.display='none'; return;
+  var wait=el('cWait'), sec=el('secCrowd');
+  if(Array.isArray(c.all)){   // demo/sim: only the aggregate pair — no per-fan tallies, so hide the split + heart-v-head
+    if(sec)sec.classList.add('lite'); setAvg(c.all[0],c.all[1]); if(wait)wait.style.display='none'; return;
   }
   var A=c.all;
   if(!A.n){ if(wait)wait.style.display=''; return; }   // silence, never zeros
-  if(wait)wait.style.display='none'; if(pc)pc.classList.remove('lite');
-  setCScore(A.mean.home.toFixed(1),A.mean.away.toFixed(1));
-  if(A.outcome){ setCSplit(A.outcome.homeWin||0,A.outcome.draw||0,A.outcome.awayWin||0); }
-  var hvh=el('cHvh'), br=c.byRoot;   // heart v head — % of rooted fans who call their OWN team to win
-  if(hvh&&br){ var hn=(br.home&&br.home.n)||0, an=(br.away&&br.away.n)||0, tot=hn+an,
-    own=((br.home&&br.home.outcome&&br.home.outcome.homeWin)||0)+((br.away&&br.away.outcome&&br.away.outcome.awayWin)||0);
-    hvh.textContent=tot?Math.round(own/tot*100)+'%':'—'; }
+  if(wait)wait.style.display='none'; if(sec)sec.classList.remove('lite');
+  if(A.outcome){ setPBar(A.outcome.homeWin,A.outcome.draw,A.outcome.awayWin,'fpH','fpD','fpA'); }   // FAN PREDICTIONS
+  if(A.mean){ setAvg(A.mean.home.toFixed(1),A.mean.away.toFixed(1)); }
+  var sub=el('crowdSub'); if(sub)sub.textContent='FROM '+A.n+' CALL'+(A.n===1?'':'S');
+  M.br=c.byRoot||null; refreshHvH();
 }
-function donutSeg(cx,cy,R,r,a0,a1){
-  function P(rad,deg){var t=(deg-90)*Math.PI/180;return (cx+rad*Math.cos(t)).toFixed(2)+' '+(cy+rad*Math.sin(t)).toFixed(2);}
-  if(a1-a0>=359.999)a1=a0+359.99; var lg=(a1-a0)>180?1:0;
-  return 'M'+P(R,a0)+' A'+R+' '+R+' 0 '+lg+' 1 '+P(R,a1)+' L'+P(r,a1)+' A'+r+' '+r+' 0 '+lg+' 0 '+P(r,a0)+' Z';
-}
-function drawWheel(h,d,a){ var cx=60,cy=60,R=52,r=30,s=0,H=el('wH'),D=el('wD'),A=el('wA'); if(!H)return;
-  H.setAttribute('d',donutSeg(cx,cy,R,r,s,s+h*360)); s+=h*360;
-  D.setAttribute('d',donutSeg(cx,cy,R,r,s,s+d*360)); s+=d*360;
-  A.setAttribute('d',donutSeg(cx,cy,R,r,s,s+a*360)); }
-function marketUpdate(m){ if(!m||m.home==null)return;
-  var h=m.home,d=m.draw,a=m.away; drawWheel(h,d,a);
-  var rows=[[Math.round(h*100),HOME_TRI,'h'],[Math.round(d*100),'DRAW','d'],[Math.round(a*100),AWAY_TRI,'a']].sort(function(x,y){return y[0]-x[0];});
-  var ctr=el('wCtr'); if(ctr)ctr.textContent=rows[0][0]+'%';
-  if(!M.mkt0)M.mkt0={h:h,d:d,a:a};   // baseline ≈ the first read at/after kickoff
-  var dr=el('mDrift'); if(dr){ var key=rows[0][2], cur=key==='h'?h:key==='d'?d:a, delta=Math.round((cur-M.mkt0[key])*100);
-    dr.innerHTML = delta===0 ? (rows[0][1]+' STEADY SINCE KO')
-      : rows[0][1]+' <span class="'+(delta>0?'up':'dn')+'">'+(delta>0?'▲':'▼')+Math.abs(delta)+'</span> SINCE KO'; }
+function marketUpdate(m){ if(!m||m.home==null)return; M.mkt=m;
+  setPBar(m.home,m.draw,m.away,'mkH','mkD','mkA');   // CHANCE TO WIN — mirrors the fan bar
+  setMove(m); refreshHvH();
 }
 function applyFixture(sideKey){
   sideKey=sideKey||'home';
@@ -761,7 +802,9 @@ function applyFixture(sideKey){
   if(youHdr)youHdr.textContent=YOU_TEAM.name; if(themHdr)themHdr.textContent=THEM_TEAM.name;
   // no predictions yet → silence, never zeros-as-data (owner copy, 10 Jul: short)
   var wait=el('cWait'); if(wait)wait.style.display='';   // the plate returns to silence on a fixture change (no zeros)
-  M.mkt0=null;   // drop the market baseline so drift re-bases at the new match's kickoff
+  M.mkt0=null; M.mkt=null; M.br=null;   // drop the market baseline + latest reads so everything re-bases at the new match
+  ['fpHe','mkHe','hvHt','mvHt','apHt'].forEach(function(id){var e=el(id);if(e)e.textContent=HOME_TRI;});
+  ['fpAe','mkAe','hvAt','mvAt','apAt'].forEach(function(id){var e=el(id);if(e)e.textContent=AWAY_TRI;});
   var rp=document.querySelector('.matchbar .rp'); if(rp)rp.lastChild.textContent=LIVE?'LIVE':'REPLAY';
 }
 function wireLive(){
