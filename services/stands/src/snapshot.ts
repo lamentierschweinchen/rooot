@@ -398,11 +398,19 @@ export function applySnapshot(
     if (restoreOpenedTriggers && sm.openedTriggerIds && sm.openedTriggerIds.length > 0) restoreOpenedTriggers(sm.matchId, sm.openedTriggerIds);
     if (restoreNextGoalResolved && sm.nextGoalResolvedIds && sm.nextGoalResolvedIds.length > 0) restoreNextGoalResolved(sm.matchId, sm.nextGoalResolvedIds);
     if (restoreNextGoalRows && sm.nextGoalRows && sm.nextGoalRows.length > 0) restoreNextGoalRows(sm.matchId, sm.nextGoalRows);
-    const hadVerdicts = (sm.verdicts?.length ?? 0) > 0;
-    if (markResolved && (sm.resolved === true || hadVerdicts)) markResolved(sm.matchId);
+    // finalScore BEFORE resolved (order matters, docs/DATA-ARCHITECTURE.md §4
+    // item 2's provenance-fetch crash-window guard, server.ts's `resolved`
+    // hook): that hook distinguishes "genuinely crashed mid-crystallize"
+    // (finalScore WAS captured — predictLifecycle sets it synchronously,
+    // same tick as resolved — but no sentiment record landed) from an old/
+    // doctored snapshot with no finalScore at all (trust resolved as-is,
+    // unrelated case) — it can only tell them apart if finalScores is
+    // already populated by the time markResolved runs.
     if (restoreFinalScore && sm.finalScore && typeof sm.finalScore.home === 'number' && typeof sm.finalScore.away === 'number') {
       restoreFinalScore(sm.matchId, { home: sm.finalScore.home, away: sm.finalScore.away });
     }
+    const hadVerdicts = (sm.verdicts?.length ?? 0) > 0;
+    if (markResolved && (sm.resolved === true || hadVerdicts)) markResolved(sm.matchId);
   }
   if (restoreFanSerial && snap.fans) restoreFanSerial(snap.fans.nextFanNo ?? 1, snap.fans.numbers ?? []);
 }

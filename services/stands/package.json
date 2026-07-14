@@ -29,6 +29,7 @@
     "check:reproject": "tsx src/dev/reproject-check.ts",
     "reproject": "tsx src/eventstore/reproject.ts",
     "check:fixture-info": "tsx src/dev/fixture-info-check.ts",
+    "check:provenance": "tsx src/dev/provenance-watermark-check.ts",
     "prove:claim-mint": "tsx src/dev/prove-claim-mint.ts",
     "prove:owned-mint": "tsx src/mint/scripts/proveOwnedMint.ts"
   },

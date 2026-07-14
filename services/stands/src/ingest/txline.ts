@@ -128,8 +128,229 @@ const oddsPeriodByFixture = new Map<string, 'full' | 'et'>();
 /** roster latch, per fixture — the wire's lineups envelope names the scorers */
 const rosterByFixture = new Map<string, FixtureRoster>();
 
+/* ── FEED WATERMARKS (LOG-ONLY, docs/DATA-ARCHITECTURE.md §4 item 4 /
+ * scratchpad/research-sports-data.md patterns 2+5) — no behavior change,
+ * purely visibility into feed health. Module scope, same "one process, one
+ * day's fixtures" reasoning as the latches above. ─────────────────────── */
+
+/** last-dispatched wire `Ts` per fixture, across BOTH streams (whichever
+ * envelope carries the freshest Ts wins) — the Betfair/Ably-style "what did
+ * we last actually see" cursor, kept for gap visibility only (pattern 2). */
+const lastTsByFixture = new Map<string, number>();
+/** fixtures whose stream just reconnected — the NEXT envelope dispatched for
+ * one clears its entry and logs the gap since `lastTsByFixture`. Not
+ * stream-specific: odds/scores reconnect independently but share one
+ * watermark, so whichever stream's next envelope lands first reports it. */
+const pendingResumeLog = new Set<string>();
+/** last-seen scores-stream `Seq` per fixture (odds envelopes carry no Seq).
+ * Verified monotonic-per-fixture with zero decrease-violations across a full
+ * night capture (17 fixtures, 16.5k Seq-bearing envelopes, scores-night-
+ * 20260703.jsonl, 2026-07-14) — pattern 5's "verify before trusting" gate
+ * passed, so a forward jump >1 is logged as a possible missed message. */
+const lastSeqByFixture = new Map<string, number>();
+
+/** One shared peek for FixtureId/Ts/Seq off the RAW line, before any real
+ * parse* call runs — mirrors rawFixtureId's style (a cheap pre-parse peek
+ * purely for routing/health, never authoritative for the actual message
+ * shape). Returns null on anything that isn't a FixtureId-bearing envelope
+ * (heartbeats etc. are already filtered by the caller). */
+function rawHealthFields(data: string): { fixtureId: string; ts: number | null; seq: number | null } | null {
+  try {
+    const obj = JSON.parse(data) as { FixtureId?: unknown; Ts?: unknown; Seq?: unknown };
+    if (typeof obj.FixtureId !== 'number') return null;
+    return {
+      fixtureId: String(obj.FixtureId),
+      ts: typeof obj.Ts === 'number' ? obj.Ts : null,
+      seq: typeof obj.Seq === 'number' ? obj.Seq : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** LOG-ONLY feed-health tap, called once per dispatched line regardless of
+ * stream. Never throws, never influences routing/dispatch — purely observes.
+ * (a) watermark: updates lastTsByFixture; if this fixture's stream recently
+ *     resumed (markStreamResumed below), logs the wire-time gap since the
+ *     last envelope we saw before the drop.
+ * (b) Seq: warns when a fixture's scores-stream Seq jumps by >1 (a probable
+ *     missed message) — odds envelopes carry no Seq, so that half is a no-op
+ *     for odds lines. */
+function noteFeedHealth(data: string): void {
+  const f = rawHealthFields(data);
+  if (!f) return;
+  const { fixtureId: fid, ts, seq } = f;
+
+  if (ts !== null) {
+    const prior = lastTsByFixture.get(fid);
+    if (pendingResumeLog.has(fid)) {
+      pendingResumeLog.delete(fid);
+      if (prior !== undefined) {
+        console.log(`[txline:watermark] fixture ${fid} resumed, gap ${((ts - prior) / 1000).toFixed(1)}s`);
+      }
+    }
+    if (prior === undefined || ts > prior) lastTsByFixture.set(fid, ts);
+  }
+
+  if (seq !== null) {
+    const prevSeq = lastSeqByFixture.get(fid);
+    if (prevSeq !== undefined && seq > prevSeq + 1) {
+      console.warn(`[txline:watermark] fixture ${fid} Seq gap: ${prevSeq} -> ${seq} (${seq - prevSeq - 1} probably missed)`);
+    }
+    if (prevSeq === undefined || seq > prevSeq) lastSeqByFixture.set(fid, seq);
+  }
+}
+
+/** Mark every fixture on a stream as "pending a resume-gap log" — called
+ * from runStream on a genuine RECONNECT (not the initial connect). The next
+ * envelope noteFeedHealth sees for each fixture consumes the mark. */
+function markStreamResumed(fixtureIds: Set<string>): void {
+  for (const fid of fixtureIds) pendingResumeLog.add(fid);
+}
+
+/* ── RELIC PROVENANCE (docs/DATA-ARCHITECTURE.md §4 item 2 /
+ * scratchpad/research-sports-data.md — "relics carry their own provenance")
+ * — captures the wire MessageId per odds tick (contracts/match.ts's OddsTick
+ * carries no typed MessageId field; captured here instead of touching that
+ * frozen contract) and retains refs for the 1-3 most significant market
+ * moments, mirroring sentiment/builder.ts summarizeMarket's OWN notion of
+ * significance (biggestSwing + etClose) without importing/coupling to it —
+ * a lightweight streaming mirror, not shared code. ───────────────────── */
+
+const SWING_FLOOR = 0.06; // mirrors sentiment/builder.ts's SWING_FLOOR exactly
+interface Triple { home: number; draw: number; away: number }
+function dist2(a: Triple, b: Triple): number {
+  return Math.max(Math.abs(a.home - b.home), Math.abs(a.draw - b.draw), Math.abs(a.away - b.away));
+}
+interface ProvenanceCandidate { messageId: string; ts: number }
+interface FixtureProvenance {
+  /** the swing ratchet's anchor point — mirrors builder.ts's `kept` */
+  keptTriple: Triple | null;
+  biggestSwing: { candidate: ProvenanceCandidate; deltaMax: number } | null;
+  /** last-write-wins: builder.ts's etClose IS the last et-period tick, so the
+   * latest et candidate here is already the correct mirror, no comparison needed */
+  etClose: ProvenanceCandidate | null;
+}
+const provenanceByFixture = new Map<string, FixtureProvenance>();
+
+/** MessageId/Ts straight off what parseOddsMessage already parsed (tick.raw
+ * is the full RawOddsMessage at runtime, per contracts/normalize.ts — typed
+ * `unknown` on the frozen OddsTick contract, so this stays a local, guarded
+ * read rather than something downstream code is expected to rely on). */
+function oddsMeta(tick: { raw?: unknown }): ProvenanceCandidate | null {
+  const raw = tick.raw as { MessageId?: unknown; Ts?: unknown } | undefined;
+  if (!raw || typeof raw.MessageId !== 'string' || typeof raw.Ts !== 'number') return null;
+  return { messageId: raw.MessageId, ts: raw.Ts };
+}
+
+function noteOddsProvenance(fixtureId: string, period: 'full' | 'et', triple: Triple, cand: ProvenanceCandidate): void {
+  let st = provenanceByFixture.get(fixtureId);
+  if (!st) {
+    st = { keptTriple: null, biggestSwing: null, etClose: null };
+    provenanceByFixture.set(fixtureId, st);
+  }
+  if (period === 'et') {
+    st.etClose = cand;
+    return;
+  }
+  if (st.keptTriple === null) {
+    st.keptTriple = triple; // first full tick establishes the ratchet anchor, not a swing yet
+    return;
+  }
+  const d = dist2(triple, st.keptTriple);
+  if (d >= SWING_FLOOR) {
+    if (!st.biggestSwing || d > st.biggestSwing.deltaMax) st.biggestSwing = { candidate: cand, deltaMax: d };
+    st.keptTriple = triple; // ratchet forward — mirrors builder.ts's `kept = cur`
+  }
+}
+
+/** Up to 2 candidates today (biggestSwing + etClose — the two concepts
+ * mirrored above), comfortably inside the ~3-ref cap; never fabricates a
+ * 3rd just to fill the budget. */
+function getProvenanceCandidates(fixtureId: string): ProvenanceCandidate[] {
+  const st = provenanceByFixture.get(fixtureId);
+  if (!st) return [];
+  const out: ProvenanceCandidate[] = [];
+  if (st.biggestSwing) out.push(st.biggestSwing.candidate);
+  if (st.etClose) out.push(st.etClose);
+  return out;
+}
+
+interface RawProofHashStep { hash: number[]; isRightSibling: boolean }
+interface RawValidationProof {
+  odds?: unknown;
+  summary?: { fixtureId?: number; updateStats?: unknown; oddsSubTreeRoot?: number[] };
+  subTreeProof?: RawProofHashStep[];
+  mainTreeProof?: RawProofHashStep[];
+}
+
+/** Compact a validation-endpoint response for on-record storage: the 32-byte
+ * hash arrays (summary.oddsSubTreeRoot, each proof step's `.hash`) cost ~4x
+ * their size as JSON number arrays — base64 them. Structure otherwise kept
+ * exactly as the endpoint returns it (docs/DATA.md: {odds, summary,
+ * subTreeProof, mainTreeProof}, proven in fixtures/provenance/messi-goal-
+ * tick-proof.json) — "the proof's natural JSON," just byte-array-compact.
+ * An unrecognized shape is stringified as-is rather than dropped — still
+ * honest provenance, just not size-optimized. */
+function compactValidationProof(body: unknown): string {
+  const b = body as RawValidationProof;
+  const looksRight = b && typeof b === 'object' && (Array.isArray(b.subTreeProof) || Array.isArray(b.mainTreeProof) || !!b.summary);
+  if (!looksRight) return JSON.stringify(body);
+  const toB64 = (bytes: number[]): string => Buffer.from(bytes).toString('base64');
+  const compactSteps = (steps?: RawProofHashStep[]): Array<{ hash: string; isRightSibling: boolean }> | undefined =>
+    steps?.map((s) => ({ hash: Array.isArray(s.hash) ? toB64(s.hash) : String(s.hash), isRightSibling: s.isRightSibling }));
+  return JSON.stringify({
+    odds: b.odds,
+    summary: b.summary ? { ...b.summary, oddsSubTreeRoot: Array.isArray(b.summary.oddsSubTreeRoot) ? toB64(b.summary.oddsSubTreeRoot) : b.summary.oddsSubTreeRoot } : undefined,
+    subTreeProof: compactSteps(b.subTreeProof),
+    mainTreeProof: compactSteps(b.mainTreeProof),
+  });
+}
+
+/**
+ * Fetch the TxLINE validation (Merkle) proof for each retained provenance
+ * candidate and return them compacted, ready for
+ * SentimentRecord['provenance']['txlineRefs'] — populate this BEFORE
+ * assembleSentimentRecord hashes so the existing anchor covers the
+ * provenance for free (docs/DATA-ARCHITECTURE.md §4 item 2).
+ *
+ * Honest-degrade by design: no candidates (replay/demo mode, or a match with
+ * no significant swing yet) short-circuits to [] with zero I/O — no token
+ * read, no fetch. A missing/unreadable token, a network error, a non-200, or
+ * a malformed body for one candidate is caught, logged ONCE, and that
+ * candidate is simply omitted — never thrown, never blocks the FULL_TIME
+ * crystallize path. Per-fetch timeout so a hung validation endpoint can't
+ * hang crystallize indefinitely either.
+ */
+export async function fetchProvenanceRefs(fixtureId: string, timeoutMs = 8_000): Promise<string[]> {
+  const candidates = getProvenanceCandidates(fixtureId);
+  if (candidates.length === 0) return [];
+  let token: TxLineToken;
+  try {
+    token = loadToken();
+  } catch (err) {
+    console.warn(`[txline:provenance] ${fixtureId} token unavailable — refs stay [] (${String(err)})`);
+    return [];
+  }
+  const headers = { Authorization: `Bearer ${token.jwt}`, 'X-Api-Token': token.apiToken };
+  const refs: string[] = [];
+  for (const c of candidates) {
+    try {
+      const url = `${TXLINE_API}/api/odds/validation?messageId=${encodeURIComponent(c.messageId)}&ts=${c.ts}`;
+      const res = await fetch(url, { headers, signal: AbortSignal.timeout(timeoutMs) });
+      if (!res.ok) throw new Error(`http ${res.status}`);
+      const body: unknown = await res.json();
+      refs.push(compactValidationProof(body));
+    } catch (err) {
+      console.warn(`[txline:provenance] ${fixtureId} validation fetch failed for one candidate — omitting, refs stay honest (${String(err)})`);
+    }
+  }
+  return refs.slice(0, 3); // hard cap — the candidate set is already ≤2, this is a floor, not a truncation
+}
+
 function dispatch(opts: StreamOptions, event: string, data: string, receivedAtMs: number): void {
   if (event === 'heartbeat' || event === '__meta' || event === '__disconnect') return;
+  noteFeedHealth(data); // LOG-ONLY — watermark + Seq-gap visibility, never affects what follows
   try {
     if (opts.name === 'odds') {
       const fid = rawFixtureId(data);
@@ -141,7 +362,12 @@ function dispatch(opts: StreamOptions, event: string, data: string, receivedAtMs
         fid ? (oddsPeriodByFixture.get(fid) ?? 'full') : 'full',
       );
       if (!tick) return;
-      if (!opts.fixtureIds.has(fixtureIdOf(tick.raw) ?? '')) return;
+      const tfid = fixtureIdOf(tick.raw);
+      if (!opts.fixtureIds.has(tfid ?? '')) return;
+      // provenance capture — alongside the parse, ingest-layer-owned (see the
+      // RELIC PROVENANCE block above; contracts/match.ts's OddsTick stays untouched)
+      const meta = oddsMeta(tick);
+      if (tfid && meta) noteOddsProvenance(tfid, tick.period ?? 'full', { home: tick.pHome, draw: tick.pDraw, away: tick.pAway }, meta);
       opts.onFeedMsg({ type: 'odds', tick });
     } else {
       // roster latch: lineups → both squads (scorer names, same wire) + the starting XI
@@ -252,11 +478,13 @@ async function runStream(opts: StreamOptions): Promise<void> {
         const bodyText = await res.text().catch(() => '');
         throw new Error(`http ${res.status}: ${bodyText.slice(0, 200)}`);
       }
+      const isReconnect = everConnected; // captured BEFORE the flag flips — true only from the 2nd successful connect on
       everConnected = true;
       connected = true;
       lastByteMs = Date.now();
       backoffMs = 1000;
       opts.onFeedState('connected');
+      if (isReconnect) markStreamResumed(opts.fixtureIds); // LOG-ONLY: next envelope per fixture reports the watermark gap
 
       const reader = res.body.getReader();
       const dec = new TextDecoder();
@@ -380,6 +608,10 @@ export function startTxLineIngest(opts: {
           if (!res.ok) continue;
           const arr = (await res.json()) as unknown;
           if (!Array.isArray(arr)) continue;
+          // captured BEFORE replay — the POST-SEED WATERMARK ASSERT below compares
+          // against this (research-sports-data.md pattern 2's "assert the
+          // post-reseed replay's newest Ts is >= the pre-disconnect watermark")
+          const priorWatermark = lastTsByFixture.get(fid);
           const streamOpts: StreamOptions = {
             name,
             url: '',
@@ -394,6 +626,25 @@ export function startTxLineIngest(opts: {
             dispatch(streamOpts, 'message', JSON.stringify(env), ts);
           }
           console.log(`[txline:seed] ${name} snapshot for ${fid}: ${arr.length} envelopes replayed`);
+          // POST-SEED WATERMARK ASSERT (LOG-ONLY, pattern 2): the seed batch's
+          // OWN newest Ts (not the shared lastTsByFixture, which a concurrent
+          // live envelope could also have bumped) should be >= whatever we'd
+          // already seen for this fixture before this reseed ran — if not, the
+          // snapshot is somehow behind live knowledge, worth a loud warning
+          // even though nothing here changes what dispatch() already did.
+          const seedTsValues = (arr as Array<{ Ts?: unknown }>)
+            .map((e) => (typeof e.Ts === 'number' ? e.Ts : null))
+            .filter((t): t is number => t !== null);
+          const seededThrough = seedTsValues.length ? Math.max(...seedTsValues) : null;
+          if (priorWatermark !== undefined && seededThrough !== null) {
+            if (seededThrough >= priorWatermark) {
+              console.log(`[txline:watermark] fixture ${fid} ${name} reseed caught up (seeded-through ${seededThrough} >= prior watermark ${priorWatermark})`);
+            } else {
+              console.warn(
+                `[txline:watermark] fixture ${fid} ${name} reseed BEHIND prior watermark: seeded-through ${seededThrough} < ${priorWatermark} (${((priorWatermark - seededThrough) / 1000).toFixed(1)}s stale)`,
+              );
+            }
+          }
 
           // CLOCK SEED: playing-phase kickoff/status envelopes are edge-
           // triggered, so the freshest 'status' in the snapshot can be the
