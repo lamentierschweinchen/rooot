@@ -22,6 +22,7 @@ import type { Fixture, MatchPhase } from '@contracts/match';
 import type { FanbaseSentiment, SentimentRecord } from '@contracts/sentiment';
 import { REACT_WINDOW_MS, RollingCounter, SWING_DELTA_MIN, SWING_WINDOW_MS } from './decay';
 import { fetchProvenanceRefs } from './ingest/txline';
+import { SettledScore } from './match-state';
 import { MatchRegistry } from './registry';
 import { anchorRecordHash, relayCall } from './relay';
 import { DATA_DIR, writeFileAtomic } from './snapshot';
@@ -147,6 +148,21 @@ function errDetail(err: unknown): string {
   return err instanceof Error && err.stack ? err.stack : String(err);
 }
 
+/** The honest displayed scoreline per match (services/stands/src/match-state.ts
+ * SettledScore). The score channel is stateless — every wire message reports its
+ * own Total.Goals — so this reduces it to the ONE scoreline the fan is shown.
+ * Memory-only and rebuilt from the resuming feed after a restart (Total.Goals is
+ * absolute, so the next settled score re-establishes it); cleared on eviction. */
+const settledScores = new Map<string, SettledScore>();
+function settledScoreFor(matchId: string): SettledScore {
+  let s = settledScores.get(matchId);
+  if (!s) {
+    s = new SettledScore();
+    settledScores.set(matchId, s);
+  }
+  return s;
+}
+
 /** Broadcast to every connection currently in matchId's room. */
 function broadcastToMatch(matchId: string, msg: ServerMsg | FeedMsg): void {
   // Keep this match's eviction clock warm: every feed message AND every 4 Hz
@@ -156,6 +172,24 @@ function broadcastToMatch(matchId: string, msg: ServerMsg | FeedMsg): void {
   // keep a dead match alive). The memory-eviction sweep measures quiet time
   // against this stamp. One Map.set; never throws.
   registry.noteActivity(matchId);
+  // SETTLED SCORE (honesty law #1 — never render a goal that didn't stand):
+  // reduce the stateless score channel at this one fan-out chokepoint so the
+  // scoreline EVERY downstream consumer sees — live fan-out, the join cache
+  // (rememberForJoin → snap.score), the sentiment accumulator (feedSentiment),
+  // the FULL_TIME final score (predictLifecycle reads snap.score) — only ever
+  // advances or reverts on a SETTLED score. A provisional (unconfirmed) goal,
+  // or a settled score identical to the one already shown, moves nothing: we
+  // DROP it here, so the big number simply holds while the moment / ledger
+  // 'possible' path (its own FeedMsg, never dropped) carries the suspense.
+  // FRA–ESP Jul 14: the offside 0–3 (seq638 goal/Confirmed:false) is held; the
+  // correction (seq642 action_discarded/0–2) keeps 0–2 — the app never shows 0–3.
+  if (msg.type === 'score') {
+    const line = settledScoreFor(matchId).apply(msg.ev);
+    if (!line) return;
+    if (msg.ev.home !== line.home || msg.ev.away !== line.away) {
+      msg = { ...msg, ev: { ...msg.ev, home: line.home, away: line.away } };
+    }
+  }
   const stamped = withMatchId(matchId, msg);
   const payload = JSON.stringify(stamped);
   for (const [ws, state] of conns) {
@@ -1379,6 +1413,7 @@ const registry = new MatchRegistry(
     }
     resolvedMatches.delete(matchId);
     finalScores.delete(matchId);
+    settledScores.delete(matchId); // frees the per-match settled-scoreline reducer
     tripleWindow.delete(matchId);
     openedTriggerIds.delete(matchId);
     accumulators.delete(matchId); // frees the accumulator's per-tick market curve too

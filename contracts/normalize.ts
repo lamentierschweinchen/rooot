@@ -626,20 +626,49 @@ export function parseScoreMessage(
   // the scoring actions + client-side delta-dedup keeps the score honest even
   // when a goal arrives by an action other than 'goal'.
   if (typeof msg.Action === 'string') {
-    if (msg.Action !== 'goal' && msg.Action !== 'penalty_outcome') return null;
+    // CHANGELOG (coordinator, Jul 14 — FRA–ESP disallowed-goal incident): the
+    // score line rides many actions; we report it from the ones that move the
+    // SETTLED score:
+    //   · 'goal' / 'penalty_outcome' — a goal being scored (carries Confirmed).
+    //   · 'action_discarded'         — a chalked-off event's CORRECTION. It
+    //     carries the corrected Total.Goals, so a disallowed goal reverts the
+    //     scoreline DOWN. FRA–ESP Jul 14 (fixture 18237038): seq638 floated a
+    //     goal/Confirmed:false (0–3); VAR chalked it off; seq642
+    //     action_discarded/0–2 is the correction. The ledger shows the chalk-off
+    //     row via parseLedgerMessage; here it flows on the SCORE channel so the
+    //     big scoreline reverts too. Downstream SettledScore never advanced to
+    //     0–3 (it was Confirmed:false), so this correction is a no-op there — but
+    //     it MUST flow for the cases where a CONFIRMED score is later revised.
+    const isGoal = msg.Action === 'goal' || msg.Action === 'penalty_outcome';
+    const isDiscard = msg.Action === 'action_discarded';
+    if (!isGoal && !isDiscard) return null;
+    // a discard with NO Score block has nothing to correct TO — never invent a
+    // 0–0 reset out of a missing field; leave the scoreline where it is.
+    if (isDiscard && msg.Score === undefined) return null;
     const p1Goals = msg.Score?.Participant1?.Total?.Goals ?? 0;
     const p2Goals = msg.Score?.Participant2?.Total?.Goals ?? 0;
     if (typeof p1Goals !== 'number' || typeof p2Goals !== 'number') return null;
     const p1IsHome = msg.Participant1IsHome !== false; // default true, observed true
     const home = p1IsHome ? p1Goals : p2Goals;
     const away = p1IsHome ? p2Goals : p1Goals;
-    const actor = msg.Participant; // 1|2 = which participant scored
+    // SETTLED? Hold the scoreline back ONLY on an EXPLICIT wire Confirmed:false
+    // — the held breath: a provisional goal (Parti{1,2}State.PossibleEvent.Goal
+    // set), which honesty law #1 forbids showing until it's given. A goal that
+    // does NOT carry an explicit Confirmed:false — Confirmed:true, OR absent
+    // (older captures / hand-built replays omit the field for a plain goal that
+    // simply counts) — is displayable; treating absent as "unconfirmed" would
+    // wrongly freeze every such goal off the board. A discard is the
+    // authoritative correction (it carries no Confirmed field, but the corrected
+    // Score IS the truth), so it settles.
+    const confirmed = isDiscard ? true : msg.Confirmed !== false;
+    // a discard is not a scoring side — no eruption, no scorer.
+    const actor = isDiscard ? undefined : msg.Participant; // 1|2 = which participant scored
     const side =
       actor === 1 ? (p1IsHome ? 'home' : 'away') : actor === 2 ? (p1IsHome ? 'away' : 'home') : undefined;
     // the goal's final re-emission carries Data.PlayerId (a number) — the
     // roster from the SAME wire's lineups envelope turns it into a name.
     // No roster / unknown id → undefined, never a number-as-name.
-    const pid = (msg as { Data?: { PlayerId?: unknown } }).Data?.PlayerId;
+    const pid = isDiscard ? undefined : (msg as { Data?: { PlayerId?: unknown } }).Data?.PlayerId;
     const scorer =
       roster && typeof pid === 'number' ? roster.byPlayerId.get(pid)?.name : undefined;
     return {
@@ -649,6 +678,7 @@ export function parseScoreMessage(
       away,
       side,
       scorer,
+      confirmed,
       source,
       raw: msg,
     };
