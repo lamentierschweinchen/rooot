@@ -25,6 +25,7 @@
     "check:seal-on-join": "tsx src/dev/seal-on-join-check.ts",
     "check:seal-consume": "tsx src/dev/seal-consume-check.ts",
     "check:xi-seed-recovery": "tsx src/dev/xi-seed-recovery-check.ts",
+    "check:fixture-info": "tsx src/dev/fixture-info-check.ts",
     "prove:claim-mint": "tsx src/dev/prove-claim-mint.ts",
     "prove:owned-mint": "tsx src/mint/scripts/proveOwnedMint.ts"
   },

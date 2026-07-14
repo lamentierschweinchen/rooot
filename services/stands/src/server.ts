@@ -18,7 +18,7 @@ import type { CallMsg, CallReceiptMsg, CheerEchoMsg, ClientMsg, MomentKind, Mome
 import { FEELING_PALETTES } from '@contracts/crowd';
 import type { FeedMsg } from '@contracts/feed';
 import type { LedgerEvent } from '@contracts/ledger';
-import type { MatchPhase } from '@contracts/match';
+import type { Fixture, MatchPhase } from '@contracts/match';
 import type { SentimentRecord } from '@contracts/sentiment';
 import { REACT_WINDOW_MS, RollingCounter, SWING_DELTA_MIN, SWING_WINDOW_MS } from './decay';
 import { MatchRegistry } from './registry';
@@ -1022,6 +1022,42 @@ function replaySnapshot(ws: WebSocket, matchId: string): void {
   }
 }
 
+/** adopt-#1 (docs/DATA-ARCHITECTURE.md §4): bridge sentiment/teams.ts's leaner
+ * reference row (Fx = SentimentRecord['fixture'] — code/name/colors per side, no
+ * id/kickoff/flag) into contracts/feed.ts's FeedMsg Fixture shape (id/kickoffISO/
+ * flag required). Never invents: `id` is the matchId already in hand, `flag`
+ * defaults to the tri-code (the same convention every page's own fixture map
+ * already uses — see gate.html's FLAG_EXC comment "default flag=code"),
+ * `kickoffISO` reuses the real calendar date teams.ts carries (no time-of-day is
+ * known from this table — a client must never format it as a precise kickoff
+ * clock, only a date). Unknown fixture -> null, never a placeholder. */
+function fixtureForWire(matchId: string): Fixture | null {
+  const fx = fixtureInfo(matchId);
+  if (!fx) return null;
+  return {
+    id: matchId,
+    home: { code: fx.home.code, name: fx.home.name, colors: [fx.home.colors[0], fx.home.colors[1]], flag: fx.home.code },
+    away: { code: fx.away.code, name: fx.away.name, colors: [fx.away.colors[0], fx.away.colors[1]], flag: fx.away.code },
+    kickoffISO: fx.dateISO,
+  };
+}
+
+/** Broadcast this match's fixtureInfo exactly once. Two call sites (adopt-#1's
+ * design): room join (the WS `?matchId=` connect handler below, right before
+ * replaySnapshot — so THIS same joiner's replay already carries it, via
+ * rememberForJoin's existing `case 'fixtureInfo'` cache) and match creation
+ * (index.ts, when ingest first learns a fixtureId — TXLINE_FIXTURES/
+ * REPLAY_FIXTURE at boot), so a room that's already occupied when ingest starts
+ * also gets it live, not just future joiners. Idempotent: the join-snapshot
+ * cache is the guard, so calling this repeatedly for the same match after the
+ * first success is a cheap no-op, never a duplicate broadcast. */
+function ensureFixtureInfoSent(matchId: string): void {
+  if (joinSnapshots.get(matchId)?.fixtureInfo) return; // already sent — never re-broadcast
+  const fixture = fixtureForWire(matchId);
+  if (!fixture) return; // unknown fixture — never invent
+  broadcastToMatch(matchId, { type: 'fixtureInfo', fixture });
+}
+
 const registry = new MatchRegistry(
   (matchId, msg) => broadcastToMatch(matchId, msg),
   {
@@ -1981,6 +2017,11 @@ export function createStandsServer() {
       const mid = url.searchParams.get('matchId');
       if (mid) {
         state.matchId = mid;
+        // adopt-#1: on room join, make sure this match's fixtureInfo exists before
+        // the replay below — a first-ever joiner for a known fixture gets it in
+        // THIS join's own burst, not just future joiners (idempotent; see doc
+        // comment on ensureFixtureInfoSent).
+        ensureFixtureInfoSent(mid);
         // catch a mid-match joiner up to the live state immediately (phase,
         // score, tide, recent story) — not just feed health.
         replaySnapshot(ws, mid);
@@ -2007,7 +2048,7 @@ export function createStandsServer() {
     clearInterval(heartbeatTimer);
   });
 
-  return { httpServer, wss, registry, port: PORT, broadcastToMatch };
+  return { httpServer, wss, registry, port: PORT, broadcastToMatch, ensureFixtureInfoSent };
 }
 
 /* ── SELF-PROBE DEAD-MAN (Jul 11 NOR–ENG wedge post-mortem) ───────────────

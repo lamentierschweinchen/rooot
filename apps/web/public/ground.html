@@ -149,6 +149,9 @@ function fromManifest(mf){
     away:{tri:mf.away.code,name:mf.away.code,color:mastInk(mf.away.colors[0]),sec:mf.away.colors[1]}
   };
 }
+// adopt-#1 (docs/DATA-ARCHITECTURE.md §4): fixture.home/away (contracts/feed.ts) share the
+// manifest's {code,name,colors} shape — same mapping, different (any-known-fixture) source.
+var fromFixtureInfo=fromManifest;
 var PASS=null; try{ PASS=JSON.parse(localStorage.getItem('rooot.pass')||'null'); }catch(e){}
 var byq=function(s){return document.querySelector(s);}, el=function(i){return document.getElementById(i);};
 var wrap=el('wrap'), dial=el('dial'), lens=el('lens');
@@ -256,14 +259,14 @@ if(LIVE&&!wireLive()){ var _liveGround=setInterval(function(){ if(wireLive())cle
 setLens('stands');   // open at home — you take your place in THE STANDS
 } // end boot
 
-// T16 fixture resolution: explicit ?match= wins outright (unchanged — literal-table
-// lookup, no async wait) → else, on a live route, the __fixture manifest (raced
-// against a ~1500ms timeout, same idiom as stands-adapter.js) → else today's literal
-// default (never invent a fixture; fetch-fail is exactly today's behavior). A live
-// explicit ?match= that isn't one of the literal entries (e.g. gate forwarding its own
-// manifest-resolved id) still checks the manifest before giving up, so the
-// gate→ground→lens chain never shows a mismatched fixture once any surface has
-// resolved the real one.
+// T16/adopt-#1 fixture resolution: explicit ?match= wins outright (unchanged — literal-table
+// lookup, no async wait) → else, on a live route, the __fixture manifest IF it matches this
+// match (raced against a ~1500ms timeout, same idiom as stands-adapter.js) → else fixtureInfo
+// (server truth, sentiment/teams.ts — ANY known fixture, the CPV-case fix) → else an honest
+// neutral placeholder (never a stale OTHER match's literal). A live explicit ?match= that
+// isn't one of the literal entries (e.g. gate forwarding its own manifest-resolved id) still
+// checks the manifest before giving up, so the gate→ground→lens chain never shows a
+// mismatched fixture once any surface has resolved the real one.
 if(explicitMatch&&FIXTURES[explicitMatch]){
   boot(explicitMatch,FIXTURES[explicitMatch]);
 }else if(!LIVE){
@@ -271,13 +274,25 @@ if(explicitMatch&&FIXTURES[explicitMatch]){
   boot(mid,FIXTURES[mid]||FIXTURES['18218149']);
 }else{
   var done=false, fallbackId=explicitMatch||'18218149';
+  var NEUTRAL_FX={home:{tri:'—',name:'—',color:'#8C8467',sec:null},away:{tri:'—',name:'—',color:'#8C8467',sec:null}};
   function finish(id,fx){ if(done)return; done=true; boot(id,fx); }
+  (function waitForFixtureInfo(){
+    if(window.__stands&&window.__stands.onFixtureInfo){
+      window.__stands.onFixtureInfo(function(fx){
+        if(!fx||!fx.home||!fx.away)return;
+        if(fx.id&&fx.id!==fallbackId)return;
+        finish(fallbackId,fromFixtureInfo(fx));
+      });
+      return;
+    }
+    setTimeout(waitForFixtureInfo,120);
+  })();
   window.__fixtureReady=window.__fixtureReady||fetch('/fixture.json').then(function(r){return r.ok?r.json():null;}).catch(function(){return null;});
   window.__fixtureReady.then(function(mf){
     if(mf&&mf.matchId&&mf.home&&mf.away&&(!explicitMatch||explicitMatch===mf.matchId)){ finish(mf.matchId,fromManifest(mf)); }
-    else{ finish(fallbackId,FIXTURES['18218149']); }
-  },function(){ finish(fallbackId,FIXTURES['18218149']); });
-  setTimeout(function(){ finish(fallbackId,FIXTURES['18218149']); },1500);
+    // else: a manifest for a DIFFERENT match tells us nothing about this one — wait for fixtureInfo/timeout instead.
+  },function(){ /* fetch failed — same: wait for fixtureInfo or the timeout */ });
+  setTimeout(function(){ finish(fallbackId,NEUTRAL_FX); },1500);
 }
 </script>
 </body>

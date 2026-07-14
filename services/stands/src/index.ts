@@ -104,7 +104,7 @@ function fixtureIdOfFeedMsg(msg: FeedMsg): string | null {
 }
 
 function main(): void {
-  const { httpServer, port, broadcastToMatch } = createStandsServer();
+  const { httpServer, port, broadcastToMatch, ensureFixtureInfoSent } = createStandsServer();
 
   httpServer.listen(port, () => {
     // read back the REAL bound port (PORT=0 asks the OS for a free one — `port`
@@ -133,6 +133,13 @@ function main(): void {
       console.warn('[stands] TXLINE_ENABLE=1 but TXLINE_FIXTURES is empty — no fixtures will be ingested');
     } else {
       console.log(`[stands] TXLINE ingest enabled for fixtures: ${[...fixtureIds].join(', ')}`);
+      // adopt-#1 (docs/DATA-ARCHITECTURE.md §4): "match creation" — the moment this
+      // process starts tracking a fixture, before its first live envelope even
+      // arrives, so a room already occupied pre-kickoff gets team identity live
+      // too (room-join alone only covers joiners after this point). Unknown-to-
+      // teams.ts fixtures are silently skipped inside ensureFixtureInfoSent —
+      // never invented.
+      for (const matchId of fixtureIds) ensureFixtureInfoSent(matchId);
       try {
         startTxLineIngest({
           fixtureIds,
@@ -168,6 +175,7 @@ function main(): void {
     } else {
       const speed = Number(process.env.REPLAY_SPEED ?? '1');
       console.log(`[stands] replay ingest: ${REPLAY_FILE} as fixture=${fixtureId} speed=${speed}x`);
+      ensureFixtureInfoSent(fixtureId); // adopt-#1 — same "match creation" hook as the TXLINE branch above
       routeFeedMsg(fixtureId, { type: 'feedState', state: 'replay' });
       startReplayIngest({
         file: REPLAY_FILE,

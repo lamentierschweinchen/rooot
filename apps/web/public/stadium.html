@@ -367,6 +367,9 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     SEC[mf.away.code]=mf.away.colors[1]||SEC[mf.away.code]||'#EDE9DE';
     return [mf.home.code,String(mf.home.name).toUpperCase(),mastInk(mf.home.colors[0]),mf.away.code,String(mf.away.name).toUpperCase(),mastInk(mf.away.colors[0])];
   }
+  // adopt-#1 (docs/DATA-ARCHITECTURE.md §4): fixture.home/away (contracts/feed.ts) share the
+  // manifest's {code,name,colors} shape — same mapping, different (any-known-fixture) source.
+  var fromFixtureInfo=fromManifest;
 
   function boot(mid,fx){
   if(q.get('embed')){document.body.classList.add('embed');var es=document.createElement('style');es.textContent='.mast{display:none!important}';document.head.appendChild(es);}  // framed inside the composite — the composite owns the masthead
@@ -691,14 +694,14 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
   }
   } // end boot
 
-  // T16 fixture resolution: explicit ?match= wins outright (unchanged — literal-table
-  // lookup, no async wait) → else, on a live route, the __fixture manifest (raced
-  // against a ~1500ms timeout, same idiom as stands-adapter.js) → else today's literal
-  // default (never invent a fixture; fetch-fail is exactly today's behavior). A live
-  // explicit ?match= that isn't one of the literal entries (e.g. ground forwarding its
-  // own manifest-resolved id into this embedded lens) still checks the manifest before
-  // giving up, so gate→ground→stadium never shows a mismatched fixture once any
-  // surface has resolved the real one.
+  // T16/adopt-#1 fixture resolution: explicit ?match= wins outright (unchanged — literal-table
+  // lookup, no async wait) → else, on a live route, the __fixture manifest IF it matches this
+  // match (raced against a ~1500ms timeout, same idiom as stands-adapter.js) → else fixtureInfo
+  // (server truth, sentiment/teams.ts — ANY known fixture, the CPV-case fix) → else an honest
+  // neutral placeholder (never a stale OTHER match's literal). A live explicit ?match= that
+  // isn't one of the literal entries (e.g. ground forwarding its own manifest-resolved id into
+  // this embedded lens) still checks the manifest before giving up, so gate→ground→stadium
+  // never shows a mismatched fixture once any surface has resolved the real one.
   if(explicitMatch&&FIX[explicitMatch]){
     boot(explicitMatch,FIX[explicitMatch]);
   }else if(!LIVE){
@@ -706,16 +709,29 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     boot(mid,FIX[mid]||FIX['18202783']);
   }else{
     var done=false, fallbackId=explicitMatch||'18218149';
+    var NEUTRAL_FIX=['—','',mastInk('#8C8467'),'—','',mastInk('#8C8467')];
     function finish(id,fx){ if(done)return; done=true; boot(id,fx); }
+    (function waitForFixtureInfo(){
+      if(window.__stands&&window.__stands.onFixtureInfo){
+        window.__stands.onFixtureInfo(function(fx){
+          if(!fx||!fx.home||!fx.away)return;
+          if(fx.id&&fx.id!==fallbackId)return;
+          finish(fallbackId,fromFixtureInfo(fx));
+        });
+        return;
+      }
+      setTimeout(waitForFixtureInfo,120);
+    })();
     window.__fixtureReady=window.__fixtureReady||fetch('/fixture.json').then(function(r){return r.ok?r.json():null;}).catch(function(){return null;});
     window.__fixtureReady.then(function(mf){
       if(mf&&mf.matchId&&mf.home&&mf.away&&(!explicitMatch||explicitMatch===mf.matchId)){ finish(mf.matchId,fromManifest(mf)); }
-      else{ finish(fallbackId,FIX['18218149']); }
-    },function(){ finish(fallbackId,FIX['18218149']); });
-    setTimeout(function(){ finish(fallbackId,FIX['18218149']); },1500);
+      // else: a manifest for a DIFFERENT match tells us nothing about this one — wait for fixtureInfo/timeout instead.
+    },function(){ /* fetch failed — same: wait for fixtureInfo or the timeout */ });
+    setTimeout(function(){ finish(fallbackId,NEUTRAL_FIX); },1500);
   }
 })();
 </script>
+<script src="/stands-adapter.js"></script>
 <script src="/stats-adapter.js"></script>
 </body>
 </html>

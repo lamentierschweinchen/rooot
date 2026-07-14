@@ -290,6 +290,26 @@ html,body{background:var(--paper);-webkit-font-smoothing:antialiased;text-render
       var cur=(window.__stats&&window.__stats.home)?window.__stats:FALLBACK; cur.__live=!!(window.__stats&&window.__stats.home); render(cur);
     });
   }
+  // adopt-#1 (docs/DATA-ARCHITECTURE.md §4): an explicit ?match= this page's own FIX table
+  // doesn't carry (the CPV case, on a page whose table hasn't been hand-updated for a new
+  // fixture yet) — the manifest above only ever helps when it happens to describe THIS SAME
+  // match; fixtureInfo (server truth, sentiment/teams.ts) resolves ANY known fixture by the
+  // room actually joined. Same team mapping as the manifest's own else-branch above.
+  if(explicitMatch&&!FIX[explicitMatch]){
+    (function waitForFixtureInfoCL(){
+      if(window.__stands&&window.__stands.onFixtureInfo){
+        window.__stands.onFixtureInfo(function(fx){
+          if(!fx||!fx.home||!fx.away)return;
+          if(fx.id&&fx.id!==explicitMatch)return;
+          HOME=mkTeam(fx.home.code,String(fx.home.name).toUpperCase(),(fx.home.colors&&fx.home.colors[0])||'#2049AA');
+          AWAY=mkTeam(fx.away.code,String(fx.away.name).toUpperCase(),(fx.away.colors&&fx.away.colors[0])||'#C8504D');
+          var cur=(window.__stats&&window.__stats.home)?window.__stats:FALLBACK; cur.__live=!!(window.__stats&&window.__stats.home); render(cur);
+        });
+        return;
+      }
+      setTimeout(waitForFixtureInfoCL,120);
+    })();
+  }
 
   function el(id){return document.getElementById(id);}
   // shot-map zones as % of the empty-net image: goal inside, saved at the line,
@@ -430,6 +450,7 @@ html,body{background:var(--paper);-webkit-font-smoothing:antialiased;text-render
 })();
 </script>
 <!-- coordinator-lane live feed → window.__stats (opt-in ?loomfeed=1&match=<id>) -->
+<script src="/stands-adapter.js"></script>
 <script src="/stats-adapter.js"></script>
 </body>
 </html>

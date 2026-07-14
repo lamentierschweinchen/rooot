@@ -81,7 +81,13 @@
                                           // can resolve. Cache it so a callback registered AFTER the
                                           // message already arrived still gets it (same idiom as onMarket
                                           // replaying lastTriple immediately below).
-  var cb = { state: [], consensus: [], verdict: [], moment: [], momentResult: [], market: [], cheerEcho: [], nextGoalState: [], nextGoalVerdict: [], sentiment: [] };
+  var lastFixtureInfo = null;            // adopt-#1 (docs/DATA-ARCHITECTURE.md §4): the server's
+                                          // sentiment/teams.ts-sourced team identity for this match —
+                                          // same cache-and-replay idiom as lastSentiment/lastTriple above,
+                                          // since fixtureInfo rides the SAME near-instant join-replay burst
+                                          // (server.ts replaySnapshot) and a page's own onFixtureInfo
+                                          // registration can easily lose that race.
+  var cb = { state: [], consensus: [], verdict: [], moment: [], momentResult: [], market: [], cheerEcho: [], nextGoalState: [], nextGoalVerdict: [], sentiment: [], fixtureInfo: [] };
   function fire(list, v) { for (var i = 0; i < list.length; i++) { try { list[i](v); } catch (e) {} } }
 
   function send(m) {
@@ -130,6 +136,12 @@
     // cached record immediately on registration (lastSentiment, above) in case it already
     // arrived on the wire before this callback was registered.
     onSentiment: function (fn) { cb.sentiment.push(fn); if (lastSentiment) try { fn(lastSentiment); } catch (e) {} },
+    // adopt-#1 (docs/DATA-ARCHITECTURE.md §4): the server's team identity for this match
+    // (contracts/feed.ts FeedMsg 'fixtureInfo', sourced from services/stands/src/sentiment/
+    // teams.ts — never fabricated; simply absent for a fixture teams.ts doesn't know). Fires
+    // with the fixture itself ({id,home,away,kickoffISO} — home/away are {code,name,colors,
+    // flag}), same replay-cached-value-on-registration idiom as onSentiment/onMarket above.
+    onFixtureInfo: function (fn) { cb.fixtureInfo.push(fn); if (lastFixtureInfo) try { fn(lastFixtureInfo); } catch (e) {} },
   };
   function flushCheer() { cheerTimer = null; var n = pendingCheer; pendingCheer = 0; if (n > 0 && mySide) send({ type: 'cheer', matchId: matchId, side: mySide, n: n, atMs: Date.now() }); }
   // trailing-edge throttle (~250ms, <=4 fires/s): view is mutated synchronously by every
@@ -163,6 +175,11 @@
       case 'nextGoalState': if (m.matchId === matchId) fire(cb.nextGoalState, m); break;
       case 'nextGoalVerdict': if (m.matchId === matchId && m.anonId === me) fire(cb.nextGoalVerdict, m); break;
       case 'sentiment': if (m.record && m.record.matchId === matchId) { lastSentiment = m.record; fire(cb.sentiment, m.record); } break;
+      // fixtureInfo carries no top-level matchId (contracts/feed.ts — only odds/score/status/
+      // ledger/feedState get server-stamped); the room itself is already scoped to matchId (one
+      // room per connection), so no filter is needed here — same as loom-adapter.js/match-read.js's
+      // existing 'fixtureInfo' handling.
+      case 'fixtureInfo': if (m.fixture) { lastFixtureInfo = m.fixture; fire(cb.fixtureInfo, m.fixture); } break;
       case 'odds': {
         // Fix 4: guard by matchId when the server stamps one; tolerate its
         // absence (older server) by falling through to prior behavior.
