@@ -28,6 +28,17 @@ an adversarial design review. To put it on a fan's phone:
 
 Detail per item is below (newest first).
 
+### The scarf is FINAL (owner 2026-07-16): PURE ODDS + calls
+The keepsake cloth is now **the woven 3-way belief colour** (home/draw/away split shifting over the
+match) + **the fan's framed selvage + fringe + their calls** — and nothing else. `woven-loom.html`
+defaults: `events=none` (no goals/event marks) and cords OFF. Params still exist to bring density
+back (`?events=goals|core|all`, `?cords=on`) but the shipped default is pure. **This makes P2 (item 2)
+more important, not less:** the calls are now a primary visible element of the scarf, so wiring
+`root` + `calls` from the terrace ledger is what gives each fan's scarf its personal marks. Demo
+scarf images live at `apps/web/public/plate/scarves/<matchId>.jpg` (captured pure, via
+`scratchpad`-style records); prod replaces them with the mint `imageUri`. The cabinet is **vertical**
+— previews the head (kickoff) and unrolls in place to reveal how it ended.
+
 ---
 
 ## ⚑ LATEST (supersedes the reconciliation notes below) — prediction card + a new law
