@@ -532,8 +532,8 @@ html.lexport .ksFrame{animation:none;stroke-dashoffset:0}  /* and the gold selva
       svg+='<line x1="'+gx0+'" y1="'+(y-1.1).toFixed(1)+'" x2="'+(gx0+grW)+'" y2="'+(y-1.1).toFixed(1)+'" stroke="'+shade('#C79A38',1.35)+'" stroke-width="0.7" opacity="0.6" stroke-dasharray="1.2 2.1" stroke-dashoffset="1.6"/>';
       svg+='<line x1="'+gx0+'" y1="'+(y+1.3).toFixed(1)+'" x2="'+(gx0+grW)+'" y2="'+(y+1.3).toFixed(1)+'" stroke="#C79A38" stroke-width="0.9" opacity="0.5"/>'; });
     // events (thirds · sub-minute x · de-conflict)
-    var RGUT=ROOT?16:0;   // reserve the rooted edge for the selvage + calls gutter, so event tiles never collide with your knots
-    var SW=grW*0.40, MIDW=grW*0.20, ZONE={h:[gx0+(ROOT==='home'?RGUT:0),gx0+SW],a:[gx0+SW+MIDW,gx0+grW-(ROOT==='away'?RGUT:0)],'null':[gx0+SW,gx0+SW+MIDW]};
+    var RGUT=16;   // fixed inset on BOTH edges — the match's own event tiles land in the SAME place for every fan (the cloth is objective); only the rooted margin's selvage + calls differ per person
+    var SW=grW*0.40, MIDW=grW*0.20, ZONE={h:[gx0+RGUT,gx0+SW],a:[gx0+SW+MIDW,gx0+grW-RGUT],'null':[gx0+SW,gx0+SW+MIDW]};
     function gs(t){return t==='goal'?2.7:(t==='freekick'||t==='corner')?1.05:1.32;}   // slightly smaller across the board (owner); the goal stays king
     var placed=[];
     EVS.sort(function(p,q){return (p.m-q.m)||((p.t==='goal'?0:1)-(q.t==='goal'?0:1));}).forEach(function(ev){
@@ -574,8 +574,8 @@ html.lexport .ksFrame{animation:none;stroke-dashoffset:0}  /* and the gold selva
         keyX=(ROOT==='home')?(gx0+5):(gx0+grW-5),        // ink keyline between selvage and the calls tape
         gutX=(ROOT==='home')?(gx0+5):(gx0+grW-14),       // the calls tape: a woven cream channel (9px) so knots read on ANY ground
         knx=(ROOT==='home')?(gx0+9.5):(gx0+grW-9.5);     // knots centred in the tape
-      svg+='<rect x="'+selX.toFixed(1)+'" y="'+top+'" width="5" height="'+ch.toFixed(1)+'" fill="'+shade(rk,0.92)+'"/>';
-      svg+='<rect x="'+selX.toFixed(1)+'" y="'+top+'" width="5" height="'+ch.toFixed(1)+'" fill="url(#tone)" color="'+shade(rk,1.22)+'" opacity="0.5"/>';
+      svg+='<rect x="'+selX.toFixed(1)+'" y="'+top+'" width="5" height="'+ch.toFixed(1)+'" fill="'+shade(rk,0.72)+'"/>';   // deep dye — reads as a keyed border even when the band beside it is the same team colour (home fan)
+      svg+='<rect x="'+selX.toFixed(1)+'" y="'+top+'" width="5" height="'+ch.toFixed(1)+'" fill="url(#tone)" color="'+shade(rk,1.15)+'" opacity="0.5"/>';
       svg+='<rect x="'+gutX.toFixed(1)+'" y="'+top+'" width="9" height="'+ch.toFixed(1)+'" fill="#E9DFC7"/>';
       svg+='<rect x="'+gutX.toFixed(1)+'" y="'+top+'" width="9" height="'+ch.toFixed(1)+'" fill="url(#tone)" color="#D8CBAA" opacity="0.45"/>';
       svg+='<line x1="'+keyX.toFixed(1)+'" y1="'+top+'" x2="'+keyX.toFixed(1)+'" y2="'+(top+ch).toFixed(1)+'" stroke="#1A1815" stroke-width="0.7" opacity="0.5"/>';
@@ -584,7 +584,7 @@ html.lexport .ksFrame{animation:none;stroke-dashoffset:0}  /* and the gold selva
         if(c.hit===true){ svg+='<path d="'+DM+'" fill="'+rk+'" stroke="#1A1815" stroke-width="0.5"/>'; }
         else if(c.hit===false){ svg+='<path d="'+DM+'" fill="none" stroke="'+rk+'" stroke-width="1.1"/>';
           svg+='<path d="M '+knx.toFixed(1)+' '+(y+d).toFixed(1)+' q 1.7 2.3 -0.7 4.5" fill="none" stroke="'+rk+'" stroke-width="0.9" opacity="0.8"/>'; }
-        else { svg+='<circle cx="'+knx.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+(d-0.6).toFixed(1)+'" fill="none" stroke="#8C8467" stroke-width="0.8" opacity="0.6"/>'; }
+        else { svg+='<circle cx="'+knx.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+(d-0.3).toFixed(1)+'" fill="none" stroke="#6E6752" stroke-width="1.1" opacity="0.9"/>'; }   // void: faint-but-present grey ring — survives phone scale, never reads as an outcome
       });
     }
     svg+='</g></g>';   // end reveal clip, end cloth silhouette
