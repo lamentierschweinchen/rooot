@@ -37,10 +37,8 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 /* flag tiles — the vintage sticker-badges; keyed from the generated set, unicode fallback out-of-set */
 .flagtile{display:inline-block;object-fit:contain;vertical-align:-.2em;border-radius:2.5px;filter:drop-shadow(1px 1px 0 rgba(26,24,21,.16))}
 .af .flagtile{width:16px;height:16px}
-/* honest neutral (render bug, 14 Jul): the sticker-less span was inheriting the 16x16 tile box
-   with no text styling of its own, so an out-of-set tri-code rendered as an unreadable sliver —
-   read as blank. Sized/coloured like the tile it stands in for; never another nation's flag. */
-.af .flagtile.fnone{width:auto;height:auto;padding:0 3px;font-weight:800;font-size:9px;letter-spacing:.02em}
+/* a nation without a drawn sticker shows its letters as an honest chip — never a blank box */
+.fnone{width:auto !important;height:auto !important;font-weight:800;font-size:8px;letter-spacing:.06em;color:var(--sub);border:1px solid var(--line);padding:2px 4px;filter:none}
 .af .fsep{color:var(--line);margin:0 1px}
 .crest .crestnone{font-weight:900;font-size:15px;letter-spacing:.02em;color:var(--sub)}
 /* empty cabinet — a first-time seat shows NEED pockets, never fake stickers */
@@ -75,16 +73,16 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .rack{padding:0 18px}
 .keep{margin-bottom:20px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .12s}
 .keep:active{transform:translateY(1px)}
-.scarf{display:flex;align-items:stretch;height:60px;box-shadow:4px 4px 0 rgba(26,24,21,.18);border:2px solid var(--ink)}
-.scarf .fr{width:8px;flex:none;background-image:repeating-linear-gradient(180deg,var(--ink) 0 4px,transparent 4px 9px)}
-.scarf .half{flex:1;position:relative;display:flex;align-items:center;justify-content:center}
-.scarf .half.h{background:var(--h)}.scarf .half.a{background:var(--a)}
-.scarf .half::before{content:"";position:absolute;inset:0;background-image:repeating-linear-gradient(180deg,rgba(255,255,255,.11) 0 2px,rgba(26,24,21,.08) 2px 5px)}
-.scarf .tri{position:relative;font-weight:900;font-size:17px;letter-spacing:.04em}
-.scarf .half.h .tri{color:var(--hink)}.scarf .half.a .tri{color:var(--aink)}
-.scarf .cart{flex:none;width:96px;background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;border-left:2px solid var(--ink);border-right:2px solid var(--ink)}
-.scarf .cart .sc{font-weight:900;font-size:22px;line-height:1}
-.scarf .cart .cp{font-weight:700;font-size:6.5px;letter-spacing:.12em;color:var(--sub);margin-top:1px}
+/* each kept scarf is a MINI of the real woven cloth: home band over away, split by who controlled it,
+   goals as gold weft-ticks, tasselled ends — with the tris + score overlaid for legibility */
+/* each kept scarf IS the real woven cloth (the same render the mint captures), previewed to the head
+   of the scarf and unrolling in place on tap — never a reinterpretation */
+.scarf{position:relative;overflow:hidden;max-height:150px;border:2px solid var(--ink);box-shadow:4px 4px 0 rgba(26,24,21,.18);background:#EAE1C8;transition:max-height .6s cubic-bezier(.33,0,.15,1)}
+.keep.open .scarf{max-height:1600px}
+.scarf img{width:100%;display:block}
+.scarf .fade{position:absolute;left:0;right:0;bottom:0;height:56px;background:linear-gradient(rgba(234,225,200,0),rgba(234,225,200,.9) 72%);display:flex;align-items:flex-end;justify-content:center;padding-bottom:7px;pointer-events:none;transition:opacity .3s}
+.keep.open .scarf .fade{opacity:0}
+.scarf .un{font-weight:800;font-size:7.5px;letter-spacing:.18em;color:var(--sub)}
 .hall{display:flex;justify-content:space-between;align-items:baseline;margin-top:6px;padding:0 2px;font-weight:700;font-size:7.5px;letter-spacing:.05em;color:var(--sub)}
 .hall .call b{color:var(--ink)}
 .hall .hit{color:var(--verde);font-weight:900}
@@ -175,25 +173,19 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
   <div class="foot reveal">your cabinet fills as you live matches · each scarf is the match woven from the real feed<br>provenance sits on-chain — yours to keep, worthless to flip · sample shown until wired</div>
 </div>
 
-<!-- SEAT — walletless self-custody album (Face/Touch-ID passkey PRF -> ed25519). Load order is
-     load-bearing: nacl (sets window.nacl) BEFORE seat-passkey (window.seatPasskey) BEFORE seat-adapter
-     (window.__seat / window.__album — resolve()/render() below already consume both). -->
-<script src="plate/nacl.min.js"></script>
-<script src="seat-passkey.js"></script>
-<script src="seat-adapter.js"></script>
 <script>
 var el=function(id){return document.getElementById(id);};
 var DEMO=/[?&]demo=1/.test(location.search), Q=DEMO?'?demo=1':(/[?&]live=1/.test(location.search)?'?live=1':'?demo=0');
 
 // flags — the generated sticker if we have that nation, else the tricode (fallback)
 var FLAGSET={ARG:1,BEL:1,COL:1,ENG:1,FRA:1,MOR:1,NOR:1,SPA:1,SUI:1};
-function flagTile(tri,cls){ cls=cls||'flagtile';
-  if(FLAGSET[tri])return '<img class="'+cls+'" src="plate/gens/flags/'+tri+'.png" alt="'+tri+'">';
-  var p=pal(tri);   // honest neutral, out-of-set — the team's own tri-code block in its manifest colours, never another nation's flag
-  return '<span class="'+cls+' fnone" style="background:'+p[0]+';color:'+p[1]+'">'+tri+'</span>'; }
+function normTri(t){ t=String(t||'').trim().toUpperCase(); return ({ESP:'SPA',MAR:'MOR'})[t]||t; }   // sticker filenames differ for two nations (same map as the gate)
+function flagTile(tri,cls){ cls=cls||'flagtile'; tri=normTri(tri);
+  if(!tri)return '';   // a blank side never renders an empty framed tile (live profiles are server-supplied — render defensively)
+  return FLAGSET[tri]?'<img class="'+cls+'" src="plate/gens/flags/'+tri+'.png" alt="'+tri+'">':'<span class="'+cls+' fnone">'+tri+'</span>'; }
 
 // THE PINS — seven fan-virtue badges, ranked by an honest counter (bronze/silver/gold). Real counters
-// are post-MVP (archive/design-docs-consumed/design/HANDOFF-coordinator-data-wiring.md); until wired we show sample ranks — but a
+// are post-MVP (design/HANDOFF-coordinator-data-wiring.md); until wired we show sample ranks — but a
 // genuinely empty seat shows every virtue still-to-earn. sz = per-badge px so each body lands ~48px.
 var VIRTUES=[
   {img:'root.png',    l:'THE ROOT',         c:14,    unit:'ROOTED',  t:[1,10,50],       sz:48},
@@ -235,7 +227,8 @@ function scarvesFromCloths(cloths,kepts){
     if(k&&k.pred&&k.final){ call=(k.home||'')+' '+k.pred.h+'–'+k.pred.a;
       result=(k.pred.h===k.final.h&&k.pred.a===k.final.a)?'exact':(Math.sign(k.pred.h-k.pred.a)===Math.sign(k.final.h-k.final.a)?'outcome':'wrong'); }
     return { matchId:id, home:(c.home&&c.home.tri)||'—', away:(c.away&&c.away.tri)||'—', score:clothScore(c),
-      call:call, result:result, comp:'THE TOURNAMENT', date:fmtDate(c.at), serial:(k&&k.fanNo)?String(k.fanNo).padStart(3,'0'):'—' };
+      call:call, result:result, comp:'THE TOURNAMENT', date:fmtDate(c.at), serial:(k&&k.fanNo)?String(k.fanNo).padStart(3,'0'):'—',
+      img:(k&&k.imageUri)||null };   // the minted scarf image; scarfHTML falls back to the captured cloth
   });
 }
 // the record tiles, derived honestly from what this device kept
@@ -261,9 +254,9 @@ var SAMPLE={
   profile:{displayName:'lukas',sides:['SUI','ARG'],since:"'26"},
   record:{lived:12,calls:34,nailed:21,loudestNight:'ARG'},
   scarves:[
-    {asset:'d2',matchId:'18202783',home:'SUI',away:'COL',score:'0–0',call:'SUI 2–1',result:'wrong',  comp:'WORLD CUP',date:"07 JUL '26",serial:'009'},
-    {asset:'d3',matchId:'18187298',home:'BRA',away:'NOR',score:'0–1',call:'the upset',result:'outcome',comp:'GROUP C', date:"05 JUL '26",serial:'003'},
-    {asset:'d1',matchId:'18175918',home:'ARG',away:'CPV',score:'3–2',call:'ARG 3–2',result:'exact',  comp:'WORLD CUP',date:"03 JUL '26",serial:'014'}
+    {asset:'d2',matchId:'18202783',home:'SUI',away:'COL',score:'0–0',call:'SUI 2–1',result:'wrong',  comp:'WORLD CUP',date:"07 JUL '26",serial:'009',dur:96, share:[.55,.5,.48,.52,.5,.47,.5,.53,.49,.5,.52,.48,.5,.5], goals:[]},
+    {asset:'d3',matchId:'18187298',home:'BRA',away:'NOR',score:'0–1',call:'the upset',result:'outcome',comp:'GROUP C', date:"05 JUL '26",serial:'003',dur:94, share:[.6,.58,.56,.52,.5,.48,.46,.5,.47,.43,.4,.38,.36,.34], goals:[[70,'a']]},
+    {asset:'d1',matchId:'18175918',home:'ARG',away:'CPV',score:'3–2',call:'ARG 3–2',result:'exact',  comp:'WORLD CUP',date:"03 JUL '26",serial:'014',dur:123, share:[.83,.8,.78,.72,.7,.66,.6,.62,.55,.58,.52,.5,.48,.5], goals:[[28,'h'],[59,'a'],[92,'h'],[103,'a'],[110,'h']]}
   ],
   next:{home:'SPA',away:'BEL',kickoff:"SAT 20:00",side:'SPAIN'}
 };
@@ -296,16 +289,13 @@ function profileFromPass(){ var p=null; try{ p=JSON.parse(localStorage.getItem('
   var side=p.side==='a'?p.away:p.side==='h'?p.home:null;
   return {displayName:'you',sides:side?[side]:[],since:(p.ts&&p.ts>1e12)?p.ts:''};
 }
-function scarfHTML(s){ var ph=pal(s.home), pa=pal(s.away);
+// the kept scarf IS the real cloth (the exact render the mint captures) — previewed to its head,
+// unrolling in place on tap. img = the minted imageUri, or the captured demo cloth.
+function scarfHTML(s){ var img=s.img||('plate/scarves/'+(s.matchId||'')+'.jpg');
   return '<div class="keep reveal" data-match="'+(s.matchId||s.home+'-'+s.away)+'">'+
-    '<div class="scarf" style="--h:'+ph[0]+';--a:'+pa[0]+';--hink:'+ph[1]+';--aink:'+pa[1]+'">'+
-      '<span class="fr"></span>'+
-      '<div class="half h"><span class="tri">'+s.home+'</span></div>'+
-      '<div class="cart"><span class="sc">'+s.score+'</span><span class="cp">'+s.comp+'</span></div>'+
-      '<div class="half a"><span class="tri">'+s.away+'</span></div>'+
-      '<span class="fr"></span>'+
-    '</div>'+
-    '<div class="hall"><span class="call">'+s.date+(s.call?' · you predicted <b>'+s.call+'</b> '+resTag(s.result):' · <b>you were there</b>')+'</span><span>Nº '+s.serial+'</span></div>'+
+    '<div class="scarf"><img src="'+img+'" alt="'+s.home+' '+s.score+' '+s.away+' woven scarf" loading="lazy">'+
+      '<div class="fade"><span class="un">tap to unroll</span></div></div>'+
+    '<div class="hall"><span class="call"><b>'+s.home+' '+s.score+' '+s.away+'</b> · '+s.date+(s.call?' · predicted '+s.call+' '+resTag(s.result):' · you were there')+'</span><span>Nº '+s.serial+'</span></div>'+
   '</div>';
 }
 // THE CARD on the shelf — a miniature of the one you held: your end's colours, your seat, your numbers
@@ -325,12 +315,12 @@ function cardHTML(k,i){
 
 var ARRIVED=/[?&]from=keep/.test(location.search);   // you just pressed KEEP — the newest card announces itself once
 function render(){
-  var d=resolve(), sides=d.profile.sides||[];
+  var d=resolve(), sides=(d.profile.sides||[]).map(normTri).filter(Boolean);   // drop blank entries before they reach the tiles
   var empty=d.real && !d.scarves.length && !(d.cards&&d.cards.length) && !d.record.lived;   // a genuinely first-time seat
 
   // identity
   el('who').textContent=d.profile.displayName||'you';
-  el('crest').innerHTML=sides.length?(FLAGSET[sides[0]]?'<img src="plate/gens/flags/'+sides[0]+'.png" alt="'+sides[0]+'">':'<span class="crestnone">'+sides[0]+'</span>'):'<span class="crestnone">◈</span>';
+  el('crest').innerHTML=sides.length?(FLAGSET[sides[0]]?'<img src="plate/gens/flags/'+sides[0]+'.png" alt="'+sides[0]+'">':'<span class="crestnone">'+sides[0]+'</span>'):'<span class="crestnone">—</span>';
   el('af').innerHTML=sides.length
     ? 'ROOTED FOR&nbsp;'+sides.map(function(s){return flagTile(s);}).join('<span class="fsep">·</span>')+'<span class="fsep">·</span>SINCE '+fmtSince(d.profile.since)
     : 'YOUR SEAT IS OPEN · TAKE A SIDE AT THE GATE';
@@ -353,7 +343,7 @@ function render(){
     el('rack').innerHTML=d.scarves.map(scarfHTML).join('');
     // tap → THAT match's kept cloth, keyed by its id (rooot.cloth.<matchId>, pressed at full time).
     // an id with no record gets the loom's honest NOTHING KEPT — never another match's cloth.
-    [].forEach.call(document.querySelectorAll('.keep'),function(k){ k.onclick=function(){ location.href='woven-loom.html?keepsake=1&match='+encodeURIComponent(k.getAttribute('data-match'))+(DEMO?'&demo=1':''); }; });
+    [].forEach.call(document.querySelectorAll('.keep'),function(k){ k.onclick=function(){ k.classList.toggle('open'); }; });   // the scarf unrolls in place
   } else {
     el('rack').innerHTML='<div class="emptyrack"><div class="pocket"></div><div class="pocket"></div><div class="pocket"></div>'+
       '<div class="emptymsg">your first match awaits — live one and its scarf is woven here, yours forever</div></div>';
@@ -368,7 +358,7 @@ function render(){
   // genuinely empty seat forces them all locked. When the coordinator ships real counters, wire them here.
   el('pins').innerHTML=VIRTUES.map(function(v){
     var c=empty?0:v.c, rk=rankOf(c,v.t), locked=rk==='locked';
-    var cnt=locked?('LOCKED · '+v.t[0]+'+'):(fmtC(c)+' '+v.unit);
+    var cnt=locked?'EARN IT AT A MATCH':(fmtC(c)+' '+v.unit);
     return '<div class="pin reveal '+rk+'"><div class="medal"><img src="plate/gens/trophies/'+v.img+'" alt="'+v.l+'" style="width:'+v.sz+'px;height:'+v.sz+'px"></div><div class="pl">'+v.l+'</div><div class="pc">'+cnt+'</div></div>';
   }).join('');
 }

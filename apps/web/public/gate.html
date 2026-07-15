@@ -288,8 +288,8 @@ function paintMarketTriple(m){
   if(!m)return;
   var h=Math.max(1,Math.round(m.home*100)), d=Math.max(1,Math.round(m.draw*100)), a=Math.max(1,Math.round(m.away*100));
   var bar=document.querySelector('.mbar');
-  if(bar)bar.innerHTML='<i class="h" style="flex:'+h+'">'+FX.home.tri+' '+h+'</i><i class="d" style="flex:'+d+'">X '+d+'</i><i class="a" style="flex:'+a+'">'+FX.away.tri+' '+a+'</i>';
-  var mr=document.querySelector('.mkt .mr'); if(mr)mr.textContent=LIVE?'LIVE · DE-VIGGED':'PRE-MATCH · DE-VIGGED';
+  if(bar)bar.innerHTML='<i class="h" style="flex:'+h+'">'+FX.home.tri+' '+h+'</i><i class="d" style="flex:'+d+'">DRAW '+d+'</i><i class="a" style="flex:'+a+'">'+FX.away.tri+' '+a+'</i>';
+  var mr=document.querySelector('.mkt .mr'); if(mr)mr.textContent=LIVE?'LIVE':'PRE-MATCH';
 }
 function wireLiveGate(){
   if(!LIVE)return true;
@@ -306,8 +306,8 @@ function paintMarket(m){ if(!m||!m.market)return; var mk=m.market, t=m.teams||{}
   var h=Math.round(mk.home*100), d=Math.round(mk.draw*100), a=Math.round(mk.away*100);
   var hn=(t.home&&t.home.tri)||'SUI', an=(t.away&&t.away.tri)||'COL';
   var bar=document.querySelector('.mbar');
-  bar.innerHTML='<i class="h" style="flex:'+h+'">'+hn+' '+h+'</i><i class="d" style="flex:'+d+'">X '+d+'</i><i class="a" style="flex:'+a+'">'+an+' '+a+'</i>';
-  var mr=document.querySelector('.mr'); if(mr)mr.textContent='PRE-MATCH · DE-VIGGED';
+  bar.innerHTML='<i class="h" style="flex:'+h+'">'+hn+' '+h+'</i><i class="d" style="flex:'+d+'">DRAW '+d+'</i><i class="a" style="flex:'+a+'">'+an+' '+a+'</i>';
+  var mr=document.querySelector('.mr'); if(mr)mr.textContent='PRE-MATCH';
 }
 if(DEMO&&window.__match){ paintMarket(window.__match); if(window.__match.on)window.__match.on(paintMarket); }
 
@@ -342,6 +342,8 @@ go.onclick=function(){
   go.innerHTML='SEE YOU INSIDE<small>◆ YOU CALLED '+FX.home.tri+' '+sco.h+'–'+sco.a+' '+FX.away.tri+'</small>';
   setTimeout(function(){ location.href='ground.html?from=gate'+MODE_Q; }, 1050);   // the tunnel — walk into the ground (carry prototype mode)
 };
+// no watch-only entrance — the door asks for a side and a score, deliberately (owner, 13 Jul:
+// opinionated app; root + cheer + predict is the product AND the data)
 } // end boot
 
 // T16/adopt-#1 fixture resolution chain: explicit ?match= + a literal FIXTURES entry wins

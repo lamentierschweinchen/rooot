@@ -54,7 +54,6 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .end.them .ehdr .nm b{color:#9a7508}.end.you .ehdr .nm b{color:var(--you)}
 .ehdr .rt{text-align:right;color:var(--sub);font-size:8px;letter-spacing:.06em;line-height:1.5}
 .ehdr .rt .ct{color:var(--ink);font-weight:900;font-size:10px}
-.ehdr .xp{color:var(--gold)}
 .faith{display:none;font-weight:900;font-size:7px;letter-spacing:.08em;color:var(--ink);background:var(--gold);padding:2px 6px;border-radius:2px;margin-left:6px}
 .faith.on{display:inline-block}
 
@@ -67,24 +66,75 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .mid{position:relative;flex:none;z-index:6;background:var(--card);border-top:2px solid var(--ink);border-bottom:2px solid var(--ink);
   padding:8px 14px;min-height:92px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
   box-shadow:0 0 20px rgba(26,24,21,.28)}
-.matchbar{display:flex;align-items:baseline;gap:9px;font-weight:900;font-size:15px;letter-spacing:.02em}
+.matchbar{display:grid;grid-template-columns:1fr auto 1fr;align-items:baseline;font-weight:900;font-size:15px;letter-spacing:.02em}   /* score dead-centre; clock left, mode right */
+.matchbar .score{display:inline-flex;align-items:baseline;gap:9px;justify-self:center}
 .matchbar .h{color:var(--you)}.matchbar .a{color:var(--them)}
-.matchbar .cl{font-size:9px;font-weight:800;letter-spacing:.1em;color:var(--sub)}
-.matchbar .rp{display:inline-flex;align-items:center;gap:4px;font-size:7px;font-weight:800;letter-spacing:.14em;color:var(--sub)}
+.matchbar .cl{justify-self:start;font-size:9px;font-weight:800;letter-spacing:.1em;color:var(--sub)}
+.matchbar .rp{justify-self:end;display:inline-flex;align-items:center;gap:4px;font-size:7px;font-weight:800;letter-spacing:.14em;color:var(--sub)}
 .matchbar .rp .d{width:5px;height:5px;border-radius:50%;background:var(--you);animation:pulse 1.3s infinite}
+.ehdr .xp{color:var(--gold)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 /* the consensus — the scoreline the crowd holds up, BESIDE the market (never blended) */
 /* the seam's data block — one keylined box, two cells, the centre rule is the crowd/market boundary */
-.crowdcall{transition:opacity .3s}
-.ccbox{display:flex;margin:7px 14px 2px;border:1.5px solid var(--ink);text-align:left;background:var(--card)}
-.ccbox .cell{flex:1;padding:7px 10px 8px;min-width:0}
-.ccbox .cell+.cell{border-left:1.5px solid var(--ink)}
-.ccbox .lb{font-weight:800;font-size:7px;letter-spacing:.18em;color:var(--sub);white-space:nowrap}
-.ccbox .cell.m .lb{color:var(--gold)}
-.ccbox .v{font-weight:900;font-size:12px;letter-spacing:.02em;color:var(--ink);margin-top:3px;white-space:nowrap}
-.ccbox .cell.m .v{color:var(--gold)}
-.ccbox .n{font-weight:800;font-size:7px;letter-spacing:.1em;color:var(--sub);margin-top:2px;white-space:nowrap}
-.ccbox .ccwait{font-weight:800;font-size:8.5px;letter-spacing:.12em;color:var(--sub);white-space:normal;display:block;line-height:1.3}   /* silence, not zeros — wraps inside its cell */
+.crowdcall{align-self:stretch;transition:opacity .3s}   /* .mid centres its children — stretch the plate wrapper to the full seam width */
+/* THE PLATE — a printed prediction card, THE CROWD over THE MARKET (portrait, phone-legible).
+   Crowd = fan predictions · avg prediction · heart-v-head (each fanbase vs the market).
+   Market = chance to win (mirrors the fan bar) · move since kickoff. Team inks; never blended. */
+/* THE CARD IS THE OWNER'S GENERATED ART (plate/prediction-card.jpg): the printed frame, the
+   THE CROWD / THE MARKET headers, the corner marks and the woven selvage. We NEVER redraw the
+   frame in code — we only lay the live data into its two empty cream fields (measured off the art). */
+.plate{position:relative;width:100%;aspect-ratio:1278/1231;margin:6px auto 2px;background:url(plate/prediction-card.jpg) center/100% 100% no-repeat}
+.pfield{position:absolute;left:8.5%;right:8.5%;display:flex;flex-direction:column;justify-content:center}
+.pfield.crowd{top:11.8%;height:31%}   /* bottom ~42.8% — clears the printed divider domes (measured top ~45.8%) */
+.pfield.market{top:60.4%;height:34.5%}
+.plbl{font-weight:900;font-size:7px;letter-spacing:.12em;color:var(--sub)}
+.plbl.row{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.pcount{font-weight:800;font-size:6.5px;letter-spacing:.08em;color:var(--sub);white-space:nowrap}
+.pcbar{display:flex;height:22px;border:1.5px solid var(--ink);overflow:hidden;background:var(--paper);margin-top:4px}
+.pcbar i{display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:900;font-size:9px;overflow:hidden;white-space:nowrap;min-width:0;transition:flex-basis .45s cubic-bezier(.4,0,.2,1)}
+.pcbar .h{background:var(--you);color:var(--youInk,var(--card))}
+.pcbar .d{background:var(--oat,#CDBE97);color:var(--ink);border-left:1.5px solid var(--ink);border-right:1.5px solid var(--ink)}
+.pcbar .a{background:var(--them);color:var(--themInk,var(--ink))}
+.pends{display:flex;justify-content:space-between;font-weight:900;font-size:7.5px;letter-spacing:.05em;margin-top:2px}
+.pends .e1{color:var(--you)}.pends .e2{color:var(--sub)}.pends .e3{color:var(--them)}
+.pcrow{display:flex;gap:14px;margin-top:5px;align-items:flex-start}
+.pboard{display:inline-flex;background:var(--ink);border-radius:3px;overflow:hidden}
+.pbt{display:flex;flex-direction:column;align-items:center;padding:4px 10px 5px}
+.pbt+.pbt{border-left:1.5px solid #4a463c}
+.pbt s{font-weight:900;font-size:6.5px;letter-spacing:.1em;text-decoration:none;margin-bottom:2px}
+.pbt.h s{color:var(--you)}.pbt.a s{color:var(--them)}
+.pbt b{font-weight:900;font-size:18px;color:var(--card);font-variant-numeric:tabular-nums;line-height:1}
+.fvm{flex:1;min-width:0}
+.fvrow{display:grid;grid-template-columns:24px 1fr 28px;align-items:center;gap:6px;height:14px}
+.fvrow+.fvrow{margin-top:4px}
+.ft{font-weight:900;font-size:8px}.ft.t1{color:var(--you)}.ft.t3{color:var(--them)}
+.fvtrack{position:relative;height:11px}
+.fvtrack::after{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:var(--line);transform:translateY(-50%)}
+.fvconn{position:absolute;top:50%;height:3px;transform:translateY(-50%);z-index:1}
+.fvconn.t1{background:var(--you)}.fvconn.t3{background:var(--them)}
+.mdot,.fdot{position:absolute;top:50%;transform:translate(-50%,-50%);border-radius:50%;border:1.5px solid var(--ink);z-index:2}
+.mdot{width:8px;height:8px;background:var(--paper);z-index:3}   /* hollow market dot rides above the filled fans dot so a tiny gap still reads as two markers */
+.fdot{width:10px;height:10px}.fdot.t1{background:var(--you)}.fdot.t3{background:var(--them)}
+.fvgap{font-weight:900;font-size:9px;text-align:right;color:var(--ink);font-variant-numeric:tabular-nums}
+.fvkey{display:inline-flex;gap:11px;font-weight:800;font-size:6px;letter-spacing:.04em;color:var(--sub);margin-top:3px;align-items:center;align-self:flex-start;background:#F1DEBF;padding:1px 3px;border-radius:2px}   /* cream backing (matches the card) so the legend + its filled dot never vanish on a printed accent */
+.fvkey i{display:inline-block;width:7px;height:7px;border-radius:50%;border:1.25px solid var(--ink);vertical-align:-1px;margin-right:3px}
+.fvkey .km{background:var(--paper)}.fvkey .kf{background:var(--ink)}
+.pdiv{margin-top:8px}
+.pdrow{display:grid;grid-template-columns:30px 1fr;align-items:center;gap:8px;height:14px}
+.pdrow+.pdrow{margin-top:4px}
+.pdt{font-weight:900;font-size:8px}.pdt.t1{color:var(--you)}.pdt.t2{color:var(--sub)}.pdt.t3{color:var(--them)}
+.pdtrack{position:relative;height:9px}
+.pdtrack::before{content:"";position:absolute;left:50%;top:-5px;height:19px;width:1.5px;background:var(--ink);transform:translateX(-50%);z-index:0}
+.pdbar{position:absolute;top:0;height:9px;border:1.25px solid var(--ink);z-index:1;transition:width .4s}
+.pdbar.dn{right:50%}.pdbar.up{left:50%}
+.pdbar.b1{background:var(--you)}.pdbar.b2{background:var(--oat,#CDBE97)}.pdbar.b3{background:var(--them)}
+.pdval{position:absolute;top:50%;transform:translateY(-50%);font-weight:900;font-size:8.5px;color:var(--ink);font-variant-numeric:tabular-nums}
+.pdbar.dn .pdval{right:100%;margin-right:5px}.pdbar.up .pdval{left:100%;margin-left:5px}
+.pdaxis{display:grid;grid-template-columns:30px 1fr;gap:8px;margin-top:6px}
+.pdaxis .c{text-align:center;font-weight:800;font-size:6.5px;letter-spacing:.1em;color:var(--sub)}
+.pwait{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;background:#F1DEBF;font-weight:800;font-size:8.5px;letter-spacing:.1em;color:var(--sub);padding:0 12px;z-index:3}   /* matches the card's printed cream (sampled) so it cleanly veils the empty crowd field */
+.pfield.lite .needsfans{display:none}   /* the sim carries no per-fan predictions — hide the split + heart-v-head, never fabricate them */
+.pfield.lite .pcrow{justify-content:center}   /* sim shows only the average — centre the lone scoreboard instead of floating it left */
 .moment{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:var(--card);gap:2px}
 .moment.on{display:flex}
 .moment .big{font-weight:900;font-size:25px;letter-spacing:.02em;line-height:1}
@@ -147,6 +197,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .pk.feel.on span{color:var(--ink)}
 
 .taphint{position:absolute;left:50%;bottom:52px;transform:translateX(-50%);z-index:5;font-weight:800;font-size:8px;letter-spacing:.16em;color:var(--fldink);opacity:.7;pointer-events:none;transition:opacity .3s}
+.taphint.done{opacity:0}
 /* pop-art (Lichtenstein) cheer/goal burst */
 .burst{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%) scale(.5);width:210px;opacity:0;pointer-events:none;z-index:8}
 .burst svg{width:100%;display:block;overflow:visible}
@@ -216,8 +267,9 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 /* honesty footer */
 .foot{flex:none;padding:5px 14px;text-align:center;font-weight:700;font-size:7px;letter-spacing:.11em;color:var(--sub);background:var(--paper);border-top:1px solid var(--line);z-index:6}
 .backg{position:absolute;top:7px;left:9px;z-index:20;width:26px;height:26px;border-radius:50%;border:1.5px solid var(--ink);background:rgba(243,236,219,.94);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px;line-height:1;color:var(--ink);text-decoration:none;-webkit-tap-highlight-color:transparent}
-/* embed mode — nested as the STANDS lens inside the ground: shed the back-button + own footer (the ground frames it) */
-body.embed .backg,body.embed .foot{display:none}
+/* embed mode — nested as the STANDS lens inside the ground: shed the back-button, own footer
+   + own score row (the ground's masthead already carries score + clock — one score, one clock) */
+body.embed .backg,body.embed .foot,body.embed .matchbar{display:none}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;scroll-behavior:auto !important}}
 </style>
 </head>
@@ -248,12 +300,38 @@ body.embed .backg,body.embed .foot{display:none}
 
   <!-- the halfway seam — the match between the terraces -->
   <div class="mid" id="mid">
-    <div class="matchbar"><span class="h">SUI</span> <span id="scH">0</span>–<span id="scA">0</span> <span class="a">COL</span>
-      <span class="cl" id="clock">0'</span><span class="rp"><span class="d"></span>REPLAY</span></div>
+    <div class="matchbar">
+      <span class="cl" id="clock">0'</span>
+      <span class="score"><span class="h">SUI</span> <span id="scH">0</span>–<span id="scA">0</span> <span class="a">COL</span></span>
+      <span class="rp"><span class="d"></span>REPLAY</span></div>
     <div class="crowdcall" id="crowdcall">
-      <div class="ccbox">
-        <div class="cell c"><div class="lb">FAN PREDICTIONS</div><div class="v" id="ccCrowd"><span class="ccwait">THE CROWD IS ARRIVING</span></div><div class="n" id="ccCrowdN">NONE YET</div></div>
-        <div class="cell m"><div class="lb">THE MARKET</div><div class="v" id="ccMkt">—</div><div class="n" id="ccMktN">WAITING</div></div>
+      <div class="plate">
+        <div class="pfield crowd" id="secCrowd">
+          <div class="plbl row needsfans"><span>FAN PREDICTIONS</span><span class="pcount" id="crowdSub"></span></div>
+          <div class="pcbar needsfans"><i class="h" id="fpH"></i><i class="d" id="fpD"></i><i class="a" id="fpA"></i></div>
+          <div class="pends needsfans"><span class="e1" id="fpHe">SUI</span><span class="e2">DRAW</span><span class="e3" id="fpAe">COL</span></div>
+          <div class="pcrow">
+            <div class="blk"><div class="plbl">AVG PREDICTION</div><div class="pboard"><div class="pbt h"><s id="apHt">SUI</s><b id="apH">—</b></div><div class="pbt a"><s id="apAt">COL</s><b id="apA">—</b></div></div></div>
+            <div class="blk fvm needsfans"><div class="plbl">HEART v HEAD</div>
+              <div class="fvrow"><span class="ft t1" id="hvHt">SUI</span><div class="fvtrack"><span class="fvconn t1" id="hvHconn"></span><span class="mdot" id="hvHm"></span><span class="fdot t1" id="hvHf"></span></div><span class="fvgap" id="hvHg">—</span></div>
+              <div class="fvrow"><span class="ft t3" id="hvAt">COL</span><div class="fvtrack"><span class="fvconn t3" id="hvAconn"></span><span class="mdot" id="hvAm"></span><span class="fdot t3" id="hvAf"></span></div><span class="fvgap" id="hvAg">—</span></div>
+              <div class="fvkey"><span><i class="km"></i>MARKET</span><span><i class="kf"></i>FANS</span></div>
+            </div>
+          </div>
+          <div class="pwait" id="cWait">THE CROWD IS ARRIVING</div>
+        </div>
+        <div class="pfield market">
+          <div class="plbl">ODDS</div>
+          <div class="pcbar"><i class="h" id="mkH"></i><i class="d" id="mkD"></i><i class="a" id="mkA"></i></div>
+          <div class="pends"><span class="e1" id="mkHe">SUI</span><span class="e2">DRAW</span><span class="e3" id="mkAe">COL</span></div>
+          <div class="pdiv">
+            <div class="plbl">MOVE SINCE KICKOFF · PTS</div>
+            <div class="pdrow" style="margin-top:6px"><span class="pdt t1" id="mvHt">SUI</span><div class="pdtrack"><div class="pdbar b1" id="mvH"><span class="pdval" id="mvHv"></span></div></div></div>
+            <div class="pdrow"><span class="pdt t2">DRAW</span><div class="pdtrack"><div class="pdbar b2" id="mvD"><span class="pdval" id="mvDv"></span></div></div></div>
+            <div class="pdrow"><span class="pdt t3" id="mvAt">COL</span><div class="pdtrack"><div class="pdbar b3" id="mvA"><span class="pdval" id="mvAv"></span></div></div></div>
+            <div class="pdaxis"><span></span><span class="c">◄ FELL · 0 · ROSE ►</span></div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="moment" id="moment"><div class="big" id="momentBig">GOAL</div><div class="min" id="momentMin">23'</div></div>
@@ -267,7 +345,7 @@ body.embed .backg,body.embed .foot{display:none}
   <div class="end you" id="youEnd">
     <div class="tifo" id="tilesYou"></div>
     <div class="ehdr"><span class="nm"><b>SWITZERLAND</b> · YOUR END<span class="faith" id="faithYou">◆ STILL SINGING</span></span>
-      <span class="rt">you + <span class="ct" id="ctYou">8,203</span> · <span class="xp">XP <span id="xp">0</span></span> · <span id="rH">0</span>–<span id="rA">0</span></span></div>
+      <span class="rt">you + <span class="ct" id="ctYou">8,203</span> · <span class="xp">POINTS <span id="xp">0</span></span><span id="readsWrap" hidden> · CALLS <span id="rH">0</span>✓ <span id="rA">0</span>✗</span></span></div>
     <div class="burst" id="burst" aria-hidden="true">
       <svg viewBox="0 0 220 176">
         <defs><pattern id="bday" width="9" height="9" patternUnits="userSpaceOnUse"><circle cx="2.6" cy="2.6" r="2" fill="rgba(26,24,21,.22)"/></pattern></defs>
@@ -341,7 +419,7 @@ var REACT={
   'goal-a':{you:['HEARTBREAK',74,6100],them:['JOY',77,10900]},
   'card-a':{you:['RELIEF',46,3800],them:['ANGER',68,9600]}
 };
-// mini-predictions — optional, resolve against the replay, earn light XP + fan-team reads
+// mini-predictions — optional, resolve against the replay, count your right/wrong calls + fan-team reads
 var PREDS=[
   {popT:24, resolveT:29, q:'WHO WINS THE NEXT CORNER?', opts:['SUI','COL'], correct:'SUI'},
   {popT:37, resolveT:41.5, q:'WILL HE SCORE THE PEN?', opts:['SCORES','MISSES'], correct:'SCORES', mkt:'the market: 76% scored'}
@@ -405,7 +483,8 @@ function liveRoarLevel(v){return v>0?Math.min(1,0.28+v*1.6):0;}   // one real ta
 function bumpEnd(node,list,k){ if(!node)return; node.classList.remove('surge'); void node.offsetWidth; node.classList.add('surge'); ripple(list,k||7); setTimeout(function(){node.classList.remove('surge');},520); }
 
 // your tap = roar (your end surges — the field, not a gauge)
-function tap(){ if((DEMO||LIVE)&&window.__stands){window.__stands.cheer(); M.cheerN++;} else {M.rY=Math.min(1,M.rY+0.16);} ripple(tilesYou,6);var e=el('youEnd');e.classList.remove('surge');void e.offsetWidth;e.classList.add('surge');}
+function tap(){ if((DEMO||LIVE)&&window.__stands){window.__stands.cheer(); M.cheerN++;} else {M.rY=Math.min(1,M.rY+0.16);} ripple(tilesYou,6);var e=el('youEnd');e.classList.remove('surge');void e.offsetWidth;e.classList.add('surge');
+  if(!tap.done){tap.done=true; el('taphint').classList.add('done');} }   // the hint retires after your first cheer — the burst does the talking
 setInterval(function(){ if(document.visibilityState==='visible'&&!M._ft)M.vSec+=10; },10000);   // minutes watched = visible time until FT
 el('youEnd').addEventListener('pointerdown',function(e){ if(e.target.closest('.pk')||e.target.closest('.sk-keep'))return; tap(); });
 
@@ -481,10 +560,13 @@ function resolvePred(i){
   [].forEach.call(el('predOpts').children,function(c){ c.classList.remove('on'); c.classList.add(c.textContent===p.correct?'win':'lose'); });
   var right=(M.pred.called===p.correct), rs=el('predRes');
   if(M.pred.called){ rs.className='pres '+(right?'win':'lose');
-    rs.textContent=right?('✓ '+p.correct+' — you called it  ·  +10 XP'):('✗ '+p.correct+' took it — next time'); }
+    rs.textContent=right?('✓ '+p.correct+' — you called it  ·  +10 POINTS'):('✗ '+p.correct+' took it — next time'); }
   else { rs.className='pres'; rs.textContent=p.correct+' — you sat this one out'; }
-  if(right){ M.xp+=10; el('xp').textContent=M.xp; M.reads.h++; el('rH').textContent=M.reads.h; }
-  else { M.reads.a++; el('rA').textContent=M.reads.a; }
+  if(M.pred.called){   // count only real calls — sitting one out is not a wrong call
+    if(right){ M.xp+=10; el('xp').textContent=M.xp; M.reads.h++; el('rH').textContent=M.reads.h; }
+    else { M.reads.a++; el('rA').textContent=M.reads.a; }
+    el('readsWrap').hidden=false;   // the ledger appears once a call has resolved — no dead zeros pre-KO
+  }
   setTimeout(function(){ el('pred').classList.remove('on'); if(M.pred&&M.pred.i===i)M.pred=null; },3600);
 }
 function dismissPred(){ el('pred').classList.remove('on'); if(M.pred)M.pred.done=true; M.pred=null; }
@@ -659,25 +741,51 @@ requestAnimationFrame(function(t){M.lastMs=t;step(t);});
 
 // ===== ?demo=1 — drive THE STANDS off the real crowd-sim (__stands) + match (__match) engine =====
 // the box's two cells: crowd = the aggregate predicted score (owner call, 10 Jul) · market = the leader
-function ccUpdate(c){ var cv=el('ccCrowd'), cn=el('ccCrowdN'); if(!cv)return;
-  if(c.all){
-    if(Array.isArray(c.all)){   // demo shape: pre-formatted mean pair from the sim
-      cv.textContent=HOME_TRI+' '+c.all[0]+' – '+c.all[1]+' '+AWAY_TRI;
-      if(cn)cn.textContent='SIMULATED CROWD';
-    } else if(c.all.mean){
-      if(!c.all.n){ cv.innerHTML='<span class="ccwait">THE CROWD IS ARRIVING</span>'; if(cn)cn.textContent='NONE YET'; }   // n:0 = silence, never zeros
-      else { cv.textContent=HOME_TRI+' '+c.all.mean.home.toFixed(1)+' – '+c.all.mean.away.toFixed(1)+' '+AWAY_TRI;
-        if(cn)cn.textContent='FROM '+c.all.n+' FAN'+(c.all.n===1?'':'S'); }
-    }
-  }
-  if(c.market){ marketUpdate(Array.isArray(c.market)?{home:c.market[0],draw:c.market[1],away:c.market[2]}:c.market); }
+// THE PLATE — the crowd as solid counted blocks (split · expected score · heart-v-head),
+// the market as a live wheel + its drift since kickoff. All from the wire; never blended.
+// a stacked bar normalised to 100% — works for counts (fan tallies) or fractions (market)
+function setPBar(h,d,a,ph,pd,pa){ var t=(h||0)+(d||0)+(a||0); if(!t)return; var H=el(ph),D=el(pd),A=el(pa); if(!H)return;
+  var th=Math.round(h/t*100), td=Math.round(d/t*100), ta=100-th-td;
+  H.style.flexBasis=th+'%'; D.style.flexBasis=td+'%'; A.style.flexBasis=ta+'%';
+  H.textContent=th>=13?th+'%':''; D.textContent=td>=13?td+'%':''; A.textContent=ta>=13?ta+'%':''; }
+function setAvg(h,a){ var H=el('apH'),A2=el('apA'); if(H)H.textContent=h; if(A2)A2.textContent=a; }
+// HEART v HEAD — per team: the market's win-chance (hollow dot) vs that fanbase's own belief (filled dot)
+function refreshHvH(){ if(!M.br||!M.mkt)return; var br=M.br, mk=M.mkt;
+  function row(g, mktChance, mDot, fDot, conn, gapEl){
+    var mp=Math.round((mktChance||0)*100), n=(g&&g.n)||0, own=(g&&g.outcome&&g.outcome.win)||0,
+        fp=n?Math.round(own/n*100):null, m=el(mDot), f=el(fDot), c=el(conn), ge=el(gapEl);
+    if(fp==null){ if(m)m.style.opacity='0'; if(f)f.style.opacity='0'; if(c)c.style.width='0'; if(ge)ge.textContent='—'; return; }
+    if(m){m.style.opacity='';m.style.left=mp+'%';} if(f){f.style.opacity='';f.style.left=fp+'%';}
+    if(c){c.style.left=Math.min(mp,fp)+'%'; c.style.width=Math.abs(fp-mp)+'%';}
+    if(ge)ge.textContent=(fp-mp>0?'+':'')+(fp-mp); }
+  row(br.home?{n:br.home.n,outcome:{win:br.home.outcome&&br.home.outcome.homeWin}}:null, mk.home, 'hvHm','hvHf','hvHconn','hvHg');
+  row(br.away?{n:br.away.n,outcome:{win:br.away.outcome&&br.away.outcome.awayWin}}:null, mk.away, 'hvAm','hvAf','hvAconn','hvAg');
 }
-function marketUpdate(m){
-  var mv=el('ccMkt'), mn=el('ccMktN'); if(!mv||!m)return;
-  var h=Math.round(m.home*100), d=Math.round(m.draw*100), a=Math.round(m.away*100);
-  var rows=[[h,HOME_TRI],[d,'DRAW'],[a,AWAY_TRI]].sort(function(x,y){return y[0]-x[0];});
-  mv.textContent=rows[0][1]+' '+rows[0][0]+'%';
-  if(mn)mn.textContent=rows[1][1]+' '+rows[1][0]+' · '+rows[2][1]+' '+rows[2][0];
+// MOVE SINCE KICKOFF — a diverging bar per result, points off the baseline captured at first read
+function setMove(mk){ if(!M.mkt0)M.mkt0={h:mk.home,d:mk.draw,a:mk.away};
+  var defs=[['h',mk.home,M.mkt0.h,'mvH','mvHv','b1'],['d',mk.draw,M.mkt0.d,'mvD','mvDv','b2'],['a',mk.away,M.mkt0.a,'mvA','mvAv','b3']];
+  for(var i=0;i<defs.length;i++){ var q=defs[i], delta=Math.round((q[1]-q[2])*100), bar=el(q[3]), val=el(q[4]); if(!bar)continue;
+    bar.className='pdbar '+q[5]+' '+(delta<0?'dn':'up'); bar.style.width=Math.min(48,Math.abs(delta)*4.5)+'%';
+    if(val)val.textContent=(delta>0?'+':delta<0?'−':'')+Math.abs(delta); }
+}
+function ccUpdate(c){ if(!c)return;
+  if(c.market){ marketUpdate(Array.isArray(c.market)?{home:c.market[0],draw:c.market[1],away:c.market[2]}:c.market); }
+  if(!c.all)return;
+  var wait=el('cWait'), sec=el('secCrowd');
+  if(Array.isArray(c.all)){   // demo/sim: only the aggregate pair — no per-fan tallies, so hide the split + heart-v-head
+    if(sec)sec.classList.add('lite'); setAvg(c.all[0],c.all[1]); if(wait)wait.style.display='none'; return;
+  }
+  var A=c.all;
+  if(!A.n){ if(wait)wait.style.display=''; return; }   // silence, never zeros
+  if(wait)wait.style.display='none'; if(sec)sec.classList.remove('lite');
+  if(A.outcome){ setPBar(A.outcome.homeWin,A.outcome.draw,A.outcome.awayWin,'fpH','fpD','fpA'); }   // FAN PREDICTIONS
+  if(A.mean){ setAvg(A.mean.home.toFixed(1),A.mean.away.toFixed(1)); }
+  var sub=el('crowdSub'); if(sub)sub.textContent='FROM '+A.n+' PREDICTION'+(A.n===1?'':'S');
+  M.br=c.byRoot||null; refreshHvH();
+}
+function marketUpdate(m){ if(!m||m.home==null)return; M.mkt=m;
+  setPBar(m.home,m.draw,m.away,'mkH','mkD','mkA');   // CHANCE TO WIN — mirrors the fan bar
+  setMove(m); refreshHvH();
 }
 function applyFixture(sideKey){
   sideKey=sideKey||'home';
@@ -698,8 +806,10 @@ function applyFixture(sideKey){
   var youHdr=document.querySelector('.end.you .ehdr .nm b'), themHdr=document.querySelector('.end.them .ehdr .nm b');
   if(youHdr)youHdr.textContent=YOU_TEAM.name; if(themHdr)themHdr.textContent=THEM_TEAM.name;
   // no predictions yet → silence, never zeros-as-data (owner copy, 10 Jul: short)
-  var cv=el('ccCrowd'); if(cv)cv.innerHTML='<span class="ccwait">THE CROWD IS ARRIVING</span>';
-  var cn=el('ccCrowdN'); if(cn)cn.textContent='NONE YET';
+  var wait=el('cWait'); if(wait)wait.style.display='';   // the plate returns to silence on a fixture change (no zeros)
+  M.mkt0=null; M.mkt=null; M.br=null;   // drop the market baseline + latest reads so everything re-bases at the new match
+  ['fpHe','mkHe','hvHt','mvHt','apHt'].forEach(function(id){var e=el(id);if(e)e.textContent=HOME_TRI;});
+  ['fpAe','mkAe','hvAt','mvAt','apAt'].forEach(function(id){var e=el(id);if(e)e.textContent=AWAY_TRI;});
   var rp=document.querySelector('.matchbar .rp'); if(rp)rp.lastChild.textContent=LIVE?'LIVE':'REPLAY';
 }
 function wireLive(){

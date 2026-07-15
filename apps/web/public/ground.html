@@ -23,12 +23,12 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .cmast .sc{font-weight:900;font-size:15px;letter-spacing:.02em;white-space:nowrap}
 .cmast .sc .h{color:var(--you)}.cmast .sc .a{color:var(--them)}
 .cmast .min{font-weight:700;font-size:8px;letter-spacing:.1em;color:var(--sub);margin-left:5px}
-.cabbtn{width:30px;height:26px;flex:none;border:1.5px solid var(--ink);background:var(--card);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--ink);text-decoration:none;-webkit-tap-highlight-color:transparent}
+.cabbtn{height:26px;flex:none;padding:0 9px;border:1.5px solid var(--ink);background:var(--card);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;letter-spacing:.14em;color:var(--ink);text-decoration:none;-webkit-tap-highlight-color:transparent}
 .cabbtn:active{background:var(--ink);color:var(--card)}
 
 /* THE DIAL — one control. THE STANDS at home; lean into LOOM (left) or STADIUM (right). */
 .dial{display:flex;border-bottom:1.5px solid var(--ink);background:var(--card)}
-.dseg{flex:1;padding:7px 4px 6px;text-align:center;background:var(--card);color:var(--sub);cursor:pointer;border:none;-webkit-tap-highlight-color:transparent;position:relative;transition:background .2s,color .2s}
+.dseg{flex:1;display:flex;flex-direction:column;justify-content:center;padding:7px 4px 6px;text-align:center;background:var(--card);color:var(--sub);cursor:pointer;border:none;-webkit-tap-highlight-color:transparent;position:relative;transition:background .2s,color .2s}
 .dseg+.dseg{border-left:1.5px solid var(--ink)}
 .dseg .dt{display:block;font-family:var(--disp);font-weight:900;font-size:10px;letter-spacing:.09em;line-height:1}
 .dseg .dhint{display:block;font-weight:700;font-size:6px;letter-spacing:.13em;margin-top:3px;opacity:.7}
@@ -83,13 +83,13 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 <div class="wrap crowd-full" id="wrap">
   <div class="cmast">
     <span class="sc"><span class="h" id="hT">ARG</span> <span id="sc">v</span> <span class="a" id="aT">CPV</span><span class="min" id="clk"></span></span>
-    <a class="cabbtn" href="cabinet.html" title="your cabinet" aria-label="your cabinet">◈</a>
+    <a class="cabbtn" href="cabinet.html" title="your cabinet" aria-label="your cabinet">CABINET</a>
   </div>
 
   <div class="dial" id="dial">
-    <button class="dseg" data-lens="loom"><span class="dt">LOOM</span><span class="dhint">THE TIDE</span></button>
+    <button class="dseg" data-lens="loom"><span class="dt">LOOM</span><span class="dhint">YOUR MATCH, WOVEN</span></button>
     <button class="dseg home on" data-lens="stands"><span class="dt">THE STANDS</span><span class="dhint">YOU'RE HERE</span></button>
-    <button class="dseg" data-lens="stadium"><span class="dt">STADIUM</span><span class="dhint">THE PITCH</span></button>
+    <button class="dseg" data-lens="stadium"><span class="dt">STADIUM</span></button>
   </div>
 
   <div class="them" id="themBand">
@@ -223,7 +223,7 @@ function wireLive(){
   document.documentElement.style.setProperty('--yousec2',you.sec2||you.sec||you.color); document.documentElement.style.setProperty('--themsec2',them.sec2||them.sec||them.color);
   el('hT').textContent=FX.home.tri; el('aT').textContent=FX.away.tri; el('hT').style.color=FX.home.color; el('aT').style.color=FX.away.color;
   el('themNm').textContent=them.tri+' · THEIR END'; el('youNm').textContent=you.tri+' · YOUR END';
-  el('spec').textContent='LIVE CROWD + MATCH WIRE · ANONYMOUS TEST SEAT';
+  el('spec').textContent='LIVE CROWD + MATCH WIRE · YOUR SEAT';
   if(window.__stands&&!wireLive.didStands){
     wireLive.didStands=true;
     if(PASS&&PASS.side!=='n')window.__stands.root(sideKey);

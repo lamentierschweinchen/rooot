@@ -31,10 +31,16 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
 /* the real stadium fills the screen */
 .ground{position:absolute;inset:0;transition:transform .5s cubic-bezier(.6,0,.2,1),opacity .4s}
 .ground.dimmed{transform:scale(1.06);opacity:.25;filter:saturate(.6)}
-.stadwrap{position:absolute;top:48%;left:0;right:0;transform:translateY(-50%)}
+/* B — the poster bleed (owner pick, 14 Jul): the bowl fills the frame past both bands;
+   the mast + program strip print over it. Territory shows as the pitch's own paint;
+   its numbers live in the CONTROL card, not loose on the grass. */
+.stadwrap{position:absolute;top:50%;left:0;right:0;transform:translateY(-50%) scale(1.335)}
 .stadwrap .stad{width:100%;display:block}
-.pnum{position:absolute;transform:translate(-50%,-50%);font-weight:900;color:var(--card);z-index:2;text-shadow:0 1px 5px rgba(26,24,21,.65),0 0 2px rgba(26,24,21,.55)}
-.pnum.a{left:49.8%;top:38%;font-size:25px}.pnum.h{left:49.8%;top:63%;font-size:25px}
+/* THE PROGRAM — the page's doors in one printed strip along the foot */
+.program{position:absolute;left:0;right:0;bottom:0;z-index:9;display:flex;border-top:1.5px solid var(--ink);background:var(--paper)}
+.program button{flex:1;min-width:0;padding:12px 2px 13px;background:none;border:none;border-left:1px solid var(--line);font-family:var(--disp);font-weight:800;font-size:6.6px;letter-spacing:.08em;color:var(--ink);cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.program button:first-child{border-left:none}
+.program button:active{background:var(--ink);color:var(--paper)}
 .board{position:absolute;left:49.4%;top:13.9%;transform:translate(-50%,-50%);z-index:3;pointer-events:none;text-align:center;color:#F3ECDB;text-shadow:0 1px 2px #000;line-height:1}   /* centred on the art's black rect (x 41.8–56.9%, y 10.9–16.9%) — the numbers sit solidly on the black */
 .board .bsc{display:block;font-weight:900;font-size:14px;letter-spacing:.05em}
 .board .bmin{display:block;font-weight:700;font-size:7px;letter-spacing:.13em;color:#E8B10A;margin-top:2px}
@@ -44,15 +50,15 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
    the sideline, the stands ring). Everything subtle; the hit area stays >=40px. */
 .hot{position:absolute;transform:translate(-50%,-50%);z-index:4;cursor:pointer;-webkit-tap-highlight-color:transparent;
   width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center}
-.hot::before{content:"";width:var(--d,8px);height:var(--d,8px);border-radius:50%;background:var(--gold);
-  box-shadow:0 0 7px 1.5px rgba(199,154,56,.45),inset 0 0 0 1px rgba(26,24,21,.3);animation:dotb 2.8s ease-in-out infinite}
+.hot::before{content:"";width:var(--d,8px);height:var(--d,8px);border-radius:50%;background:rgba(26,24,21,.9);
+  box-shadow:0 0 0 3px rgba(237,230,214,.92),0 0 0 4.5px rgba(26,24,21,.5);animation:dotb 2.8s ease-in-out infinite}   /* ink-breath (owner pick, 14 Jul): dark dot, cream halo, quiet pulse — no gold glow */
 @keyframes dotb{0%,100%{opacity:.5}50%{opacity:.95}}
-.hot.zone::before{width:100%;height:100%;background:radial-gradient(closest-side,rgba(199,154,56,.16),rgba(199,154,56,.05) 62%,transparent);
-  box-shadow:none;border-radius:inherit;border:1px solid rgba(199,154,56,.3)}
+.hot.zone::before{width:100%;height:100%;background:rgba(26,24,21,.05);
+  box-shadow:none;border-radius:inherit;border:1.5px solid rgba(26,24,21,.45)}
 /* the stands glow is pure decoration across the bowl (owner, 11 Jul) — the TAP is the bare seating itself */
 .standsglow{position:absolute;left:50%;top:50.4%;transform:translate(-50%,-50%);width:97%;height:96%;border-radius:43%;
-  pointer-events:none;z-index:2;box-shadow:0 0 9px 0 rgba(199,154,56,.12)}
-.standsglow::after{content:"";position:absolute;inset:0;border-radius:inherit;border:1.5px solid var(--gold);animation:halo 3s ease-out infinite;opacity:0}
+  pointer-events:none;z-index:2;box-shadow:0 0 9px 0 rgba(26,24,21,.10)}
+.standsglow::after{content:"";position:absolute;inset:0;border-radius:inherit;border:1.5px solid rgba(26,24,21,.32);animation:halo 3s ease-out infinite;opacity:0}
 .pitchzone{position:absolute;left:50%;top:50.5%;transform:translate(-50%,-50%);width:50%;height:61%;z-index:3}   /* bare pitch swallows taps (as before) — it is not the stands */
 @keyframes halo{0%{transform:scale(1);opacity:.5}100%{transform:scale(1.22);opacity:0}}
 .hot .cap{display:none}   /* owner: the place self-explains — position IS the label (Jul 7 + Jul 11) */
@@ -196,7 +202,6 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     <div class="stadwrap" id="stadwrap">
       <canvas class="stad" id="stadcanvas" width="760" height="1079"></canvas>
       <div class="board" id="board"><span class="bsc" id="bSc">0–0</span><span class="bmin" id="bMin"></span></div>
-      <div class="pnum a" id="pA">—</div><div class="pnum h" id="pH">—</div>
       <!-- dots + zones exactly as the owner placed them (spot-tool spec, 11 Jul) -->
       <div class="hot" data-place="goal" style="left:50.1%;top:23.4%;--d:17.5px" aria-label="the goal mouth"><span class="cap" id="capA">GOAL</span></div>
       <div class="hot" data-place="goal" style="left:50.5%;top:78.6%;--d:17.5px" aria-label="the goal mouth"><span class="cap" id="capH">GOAL</span></div>
@@ -204,8 +209,8 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
       <div class="hot" data-place="arc" style="left:71.3%;top:23.6%;--d:8px" aria-label="set pieces"></div>
       <div class="hot" data-place="arc" style="left:29.1%;top:77.7%;--d:8px" aria-label="set pieces"></div>
       <div class="hot" data-place="arc" style="left:71.5%;top:77.6%;--d:8px" aria-label="set pieces"></div>
-      <div class="hot" data-place="bench" style="left:81.2%;top:41.9%;--d:15.5px" aria-label="the bench"><span class="cap">THE BENCH</span></div>
-      <div class="hot" data-place="bench" style="left:81.2%;top:61.6%;--d:15.5px" aria-label="the bench"><span class="cap">THE BENCH</span></div>
+      <div class="hot" data-place="bench" style="left:81.2%;top:41.9%;--d:15.5px" aria-label="the team sheet"><span class="cap">TEAM SHEET</span></div>
+      <div class="hot" data-place="bench" style="left:81.2%;top:61.6%;--d:15.5px" aria-label="the team sheet"><span class="cap">TEAM SHEET</span></div>
       <div class="hot" data-place="odds" style="left:57.4%;top:11.7%;--d:9.5px" aria-label="the market"><span class="cap">THE MARKET</span></div>
       <div class="hot zone" data-place="control" style="left:50.3%;top:50.5%;width:17%;height:12.2%;border-radius:50%" aria-label="control"><span class="cap">CONTROL</span></div>
       <div class="hot zone" data-place="book" style="left:28%;top:50.8%;width:9%;height:6.5%;border-radius:50%" aria-label="the book"><span class="cap">THE BOOK</span></div>
@@ -214,21 +219,31 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     </div>
   </div>
 
-  <div class="tiphint" id="tip">TAP A GLOWING PLACE TO GO IN</div>
+  <!-- THE PROGRAM — every door on one printed line (owner pick, 14 Jul: B + the program).
+       Names pending the owner's rename round; THE STANDS gives the bare-canvas door a visible handle. -->
+  <div class="program" id="program">
+    <button data-place="stands">THE STANDS</button>
+    <button data-place="goal">THE GOAL</button>
+    <button data-place="arc">SET PIECES</button>
+    <button data-place="control">CONTROL</button>
+    <button data-place="book">THE WHISTLE</button>
+    <button data-place="bench">TEAM SHEET</button>
+    <button data-place="odds">THE MARKET</button>
+  </div>
   <div class="toast" id="toast"></div>
 
   <!-- DETAIL: THE GOAL-MOUTH -->
   <section class="sheet" id="sheet-goal">
-    <div class="sh-head"><span class="t">THE GOAL-MOUTH<small>SHOTS · IN OR HELD</small></span><button class="close" data-close>✕</button></div>
+    <div class="sh-head"><span class="t">THE GOAL<small>SHOTS · IN OR HELD</small></span><button class="close" data-close>✕</button></div>
     <div class="hostband"><i class="v"></i><i class="r"></i><i class="a"></i><i class="g"></i></div>
     <div class="art"><div style="position:relative"><img src="plate/gens/goal-mouth.png" alt="goal"><div id="shots"></div></div></div>
     <div class="splabel"><span class="t h" id="gH">SUI</span><span>THE SHOTS</span><span class="t a" id="gA">COL</span></div>
     <div class="spgrid" id="goalGrid"></div>
   </section>
 
-  <!-- DETAIL: THE MARKET (the live 1X2, de-vigged — the tide, made a chart) -->
+  <!-- DETAIL: THE MARKET (the live match price, printed plain across the match) -->
   <section class="sheet" id="sheet-odds">
-    <div class="sh-head"><span class="t">THE MARKET<small>THE 1X2 · DE-VIGGED</small></span><button class="close" data-close>✕</button></div>
+    <div class="sh-head"><span class="t">THE MARKET</span><button class="close" data-close>✕</button></div>
     <div class="hostband"><i class="v"></i><i class="r"></i><i class="a"></i><i class="g"></i></div>
     <div class="art" style="margin:14px 16px 0"><div id="oddsViz"></div>
       <div style="text-align:center;margin-top:5px;font-weight:700;font-size:7px;letter-spacing:.14em;color:var(--sub)">HOME · DRAW · AWAY, ACROSS THE MATCH</div></div>
@@ -270,7 +285,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
 
   <!-- DETAIL: THE BOOK -->
   <section class="sheet" id="sheet-book">
-    <div class="sh-head"><span class="t">THE BOOK<small>THE REFEREE'S RECORD</small></span><button class="close" data-close>✕</button></div>
+    <div class="sh-head"><span class="t">THE WHISTLE<small>THE REFEREE'S RECORD</small></span><button class="close" data-close>✕</button></div>
     <div class="hostband"><i class="v"></i><i class="r"></i><i class="a"></i><i class="g"></i></div>
     <div class="art"><div style="position:relative"><img src="plate/gens/book-ledger.png" alt="the book"><div class="bpage h" id="bookH"></div><div class="bpage a" id="bookA"></div></div></div>
     <div class="varstrip" id="varStrip"></div>
@@ -372,7 +387,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
   var fromFixtureInfo=fromManifest;
 
   function boot(mid,fx){
-  if(q.get('embed')){document.body.classList.add('embed');var es=document.createElement('style');es.textContent='.mast{display:none!important}';document.head.appendChild(es);}  // framed inside the composite — the composite owns the masthead
+  if(q.get('embed')){document.body.classList.add('embed');var es=document.createElement('style');es.textContent='.mast{display:none!important}.program{display:none!important}';document.head.appendChild(es);}  // framed inside the composite — the composite owns the masthead + navigation
   function el(id){return document.getElementById(id);}
   function rgba(hex,a){return 'rgba('+parseInt(hex.slice(1,3),16)+','+parseInt(hex.slice(3,5),16)+','+parseInt(hex.slice(5,7),16)+','+a+')';}
   function skin(ink){var A={green:[30,122,68],red:[170,21,27],blue:[32,73,170]},c=[parseInt(ink.slice(1,3),16),parseInt(ink.slice(3,5),16),parseInt(ink.slice(5,7),16)],b='blue',bd=1e15;for(var k in A){var a=A[k],d=Math.pow(a[0]-c[0],2)+Math.pow(a[1]-c[1],2)+Math.pow(a[2]-c[2],2);if(d<bd){bd=d;b=k;}}return b;}
@@ -557,8 +572,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     var ap=100-hp;
     el('mHT').textContent=HOME.tri;el('mAT').textContent=AWAY.tri;
     el('mSt').textContent=live?'LIVE':'REPLAY';el('bMin').textContent=(s.minute!=null?s.minute+'′':'');
-    // possession numbers stay attributed to the team; the pitch places that control in the territory it infringes.
-    el('pA').textContent=(ap!=null?ap:'—');el('pH').textContent=(hp!=null?hp:'—');
+    // possession paints the pitch itself (canvas recolour below); its numbers live in the CONTROL card
     // scoreboard
     el('bSc').textContent=hg+'–'+ag;
     // the pitch itself becomes the two team colours (canvas recolour), split by infringement — home toward the away/top goal
@@ -614,7 +628,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
 
   // ---- zoom interaction + inter-card nav ----
   var openSheet=null, toastT=null;
-  var CARDS=[['goal','GOAL-MOUTH'],['arc','SET PIECES'],['control','CONTROL'],['book','THE BOOK'],['bench','TEAM SHEET'],['odds','THE MARKET']];   // built detail cards, in order (pens folded into GOAL-MOUTH — in-game pens are rare)
+  var CARDS=[['goal','THE GOAL'],['arc','SET PIECES'],['control','CONTROL'],['book','THE WHISTLE'],['bench','TEAM SHEET'],['odds','THE MARKET']];   // built detail cards, in order (pens folded into THE GOAL — in-game pens are rare). 'bench' label pending owner rename (bench vs lineups)
   function toast(msg){var t=el('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove('show');},1800);}
   var SOON={stands:'THE STANDS'};   // only truly-unbuilt places left (book/bench/control now have sheets)
   function syncNav(place){
@@ -632,7 +646,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     if(!sh){ toast((SOON[place]||place.toUpperCase())+' · NEXT'); return; }
     if(openSheet && openSheet!==sh){ openSheet.style.transformOrigin='50% 50%'; openSheet.classList.remove('open'); }
     sh.style.transformOrigin=origin||'50% 50%';
-    sh.classList.add('open'); el('ground').classList.add('dimmed'); el('tip').style.display='none';
+    sh.classList.add('open'); el('ground').classList.add('dimmed');
     openSheet=sh; syncNav(place);
   }
   function close(){ if(openSheet){openSheet.classList.remove('open');openSheet=null;} el('ground').classList.remove('dimmed'); el('cardnav').classList.remove('on'); }
@@ -649,6 +663,9 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
   // the stands tap is the bare seating itself — anywhere the bowl shows through (owner, 11 Jul:
   // the glow is decoration across the bowl, never one huge element colliding with the spots)
   el('stadwrap').addEventListener('click',function(e){ if(e.target===el('stadcanvas'))open('stands','50% 50%'); });
+  document.querySelectorAll('.program button').forEach(function(b){
+    b.addEventListener('click',function(){ open(b.getAttribute('data-place'),'50% 96%'); });
+  });
   document.querySelectorAll('[data-close]').forEach(function(b){b.addEventListener('click',close);});
   el('cnPrev').addEventListener('click',function(){nav(-1);});
   el('cnNext').addEventListener('click',function(){nav(1);});
