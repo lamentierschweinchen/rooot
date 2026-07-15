@@ -75,11 +75,14 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .keep:active{transform:translateY(1px)}
 /* each kept scarf is a MINI of the real woven cloth: home band over away, split by who controlled it,
    goals as gold weft-ticks, tasselled ends — with the tris + score overlaid for legibility */
-.scarf{position:relative;height:62px;box-shadow:4px 4px 0 rgba(26,24,21,.18);border:2px solid var(--ink);overflow:hidden;background:#E9DFC7}
-.scarf .mini{position:absolute;inset:0;width:100%;height:100%;display:block}
-.scarf .tri{position:absolute;left:14px;font-weight:900;font-size:15px;letter-spacing:.03em;z-index:2;text-shadow:0 1px 2px rgba(0,0,0,.4)}
-.scarf .tri.h{top:6px}.scarf .tri.a{bottom:6px}
-.scarf .sc{position:absolute;right:15px;top:50%;transform:translateY(-50%);z-index:2;font-weight:900;font-size:19px;color:#F3ECDB;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+/* each kept scarf IS the real woven cloth (the same render the mint captures), previewed to the head
+   of the scarf and unrolling in place on tap — never a reinterpretation */
+.scarf{position:relative;overflow:hidden;max-height:150px;border:2px solid var(--ink);box-shadow:4px 4px 0 rgba(26,24,21,.18);background:#EAE1C8;transition:max-height .6s cubic-bezier(.33,0,.15,1)}
+.keep.open .scarf{max-height:1600px}
+.scarf img{width:100%;display:block}
+.scarf .fade{position:absolute;left:0;right:0;bottom:0;height:56px;background:linear-gradient(rgba(234,225,200,0),rgba(234,225,200,.9) 72%);display:flex;align-items:flex-end;justify-content:center;padding-bottom:7px;pointer-events:none;transition:opacity .3s}
+.keep.open .scarf .fade{opacity:0}
+.scarf .un{font-weight:800;font-size:7.5px;letter-spacing:.18em;color:var(--sub)}
 .hall{display:flex;justify-content:space-between;align-items:baseline;margin-top:6px;padding:0 2px;font-weight:700;font-size:7.5px;letter-spacing:.05em;color:var(--sub)}
 .hall .call b{color:var(--ink)}
 .hall .hit{color:var(--verde);font-weight:900}
@@ -223,11 +226,9 @@ function scarvesFromCloths(cloths,kepts){
     var call=null,result=null;
     if(k&&k.pred&&k.final){ call=(k.home||'')+' '+k.pred.h+'–'+k.pred.a;
       result=(k.pred.h===k.final.h&&k.pred.a===k.final.a)?'exact':(Math.sign(k.pred.h-k.pred.a)===Math.sign(k.final.h-k.final.a)?'outcome':'wrong'); }
-    var dur=c.dur||123;
     return { matchId:id, home:(c.home&&c.home.tri)||'—', away:(c.away&&c.away.tri)||'—', score:clothScore(c),
       call:call, result:result, comp:'THE TOURNAMENT', date:fmtDate(c.at), serial:(k&&k.fanNo)?String(k.fanNo).padStart(3,'0'):'—',
-      dur:dur, share:resampleShare(c.poss,14,dur),   // the mini re-draws the real match: possession split + goals
-      goals:(c.events||[]).filter(function(e){return (Array.isArray(e)?e[2]:e.t)==='goal';}).map(function(e){return Array.isArray(e)?[e[0],e[1]]:[e.m,e.s];}) };
+      img:(k&&k.imageUri)||null };   // the minted scarf image; scarfHTML falls back to the captured cloth
   });
 }
 // the record tiles, derived honestly from what this device kept
@@ -288,46 +289,14 @@ function profileFromPass(){ var p=null; try{ p=JSON.parse(localStorage.getItem('
   var side=p.side==='a'?p.away:p.side==='h'?p.home:null;
   return {displayName:'you',sides:side?[side]:[],since:(p.ts&&p.ts>1e12)?p.ts:''};
 }
-function scarfHTML(s){ var ph=pal(s.home), pa=pal(s.away);
+// the kept scarf IS the real cloth (the exact render the mint captures) — previewed to its head,
+// unrolling in place on tap. img = the minted imageUri, or the captured demo cloth.
+function scarfHTML(s){ var img=s.img||('plate/scarves/'+(s.matchId||'')+'.jpg');
   return '<div class="keep reveal" data-match="'+(s.matchId||s.home+'-'+s.away)+'">'+
-    '<div class="scarf" style="--h:'+ph[0]+';--a:'+pa[0]+'">'+ miniScarf(s,ph,pa) +
-      '<span class="tri h" style="color:'+ph[1]+'">'+s.home+'</span>'+
-      '<span class="tri a" style="color:'+pa[1]+'">'+s.away+'</span>'+
-      '<span class="sc">'+s.score+'</span>'+
-    '</div>'+
-    '<div class="hall"><span class="call">'+s.date+(s.call?' · you predicted <b>'+s.call+'</b> '+resTag(s.result):' · <b>you were there</b>')+'</span><span>Nº '+s.serial+'</span></div>'+
+    '<div class="scarf"><img src="'+img+'" alt="'+s.home+' '+s.score+' '+s.away+' woven scarf" loading="lazy">'+
+      '<div class="fade"><span class="un">tap to unroll</span></div></div>'+
+    '<div class="hall"><span class="call"><b>'+s.home+' '+s.score+' '+s.away+'</b> · '+s.date+(s.call?' · predicted '+s.call+' '+resTag(s.result):' · you were there')+'</span><span>Nº '+s.serial+'</span></div>'+
   '</div>';
-}
-// resample a [[minute,homeShare],…] series to n even points across the match → [homeShare…]
-function resampleShare(series,n,dur){ if(!series||!series.length)return null; var out=[];
-  for(var k=0;k<n;k++){ var t=dur*k/(n-1), best=series[0]; for(var i=0;i<series.length;i++){ if(series[i][0]<=t)best=series[i]; else break; } out.push(best[1]); } return out; }
-// a MINI of the real cloth — the same object, shrunk: woven bands split by who ran the match, gold goal-ticks, tassels
-function miniScarf(s,ph,pa){ var hc=ph[0],ac=pa[0];
-  var W=328,H=58,fr=10,x0=fr,x1=W-fr,fw=x1-x0,tp=3,fh=H-6,dur=s.dur||123;
-  function cl(v){return v<0.14?0.14:v>0.86?0.86:v;} function sy(f){return tp+fh*(1-cl(f));}
-  var sh=(s.share&&s.share.length)?s.share:null, n=sh?sh.length:2;
-  var svg='<svg class="mini" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">';
-  svg+='<defs><pattern id="mw" width="1" height="3.1" patternUnits="userSpaceOnUse"><rect width="1" height="1.5" fill="#000" opacity="0.13"/></pattern></defs>';
-  svg+='<rect x="'+x0+'" y="'+tp+'" width="'+fw+'" height="'+fh+'" fill="'+hc+'"/>';   // home field
-  var seg=fw/(n>1?(n-1):1);
-  // STEPPED boundary — the away band rises to the possession split in blocky woven steps (not a smooth plot)
-  function stepEdge(pre){ var p=pre+' '+x0+' '+sy(sh?sh[0]:0.5).toFixed(1);
-    for(var i=0;i<n;i++){ var y=sy(sh?sh[i]:0.5), xr=(i<n-1)?(x0+seg*(i+0.5)):x1; p+=' L '+xr.toFixed(1)+' '+y.toFixed(1);
-      if(i<n-1){ var yn=sy(sh?sh[i+1]:0.5); p+=' L '+xr.toFixed(1)+' '+yn.toFixed(1); } } return p; }
-  svg+='<path d="'+stepEdge('M '+x0+' '+(tp+fh).toFixed(1)+' L')+' L '+x1+' '+(tp+fh).toFixed(1)+' Z" fill="'+ac+'"/>';
-  svg+='<path d="'+stepEdge('M')+'" fill="none" stroke="#1A1815" stroke-width="0.8" opacity="0.3"/>';   // the seam, stepped
-  svg+='<rect x="'+x0+'" y="'+tp+'" width="'+fw+'" height="'+fh+'" fill="url(#mw)"/>';   // woven weft (deeper)
-  // goals — SHORT gold ticks biting in from the selvedge: home off the TOP edge, away off the BOTTOM, a bead at the tip
-  (s.goals||[]).forEach(function(g){ var x=x0+fw*Math.max(0,Math.min(1,g[0]/dur)), home=(g[1]==='h'), tk=fh*0.32, ya=home?tp:(tp+fh), yb=home?(tp+tk):(tp+fh-tk);
-    svg+='<line x1="'+x.toFixed(1)+'" y1="'+ya+'" x2="'+x.toFixed(1)+'" y2="'+yb.toFixed(1)+'" stroke="#C79A38" stroke-width="2.2" stroke-linecap="round"/><circle cx="'+x.toFixed(1)+'" cy="'+yb.toFixed(1)+'" r="2.1" fill="#C79A38" stroke="#1A1815" stroke-width="0.6"/>'; });
-  // bound ends + MIRRORED split fringe: both ends show home-over-away, split at that end's own band boundary (weave-correct)
-  var byL=sy(sh?sh[0]:0.5), byR=sy(sh?sh[n-1]:0.5);
-  svg+='<rect x="'+x0+'" y="'+tp+'" width="2.4" height="'+(byL-tp).toFixed(1)+'" fill="'+hc+'"/><rect x="'+x0+'" y="'+byL.toFixed(1)+'" width="2.4" height="'+(tp+fh-byL).toFixed(1)+'" fill="'+ac+'"/>';
-  svg+='<rect x="'+(x1-2.4).toFixed(1)+'" y="'+tp+'" width="2.4" height="'+(byR-tp).toFixed(1)+'" fill="'+hc+'"/><rect x="'+(x1-2.4).toFixed(1)+'" y="'+byR.toFixed(1)+'" width="2.4" height="'+(tp+fh-byR).toFixed(1)+'" fill="'+ac+'"/>';
-  for(var fy=tp+1.5;fy<tp+fh-1;fy+=3.3){ var w=Math.sin(fy*2.7)*0.6, colL=(fy<byL)?hc:ac, colR=(fy<byR)?hc:ac;
-    svg+='<line x1="'+x0+'" y1="'+fy.toFixed(1)+'" x2="'+(x0-fr+1.5).toFixed(1)+'" y2="'+(fy+w).toFixed(1)+'" stroke="'+colL+'" stroke-width="1.3" stroke-linecap="round"/>';
-    svg+='<line x1="'+x1+'" y1="'+fy.toFixed(1)+'" x2="'+(x1+fr-1.5).toFixed(1)+'" y2="'+(fy-w).toFixed(1)+'" stroke="'+colR+'" stroke-width="1.3" stroke-linecap="round"/>'; }
-  return svg+'</svg>';
 }
 // THE CARD on the shelf — a miniature of the one you held: your end's colours, your seat, your numbers
 function cardHTML(k,i){
@@ -374,7 +343,7 @@ function render(){
     el('rack').innerHTML=d.scarves.map(scarfHTML).join('');
     // tap → THAT match's kept cloth, keyed by its id (rooot.cloth.<matchId>, pressed at full time).
     // an id with no record gets the loom's honest NOTHING KEPT — never another match's cloth.
-    [].forEach.call(document.querySelectorAll('.keep'),function(k){ k.onclick=function(){ location.href='woven-loom.html?keepsake=1&match='+encodeURIComponent(k.getAttribute('data-match'))+(DEMO?'&demo=1':''); }; });
+    [].forEach.call(document.querySelectorAll('.keep'),function(k){ k.onclick=function(){ k.classList.toggle('open'); }; });   // the scarf unrolls in place
   } else {
     el('rack').innerHTML='<div class="emptyrack"><div class="pocket"></div><div class="pocket"></div><div class="pocket"></div>'+
       '<div class="emptymsg">your first match awaits — live one and its scarf is woven here, yours forever</div></div>';
