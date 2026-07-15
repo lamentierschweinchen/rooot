@@ -154,6 +154,25 @@
     stats.home.scorers = []; stats.away.scorers = [];
     for (var id in scorerById) { var g = scorerById[id], sd = sideOf(g.side); if (!sd) continue; sd.scorers.push({ name: g.name, type: g.type, minute: g.minute }); }
   }
+  // The SETTLED score is authoritative (the stands server's SettledScore holds a
+  // provisional goal and reverts on action_discarded — docs/POSTMORTEM-2026-07-14-live.md).
+  // If we've recorded MORE scorers on a side than the settled score now supports, a
+  // CONFIRMED goal was later chalked off (VAR/offside) — drop the most-recent excess so the
+  // stadium never names a scorer for a goal that didn't stand (law #1). Mirrors the loom's
+  // reconcile (loom-adapter.js): keyed on the authoritative score, not the discard message
+  // (which carries no scorer id), so any disallowance — offside, foul, handball — reconciles
+  // the same honest way. Only ACTS when scorers exceed the count (a retract); normal timing,
+  // where the score can briefly lead its ledger goal event, never over-drops.
+  function reconcileScorers(hGoals, aGoals) {
+    var want = { home: hGoals, away: aGoals }, bySide = { home: [], away: [] }, changed = false;
+    for (var id in scorerById) { var g = scorerById[id]; if (g.side === 'home' || g.side === 'away') bySide[g.side].push({ id: id, minute: (typeof g.minute === 'number' ? g.minute : 1e9) }); }
+    ['home', 'away'].forEach(function (s) {
+      if (typeof want[s] !== 'number' || bySide[s].length <= want[s]) return; // no authoritative count, or nothing to drop
+      bySide[s].sort(function (a, b) { return a.minute - b.minute; });         // oldest → newest
+      while (bySide[s].length > want[s]) { delete scorerById[bySide[s].pop().id]; changed = true; } // drop the most-recent (the overturned goal)
+    });
+    if (changed) deriveScorers();
+  }
   // cards re-emit (empty → PlayerId) under a stable id — recount + rebuild the who/when list
   // from the id-map so a late name upgrades in place (never double-counts a re-emit).
   function deriveCards() {
@@ -253,6 +272,8 @@
           // authoritative score (Score.Total.Goals) — correct on ANY join.
           if (typeof msg.ev.home === 'number') stats.home.goals = msg.ev.home;
           if (typeof msg.ev.away === 'number') stats.away.goals = msg.ev.away;
+          // …and drop any scorer a chalked-off goal no longer supports (honesty law #1).
+          reconcileScorers(msg.ev.home, msg.ev.away);
         }
         emit(); break;
       case 'ledger':
