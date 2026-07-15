@@ -20,6 +20,9 @@ an adversarial design review. To put it on a fan's phone:
    cloth now carries NO writing** (owner: "a scarf has no writing on it"), so the metadata fields +
    the cabinet UI must hold the provenance: teams · score · edition Nº · owner · call · won/lost.
    Keep the fallback order (scarf-svg → gradient) when the seed's unavailable — never the wrong/empty match.
+   **The cabinet consumes this too:** each kept scarf renders `k.imageUri` (the mint PNG) as its
+   thumbnail, previewed + unrolled in place — so wiring `imageUri` lights up the cabinet rack as well.
+   (Demo uses captured `plate/scarves/<matchId>.jpg`; prod uses `imageUri`.)
 4. **Seams I restyled AROUND (just verify on merge, shapes unchanged):** `revealFromWire` byEnd, the
    `case 'sentiment'` seal handler + Collect (terrace), `fixtureInfo` resolution, `/live` default.
 
