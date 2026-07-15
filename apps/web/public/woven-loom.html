@@ -571,7 +571,7 @@ html.lexport .ksFrame{animation:none;stroke-dashoffset:0}  /* and the gold selva
 
     // ---- THE FAN'S FRAME + CALLS — your team's colour borders the WHOLE scarf; your calls knot in the
     //      channel just inside it. ADDITIVE: it lives in the margin, never over the woven odds. ----
-    if(ROOT){ var rk=(ROOT==='home')?HOME:AWAY, fo=4, FW=11, fi=fo+FW, yb=HH-fo, frim=shade(rk,0.88), flit=shade(rk,1.16);
+    if(ROOT){ var rk=(ROOT==='home')?HOME:AWAY, fo=4, FW=11, fi=fo+FW, yb=HH-fo, frim=shade(rk,0.78), flit=shade(rk,1.14);   // deep dye — the frame reads as a deliberate border even when its team shares the cloth's colour (home fan)
       function frect(x,y,w,hh){ svg+='<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+w.toFixed(1)+'" height="'+hh.toFixed(1)+'" fill="'+frim+'"/><rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+w.toFixed(1)+'" height="'+hh.toFixed(1)+'" fill="url(#tone)" color="'+flit+'" opacity="0.4"/>'; }
       frect(fo,fo,W-2*fo,FW); frect(fo,HH-fi,W-2*fo,FW); frect(fo,fo,FW,HH-2*fo); frect(W-fi,fo,FW,HH-2*fo);
       svg+='<rect x="'+fi+'" y="'+fi+'" width="'+(W-2*fi)+'" height="'+(HH-2*fi).toFixed(1)+'" fill="none" stroke="#1A1815" stroke-width="0.8" opacity="0.38"/>';   // inner keyline
