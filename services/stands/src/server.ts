@@ -1242,8 +1242,6 @@ function replaySnapshot(ws: WebSocket, matchId: string): void {
   if (snap.fixtureInfo) send(ws, snap.fixtureInfo);
   if (snap.lineup) send(ws, snap.lineup);   // who's playing — instantly, before any event
   if (snap.feedState) send(ws, snap.feedState);
-  if (snap.status) send(ws, snap.status);
-  if (snap.score) send(ws, snap.score);
   // THE WHOLE MATCH, downsampled, so the loom weaves the full cloth on join: the
   // belief arc + the pressure shape + every event. Events/pressure go out marked
   // `_replay` so the loom weaves historical goals WITHOUT re-firing their GOOOOL.
@@ -1251,6 +1249,18 @@ function replaySnapshot(ws: WebSocket, matchId: string): void {
   for (const s of snap.spellHistory) sendReplay(ws, s);   // full possession sequence → exact possession% + territory
   for (const p of snap.pressureHistory) sendReplay(ws, p); // every danger → exact attack/high-danger counts
   for (const e of snap.eventHistory) sendReplay(ws, e);
+  // STATUS + SCORE go out AFTER the events (not before), so a JOIN matches the LIVE
+  // dispatch order — ingest/replay.ts fans ledger-THEN-score per wire message. This is
+  // the fix for two confirm/retract JOIN bugs (docs/POSTMORTEM-2026-07-14-live.md):
+  //  · the loom sealed on the FULL_TIME status BEFORE it wove the historical goals, so a
+  //    fresh post-full-time open showed an EMPTY scarf; now it weaves, THEN seals.
+  //  · the stadium set the score (running reconcileScorers) BEFORE the goal events
+  //    recorded their scorers, so an overturned goal's scorer wasn't dropped on a
+  //    post-overturn join; now scorers are recorded first, THEN the score reconciles.
+  // SCORE before STATUS: the scoreline settles + reconciles while the loom cloth is still
+  // unsealed; the status then seals it (loom) and stamps the final phase (all surfaces).
+  if (snap.score) send(ws, snap.score);
+  if (snap.status) send(ws, snap.status);
   if (snap.odds) send(ws, snap.odds);
   // a mid-window joiner sees the open drama immediately, so they can still react.
   const activeMoment = match?.activeMomentSnapshot();
