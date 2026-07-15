@@ -1,4 +1,31 @@
-# design-pass-jul14 → coordinator handoff (14 Jul, for reconciliation)
+# design-pass-jul14 → coordinator handoff (updated 16 Jul)
+
+## ⚑ SHIP CHECKLIST (design lane → coordinator) — start here
+
+Design lane is **done and pushed** (`design-pass-jul14`, 44 commits, tree clean). Everything is in
+my lane — I never touched `contracts/`, `fixture.json`, `fly.toml`, or `vercel.json`; the only diffs
+there are your own reconcile merge `cbdfc04`. Every surface is built, runtime-verified, and cleared
+an adversarial design review. To put it on a fan's phone:
+
+1. **Merge `design-pass-jul14` → main + deploy.** Surfaces ready: gate · ground · terrace (the
+   prediction card, on the owner's generated art) · stadium · cabinet (the mini-scarf rack) ·
+   woven-loom (the keepsake scarf) · showcase.
+2. **P2 — wire the fan into the scarf record.** Fill `root` (`'home'|'away'`, the gate pick) +
+   `calls[{m,k,sub,hit}]` (from the terrace CALLS ✓/✗ ledger `resolvePred` — stamp the minute,
+   resolve `hit` off the feed) and bind both into the cloth record at seal (`writeCloth`/the stands
+   seed). Live contract already exposed: `__loom.root(side)` / `__loom.call({m,k,sub,hit,id})`. Full
+   spec + record shape: `design/scarf-artwork/CAPTURE-RECIPE.md`.
+3. **Mint the scarf image + carry the facts in metadata.** Run
+   `design/scarf-artwork/loom-keepsake-capture.mjs` in the pipeline → `metadata.ts imageUri`. **The
+   cloth now carries NO writing** (owner: "a scarf has no writing on it"), so the metadata fields +
+   the cabinet UI must hold the provenance: teams · score · edition Nº · owner · call · won/lost.
+   Keep the fallback order (scarf-svg → gradient) when the seed's unavailable — never the wrong/empty match.
+4. **Seams I restyled AROUND (just verify on merge, shapes unchanged):** `revealFromWire` byEnd, the
+   `case 'sentiment'` seal handler + Collect (terrace), `fixtureInfo` resolution, `/live` default.
+
+Detail per item is below (newest first).
+
+---
 
 ## ⚑ LATEST (supersedes the reconciliation notes below) — prediction card + a new law
 
