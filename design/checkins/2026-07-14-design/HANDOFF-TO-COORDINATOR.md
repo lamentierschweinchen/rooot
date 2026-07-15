@@ -35,6 +35,16 @@ recipe (record shape, invocation, gotchas): `design/scarf-artwork/CAPTURE-RECIPE
 is unavailable — never mint the wrong/empty match. All loom IDs preserved; live/replay/cabinet
 unchanged.
 
+**SCARF PERSONALISATION landed too (commit `1b6625b`): the single fan is woven in.** The record now
+carries `root` ('home'|'away' → keys a selvage in the rooted team's dye down that side) and
+`calls[{m,k,sub,hit}]` (the fan's predictions, knotted down a cream tape on that edge: held=solid
+diamond, broke=open+tail, void=grey ring). Two fans of one match ⇒ recognisably the same cloth,
+different edge (`design/loom-object/scarf-two-fans.png`). **Yours (P2):** fill `calls` from the
+terrace CALLS ✓/✗ ledger (`resolvePred`) — stamp minutes, resolve `hit` off the feed, set `root`
+from the gate pick, bind at seal. Live contract already exposed: `__loom.root(side)` /
+`__loom.call({m,k,sub,hit,id})`. Full field spec + the honesty rule (the objective cloth must be
+pixel-identical for every fan — only the edge differs) in `CAPTURE-RECIPE.md`.
+
 ---
 
 
