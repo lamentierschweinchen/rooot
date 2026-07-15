@@ -73,16 +73,13 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .rack{padding:0 18px}
 .keep{margin-bottom:20px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .12s}
 .keep:active{transform:translateY(1px)}
-.scarf{display:flex;align-items:stretch;height:60px;box-shadow:4px 4px 0 rgba(26,24,21,.18);border:2px solid var(--ink)}
-.scarf .fr{width:8px;flex:none;background-image:repeating-linear-gradient(180deg,var(--ink) 0 4px,transparent 4px 9px)}
-.scarf .half{flex:1;position:relative;display:flex;align-items:center;justify-content:center}
-.scarf .half.h{background:var(--h)}.scarf .half.a{background:var(--a)}
-.scarf .half::before{content:"";position:absolute;inset:0;background-image:repeating-linear-gradient(180deg,rgba(255,255,255,.11) 0 2px,rgba(26,24,21,.08) 2px 5px)}
-.scarf .tri{position:relative;font-weight:900;font-size:17px;letter-spacing:.04em}
-.scarf .half.h .tri{color:var(--hink)}.scarf .half.a .tri{color:var(--aink)}
-.scarf .cart{flex:none;width:96px;background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;border-left:2px solid var(--ink);border-right:2px solid var(--ink)}
-.scarf .cart .sc{font-weight:900;font-size:22px;line-height:1}
-.scarf .cart .cp{font-weight:700;font-size:6.5px;letter-spacing:.12em;color:var(--sub);margin-top:1px}
+/* each kept scarf is a MINI of the real woven cloth: home band over away, split by who controlled it,
+   goals as gold weft-ticks, tasselled ends — with the tris + score overlaid for legibility */
+.scarf{position:relative;height:62px;box-shadow:4px 4px 0 rgba(26,24,21,.18);border:2px solid var(--ink);overflow:hidden;background:#E9DFC7}
+.scarf .mini{position:absolute;inset:0;width:100%;height:100%;display:block}
+.scarf .tri{position:absolute;left:14px;font-weight:900;font-size:15px;letter-spacing:.03em;z-index:2;text-shadow:0 1px 2px rgba(0,0,0,.4)}
+.scarf .tri.h{top:6px}.scarf .tri.a{bottom:6px}
+.scarf .sc{position:absolute;right:15px;top:50%;transform:translateY(-50%);z-index:2;font-weight:900;font-size:19px;color:#F3ECDB;text-shadow:0 1px 3px rgba(0,0,0,.6)}
 .hall{display:flex;justify-content:space-between;align-items:baseline;margin-top:6px;padding:0 2px;font-weight:700;font-size:7.5px;letter-spacing:.05em;color:var(--sub)}
 .hall .call b{color:var(--ink)}
 .hall .hit{color:var(--verde);font-weight:900}
@@ -226,8 +223,11 @@ function scarvesFromCloths(cloths,kepts){
     var call=null,result=null;
     if(k&&k.pred&&k.final){ call=(k.home||'')+' '+k.pred.h+'–'+k.pred.a;
       result=(k.pred.h===k.final.h&&k.pred.a===k.final.a)?'exact':(Math.sign(k.pred.h-k.pred.a)===Math.sign(k.final.h-k.final.a)?'outcome':'wrong'); }
+    var dur=c.dur||123;
     return { matchId:id, home:(c.home&&c.home.tri)||'—', away:(c.away&&c.away.tri)||'—', score:clothScore(c),
-      call:call, result:result, comp:'THE TOURNAMENT', date:fmtDate(c.at), serial:(k&&k.fanNo)?String(k.fanNo).padStart(3,'0'):'—' };
+      call:call, result:result, comp:'THE TOURNAMENT', date:fmtDate(c.at), serial:(k&&k.fanNo)?String(k.fanNo).padStart(3,'0'):'—',
+      dur:dur, share:resampleShare(c.poss,14,dur),   // the mini re-draws the real match: possession split + goals
+      goals:(c.events||[]).filter(function(e){return (Array.isArray(e)?e[2]:e.t)==='goal';}).map(function(e){return Array.isArray(e)?[e[0],e[1]]:[e.m,e.s];}) };
   });
 }
 // the record tiles, derived honestly from what this device kept
@@ -253,9 +253,9 @@ var SAMPLE={
   profile:{displayName:'lukas',sides:['SUI','ARG'],since:"'26"},
   record:{lived:12,calls:34,nailed:21,loudestNight:'ARG'},
   scarves:[
-    {asset:'d2',matchId:'18202783',home:'SUI',away:'COL',score:'0–0',call:'SUI 2–1',result:'wrong',  comp:'WORLD CUP',date:"07 JUL '26",serial:'009'},
-    {asset:'d3',matchId:'18187298',home:'BRA',away:'NOR',score:'0–1',call:'the upset',result:'outcome',comp:'GROUP C', date:"05 JUL '26",serial:'003'},
-    {asset:'d1',matchId:'18175918',home:'ARG',away:'CPV',score:'3–2',call:'ARG 3–2',result:'exact',  comp:'WORLD CUP',date:"03 JUL '26",serial:'014'}
+    {asset:'d2',matchId:'18202783',home:'SUI',away:'COL',score:'0–0',call:'SUI 2–1',result:'wrong',  comp:'WORLD CUP',date:"07 JUL '26",serial:'009',dur:96, share:[.55,.5,.48,.52,.5,.47,.5,.53,.49,.5,.52,.48,.5,.5], goals:[]},
+    {asset:'d3',matchId:'18187298',home:'BRA',away:'NOR',score:'0–1',call:'the upset',result:'outcome',comp:'GROUP C', date:"05 JUL '26",serial:'003',dur:94, share:[.6,.58,.56,.52,.5,.48,.46,.5,.47,.43,.4,.38,.36,.34], goals:[[70,'a']]},
+    {asset:'d1',matchId:'18175918',home:'ARG',away:'CPV',score:'3–2',call:'ARG 3–2',result:'exact',  comp:'WORLD CUP',date:"03 JUL '26",serial:'014',dur:123, share:[.83,.8,.78,.72,.7,.66,.6,.62,.55,.58,.52,.5,.48,.5], goals:[[28,'h'],[59,'a'],[92,'h'],[103,'a'],[110,'h']]}
   ],
   next:{home:'SPA',away:'BEL',kickoff:"SAT 20:00",side:'SPAIN'}
 };
@@ -290,15 +290,38 @@ function profileFromPass(){ var p=null; try{ p=JSON.parse(localStorage.getItem('
 }
 function scarfHTML(s){ var ph=pal(s.home), pa=pal(s.away);
   return '<div class="keep reveal" data-match="'+(s.matchId||s.home+'-'+s.away)+'">'+
-    '<div class="scarf" style="--h:'+ph[0]+';--a:'+pa[0]+';--hink:'+ph[1]+';--aink:'+pa[1]+'">'+
-      '<span class="fr"></span>'+
-      '<div class="half h"><span class="tri">'+s.home+'</span></div>'+
-      '<div class="cart"><span class="sc">'+s.score+'</span><span class="cp">'+s.comp+'</span></div>'+
-      '<div class="half a"><span class="tri">'+s.away+'</span></div>'+
-      '<span class="fr"></span>'+
+    '<div class="scarf" style="--h:'+ph[0]+';--a:'+pa[0]+'">'+ miniScarf(s,ph,pa) +
+      '<span class="tri h" style="color:'+ph[1]+'">'+s.home+'</span>'+
+      '<span class="tri a" style="color:'+pa[1]+'">'+s.away+'</span>'+
+      '<span class="sc">'+s.score+'</span>'+
     '</div>'+
     '<div class="hall"><span class="call">'+s.date+(s.call?' · you predicted <b>'+s.call+'</b> '+resTag(s.result):' · <b>you were there</b>')+'</span><span>Nº '+s.serial+'</span></div>'+
   '</div>';
+}
+// resample a [[minute,homeShare],…] series to n even points across the match → [homeShare…]
+function resampleShare(series,n,dur){ if(!series||!series.length)return null; var out=[];
+  for(var k=0;k<n;k++){ var t=dur*k/(n-1), best=series[0]; for(var i=0;i<series.length;i++){ if(series[i][0]<=t)best=series[i]; else break; } out.push(best[1]); } return out; }
+// a MINI of the real cloth — the same object, shrunk: woven bands split by who ran the match, gold goal-ticks, tassels
+function miniScarf(s,ph,pa){ var hc=ph[0],ac=pa[0];
+  var W=328,H=58,fr=10,x0=fr,x1=W-fr,fw=x1-x0,tp=3,fh=H-6,dur=s.dur||123;
+  function cl(v){return v<0.14?0.14:v>0.86?0.86:v;} function sy(f){return tp+fh*(1-cl(f));}
+  var sh=(s.share&&s.share.length)?s.share:null, n=sh?sh.length:2;
+  var svg='<svg class="mini" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">';
+  svg+='<defs><pattern id="mw" width="1" height="3.1" patternUnits="userSpaceOnUse"><rect width="1" height="1.5" fill="#000" opacity="0.09"/></pattern></defs>';
+  svg+='<rect x="'+x0+'" y="'+tp+'" width="'+fw+'" height="'+fh+'" fill="'+hc+'"/>';   // home field
+  var d='M '+x0+' '+(tp+fh);
+  for(var i=0;i<n;i++){ var f=sh?sh[i]:0.5, x=x0+fw*(n>1?i/(n-1):0); d+=' L '+x.toFixed(1)+' '+sy(f).toFixed(1); }
+  d+=' L '+x1+' '+(tp+fh)+' Z'; svg+='<path d="'+d+'" fill="'+ac+'"/>';   // away band up to the split
+  if(sh){ var sm='M '+x0+' '+sy(sh[0]).toFixed(1); for(var j=1;j<n;j++){var xx=x0+fw*j/(n-1);sm+=' L '+xx.toFixed(1)+' '+sy(sh[j]).toFixed(1);}
+    svg+='<path d="'+sm+'" fill="none" stroke="#1A1815" stroke-width="0.8" opacity="0.32"/>'; }   // the possession seam
+  svg+='<rect x="'+x0+'" y="'+tp+'" width="'+fw+'" height="'+fh+'" fill="url(#mw)"/>';   // woven weft
+  (s.goals||[]).forEach(function(g){ var x=x0+fw*Math.max(0,Math.min(1,g[0]/dur));
+    svg+='<line x1="'+x.toFixed(1)+'" y1="'+tp+'" x2="'+x.toFixed(1)+'" y2="'+(tp+fh)+'" stroke="#C79A38" stroke-width="1.7" opacity="0.92"/><circle cx="'+x.toFixed(1)+'" cy="'+(g[1]==='h'?tp+5.5:tp+fh-5.5)+'" r="2.3" fill="#C79A38" stroke="#1A1815" stroke-width="0.6"/>'; });
+  svg+='<rect x="'+x0+'" y="'+tp+'" width="2.4" height="'+fh+'" fill="'+hc+'"/><rect x="'+(x1-2.4).toFixed(1)+'" y="'+tp+'" width="2.4" height="'+fh+'" fill="'+ac+'"/>';   // bound ends
+  for(var fy=tp+1.5;fy<tp+fh-1;fy+=3.3){ var w=Math.sin(fy*2.7)*0.6;   // tassels: home threads left, away right
+    svg+='<line x1="'+x0+'" y1="'+fy.toFixed(1)+'" x2="'+(x0-fr+1.5).toFixed(1)+'" y2="'+(fy+w).toFixed(1)+'" stroke="'+hc+'" stroke-width="1.3" stroke-linecap="round"/>';
+    svg+='<line x1="'+x1+'" y1="'+fy.toFixed(1)+'" x2="'+(x1+fr-1.5).toFixed(1)+'" y2="'+(fy-w).toFixed(1)+'" stroke="'+ac+'" stroke-width="1.3" stroke-linecap="round"/>'; }
+  return svg+'</svg>';
 }
 // THE CARD on the shelf — a miniature of the one you held: your end's colours, your seat, your numbers
 function cardHTML(k,i){
