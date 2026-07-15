@@ -36,11 +36,26 @@ Same shape `woven-loom.html` stores at `rooot.cloth.<matchId>` when a driven clo
   "poss":[[minute, homeShare], …],                  // 0..1
   "events":[[minute, "h"|"a"|"", "goal"|"corner"|"save"|…, name], …],
   "pens": null,                                      // or {h,a,winner} for a shootout
+  // ── the SINGLE FAN's personalisation (two fans of one match ⇒ two different scarves) ──
+  "root": "home",                                    // "home"|"away": the side the fan rooted — keys the selvage
+  "calls": [ {"m":6,"k":"outcome","sub":"ARG win","hit":true},   // held  → solid team-colour knot
+             {"m":52,"k":"nextgoal","sub":"ARG next","hit":false}, // broke → open diamond + dropped tail
+             {"m":112,"k":"nextgoal","sub":"ARG next","hit":null} ], // void  → faint loop (never answered)
   "ks":{ "editionNo":7, "owner":"lukas.sol", "call":{"label":"CALLED ARG · WON","hit":true} } }
 ```
 
-`ks` is the personal binding printed into the seal (edition Nº · owner · the proven call). Honest-
-empty is fine (`ks:null`) — the seal then reads "WOVEN FROM THE WIRE · Nº —".
+`ks` is the personal binding printed into the seal (edition Nº · owner · the headline call). `root`
+frames the woven selvage in the rooted team's colour; `calls` are knotted down a cream tape on that
+edge (held / broke / void — real, resolved marks only; `hit:null` = the feed never answered it).
+All three are honest-empty-safe: `ks:null`, `root` absent (no frame), `calls:[]` (no knots).
+
+**P2 — wiring real data (coordinator/builder).** The call timeline already exists in the terrace as
+the **CALLS ✓/✗ ledger** (`resolvePred`). To fill `calls`: stamp each with the minute it was made,
+resolve `hit` off the feed (mid-match for next-goal, full-time for outcome; leave `null` if
+unanswered), and set `root` from the gate pick. Bind both into the cloth record at seal — no new
+call-*making*, just carry what's tracked into the seed. The loom also exposes a live contract
+(`__loom.root(side)`, `__loom.call({m,k,sub,hit,id})` upsert-by-id) so the same marks can weave in
+*during* the match, not only at mint.
 
 ## How the loom cooperates (what changed in `woven-loom.html`)
 
