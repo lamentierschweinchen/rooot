@@ -286,7 +286,8 @@ html.lexport .loomv svg{animation:none;transform:none}
   var loomEl=document.getElementById('loomv');
   var GOALOPT=Q.get('goalopt')||'b';   // goals read as goals (owner): weft + king, no score tab. a = +score tabs · c = king alone
   var MARKS=Q.get('marks')||'chip';    // chip = printed backing tags · cloth = stitched straight into the bands (L11 feasibility)
-  var EVSET=Q.get('events')||'core';   // core = the shipped alphabet (L3) · all = every family the wire sends
+  var EVSET=Q.get('events')||'none';   // PURE ODDS by default (owner): just the woven colour + calls, no event marks. none · goals · core · all
+  var CORDS=Q.get('cords')==='on';     // possession + danger cords OFF by default (owner: 'lose the possession/danger bands')
   // The loom is one way to WATCH the game (owner): frequent, alive, never full. All shot outcomes
   // weave (a miss is a heartbeat too), corners keep the rhythm; offsides/safe free kicks/injuries
   // are referee admin — they live in THE BOOK and THE COUNT, not on the scarf.
@@ -515,16 +516,17 @@ html.lexport .loomv svg{animation:none;transform:none}
       for(var i=1;i<pts.length-1;i++){ var mx=(pts[i][0]+pts[i+1][0])/2, my=(pts[i][1]+pts[i+1][1])/2;
         d+=' Q '+pts[i][0].toFixed(1)+' '+pts[i][1].toFixed(1)+' '+mx.toFixed(1)+' '+my.toFixed(1); }
       return d+' L '+pts[pts.length-1][0].toFixed(1)+' '+pts[pts.length-1][1].toFixed(1); }
-    if(possPts.length>1){ var pp=cordPath(possPts);
+    if(CORDS && possPts.length>1){ var pp=cordPath(possPts);
       svg+='<path d="'+pp+'" fill="none" stroke="#000000" stroke-width="4.8" stroke-linejoin="round" stroke-linecap="round" opacity="0.13" transform="translate(0 0.9)"/>';
       svg+='<path d="'+pp+'" fill="none" stroke="#F3ECDB" stroke-width="4.3" stroke-linejoin="round" stroke-linecap="round" opacity="0.42"/>';
       svg+='<path d="'+pp+'" fill="none" stroke="#2E2A21" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round" opacity="0.95"/>';
       svg+='<path d="'+pp+'" fill="none" stroke="#F3ECDB" stroke-width="0.8" stroke-linejoin="round" stroke-linecap="round" opacity="0.4" stroke-dasharray="2.3 3.1"/>'; }   // the S-twist glints along the ply
-    if(dgrPts.length>1){ var dp=cordPath(dgrPts);
+    if(CORDS && dgrPts.length>1){ var dp=cordPath(dgrPts);
       svg+='<path d="'+dp+'" fill="none" stroke="#F3ECDB" stroke-width="4.6" stroke-dasharray="0.5 4.1" stroke-linejoin="round" stroke-linecap="round" opacity="0.72"/>';
       svg+='<path d="'+dp+'" fill="none" stroke="#C8202A" stroke-width="2.7" stroke-dasharray="0.5 4.1" stroke-linejoin="round" stroke-linecap="round" opacity="0.97"/>'; }
     // THE SHIPPED ALPHABET (L3): the important events weave; the rest stays in the cords + THE COUNT
-    var EVS=(EVSET==='all')?M.events.slice():M.events.filter(function(ev){return CORE[ev.t];});
+    var EVS = EVSET==='none' ? [] : EVSET==='goals' ? M.events.filter(function(ev){return ev.t==='goal';})
+            : EVSET==='all' ? M.events.slice() : M.events.filter(function(ev){return CORE[ev.t];});   // none=pure odds · goals=goals only · core=shipped alphabet · all=everything
     // GOALS ARE THE KING — a gold weft crosses the whole cloth at the minute
     var goalRows=[], gt=[0,0];
     EVS.slice().sort(function(p,q){return p.m-q.m;}).forEach(function(ev){ if(ev.t!=='goal')return;
