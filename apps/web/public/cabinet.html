@@ -307,20 +307,26 @@ function miniScarf(s,ph,pa){ var hc=ph[0],ac=pa[0];
   function cl(v){return v<0.14?0.14:v>0.86?0.86:v;} function sy(f){return tp+fh*(1-cl(f));}
   var sh=(s.share&&s.share.length)?s.share:null, n=sh?sh.length:2;
   var svg='<svg class="mini" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">';
-  svg+='<defs><pattern id="mw" width="1" height="3.1" patternUnits="userSpaceOnUse"><rect width="1" height="1.5" fill="#000" opacity="0.09"/></pattern></defs>';
+  svg+='<defs><pattern id="mw" width="1" height="3.1" patternUnits="userSpaceOnUse"><rect width="1" height="1.5" fill="#000" opacity="0.13"/></pattern></defs>';
   svg+='<rect x="'+x0+'" y="'+tp+'" width="'+fw+'" height="'+fh+'" fill="'+hc+'"/>';   // home field
-  var d='M '+x0+' '+(tp+fh);
-  for(var i=0;i<n;i++){ var f=sh?sh[i]:0.5, x=x0+fw*(n>1?i/(n-1):0); d+=' L '+x.toFixed(1)+' '+sy(f).toFixed(1); }
-  d+=' L '+x1+' '+(tp+fh)+' Z'; svg+='<path d="'+d+'" fill="'+ac+'"/>';   // away band up to the split
-  if(sh){ var sm='M '+x0+' '+sy(sh[0]).toFixed(1); for(var j=1;j<n;j++){var xx=x0+fw*j/(n-1);sm+=' L '+xx.toFixed(1)+' '+sy(sh[j]).toFixed(1);}
-    svg+='<path d="'+sm+'" fill="none" stroke="#1A1815" stroke-width="0.8" opacity="0.32"/>'; }   // the possession seam
-  svg+='<rect x="'+x0+'" y="'+tp+'" width="'+fw+'" height="'+fh+'" fill="url(#mw)"/>';   // woven weft
-  (s.goals||[]).forEach(function(g){ var x=x0+fw*Math.max(0,Math.min(1,g[0]/dur));
-    svg+='<line x1="'+x.toFixed(1)+'" y1="'+tp+'" x2="'+x.toFixed(1)+'" y2="'+(tp+fh)+'" stroke="#C79A38" stroke-width="1.7" opacity="0.92"/><circle cx="'+x.toFixed(1)+'" cy="'+(g[1]==='h'?tp+5.5:tp+fh-5.5)+'" r="2.3" fill="#C79A38" stroke="#1A1815" stroke-width="0.6"/>'; });
-  svg+='<rect x="'+x0+'" y="'+tp+'" width="2.4" height="'+fh+'" fill="'+hc+'"/><rect x="'+(x1-2.4).toFixed(1)+'" y="'+tp+'" width="2.4" height="'+fh+'" fill="'+ac+'"/>';   // bound ends
-  for(var fy=tp+1.5;fy<tp+fh-1;fy+=3.3){ var w=Math.sin(fy*2.7)*0.6;   // tassels: home threads left, away right
-    svg+='<line x1="'+x0+'" y1="'+fy.toFixed(1)+'" x2="'+(x0-fr+1.5).toFixed(1)+'" y2="'+(fy+w).toFixed(1)+'" stroke="'+hc+'" stroke-width="1.3" stroke-linecap="round"/>';
-    svg+='<line x1="'+x1+'" y1="'+fy.toFixed(1)+'" x2="'+(x1+fr-1.5).toFixed(1)+'" y2="'+(fy-w).toFixed(1)+'" stroke="'+ac+'" stroke-width="1.3" stroke-linecap="round"/>'; }
+  var seg=fw/(n>1?(n-1):1);
+  // STEPPED boundary — the away band rises to the possession split in blocky woven steps (not a smooth plot)
+  function stepEdge(pre){ var p=pre+' '+x0+' '+sy(sh?sh[0]:0.5).toFixed(1);
+    for(var i=0;i<n;i++){ var y=sy(sh?sh[i]:0.5), xr=(i<n-1)?(x0+seg*(i+0.5)):x1; p+=' L '+xr.toFixed(1)+' '+y.toFixed(1);
+      if(i<n-1){ var yn=sy(sh?sh[i+1]:0.5); p+=' L '+xr.toFixed(1)+' '+yn.toFixed(1); } } return p; }
+  svg+='<path d="'+stepEdge('M '+x0+' '+(tp+fh).toFixed(1)+' L')+' L '+x1+' '+(tp+fh).toFixed(1)+' Z" fill="'+ac+'"/>';
+  svg+='<path d="'+stepEdge('M')+'" fill="none" stroke="#1A1815" stroke-width="0.8" opacity="0.3"/>';   // the seam, stepped
+  svg+='<rect x="'+x0+'" y="'+tp+'" width="'+fw+'" height="'+fh+'" fill="url(#mw)"/>';   // woven weft (deeper)
+  // goals — SHORT gold ticks biting in from the selvedge: home off the TOP edge, away off the BOTTOM, a bead at the tip
+  (s.goals||[]).forEach(function(g){ var x=x0+fw*Math.max(0,Math.min(1,g[0]/dur)), home=(g[1]==='h'), tk=fh*0.32, ya=home?tp:(tp+fh), yb=home?(tp+tk):(tp+fh-tk);
+    svg+='<line x1="'+x.toFixed(1)+'" y1="'+ya+'" x2="'+x.toFixed(1)+'" y2="'+yb.toFixed(1)+'" stroke="#C79A38" stroke-width="2.2" stroke-linecap="round"/><circle cx="'+x.toFixed(1)+'" cy="'+yb.toFixed(1)+'" r="2.1" fill="#C79A38" stroke="#1A1815" stroke-width="0.6"/>'; });
+  // bound ends + MIRRORED split fringe: both ends show home-over-away, split at that end's own band boundary (weave-correct)
+  var byL=sy(sh?sh[0]:0.5), byR=sy(sh?sh[n-1]:0.5);
+  svg+='<rect x="'+x0+'" y="'+tp+'" width="2.4" height="'+(byL-tp).toFixed(1)+'" fill="'+hc+'"/><rect x="'+x0+'" y="'+byL.toFixed(1)+'" width="2.4" height="'+(tp+fh-byL).toFixed(1)+'" fill="'+ac+'"/>';
+  svg+='<rect x="'+(x1-2.4).toFixed(1)+'" y="'+tp+'" width="2.4" height="'+(byR-tp).toFixed(1)+'" fill="'+hc+'"/><rect x="'+(x1-2.4).toFixed(1)+'" y="'+byR.toFixed(1)+'" width="2.4" height="'+(tp+fh-byR).toFixed(1)+'" fill="'+ac+'"/>';
+  for(var fy=tp+1.5;fy<tp+fh-1;fy+=3.3){ var w=Math.sin(fy*2.7)*0.6, colL=(fy<byL)?hc:ac, colR=(fy<byR)?hc:ac;
+    svg+='<line x1="'+x0+'" y1="'+fy.toFixed(1)+'" x2="'+(x0-fr+1.5).toFixed(1)+'" y2="'+(fy+w).toFixed(1)+'" stroke="'+colL+'" stroke-width="1.3" stroke-linecap="round"/>';
+    svg+='<line x1="'+x1+'" y1="'+fy.toFixed(1)+'" x2="'+(x1+fr-1.5).toFixed(1)+'" y2="'+(fy-w).toFixed(1)+'" stroke="'+colR+'" stroke-width="1.3" stroke-linecap="round"/>'; }
   return svg+'</svg>';
 }
 // THE CARD on the shelf — a miniature of the one you held: your end's colours, your seat, your numbers
