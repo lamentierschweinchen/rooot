@@ -587,11 +587,11 @@ html.lexport .loomv svg{animation:none;transform:none}
       fringe(cy0,-1); if(SEALED)fringe(cy1,1);
       // your calls — knotted in the paper channel between the cloth edge and the right selvage (never over the odds)
       var cedge=gx0+grW, knx=cedge+(W-fi-cedge)/2, rev=ty(M.t)*(typeof unroll==='number'?unroll:1);
-      CALLS.forEach(function(c){ if(c.m==null)return; var y=ty(c.m); if(y<top+2||y>rev+1)return; var d=2.9, DM='M '+knx.toFixed(1)+' '+(y-d).toFixed(1)+' L '+(knx+d).toFixed(1)+' '+y.toFixed(1)+' L '+knx.toFixed(1)+' '+(y+d).toFixed(1)+' L '+(knx-d).toFixed(1)+' '+y.toFixed(1)+' Z';
+      CALLS.forEach(function(c){ if(c.m==null)return; var y=ty(c.m); if(y<top+2||y>rev+1)return; var d=3.4, DM='M '+knx.toFixed(1)+' '+(y-d).toFixed(1)+' L '+(knx+d).toFixed(1)+' '+y.toFixed(1)+' L '+knx.toFixed(1)+' '+(y+d).toFixed(1)+' L '+(knx-d).toFixed(1)+' '+y.toFixed(1)+' Z';
         svg+='<line x1="'+(cedge+1).toFixed(1)+'" y1="'+y.toFixed(1)+'" x2="'+(knx-d-0.4).toFixed(1)+'" y2="'+y.toFixed(1)+'" stroke="'+rk+'" stroke-width="0.7" opacity="0.5"/>';
-        if(c.hit===true){ svg+='<path d="'+DM+'" fill="'+rk+'" stroke="#1A1815" stroke-width="0.5"/>'; }
-        else if(c.hit===false){ svg+='<path d="'+DM+'" fill="none" stroke="'+rk+'" stroke-width="1.1"/><path d="M '+knx.toFixed(1)+' '+(y+d).toFixed(1)+' q 1.7 2.3 -0.7 4.5" fill="none" stroke="'+rk+'" stroke-width="0.9" opacity="0.8"/>'; }
-        else { svg+='<circle cx="'+knx.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+(d-0.3).toFixed(1)+'" fill="none" stroke="#6E6752" stroke-width="1.1" opacity="0.9"/>'; }
+        if(c.hit===true){ svg+='<path d="'+DM+'" fill="'+rk+'" stroke="#1A1815" stroke-width="0.6"/>'; }   // held — the knot that held
+        else if(c.hit===false){ svg+='<path d="'+DM+'" fill="#EAE1C8" stroke="'+rk+'" stroke-width="1.4"/><path d="M '+knx.toFixed(1)+' '+(y+d).toFixed(1)+' q 1.9 2.4 -0.8 4.9" fill="none" stroke="'+rk+'" stroke-width="1.2" stroke-linecap="round"/>'; }   // broke — an open diamond, cream-filled so it can't read as held, + a dropped tail
+        else { svg+='<circle cx="'+knx.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+(d-0.6).toFixed(1)+'" fill="none" stroke="#4F4938" stroke-width="1.5"/><circle cx="'+knx.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="0.9" fill="#4F4938"/>'; }   // void — a dark grey knotted ring: present at phone scale, never an outcome
       });
     }
 
