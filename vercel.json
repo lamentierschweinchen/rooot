@@ -3,6 +3,20 @@
   "buildCommand": "npm --prefix apps/web run build",
   "outputDirectory": "apps/web/dist",
   "cleanUrls": true,
+  "headers": [
+    {
+      "source": "/fixture.json",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, s-maxage=0, must-revalidate" }]
+    },
+    {
+      "source": "/",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, s-maxage=0, must-revalidate" }]
+    },
+    {
+      "source": "/(live|loom|woven-loom|terrace|stadium|ground|gate|showcase|cabinet)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, s-maxage=0, must-revalidate" }]
+    }
+  ],
   "rewrites": [
     {
       "source": "/live",

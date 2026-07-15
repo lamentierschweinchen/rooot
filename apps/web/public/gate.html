@@ -202,10 +202,23 @@ function mastInk(hex){
   return '#'+h2(r)+h2(g)+h2(b);
 }
 function kickLabel(kickoffUtc){
+  // State-aware, so a live or finished match never reads a stale pre-KO countdown.
+  // Time-windowed off the real kickoff (honest states, no guessed score): before KO →
+  // the scheduled time; within a ~2.5h play window → LIVE; after → FULL TIME. (The live
+  // surfaces carry the authoritative phase/score; this is just the gate's context line.)
   try{
-    var hm=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Madrid',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(kickoffUtc));
-    return 'TONIGHT '+hm;
-  }catch(e){ return 'TONIGHT'; }
+    var ko=new Date(kickoffUtc).getTime();
+    if(isFinite(ko)){
+      var now=Date.now();
+      if(now < ko){
+        var hm=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Madrid',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(kickoffUtc));
+        return 'KICK-OFF '+hm;
+      }
+      if(now < ko + 150*60000) return 'LIVE NOW';
+      return 'FULL TIME';
+    }
+  }catch(e){}
+  return 'MATCHDAY';
 }
 function fromManifest(mf){
   return {
