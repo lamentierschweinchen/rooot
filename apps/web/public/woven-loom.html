@@ -581,9 +581,12 @@ html.lexport .loomv svg{animation:none;transform:none}
       svg+='<line x1="'+fi+'" y1="'+cy0+'" x2="'+fi+'" y2="'+cy1.toFixed(1)+'" stroke="#1A1815" stroke-width="0.7" opacity="0.35"/><line x1="'+(W-fi)+'" y1="'+cy0+'" x2="'+(W-fi)+'" y2="'+cy1.toFixed(1)+'" stroke="#1A1815" stroke-width="0.7" opacity="0.35"/>';
       // THE FRINGE — the warp runs past the weave at both ends: the tassel. Team-dyed, hand-wavy, knotted at the base.
       // (tail-fringe only once the cloth is sealed — a live cloth is still weaving toward its end.)
-      function fringe(y0,dir){ for(var fx=gx0+3; fx<gx0+grW-1; fx+=4.6){ var j=warpJit(Math.round(fx*2.3)), ln=FRINGE*(0.76+0.22*(0.5+0.5*Math.sin(fx*1.9)));
-          svg+='<path d="M '+fx.toFixed(1)+' '+y0.toFixed(1)+' Q '+(fx+j[0]*1.4).toFixed(1)+' '+(y0+dir*ln*0.55).toFixed(1)+' '+(fx+j[1]*2.4).toFixed(1)+' '+(y0+dir*ln).toFixed(1)+'" fill="none" stroke="'+((Math.round(fx)%3)?frim:shade(rk,0.64))+'" stroke-width="1.5" stroke-linecap="round" opacity="0.92"/>';
-          svg+='<circle cx="'+fx.toFixed(1)+'" cy="'+(y0+dir*1.6).toFixed(1)+'" r="1.5" fill="'+frim+'"/>'; } }
+      function fringe(y0,dir){
+        // the woven binding — ONE continuous team-dyed edge spanning selvage · cloth · channel, so the
+        // whole end reads as a single bound scarf (with the side selvages it closes the border into one object)
+        svg+='<rect x="'+fo+'" y="'+(y0-2).toFixed(1)+'" width="'+(W-2*fo)+'" height="4" fill="'+frim+'"/><rect x="'+fo+'" y="'+(y0-2).toFixed(1)+'" width="'+(W-2*fo)+'" height="4" fill="url(#tone)" color="'+flit+'" opacity="0.4"/>';
+        for(var fx=fo+3; fx<W-fo-1; fx+=4.6){ var j=warpJit(Math.round(fx*2.3)), ln=FRINGE*(0.76+0.22*(0.5+0.5*Math.sin(fx*1.9)));
+          svg+='<path d="M '+fx.toFixed(1)+' '+(y0+dir*1.4).toFixed(1)+' Q '+(fx+j[0]*1.4).toFixed(1)+' '+(y0+dir*ln*0.55).toFixed(1)+' '+(fx+j[1]*2.4).toFixed(1)+' '+(y0+dir*ln).toFixed(1)+'" fill="none" stroke="'+((Math.round(fx)%3)?frim:shade(rk,0.64))+'" stroke-width="1.5" stroke-linecap="round" opacity="0.92"/>'; } }
       fringe(cy0,-1); if(SEALED)fringe(cy1,1);
       // your calls — knotted in the paper channel between the cloth edge and the right selvage (never over the odds)
       var cedge=gx0+grW, knx=cedge+(W-fi-cedge)/2, rev=ty(M.t)*(typeof unroll==='number'?unroll:1);
