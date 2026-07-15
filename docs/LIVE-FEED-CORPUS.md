@@ -68,6 +68,8 @@ Backed up outside the working tree at
 |---|---|---|
 | `fixtures/live-fra-esp/scores-fraesp.jsonl` (768 lines) | 4 goal envelopes (2 `Confirmed:false`, 2 `true`), **2 `action_discarded`** — the offside reversal | the whole confirm/retract surface |
 | `fixtures/live-fra-esp/odds-fraesp.jsonl` (14k) | the de-vigged 1X2 through the match | belief-cord + drift |
+| `fixtures/live-eng-arg/scores-engarg{,-2h}.jsonl` (1,465 lines, 2 halves) | 9 goal envelopes, 6 confirmed, **0 overturns**; `Clock` carried as `Seconds` (not `Minutes`) | the confirm/settle path through a live **2-goal comeback** (ENG 1-0 → ARG 1-2, Jul 15) — the honest happy path; and the `Seconds`-only clock format `liveMinute` must handle |
+| `fixtures/live-eng-arg/odds-engarg{,-2h}.jsonl` (32k) | in-play 1X2 across the comeback | in-play market swing, in-running flag |
 | `fixtures/scores-20260703.jsonl` | 36 goal envelopes / 21 confirmed | goals from kickoff (loom weave-from-first) |
 | `fixtures/scores-night-20260703.jsonl` | 126 / 76 | multi-match volume |
 
