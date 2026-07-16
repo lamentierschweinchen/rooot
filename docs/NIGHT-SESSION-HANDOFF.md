@@ -15,9 +15,14 @@ gate → surfaces → loom weaves the real ENG-ARG feed → **seals** → **Coll
 mint → the scarf shows in the **cabinet**. The three things you hit in your
 smoke-test are all fixed.
 
-**One action is yours and yours only: the production deploy.** `main` is ahead of
-`rooot.club`; prod deploys are a manual `vercel --prod` and the deploy classifier
-blocks an agent from running it. Nothing else is blocking.
+**Deployed + verified (Jul 16 evening).** Both prod deploys shipped:
+- **Vercel** → `rooot.club` (all the frontend: cabinet, loom, sealed replay, Codex fixes).
+- **Fly** → `rooot-stands` v46 (stands unchanged this session — a refresh; `/health` up,
+  collection pin held → `/seat/album` still returns the scarf).
+
+Verified on prod: `rooot.club/live` weaves the real feed and **seals in ~20s**
+(ENG 1–2 ARG · FULL TIME, "COLLECT YOUR SCARF" visible, passkey stack loaded). The
+loom-never-sealed problem is gone. The remaining work is the flagged decisions below.
 
 ---
 
@@ -82,12 +87,12 @@ My recommendation on each:
   `scarf-svg`/gradient — which is exactly what **your law 8** forbids. Capture
   currently works, so it rarely triggers. *Rec: fail **closed** (leave Collect
   retryable) instead of minting a substitute. Your call — it's your law.*
-- **[pre-deploy check] Collection durability.** The scarf-collection address cache
-  lives in ephemeral `.secrets/`, not the `/data` volume. A Fly redeploy could lose
-  it → a **new** collection → **every cabinet goes empty** and the album fails *open*.
-  This directly threatens the cabinet fix. *Rec: before tonight's stands deploy, pin
-  the collection address (or set `ROOOT_SCARF_COLLECTION_CACHE=/data/…`) and make the
-  album fail **closed**. Cheap + important.*
+- **[RESOLVED] Collection durability.** Codex flagged that the collection cache lives
+  in ephemeral `.secrets/` (a redeploy could empty every cabinet). **Already mitigated:**
+  `ROOOT_SCARF_COLLECTION` is pinned as a Fly secret, so `resolveScarfCollectionAddress()`
+  returns it first — verified the album still returned the scarf right after the v46
+  redeploy. *Remaining (low pri): make the album fail **closed** when the collection is
+  unresolvable, for defense-in-depth (today it fails open).*
 - **[polish] PRF-less devices can't collect** (Privy path deferred) → generic error.
   Demo device is fine. *Rec: add a clear "can't collect on this device yet" message.*
 - **[polish] Hero feed is 2.64 MB** (67% duplicated raw envelopes), parsed
@@ -114,13 +119,12 @@ seal, mint is full-time-gated + idempotent, all typechecks pass.
 
 ## Run-order for tonight
 
-1. **Deploy** — `vercel --prod` (web) and, if touching stands, `flyctl deploy`. This
-   is the linchpin; everything above is waiting on it.
-2. **Before the stands deploy:** settle the **collection-durability** check so cabinets
-   survive the redeploy.
-3. **Spot-check on prod:** `/live` seals + Collect; `/loom` seals; one real Collect →
-   cabinet shows it. (Watch Fly logs for `captured the fan's loom keepsake` vs
-   `falling back to scarf-svg`.)
+1. ~~Deploy Vercel + Fly~~ — **done + verified** (both live; `rooot.club/live` seals on prod).
+2. ~~Collection-durability check~~ — **confirmed pinned** (album survived the v46 redeploy).
+3. **Spot-check on your device:** one real **Collect** on `rooot.club/live` → confirm the
+   mint, then `rooot.club/cabinet` shows the new scarf. `/loom` also seals. (Watch Fly logs:
+   `captured the fan's loom keepsake` = the real capture; `falling back to scarf-svg` = the
+   fallback fired.) This is the one thing I can't do — it needs your passkey/Face-ID.
 4. **Decisions:** law-8 fallback (fail-closed?), mint-auth scope for submission.
-5. **If time (polish):** slim the hero feed; PRF-less error copy; refresh
-   `SUBMISSION-tech-doc.md` (still Jul 14).
+5. **If time (polish):** slim the hero feed; PRF-less error copy; album fail-closed;
+   refresh `SUBMISSION-tech-doc.md` (still Jul 14).
