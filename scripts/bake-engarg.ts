@@ -181,6 +181,25 @@ function main(): void {
     console.error('[bake-engarg] FATAL: zero odds messages baked — the market would never move. Aborting write.');
     process.exit(1);
   }
+  // The replay's whole purpose is to reach full time and SEAL into the keepsake. Parse errors above
+  // are skipped silently, so a truncated/corrupt source file could quietly drop the terminal
+  // FULL_TIME or the winning goal and still pass the counts above. Gate the write on the two facts
+  // that make the hero a real sealed match: a terminal FULL_TIME status, and the real settled
+  // scoreline (Codex review — never publish a hero feed that can't seal or settles wrong).
+  const hasFullTime = merged.some((m) => m.msg.type === 'status' && m.msg.ev.phase === 'FULL_TIME');
+  if (!hasFullTime) {
+    console.error('[bake-engarg] FATAL: no FULL_TIME status baked — the loom would never seal. Truncated source? Aborting write.');
+    process.exit(1);
+  }
+  const EXPECTED_FINAL = { home: 1, away: 2 }; // ENG 1–2 ARG — the real, confirmed result of fixture 18241006
+  const confirmedScores = merged.filter((m) => m.msg.type === 'score' && m.msg.ev.confirmed);
+  const finalScore = confirmedScores[confirmedScores.length - 1];
+  const fev = finalScore && finalScore.msg.type === 'score' ? finalScore.msg.ev : null;
+  if (!fev || fev.home !== EXPECTED_FINAL.home || fev.away !== EXPECTED_FINAL.away) {
+    const got = fev ? `${fev.home}-${fev.away}` : 'none';
+    console.error(`[bake-engarg] FATAL: final confirmed score ${got} != expected ${EXPECTED_FINAL.home}-${EXPECTED_FINAL.away} (ENG-ARG). Truncated source? Aborting write.`);
+    process.exit(1);
+  }
 
   fs.mkdirSync(path.dirname(OUT_FILE), { recursive: true });
   const body =

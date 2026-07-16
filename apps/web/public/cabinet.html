@@ -297,11 +297,17 @@ function profileFromPass(){ var p=null; try{ p=JSON.parse(localStorage.getItem('
 }
 // the kept scarf IS the real cloth (the exact render the mint captures) — previewed to its head,
 // unrolling in place on tap. img = the minted imageUri, or the captured demo cloth.
-function scarfHTML(s){ var img=s.img||s.image||('plate/scarves/'+(s.matchId||'')+'.jpg');   // the minted scarf: album's imageUri (s.image, DAS links.image) or a captured-cloth s.img; demo jpg last
-  return '<div class="keep reveal" data-match="'+(s.matchId||s.home+'-'+s.away)+'">'+
-    '<div class="scarf"><img src="'+img+'" alt="'+s.home+' '+s.score+' '+s.away+' woven scarf" loading="lazy">'+
+// HTML-escape every album field before it enters innerHTML below. The scarf record comes from the
+// on-chain album (/seat/album → DAS asset metadata); if the collection filter ever fails open
+// (album.ts) a fan's airdropped/foreign asset could carry markup in home/score/serial/image — so we
+// treat all of it as untrusted text, never markup (Codex review). Clean real data is unchanged.
+function esc(v){ return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function scarfHTML(s){ var img=esc(s.img||s.image||('plate/scarves/'+(s.matchId||'')+'.jpg'));   // the minted scarf: album's imageUri (s.image, DAS links.image) or a captured-cloth s.img; demo jpg last
+  var home=esc(s.home), away=esc(s.away), score=esc(s.score), matchId=esc(s.matchId);
+  return '<div class="keep reveal" data-match="'+(matchId||home+'-'+away)+'">'+
+    '<div class="scarf"><img src="'+img+'" alt="'+home+' '+score+' '+away+' woven scarf" loading="lazy">'+
       '<div class="fade"><span class="un">tap to unroll</span></div></div>'+
-    '<div class="hall"><span class="call"><b>'+s.home+' '+s.score+' '+s.away+'</b> · '+s.date+(s.call?' · predicted '+s.call+' '+resTag(s.result):' · you were there')+'</span><span>Nº '+s.serial+'</span></div>'+
+    '<div class="hall"><span class="call"><b>'+home+' '+score+' '+away+'</b> · '+esc(s.date)+(s.call?' · predicted '+esc(s.call)+' '+resTag(s.result):' · you were there')+'</span><span>Nº '+esc(s.serial)+'</span></div>'+
   '</div>';
 }
 // THE CARD on the shelf — a miniature of the one you held: your end's colours, your seat, your numbers

@@ -31,7 +31,7 @@
   // /live is a Vercel REWRITE to woven-loom — the browser path stays "/live" and the rewrite's
   // ?replay query never reaches the client, so the sealed-replay signal rides the PATHNAME. The
   // explicit ?replay=1 stays supported for direct woven-loom.html testing.
-  var REPLAY = q.get('replay') === '1' || location.pathname === '/live';
+  var REPLAY = q.get('replay') === '1' || location.pathname === '/live' || location.pathname === '/loom';
   var REPLAY_SECONDS = 30;   // the whole match compressed into this many real seconds — an "extreme fast forward" (owner, Jul 16). demo-feed caps the recording's dead-air gaps (half-time) so this stays even.
   // Activate on the explicit dev opt-in (?loomfeed=1) OR the clean live front
   // door (rooot.club / /live, served by a rewrite) OR the sealed replay (?replay=1 /
@@ -531,17 +531,23 @@
     }
     // under ?demo=1 with no explicit ?ws, weave the baked serverless feed (demo-feed.js) —
     // the loom shows the REAL recorded match offline, not its ARG-CPV demo seed.
-    if (DEMO && !q.get('ws') && window.__demoFeed) {
-      window.__demoFeed.start(function (msg) { try { onFeed(msg); } catch (err) { console.warn('[loom-adapter] translate error', err); } });
-    } else if (REPLAY && !q.get('ws') && window.__demoFeed && window.__DEMO_ENGARG) {
+    // REPLAY before DEMO: /live (and ?replay=1) win over a stray ?demo=1 so the feed source
+    // and the boot id below can never disagree (a mixed ?replay=1&demo=1 URL used to load the
+    // ENG-ARG baked script but boot the SUI-COL demo path, and stall). One mode, one feed.
+    if (REPLAY && !q.get('ws') && window.__demoFeed && window.__DEMO_ENGARG) {
       // /live: fast-forward-weave the real finished ENG-ARG match to full time, then seal into the keepsake
       window.__demoFeed.startFeed(window.__DEMO_ENGARG, function (msg) { try { onFeed(msg); } catch (err) { console.warn('[loom-adapter] translate error', err); } }, REPLAY_SECONDS);
+    } else if (DEMO && !q.get('ws') && window.__demoFeed) {
+      window.__demoFeed.start(function (msg) { try { onFeed(msg); } catch (err) { console.warn('[loom-adapter] translate error', err); } });
     } else {
       connect();
     }
   });
   }
-  if (DEMO) { boot(explicitMatch || '18209181'); }
-  else if (REPLAY) { boot(explicitMatch || '18241006'); }   // the sealed ENG-ARG replay boots on its fixture id — teams/colours ride the baked feed head
+  // REPLAY is HARD-BOUND to the baked fixture (18241006): the only baked replay feed is ENG-ARG,
+  // so ?match= must NOT rebind it — otherwise the real ENG-ARG odds would weave under another
+  // team's colours and mint under the wrong match id (Codex review). ?demo/live keep ?match.
+  if (REPLAY) { boot('18241006'); }
+  else if (DEMO) { boot(explicitMatch || '18209181'); }
   else { resolveMatchId(explicitMatch, boot); }
 })();

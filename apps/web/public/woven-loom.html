@@ -738,17 +738,15 @@ html.lexport .loomv svg{animation:none;transform:none}
     // later-arriving wire message. A fixture this table DOESN'T carry leaves the flag unset, so
     // the wire's fixtureInfo (once the server emits it) is free to theme it — the fallback tier.
     function theme(id){ var f=id&&FX[id]; if(!KEEP && f){ window.__loom.teams({tri:f[0],name:f[1],primary:f[2]},{tri:f[3],name:f[4],primary:f[5]}); window.__loom.__themedLocally=true; } }
+    // The baked replay feed is ENG-ARG (18241006). In replay mode (/live, /loom, ?replay=1) theme to
+    // MATCH it and ignore ?match / the fixture manifest — otherwise the real ENG-ARG feed renders
+    // under another team's colours (and mints under the wrong id). loom-adapter boots the same id,
+    // so data ↔ teams stay locked together (Codex review). This supersedes the old /live→manifest
+    // theming: /live now serves the baked replay, not a live socket, so its teams are fixed.
+    var REPLAY=Q.get('replay')==='1'||location.pathname==='/live'||location.pathname==='/loom';
+    if(REPLAY){ theme('18241006'); return; }
     var qMatch=Q.get('match');
-    if(qMatch){ theme(qMatch); return; }   // ?match= always wins — instant, synchronous, never touches the manifest
-    // /live is served by a rewrite that hides ?match from the client URL. Follow the SAME
-    // manifest game 2 will update at 03:00 (zero loom edits): resolve matchId off
-    // window.__fixtureReady, raced against a ~1500ms timeout exactly like loom-adapter's own
-    // resolveMatchId, tonight's fixture as the timeout/failure fallback.
-    if(location.pathname==='/live'){
-      var done=false; function finish(id){ if(done)return; done=true; theme(id); }
-      window.__fixtureReady.then(function(fx){ finish(fx&&fx.matchId?fx.matchId:'18213979'); }, function(){ finish('18213979'); });
-      setTimeout(function(){ finish('18213979'); },1500);
-    }
+    if(qMatch){ theme(qMatch); return; }   // ?match= wins for non-replay (live/coordinator) — instant, synchronous, never touches the manifest
   })();
   // THE KEPT CLOTH — resolve this match's own record; never substitute another match's.
   // The record is the sealed seed the cabinet unrolls; the mint pipeline re-renders it headlessly.
@@ -818,7 +816,7 @@ html.lexport .loomv svg{animation:none;transform:none}
      ?demo=1 → the SUI-COL walkthrough. A plain live loom loads neither (saves the download). -->
 <script>
 (function(){ var q=new URLSearchParams(location.search);
-  var replay = q.get('replay')==='1' || location.pathname==='/live';   // /live rewrites to woven-loom — the replay signal rides the PATHNAME (the rewrite's query never reaches the client)
+  var replay = q.get('replay')==='1' || location.pathname==='/live' || location.pathname==='/loom';   // /live + /loom both rewrite to woven-loom — the replay signal rides the PATHNAME (the rewrite's query never reaches the client)
   var b = replay ? 'plate/demo-engarg.js' : (q.get('demo')==='1' ? 'plate/demo-suicol.js' : null);
   if (b) document.write('<scr'+'ipt src="'+b+'"></scr'+'ipt>');
 })();
