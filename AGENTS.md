@@ -31,6 +31,12 @@ of the match. The tide-on-a-night-pitch look is retired; the loom stays
    toward betting-app/dashboard/AI-gradient looks, it dies in review.
 7. **Build-green ≠ done.** Gate at runtime, the way a user does it. Visual work =
    screenshot it yourself (the owner can't see your screen). Console must be clean.
+8. **Generated art is the surface.** The owner's generated assets — the plates, the
+   prediction card, the scarves, the woven cloth — ARE the design, the finished
+   surface, not a mockup to reinterpret. Overlay the live data onto the actual asset
+   (`background`, absolutely-positioned fields); never rebuild the frame in code, and
+   never substitute a code-drawn approximation for a generated one. If real data
+   won't fit the asset, **request a regen** — don't redraw it. (Owner law, hard.)
 
 ## The map (lane = directory = one writer)
 
