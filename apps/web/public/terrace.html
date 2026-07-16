@@ -445,6 +445,22 @@ var M={t:0,score:[0,0],rY:0,rT:0,run:true,lastMs:0,fired:{},await:null,dur:92,xp
   cheerN:0,reacts:{},vSec:0};   // the card's honest counters — your own actions, counted locally
 var SPEED=1.3; // match-minutes per second (slowed so events + calls are catchable)
 
+// --- P2: the fan's call timeline — knotted down their scarf's selvage at the whistle
+// (localStorage rooot.calls.<matchId>, read by woven-loom.html at seal). The SAME real calls
+// the CALLS ✓/✗ ledger counts — upsert by id, hit stays null until the feed answers it (a
+// made-but-unanswered call is an honest void, never a miss). No new call-making; just carry
+// what's tracked into the seed the loom weaves. Honesty law: real, resolved marks only.
+var CALLKEY='rooot.calls.'+MATCH_ID, callSeq=0;
+function stampCall(mk){
+  try{ var arr=[]; try{arr=JSON.parse(localStorage.getItem(CALLKEY)||'[]')||[];}catch(e){}
+    if(mk.id!=null){ for(var i=0;i<arr.length;i++){ if(arr[i].id===mk.id){
+      if(mk.m!=null)arr[i].m=mk.m; if(mk.hit!==undefined)arr[i].hit=mk.hit; if(mk.sub!=null)arr[i].sub=mk.sub;
+      localStorage.setItem(CALLKEY,JSON.stringify(arr)); return; } } }
+    arr.push({m:(mk.m!=null?mk.m:0),k:mk.k||'call',sub:mk.sub||'',hit:(mk.hit!=null?mk.hit:null),id:(mk.id!=null?mk.id:('c'+(callSeq++)))});
+    localStorage.setItem(CALLKEY,JSON.stringify(arr));
+  }catch(e){}
+}
+
 // ---- the tifo: build the seats (density = count, brightness = roar) ----
 // one tile per rooted fan-bucket; sample fills most seats, a near-empty end would show a thin front row.
 function mosaic(node,seats,litPct,youIdx){var h='';
@@ -563,6 +579,7 @@ function resolvePred(i){
     rs.textContent=right?('✓ '+p.correct+' — you called it  ·  +10 POINTS'):('✗ '+p.correct+' took it — next time'); }
   else { rs.className='pres'; rs.textContent=p.correct+' — you sat this one out'; }
   if(M.pred.called){   // count only real calls — sitting one out is not a wrong call
+    stampCall({m:p.popT, k:'call', sub:M.pred.called, hit:right, id:'q'+i});   // knot this resolved call onto the scarf
     if(right){ M.xp+=10; el('xp').textContent=M.xp; M.reads.h++; el('rH').textContent=M.reads.h; }
     else { M.reads.a++; el('rA').textContent=M.reads.a; }
     el('readsWrap').hidden=false;   // the ledger appears once a call has resolved — no dead zeros pre-KO
@@ -880,10 +897,12 @@ function wireLive(){
 // early-returns unless ngMode==='open' (a tapped-away card STAYS gone; the verdict owns its
 // own visibility); ngReset (the 10s beat) is the ONLY flip back to 'open'; dismiss (×) and
 // FULL_TIME survive any rebuild (ngDismissed/ngEnded checked at every show site).
-var ngLastState=null, ngMode='open', ngEnded=false, ngDismissed=false, ngResetT=null;
+var ngLastState=null, ngMode='open', ngEnded=false, ngDismissed=false, ngResetT=null, ngCurId=null;
 function ngFmtSide(s){ return s==='home'?HOME_TRI:s==='away'?AWAY_TRI:null; }
 function ngTap(call){
   if(window.__stands&&window.__stands.nextGoal)window.__stands.nextGoal(call);
+  ngCurId='ng'+(callSeq++);   // this window's mark — stamped now at the tap minute, hit resolved at the verdict
+  stampCall({m:Math.max(0,Math.floor(M.t)), k:'nextgoal', sub:(ngFmtSide(call)||'NO MORE'), hit:null, id:ngCurId});
   ngMode='gone'; try{sessionStorage.setItem('rooot.ng.called.'+MATCH_ID,'1');}catch(e){} el('pred').classList.remove('on');   // the tap IS the lock — the card leaves with it (persist so a page-return doesn't re-ask the window you already answered; cleared next cycle at ngReset)
 }
 // the crowd's live split — counts with n, never a percentage; n:0 is honest silence, never zeros.
@@ -899,6 +918,7 @@ function ngOnState(s){
 }
 // resolution: the card returns AS the verdict — one composition, the thing itself
 function ngOnVerdict(v){
+  if(v&&ngInit._done&&ngCurId!=null){ stampCall({id:ngCurId, hit:(v.outcome==='correct')}); ngCurId=null; }   // the feed answered — resolve this mark hit/miss (independent of whether the verdict card is shown)
   if(!v||!ngInit._done||ngEnded||ngDismissed)return;
   var happened=v.happened==='none'?'NO MORE GOALS':(ngFmtSide(v.happened)+' SCORED');
   var callTxt=v.call==='none'?'NO MORE':ngFmtSide(v.call);

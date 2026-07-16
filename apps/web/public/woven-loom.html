@@ -213,6 +213,7 @@ html.lexport .loomv svg{animation:none;transform:none}
   function seal(){
     if(SEALED)return; SEALED=true; M.over=true; M.run=false;
     if(M.dur-M.t>0.8)M.dur=Math.max(1,M.t);   // trim the un-woven warp to the whistle (live frames are cut long; the seed is already true)
+    bindPersonal();   // final pull of the fan's side + resolved calls, so the sealed keepsake carries them
     dirty=true; writeCloth();
     // the board holds long enough to read the verdict, then lifts off the pressed cloth (which scrolls again)
     setTimeout(function(){ var bd=document.getElementById('board');
@@ -222,6 +223,20 @@ html.lexport .loomv svg{animation:none;transform:none}
   // the sealed cloth IS the keepsake — write the record the cabinet unrolls (rooot.cloth.<matchId>).
   // Only a DRIVEN cloth is a lived record; the built-in specimen never writes.
   function clothId(){ return (window.__loomAdapter&&window.__loomAdapter.matchId)||(window.__loomTape&&window.__loomTape.matchId)||Q.get('match')||null; }
+  // the fan's own seam, pulled from where the door + the terrace wrote it (rooot.pass · rooot.calls.<id>):
+  // the rooted side frames the selvage, each resolved call knots down it. Feeds the live contract
+  // (upsert by id — re-binding is idempotent, so boot + storage + seal can all call it). Match-id
+  // guarded (a stale pass from another match never frames this cloth). Driven cloths only — a
+  // keepsake re-weaves from its own sealed record (loadRecord), never from live keys that moved on.
+  function bindPersonal(){
+    if(KEEP)return;
+    try{ var fx=clothId(); if(!fx)return;
+      var pass=null; try{ pass=JSON.parse(localStorage.getItem('rooot.pass')||'null'); }catch(e){}
+      if(pass&&pass.matchId===fx&&pass.side){ var s=pass.side, side=(s==='h'||s==='home')?'home':(s==='a'||s==='away')?'away':null; if(side)window.__loom.root(side); }
+      var arr=null; try{ arr=JSON.parse(localStorage.getItem('rooot.calls.'+fx)||'null'); }catch(e){}
+      if(arr&&arr.length){ for(var i=0;i<arr.length;i++){ var c=arr[i]; if(c&&c.m!=null)window.__loom.call({m:c.m,k:c.k,sub:c.sub,hit:c.hit,id:c.id}); } }
+    }catch(e){}
+  }
   function writeCloth(){
     if(KEEP||!M.live)return;
     var fx=clothId(); if(!fx)return;
@@ -234,7 +249,7 @@ html.lexport .loomv svg{animation:none;transform:none}
       localStorage.setItem('rooot.cloth.'+fx, JSON.stringify({ v:1, at:Date.now(), fx:fx,
         home:{tri:M.hTri,ink:HOME}, away:{tri:M.aTri,ink:AWAY}, score:M.score, dur:+M.dur.toFixed(1), src:M.src,
         belief:bel, danger:dgr, poss:pos, events:M.events.map(function(e){return [+e.m.toFixed(2),e.s||'',e.t,e.n||''];}),
-        pens:PENS, ks:(KS.editionNo!=null||KS.owner||KS.call)?KS:null }));
+        pens:PENS, root:ROOT, calls:CALLS, ks:(KS.editionNo!=null||KS.owner||KS.call)?KS:null }));
     }catch(e){}
   }
   // a kept cloth re-weaves from its record — same geometry, same marks, frozen at its own full time
@@ -749,6 +764,11 @@ html.lexport .loomv svg{animation:none;transform:none}
   // pre-queue the replay's goals so the demo erupts (live goals queue via __loom.event; a kept cloth never erupts)
   if(!M.live&&!KEEP)M.events.forEach(function(e){ if(e.t==='goal')queueGool(e.m,e.s==='h'?1:2); });
   renderCloth();
+  // the fan's own marks — bind at boot (calls made before the loom loaded), again after the
+  // adapter's live() reset settles, and whenever the terrace writes a fresh one (storage event
+  // from the other tab). Idempotent (upsert by id) + KEEP-guarded; seal() does the final pull.
+  bindPersonal(); setTimeout(bindPersonal,2500);
+  window.addEventListener('storage',function(e){ if(!e)return; var k=e.key||''; if(k==='rooot.pass'||k.indexOf('rooot.calls.')===0)bindPersonal(); });
   requestAnimationFrame(loop);
   setInterval(function(){ if(document.hidden) step((window.performance&&performance.now())||Date.now()); }, 250);   // keep weaving when backgrounded (rAF pauses)
   // (the legend is dead — the cloth answers a thumb, and the goal teaches the alphabet)
