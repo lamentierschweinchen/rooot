@@ -6,6 +6,13 @@ Companion to [PRODUCT.md](PRODUCT.md) (what we're building) and
 [SUBMISSION-tech-doc.md](SUBMISSION-tech-doc.md) (the pitch + architecture). This
 doc is the **where-are-we / what's-left** picture. Short conclusions, honest states.
 
+> **Jul 16 evening — freshest state is [NIGHT-SESSION-HANDOFF.md](NIGHT-SESSION-HANDOFF.md).**
+> Since this doc was written, the **collect flow shipped and is verified** (cabinet reads
+> the on-chain album; the loom seals via a real-feed replay and Collect mints), and a
+> Codex adversarial review landed (5 fixes in, 6 items flagged for the night session).
+> The one blocker is unchanged: the **production deploy** (owner action). Read the handoff
+> for the run-order and the decisions that are yours.
+
 ---
 
 ## TL;DR
