@@ -656,6 +656,11 @@ html.lexport .loomv svg{animation:none;transform:none}
   var lastMs=(window.performance&&performance.now())||Date.now(), userScrolled=0;
   loomEl.addEventListener('scroll',function(){ userScrolled=Date.now(); },{passive:true});
   var unroll=(KEEP&&!KEEPEMPTY&&!EXPORT)?0:1;   // a kept scarf UNROLLS when opened — the reveal sweeps the sealed cloth down once (export skips it: whole cloth shown at once)
+  // THE UNROLL (owner, Jul 16: "a lot shorter, more like a smooth unroll than a replay") — this was
+  // never a re-weave (KEEP freezes M.t=M.dur below, so the whole sealed cloth is already drawn; only
+  // the reveal MASK grew). But a full-second linear sweep down a multi-hundred-px timeline read as
+  // watching the match again. Now: a quick eased roll-down, cloth already sealed, no minute replayed.
+  var UNROLL_DUR=0.8, unrollT=0;   // ~0.8s, eased — a flourish, not a rewatch
   function step(now){
     if(KEEPEMPTY)return;
     var dt=Math.min(0.3,(now-lastMs)/1000); lastMs=now;   // clamp only the rare huge gap (tab resurfacing); the live clock is anchor-based so this only paces the replay
@@ -665,7 +670,7 @@ html.lexport .loomv svg{animation:none;transform:none}
     // replay: the score climbs as each goal weaves past the shuttle (live gets it from __loom.score)
     if(!M.live&&!KEEP){ var hh=0,aa=0; for(var gi=0;gi<goolQ.length;gi++){ if(M.t>=goolQ[gi].m){ if(goolQ[gi].side===1)hh++;else aa++; } } M.score=[hh,aa]; }
     if(!M.live && !SEALED && M.t>=M.dur-0.3)seal();        // the seed replay presses itself at its own full time; driven cloth seals off the wire (FULL_TIME)
-    if(unroll<1)unroll=(REDMO||EXPORT)?1:Math.min(1,unroll+dt/1.15);
+    if(unroll<1){ if(REDMO||EXPORT)unroll=1; else { unrollT=Math.min(UNROLL_DUR,unrollT+dt); var up=unrollT/UNROLL_DUR; unroll=1-Math.pow(1-up,3); } }   // ease-out cubic: fast off the top, settles at the hem
     // reveal + shuttle (cheap per-frame updates, no full re-render)
     var edgeY=ty(M.t), tt=now/1000;
     var rr=document.getElementById('revrect'); if(rr)rr.setAttribute('height',(edgeY*unroll).toFixed(1));
