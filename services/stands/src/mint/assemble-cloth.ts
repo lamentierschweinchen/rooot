@@ -59,17 +59,47 @@ function beliefBands(path: MarketPoint[], rec: SentimentRecord | null): Array<[n
   return out;
 }
 
-/** Confirmed goals from the on-disk ledger → [minute, 'h'|'a'|'', 'goal', scorer]. A goal counts
- * unless explicitly unconfirmed (the confirm/retract honesty rule); an offside-chalked goal never
- * reached the record as confirmed, so it never weaves. */
+/** Scored goals from the on-disk ledger → [minute, 'h'|'a'|'', 'goal', scorer]. Two ways a goal
+ * scores: a confirmed `goal` row, OR an in-play penalty that went in — kind `penalty-kick`, detail
+ * 'Scored', wire-confirmed (penalty-kicks don't carry `ev.confirmed`, so we read `raw.Confirmed`),
+ * excluding shootout kicks (`StatusId===12`). The scorer name lives in `detail` for a goal (the
+ * headline is the constant "Goal"); a penalty-kick's detail is the outcome, so it has no roster
+ * name. Confirm/retract honesty: an unconfirmed goal never weaves; a confirmed-then-chalked-off one
+ * is dropped later by reconcileGoals against the settled score. */
 function goalEvents(rec: SentimentRecord | null): Array<[number, 'h' | 'a' | '', string, string]> {
   const out: Array<[number, 'h' | 'a' | '', string, string]> = [];
   for (const e of rec?.events ?? []) {
-    if (e.kind !== 'goal' || e.confirmed === false) continue;
+    const raw = e.raw as { Confirmed?: boolean; StatusId?: number } | undefined;
+    const isGoal = e.kind === 'goal' && e.confirmed !== false;
+    const isPenGoal = e.kind === 'penalty-kick' && e.detail === 'Scored' && raw?.Confirmed === true && raw?.StatusId !== 12;
+    if (!isGoal && !isPenGoal) continue;
     const side: 'h' | 'a' | '' = e.side === 'home' ? 'h' : e.side === 'away' ? 'a' : '';
-    out.push([+(e.minute ?? 0), side, 'goal', e.headline ?? '']);
+    const scorer = isGoal ? (e.detail ?? '') : '';
+    out.push([+(e.minute ?? 0), side, 'goal', scorer]);
   }
   return out.sort((x, y) => x[0]! - y[0]!);
+}
+
+/** Drop the most-recent excess goals per side so the woven cloth never shows more goals than the
+ * SETTLED score. A goal confirmed on the wire then chalked off (`action_discarded`) stays
+ * `confirmed:true` in the crystallized record (the accumulator ignores discards), but the score
+ * reverted — mirrors the live adapters' scorer-reconcile (stats-adapter.js / loom-adapter.js) so
+ * the permanent keepsake never weaves a goal that didn't stand (law 1). */
+function reconcileGoals(
+  events: Array<[number, 'h' | 'a' | '', string, string]>,
+  score: [number, number],
+): Array<[number, 'h' | 'a' | '', string, string]> {
+  const caps: Array<['h' | 'a', number]> = [['h', score[0]], ['a', score[1]]];
+  for (const [key, max] of caps) {
+    let idxs = events.map((e, i) => (e[1] === key ? i : -1)).filter((i) => i >= 0);
+    while (idxs.length > max) {
+      let dropAt = idxs[0]!;
+      for (const i of idxs) if (events[i]![0]! >= events[dropAt]![0]!) dropAt = i;
+      events.splice(dropAt, 1);
+      idxs = events.map((e, i) => (e[1] === key ? i : -1)).filter((i) => i >= 0);
+    }
+  }
+  return events;
 }
 
 export interface ClothAssembly {
@@ -95,7 +125,7 @@ export interface ClothAssembly {
 export function assembleClothRecord(a: ClothAssembly): ClothRecord | null {
   const belief = beliefBands(a.beliefPath, a.record);
   if (!belief.length) return null;
-  const events = goalEvents(a.record);
+  const events = reconcileGoals(goalEvents(a.record), a.score);
   const lastBelief = belief.length ? belief[belief.length - 1]![0]! : 0;
   const lastEvent = events.length ? events[events.length - 1]![0]! : 0;
   const dur = +Math.max(90, lastBelief, lastEvent).toFixed(1) + 3;
