@@ -34,6 +34,7 @@ import { buildScarfAttributes, buildClaimDescription, type ScarfFacts } from '..
 import { uploadRelic } from '../mint/storage';
 import { mintRelic } from '../mint/mint';
 import { makeScarfCoverPng } from '../mint/cover';
+import { scarfSvg } from '../mint/scarf-svg';
 import { ensureIrysFunded } from '../mint/irys-fund';
 import { getMintRuntime } from '../mint/runtime';
 import { fixtureInfo } from '../sentiment/teams';
@@ -135,15 +136,36 @@ async function mintScarfNow(record: ClaimRecord, score: LiveScoreSnapshot, extra
     console.log(`[seat:mint] minting for ${record.pubkey.slice(0, 8)} @ ${record.matchId}: full-time ${score.home}–${score.away}, result ${extras.result ?? 'none'}, serial ${extras.fanNo}`);
 
     const { umi, cluster, collection } = await getMintRuntime();
-    const cover = makeScarfCoverPng();
     const capturedAtISO = new Date().toISOString();
-    await ensureIrysFunded(umi, cover.length + 8192);
-
     const facts = scarfFactsFor(record, relic.finalScore, fx, extras);
 
-    const uris = await uploadRelic({ bytes: cover, mime: 'image/png' }, relic, umi, {
+    // The on-chain cover IS the scarf (mint/scarf-svg.ts, vendored from the design lane): the two
+    // team fields, the real final score, the fan's serial + date, and any goals woven in as
+    // medallions at their minute. Honest by construction — empty goals → plain cloth, never a
+    // fabricated mark. Ordered fallback per the capture recipe (scarf-svg → gradient): the branded
+    // gradient (cover.ts) only if the render throws, never the wrong match, never a blank.
+    let cover: Buffer;
+    let coverMime: string;
+    try {
+      cover = Buffer.from(scarfSvg({
+        home: { tri: relic.fixture.home.code, color: relic.fixture.home.colors[0] ?? '#8C8467' },
+        away: { tri: relic.fixture.away.code, color: relic.fixture.away.colors[0] ?? '#8C8467' },
+        score: { h: relic.finalScore.home, a: relic.finalScore.away },
+        dateISO: relic.fixture.kickoffISO,
+        serial: facts.serial,
+        events: relic.goals.map((g) => ({ kind: 'goal' as const, minute: g.minute ?? 0, side: g.side })),
+      }), 'utf8');
+      coverMime = 'image/svg+xml';
+    } catch (err) {
+      console.warn(`[seat:mint] scarf-svg render failed for ${record.matchId}, falling back to gradient cover: ${String(err)}`);
+      cover = Buffer.from(makeScarfCoverPng());
+      coverMime = 'image/png';
+    }
+    await ensureIrysFunded(umi, cover.length + 8192);
+
+    const uris = await uploadRelic({ bytes: cover, mime: coverMime }, relic, umi, {
       imageUri: '', // overwritten by storage.ts after the cover upload
-      mime: 'image/png',
+      mime: coverMime,
       live: true, // the included data (fixture identity + the real final score) IS real
       capturedAtISO,
       metaTransform: (md) => ({
