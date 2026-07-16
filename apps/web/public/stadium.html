@@ -453,15 +453,15 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
   function emptyLiveStats(){function side(){return{goals:0,shots:{},corners:0,freeKicks:0,throwIns:0,cards:{yellow:0,red:0,list:[]},attacks:{},territory:null,subs:{moves:[]},injuries:{list:[]},penalties:{list:[]}};}return{minute:null,__live:true,home:side(),away:side(),var:[]};}
   var FALLBACK={minute:124,__live:false,
     home:{goals:3,shots:{onTarget:10,offTarget:2,blocked:5,woodwork:0},corners:9,possessionPct:61,territory:.57,attacks:{danger:23,highDanger:9},
-      cards:{yellow:2,red:0,list:[{player:'—',type:'Yellow',minute:38},{player:'—',type:'Yellow',minute:78}]},offsides:2,fouls:10,freeKicks:13,throwIns:19,
-      subs:{count:3,moves:[{inName:'—',outName:'—',minute:64},{inName:'—',outName:'—',minute:71},{inName:'—',outName:'—',minute:88}]},
-      injuries:{count:1,list:[{player:'—',outcome:'OnPitch',minute:53}]},
-      penalties:{scored:1,missed:0,retake:0,list:[{taker:'—',outcome:'Scored',minute:120}]}},
+      cards:{yellow:2,red:0,list:[{player:'MORENO',type:'Yellow',minute:38},{player:'VARGAS',type:'Yellow',minute:78}]},offsides:2,fouls:10,freeKicks:13,throwIns:19,
+      subs:{count:3,moves:[{inName:'ACOSTA',outName:'RIOS',minute:64},{inName:'GUERRA',outName:'MORENO',minute:71},{inName:'LUNA',outName:'CANO',minute:88}]},
+      injuries:{count:1,list:[{player:'NAVARRO',outcome:'OnPitch',minute:53}]},
+      penalties:{scored:1,missed:0,retake:0,list:[{taker:'LUNA',outcome:'Scored',minute:120}]}},
     away:{goals:2,shots:{onTarget:6,offTarget:5,blocked:4,woodwork:0},corners:8,possessionPct:39,territory:.43,attacks:{danger:16,highDanger:5},
-      cards:{yellow:1,red:1,list:[{player:'—',type:'Yellow',minute:52},{player:'—',type:'Red',minute:88}]},offsides:3,fouls:16,freeKicks:9,throwIns:14,
-      subs:{count:2,moves:[{inName:'—',outName:'—',minute:70},{inName:'—',outName:'—',minute:82}]},
+      cards:{yellow:1,red:1,list:[{player:'SANTOS',type:'Yellow',minute:52},{player:'PINTO',type:'Red',minute:88}]},offsides:3,fouls:16,freeKicks:9,throwIns:14,
+      subs:{count:2,moves:[{inName:'BRAGA',outName:'PINTO',minute:70},{inName:'NEVES',outName:'SANTOS',minute:82}]},
       injuries:{count:0,list:[]},
-      penalties:{scored:0,missed:1,retake:0,list:[{taker:'—',outcome:'Missed',minute:120}]}},
+      penalties:{scored:0,missed:1,retake:0,list:[{taker:'DUARTE',outcome:'Missed',minute:120}]}},
     var:[{type:'Goal',outcome:'Stands',minute:92},{type:'Penalty',outcome:'Overturned',minute:74}]};
 
   // ---- shared mark language ----
