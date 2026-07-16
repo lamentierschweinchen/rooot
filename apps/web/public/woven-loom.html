@@ -815,6 +815,12 @@ html.lexport .loomv svg{animation:none;transform:none}
 <script src="plate/demo-suicol.js"></script>
 <script src="demo-feed.js"></script>
 <script src="loom-adapter.js"></script>
+<!-- SEAT — the loom's Collect mints the scarf, so it needs the full claim stack in the
+     terrace's load-bearing order: nacl (window.nacl) → seat-passkey (window.seatPasskey)
+     → seat-adapter (window.__seat/__album). Without nacl+passkey, __seat.claim() has no
+     mechanism and rejects 'claim-unavailable' — the Collect would fail even once sealed. -->
+<script src="plate/nacl.min.js"></script>
+<script src="seat-passkey.js"></script>
 <script src="seat-adapter.js"></script>
 </body>
 </html>

@@ -173,6 +173,12 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
   <div class="foot reveal">your cabinet fills as you live matches · each scarf is the match woven from the real feed<br>provenance sits on-chain — yours to keep, worthless to flip · sample shown until wired</div>
 </div>
 
+<!-- SEAT — the cabinet is READ-ONLY (it never mints), so it loads only the adapter:
+     seat-adapter.js restores the returning fan's PUBLIC pubkey from localStorage and
+     fetches their on-chain album (window.__album) with no Face-ID prompt. No claim here,
+     so nacl/seat-passkey aren't needed (the terrace/loom load those to mint). Without this
+     the cabinet never saw window.__seat/__album and could only show local cloths. -->
+<script src="seat-adapter.js"></script>
 <script>
 var el=function(id){return document.getElementById(id);};
 var DEMO=/[?&]demo=1/.test(location.search), Q=DEMO?'?demo=1':(/[?&]live=1/.test(location.search)?'?live=1':'?demo=0');
