@@ -19,11 +19,16 @@
 (function () {
   'use strict';
   var q = new URLSearchParams(location.search);
-  // Live is the default on every surface that loads this adapter. The one opt-OUT is
-  // ?demo=1: there the baked crowd-sim engine owns window.__stands, so this adapter must
-  // stand down or it would clobber the tape. (?live=1 / ?site=1 / ?loomfeed=1 /
-  // ?standsfeed=1 kept working, now redundant.)
-  var ON = q.get('demo') !== '1';
+  // Live is the default on every surface that loads this adapter. The opt-OUTs are:
+  //  ?demo=1 — the baked crowd-sim engine owns window.__stands, so this adapter must stand
+  //            down or it would clobber the tape.
+  //  ?replay=1 (+ the /live·/loom rewrites) — the sealed-match replay is self-contained (the
+  //            baked ENG-ARG feed drives the stats/market); a live crowd socket to the stuck
+  //            room has no honest crowd to show, so stand down and leave the bowl neutral
+  //            rather than lean it on stuck-room counts (and keep the replay console clean).
+  // (?live=1 / ?site=1 / ?loomfeed=1 / ?standsfeed=1 kept working, now redundant.)
+  var REPLAY = q.get('replay') === '1' || location.pathname === '/live' || location.pathname === '/loom';
+  var ON = q.get('demo') !== '1' && !REPLAY;
   if (!ON) return;
   var explicitMatch = q.get('match');   // ?match= always wins — never touches the manifest
   var wsBase = q.get('ws') || 'wss://rooot-stands.fly.dev/';

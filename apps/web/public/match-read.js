@@ -79,8 +79,14 @@
   if (typeof window === 'undefined') return;
   var q = new URLSearchParams(location.search);
   var DEMO = q.get('demo') === '1';   // live by default; demo only when explicitly asked
-  var LIVE = !DEMO;                     // live is the default; ?demo=1 is the only opt-out (?live=1 redundant)
-  if (!DEMO && !LIVE && q.get('matchread') !== '1') return;   // unreachable now (LIVE = !DEMO) — kept as a guard
+  // ?replay=1 (+ the /live·/loom rewrites) — the sealed ENG-ARG replay path (mirrors
+  // loom-adapter.js/stats-adapter.js). THE MARKET reads window.__match, so this read-model
+  // must fold the baked replay feed too, or the odds card would fall back to the live wire
+  // (a stuck room) on ?replay=1. Live/demo are unaffected (REPLAY is false there).
+  var REPLAY = q.get('replay') === '1' || location.pathname === '/live' || location.pathname === '/loom';
+  var REPLAY_SECONDS = 30;
+  var LIVE = !DEMO && !REPLAY;          // live is the default; ?demo=1 / ?replay=1 are the opt-outs
+  if (!DEMO && !LIVE && !REPLAY && q.get('matchread') !== '1') return;   // unreachable now — kept as a guard
   var explicitMatch = q.get('match');   // ?match= always wins — never touches the manifest
   var wsBase = q.get('ws') || (LIVE ? 'wss://rooot-stands.fly.dev/' : null);
   var state = initialState();
@@ -164,6 +170,9 @@
         sock.onerror = function () { try { sock.close(); } catch (_) {} };
       }
       connect();
+    } else if (REPLAY && root.__demoFeed && root.__DEMO_ENGARG) {
+      // sealed ENG-ARG replay: fold the baked feed so THE MARKET prints the real odds curve to full time
+      root.__demoFeed.startFeed(root.__DEMO_ENGARG, onMsg, REPLAY_SECONDS);
     } else if (DEMO && root.__demoFeed) {
       root.__demoFeed.start(onMsg);
     }
@@ -205,6 +214,10 @@
     }, function () { finish('18213979', true); });
     setTimeout(function () { finish('18213979', true); }, 1500);
   }
-  if (LIVE) resolveMatchId(explicitMatch, bootFeed);
+  // REPLAY is hard-bound to the baked ENG-ARG fixture (mirrors loom/stats adapters); booting
+  // synchronously subscribes before demo-feed's first tick. Live resolves via the manifest; the
+  // demo default ('18202783', the SUI-COL recording) is untouched.
+  if (REPLAY) bootFeed('18241006');
+  else if (LIVE) resolveMatchId(explicitMatch, bootFeed);
   else bootFeed(explicitMatch || '18202783');
 })(typeof window !== 'undefined' ? window : this);

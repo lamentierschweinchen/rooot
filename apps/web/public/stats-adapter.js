@@ -23,6 +23,14 @@
   'use strict';
   var q = new URLSearchParams(location.search);
   var DEMO = q.get('demo') === '1';   // live by default; demo only when explicitly asked
+  // ?replay=1 (also the /live + /loom rewrites) — the SEALED-MATCH path, mirroring
+  // loom-adapter.js. A finished match is served from the self-contained baked
+  // window.__DEMO_ENGARG feed (no live wire to a stuck room) so the stadium accumulates the
+  // REAL, COMPLETE ENG-ARG stats and settles on the final. Same honesty as the loom: real
+  // messages, real order. /live/loom rewrite to woven-loom (not the stadium), so for the
+  // stadium the signal is the explicit ?replay=1; the pathnames are kept for parity/safety.
+  var REPLAY = q.get('replay') === '1' || location.pathname === '/live' || location.pathname === '/loom';
+  var REPLAY_SECONDS = 30;   // the whole match compressed into this many real seconds (mirrors the loom's fast-forward)
   // Live is the default on every surface that loads this adapter. ?demo=1 is served by
   // the baked stats path below (handled via DEMO downstream), never opted out here; and
   // nothing that loads this adapter wants it off — so the old path/param opt-in gate
@@ -190,6 +198,22 @@
   function byMinute(x, y) { return (x.minute == null ? 1e9 : x.minute) - (y.minute == null ? 1e9 : y.minute); }
   // (VAR aggregation is inline in onLedgerEvent's 'var' case — open + decision can share an id.)
 
+  // REPLAY-only: the score envelope's Total block carries the AUTHORITATIVE curated corner
+  // count (Score.ParticipantN.Total.Corners) — TxODDS' official stat, sided via
+  // Participant1IsHome — the same source the scoreline (Total.Goals) already trusts. On the
+  // sealed ENG-ARG replay the play-by-play ledger OVER-EMITS corner events (3 distinct ENG
+  // corner events; the official Total holds at 1 the whole match), so on this settle-on-final
+  // path we take the number off the Total, exactly like goals. Live/demo keep the ledger tally
+  // untouched (byte-identical) — the corner ledger increment is gated on !REPLAY below.
+  function applyAuthTotals(ev) {
+    var raw = ev && ev.raw, S = raw && raw.Score; if (!S) return;
+    var p1home = raw.Participant1IsHome !== false;               // undefined → Participant1 is home (the feed's default)
+    var hT = (p1home ? S.Participant1 : S.Participant2), aT = (p1home ? S.Participant2 : S.Participant1);
+    hT = hT && hT.Total; aT = aT && aT.Total;
+    if (hT && typeof hT.Corners === 'number') stats.home.corners = hT.Corners;
+    if (aT && typeof aT.Corners === 'number') stats.away.corners = aT.Corners;
+  }
+
   function onLedgerEvent(ev) {
     var k = ev.kind, side = ev.side, id = ev.id, d = (ev.detail || '').toLowerCase();
     var D = (ev.raw && ev.raw.Data) || {};              // the raw envelope's Data (Type/Outcome/…)
@@ -224,7 +248,7 @@
     var sd = sideOf(side); if (!sd) return;
     if (id && seen[id] && k !== 'goal') return;
     switch (k) {
-      case 'corner': if (id) seen[id] = true; sd.corners++; break;
+      case 'corner': if (id) seen[id] = true; if (!REPLAY) sd.corners++; break;   // REPLAY sources corners from the authoritative score Total (applyAuthTotals), not the over-emitting ledger
       // cards + throw-ins are handled id-keyed above (they re-emit; the name lands late)
       case 'goal': // the SCORE number is the authoritative 'score' message; here we keep the scorer + type
         if (side && id && ev.confirmed) { scorerById[id] = { side: side, name: ev.detail || null, type: ev.goalKind || null, minute: mn }; deriveScorers(); }
@@ -274,6 +298,8 @@
           if (typeof msg.ev.away === 'number') stats.away.goals = msg.ev.away;
           // …and drop any scorer a chalked-off goal no longer supports (honesty law #1).
           reconcileScorers(msg.ev.home, msg.ev.away);
+          // REPLAY: also settle corners on the authoritative Total (see applyAuthTotals).
+          if (REPLAY) applyAuthTotals(msg.ev);
         }
         emit(); break;
       case 'ledger':
@@ -339,13 +365,23 @@
     sock.onclose = onSockClose;
     sock.onerror = function () { try { sock.close(); } catch (_) {} };
   }
-  // under ?demo=1 with no explicit ?ws, feed the stadium's stat cards from the baked
-  // serverless feed (demo-feed.js) instead of the live WebSocket.
-  if (DEMO && !q.get('ws') && window.__demoFeed) {
+  // REPLAY before DEMO (mirrors loom-adapter.js): /replay (and the /live·/loom rewrites) win
+  // over a stray ?demo=1 so the feed source and the boot id below can never disagree. On
+  // ?replay=1 with no explicit ?ws, fast-forward-weave the real finished ENG-ARG match off the
+  // baked window.__DEMO_ENGARG feed so the stadium accumulates its COMPLETE stats and settles
+  // on the final. Under ?demo=1 with no ?ws, the SUI-COL walkthrough (byte-identical to before).
+  if (REPLAY && !q.get('ws') && window.__demoFeed && window.__DEMO_ENGARG) {
+    window.__demoFeed.startFeed(window.__DEMO_ENGARG, function (m) { try { onFeed(m); } catch (err) { console.warn('[stats-adapter] translate error', err); } }, REPLAY_SECONDS);
+  } else if (DEMO && !q.get('ws') && window.__demoFeed) {
     window.__demoFeed.start(function (m) { try { onFeed(m); } catch (err) { console.warn('[stats-adapter] translate error', err); } });
   } else {
     connect();
   }
   }
-  if (DEMO) { boot(explicitMatch || '18209181'); } else { resolveMatchId(explicitMatch, boot); }
+  // REPLAY is HARD-BOUND to the baked fixture (18241006): the only baked replay feed is ENG-ARG
+  // (mirrors loom-adapter.js), so ?match= must NOT rebind it. Booting synchronously subscribes
+  // before demo-feed's first 100ms tick, so no opening messages are missed. ?demo/live keep ?match.
+  if (REPLAY) { boot('18241006'); }
+  else if (DEMO) { boot(explicitMatch || '18209181'); }
+  else { resolveMatchId(explicitMatch, boot); }
 })();

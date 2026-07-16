@@ -148,6 +148,8 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
 .varstrip b{color:var(--ink);letter-spacing:.14em}
 .varstrip .vchip{padding:2px 8px;border:1.4px solid var(--sub);border-radius:20px}
 .varstrip .vchip.over{border-color:var(--away);color:var(--away)}
+/* THE WHISTLE — fouls per team as an inked comparison bar (same paper-and-cloth register as SET PIECES / CONTROL) */
+.foulcmp{margin:14px 16px 2px}
 /* detail: THE BENCH — subs + injuries, listed under the dugout */
 .benchgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 16px 0}
 .bcol-h{font-weight:900;font-size:13px;letter-spacing:.02em;margin-bottom:7px}.bcol-h.h{color:var(--home)}.bcol-h.a{color:var(--away)}
@@ -289,9 +291,13 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     <div class="hostband"><i class="v"></i><i class="r"></i><i class="a"></i><i class="g"></i></div>
     <div class="art"><div style="position:relative"><img src="plate/gens/book-ledger.png" alt="the book"><div class="bpage h" id="bookH"></div><div class="bpage a" id="bookA"></div></div></div>
     <div class="varstrip" id="varStrip"></div>
+    <div class="foulcmp">
+      <div class="csrow"><span class="csv h"><b id="flHv">0</b> <span id="flHn">POR</span></span><span class="csl">FOULS CONCEDED</span><span class="csv a"><span id="flAn">ESP</span> <b id="flAv">0</b></span></div>
+      <div class="spbar"><i class="h" id="flBh"></i><i class="a" id="flBa"></i></div>
+    </div>
     <div class="sh-read">
-      <div class="col"><span class="t h" id="bkHn">POR</span><span class="n h" id="bkHc">0·0</span><span class="sub" id="bkHs">0 OFF · 0 FOULS</span></div>
-      <div class="col r"><span class="t a" id="bkAn">ESP</span><span class="n a" id="bkAc">0·0</span><span class="sub" id="bkAs">0 OFF · 0 FOULS</span></div>
+      <div class="col"><span class="t h" id="bkHn">POR</span><span class="n h" id="bkHc">0·0</span><span class="sub" id="bkHs">0 OFFSIDE</span></div>
+      <div class="col r"><span class="t a" id="bkAn">ESP</span><span class="n a" id="bkAc">0·0</span><span class="sub" id="bkAs">0 OFFSIDE</span></div>
     </div>
   </section>
 
@@ -335,9 +341,23 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
 </div>
 
 <script src="plate/gens/stadium-data.js"></script>
-<!-- demo engine — private prototype default: baked recording → window.__match (score/clock/market/marketSeries) -->
-<script>if(/[?&]demo=1/.test(location.search))document.write('<scr'+'ipt src="plate/demo-suicol.js"></scr'+'ipt><scr'+'ipt src="demo-feed.js"></scr'+'ipt><scr'+'ipt src="match-read.js"></scr'+'ipt><scr'+'ipt src="crowd-sim.js"></scr'+'ipt>');</script>
-<script>if(!/[?&]demo=1/.test(location.search))document.write('<scr'+'ipt src="match-read.js"></scr'+'ipt>');</script>
+<!-- demo / replay engine — the baked recording feeds window.__stats (stat families) + window.__match
+     (score/clock/market). ?demo=1 → the SUI-COL walkthrough; ?replay=1 (and the /live·/loom rewrites)
+     → the SEALED ENG-ARG fast-forward, so the stadium accumulates the REAL, COMPLETE finished-match
+     stats and settles on the final instead of reading a stuck-live room; plain live → the match
+     read-model only (the live wire drives the stat/market adapters). Each baked feed is ~2MB, so load
+     ONLY the one this view needs, synchronously before demo-feed.js reads its global. The replay bowl
+     stays neutral (crowd-sim omitted — no fabricated crowd painted over a real-match replay). -->
+<script>
+(function(){ var q=new URLSearchParams(location.search), pn=location.pathname;
+  var demo=q.get('demo')==='1';
+  var replay=q.get('replay')==='1'||pn==='/live'||pn==='/loom';
+  var srcs = demo   ? ['plate/demo-suicol.js','demo-feed.js','match-read.js','crowd-sim.js']
+           : replay ? ['plate/demo-engarg.js','demo-feed.js','match-read.js']
+           :          ['match-read.js'];
+  for(var i=0;i<srcs.length;i++) document.write('<scr'+'ipt src="'+srcs[i]+'"></scr'+'ipt>');
+})();
+</script>
 <script>
 (function(){
   'use strict';
@@ -357,7 +377,12 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
    'argcpv':['ARG','ARGENTINA','#2049AA','CPV','CABO VERDE','#C8504D']};
   // secondary (change-strip) colours — so two same-primary teams never read as one
   var SEC={ARG:'#EDE9DE',CPV:'#12388C',BRA:'#1E8C4C',NOR:'#00205B',MEX:'#C8102E',ENG:'#EDE9DE',POR:'#DA020E',ESP:'#F1BF00',USA:'#B4232B',BEL:'#FDDA24',EGY:'#111111',SUI:'#EDE9DE',COL:'#003893',FRA:'#EDE9DE',MAR:'#006233'};
-  var q=new URLSearchParams(location.search), DEMO=q.get('demo')==='1', LIVE=!DEMO, WS=q.get('ws');   // live is the default; specimen only under ?demo=1
+  var q=new URLSearchParams(location.search), DEMO=q.get('demo')==='1', WS=q.get('ws');   // live is the default; specimen only under ?demo=1
+  // ?replay=1 (+ the /live·/loom rewrites) — the sealed ENG-ARG replay: a recorded finished match,
+  // not the live wire. It shares the "recorded/REPLAY masthead, feed fills the cards" behaviour with
+  // ?demo=1 (both are non-live), so LIVE excludes it and demoOn (below) folds it in.
+  var REPLAY=q.get('replay')==='1'||location.pathname==='/live'||location.pathname==='/loom';
+  var LIVE=!DEMO&&!REPLAY;
   var explicitMatch=q.get('match');
   // T16 — the __fixture manifest is the one truth; FIX/SEC above are now only the
   // explicit-?match lookup + the last-resort fallback (never invent a fixture). SEC is
@@ -568,7 +593,11 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
   // ---- render ----
   function render(s){
     var live=!!s.__live,h=s.home||{},a=s.away||{},hs=h.shots||{},as=a.shots||{},hg=h.goals||0,ag=a.goals||0;
-    var hp=(h.possessionPct!=null)?Math.round(h.possessionPct):(h.territory!=null?Math.round(h.territory*100):50);
+    // hp drives BOTH the pitch paint and the CONTROL possession number, so it must be possession
+    // ONLY — never the territory proxy (a different metric). Borrowing territory here (the old
+    // fallback) made the painted split disagree with a possession read and blurred the two metrics
+    // into one. Neutral 50/50 until the time-share is trustworthy; then the real split.
+    var hp=(h.possessionPct!=null)?Math.round(h.possessionPct):50;
     var ap=100-hp;
     el('mHT').textContent=HOME.tri;el('mAT').textContent=AWAY.tri;
     el('mSt').textContent=live?'LIVE':'REPLAY';el('bMin').textContent=(s.minute!=null?s.minute+'′':'');
@@ -594,8 +623,13 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     el('bkHn').textContent=HOME.tri;el('bkAn').textContent=AWAY.tri;
     el('bkHc').textContent=((h.cards&&h.cards.yellow)||0)+'·'+((h.cards&&h.cards.red)||0);
     el('bkAc').textContent=((a.cards&&a.cards.yellow)||0)+'·'+((a.cards&&a.cards.red)||0);
-    el('bkHs').textContent=(h.offsides||0)+' OFF · '+(h.fouls||0)+' FOULS';
-    el('bkAs').textContent=(a.offsides||0)+' OFF · '+(a.fouls||0)+' FOULS';
+    el('bkHs').textContent=(h.offsides||0)+' OFFSIDE'+((h.offsides||0)===1?'':'S');
+    el('bkAs').textContent=(a.offsides||0)+' OFFSIDE'+((a.offsides||0)===1?'':'S');
+    // fouls per team as an inked comparison bar (owner: "fouls per team should be a bar")
+    var hf=(h.fouls!=null?h.fouls:0),af=(a.fouls!=null?a.fouls:0);
+    el('flHn').textContent=HOME.tri;el('flAn').textContent=AWAY.tri;
+    el('flHv').textContent=hf;el('flAv').textContent=af;
+    el('flBh').style.flexGrow=hf;el('flBa').style.flexGrow=af;
     var vs=el('varStrip'),vv=s.var||[];
     vs.innerHTML=vv.length?('<b>VAR</b>'+vv.map(function(x){return '<span class="vchip'+(x.outcome==='Overturned'?' over':'')+'">'+x.type+' · '+String(x.outcome).toUpperCase()+'</span>';}).join('')):'';
     // detail: THE TEAM SHEET — the starting XI (held by the bench pre-kickoff), then who came off it
@@ -613,9 +647,11 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     el('pnHs').textContent='SCORED · '+(ph.missed||0)+' MISSED';el('pnAs').textContent='SCORED · '+(pa.missed||0)+' MISSED';
     // detail: CONTROL — possession split + dangerous attacks
     el('ctrlHn').textContent=HOME.tri;el('ctrlAn').textContent=AWAY.tri;el('ctrlHn2').textContent=HOME.tri;el('ctrlAn2').textContent=AWAY.tri;
-    var pK=(h.possessionPct!=null||h.territory!=null);  // don't fake a 50/50 when possession is unknown
+    var pK=(h.possessionPct!=null);  // POSSESSION prints only when the time-share is trustworthy — never the territory proxy in disguise
     el('ctrlHp').textContent=pK?hp:'—';el('ctrlAp').textContent=pK?ap:'—';
     el('posBh').style.flexGrow=pK?hp:50;el('posBa').style.flexGrow=pK?ap:50;
+    // TERRITORY is a genuinely DIFFERENT metric (danger-weighted attacking pressure, not ball-time),
+    // on its own gate + its own bar — so the two rows read as two distinct numbers, not one echoed twice.
     var tK=(h.territory!=null),ht=tK?Math.round(h.territory*100):50,at=100-ht;
     el('ctrlHt').textContent=tK?ht:'—';el('ctrlAt').textContent=tK?at:'—';
     el('terBh').style.flexGrow=ht;el('terBa').style.flexGrow=at;
@@ -680,7 +716,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
   document.addEventListener('keydown',function(e){if(!openSheet)return;if(e.key==='ArrowRight')nav(1);else if(e.key==='ArrowLeft')nav(-1);else if(e.key==='Escape')close();});
 
   // ---- feed ----
-  var demoOn=DEMO;
+  var demoOn=DEMO||REPLAY;   // both are RECORDED modes: skip the live blank-render, mark __live=false → the masthead reads REPLAY
   if(!demoOn) render(LIVE?emptyLiveStats():FALLBACK);   // live starts blank and fills from the wire; standalone demo preview keeps the rich sample.
   if(!q.get('embed') || demoOn || LIVE){ var tries=0,iv=setInterval(function(){tries++;   // subscribe whenever there's a real feed: standalone, live embed, or ANY demo (the embedded demo lens runs its own engine)
     if(window.__stats&&window.__stats.home){clearInterval(iv);
@@ -703,7 +739,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     box.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;display:block"><rect x="'+px+'" y="'+py+'" width="'+(W-2*px)+'" height="'+(H-2*py)+'" fill="#EFE7D2" stroke="#1A1815" stroke-width="1.4"/><line x1="'+px+'" y1="'+Y(0.5).toFixed(1)+'" x2="'+(W-px)+'" y2="'+Y(0.5).toFixed(1)+'" stroke="#8C8467" stroke-width="0.6" stroke-dasharray="2 3"/><text x="'+(W-px-2)+'" y="'+(Y(0.5)-2.5).toFixed(1)+'" text-anchor="end" font-size="6" font-weight="700" fill="#8C8467">50</text>'+'<path d="'+path('draw')+'" fill="none" stroke="#7a7256" stroke-width="1.6" stroke-dasharray="2.5 3" stroke-linejoin="round"/>'+cased('away',AC)+cased('home',HC)+'</svg>';
     var last=series[series.length-1], k=el('oddsKey'); if(k)k.innerHTML='<span style="color:'+HC+'">'+el('mHT').textContent+' '+Math.round(last.home*100)+'%</span><span style="color:#7a7256">DRAW '+Math.round(last.draw*100)+'%</span><span style="color:'+AC+'">'+el('mAT').textContent+' '+Math.round(last.away*100)+'%</span>';
   }
-  if((DEMO||LIVE) && window.__match){
+  if((DEMO||REPLAY||LIVE) && window.__match){
     var onMatchS=function(m){ if(!m)return;
       el('bSc').textContent=m.score.home+'–'+m.score.away;
       el('mSt').textContent=LIVE?'LIVE':'REPLAY'; el('bMin').textContent=(m.clock&&m.clock.min!=null?m.clock.min+'′':'');
