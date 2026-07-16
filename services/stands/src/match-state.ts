@@ -30,6 +30,9 @@ interface NextGoalOpenCall {
   call: 'home' | 'away' | 'none';
   marketAtCall: MarketTriple | null;
   atMs: number;
+  /** The match minute the call was made at (latched from the join cache's running clock) — stamps
+   * where the resolved call knots down the scarf's selvage. Null when the clock wasn't known. */
+  minute: number | null;
 }
 
 /** What one NEXT GOAL resolution produced: the per-fan verdicts (personal
@@ -120,6 +123,12 @@ export interface FanStats {
   /** Of nextGoalCalls, how many resolved 'correct' — the card's "in-game
    * prediction accuracy" slot = nextGoalCorrect / nextGoalCalls. */
   nextGoalCorrect: number;
+  /** The ORDERED per-fan NEXT GOAL calls that resolved — the scarf's call timeline
+   * (design/scarf-artwork/CAPTURE-RECIPE.md): one entry per resolved call, in grading order —
+   * the side called, the match minute it was made, whether it hit. The counters above are the
+   * aggregate; this is the timeline the keepsake weaves into the selvage. Absent on a pre-log
+   * snapshot → defaults to [] in restoreFanStats, never fabricated. */
+  nextGoalLog: Array<{ side: 'home' | 'away' | 'none'; minute: number | null; hit: boolean; id: string }>;
 }
 
 const ROOM_MAX_MEMBERS = 11;
@@ -316,7 +325,7 @@ export class MatchState {
   private touchFanStats(anonId: string, nowMs: number): FanStats {
     let fs = this.fanStats.get(anonId);
     if (!fs) {
-      fs = { cheers: 0, watchMs: 0, reacts: 0, firstSeenMs: nowMs, lastSeenMs: nowMs, nextGoalCalls: 0, nextGoalCorrect: 0 };
+      fs = { cheers: 0, watchMs: 0, reacts: 0, firstSeenMs: nowMs, lastSeenMs: nowMs, nextGoalCalls: 0, nextGoalCorrect: 0, nextGoalLog: [] };
       this.fanStats.set(anonId, fs);
     } else {
       fs.lastSeenMs = nowMs;
@@ -367,7 +376,7 @@ export class MatchState {
    * snapshot (the feature didn't exist yet when it was written), never
    * fabricated as anything but honest zero. */
   restoreFanStats(anonId: string, stats: FanStats): void {
-    this.fanStats.set(anonId, { ...stats, nextGoalCalls: stats.nextGoalCalls ?? 0, nextGoalCorrect: stats.nextGoalCorrect ?? 0 });
+    this.fanStats.set(anonId, { ...stats, nextGoalCalls: stats.nextGoalCalls ?? 0, nextGoalCorrect: stats.nextGoalCorrect ?? 0, nextGoalLog: stats.nextGoalLog ?? [] });
   }
 
   /* ── predict (the retention spine, docs/MECHANISMS.md §2) ──────────── */
@@ -484,14 +493,15 @@ export class MatchState {
    * accepted action); the nextGoalCalls/nextGoalCorrect COUNTERS themselves
    * only move at resolution (see resolveNextGoalOnGoal/AtFullTime below) — a
    * call replaced before it resolves is never counted. */
-  nextGoalCall(anonId: string, call: 'home' | 'away' | 'none', marketAtCall: MarketTriple | null, atMs: number, nowMs = Date.now()): void {
-    this.nextGoalOpen.set(anonId, { call, marketAtCall, atMs });
+  nextGoalCall(anonId: string, call: 'home' | 'away' | 'none', marketAtCall: MarketTriple | null, atMs: number, minute: number | null = null, nowMs = Date.now()): void {
+    this.nextGoalOpen.set(anonId, { call, marketAtCall, atMs, minute });
     this.touchFanStats(anonId, nowMs);
   }
 
-  /** Snapshot restore only: reinstall a fan's open call directly — mirrors restorePrediction. */
-  restoreNextGoalOpen(anonId: string, call: 'home' | 'away' | 'none', marketAtCall: MarketTriple | null, atMs: number): void {
-    this.nextGoalOpen.set(anonId, { call, marketAtCall, atMs });
+  /** Snapshot restore only: reinstall a fan's open call directly — mirrors restorePrediction.
+   * `minute` defaults to null so a v6 snapshot written before the field existed restores cleanly. */
+  restoreNextGoalOpen(anonId: string, call: 'home' | 'away' | 'none', marketAtCall: MarketTriple | null, atMs: number, minute: number | null = null): void {
+    this.nextGoalOpen.set(anonId, { call, marketAtCall, atMs, minute });
   }
 
   nextGoalOpenCount(): number {
@@ -550,6 +560,9 @@ export class MatchState {
       const fs = this.touchFanStats(anonId, nowMs);
       fs.nextGoalCalls += 1; // the denominator — moves at resolution, never at call time
       if (outcome === 'correct') fs.nextGoalCorrect += 1;
+      // the ordered scarf timeline: one knot per resolved call (side, the minute it was made, hit),
+      // graded in real time — never fabricated, id keyed to the call's own atMs so it's stable.
+      fs.nextGoalLog.push({ side: open.call, minute: open.minute, hit: outcome === 'correct', id: 'ng' + open.atMs });
       out.push(v);
     }
     const crowd = { n: this.nextGoalOpen.size, home, away, none };

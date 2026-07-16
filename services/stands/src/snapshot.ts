@@ -167,7 +167,7 @@ interface SnapshotMatch {
   /** v6+. IN-GAME NEXT GOAL (docs/BACKLOG-full-version-and-deferred-ideas.md
    * §2, SNAPSHOT_VERSION doc comment above) — a fan's open call for the
    * current cycle. Absent on a v1..v5 file — applySnapshot defaults to none. */
-  nextGoalOpen?: Array<[string, { call: 'home' | 'away' | 'none'; marketAtCall: { home: number; draw: number; away: number } | null; atMs: number }]>;
+  nextGoalOpen?: Array<[string, { call: 'home' | 'away' | 'none'; marketAtCall: { home: number; draw: number; away: number } | null; atMs: number; minute?: number | null }]>;
   /** v6+. A fan's most recent resolved NEXT GOAL verdict — mirrors `verdicts`
    * above. Absent on a v1..v5 file — applySnapshot defaults to none. */
   nextGoalVerdicts?: Array<[string, NextGoalVerdictMsg]>;
@@ -392,7 +392,7 @@ export function applySnapshot(
     // NEXT GOAL (in-game, v6+) — a fan's open call for the current cycle +
     // their most recent resolved verdict. Absent on a v1..v5 file — both
     // loops are simply no-ops, never fabricating either.
-    for (const [anonId, oc] of sm.nextGoalOpen ?? []) match.restoreNextGoalOpen(anonId, oc.call, oc.marketAtCall, oc.atMs);
+    for (const [anonId, oc] of sm.nextGoalOpen ?? []) match.restoreNextGoalOpen(anonId, oc.call, oc.marketAtCall, oc.atMs, oc.minute ?? null);
     for (const [anonId, v] of sm.nextGoalVerdicts ?? []) match.restoreNextGoalVerdict(anonId, v);
     if (restoreMoments && sm.moments && sm.moments.length > 0) restoreMoments(sm.matchId, sm.moments);
     if (restoreOpenedTriggers && sm.openedTriggerIds && sm.openedTriggerIds.length > 0) restoreOpenedTriggers(sm.matchId, sm.openedTriggerIds);

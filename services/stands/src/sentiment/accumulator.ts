@@ -170,6 +170,15 @@ export class SentimentAccumulator {
     return [...this.moments];
   }
 
+  /** The market's per-minute belief PATH so far (minute-stamped de-vigged 1X2 triples) — the
+   * substrate the mint's cloth-record assembler weaves into the scarf's belief bands. Present only
+   * while this accumulator is warm (it's rebuilt by feed replay on boot and evicted with the
+   * match), so the assembler treats an empty/absent return as "reconstruct coarsely from the
+   * on-disk record's swings instead." Returns a copy — callers must not mutate the live path. */
+  getBeliefPath(): MarketPoint[] {
+    return this.full.filter((p) => p.minute != null && p.triple != null).map((p) => ({ ...p }));
+  }
+
   /** Snapshot restore only: reinstate moments felt before a restart. Call once,
    * right after construction (boot time) — appends, does not dedupe. */
   restoreMoments(moments: MomentFeeling[]): void {

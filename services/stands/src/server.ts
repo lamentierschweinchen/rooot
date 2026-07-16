@@ -39,6 +39,8 @@ import type { LiveScoreSnapshot } from './mint/relic-from-match';
 import { assetsByOwner } from './seat/album';
 import { bindClaim } from './seat/claim';
 import { mintScarfForClaim, type ScarfMint } from './seat/mint-scarf';
+import { assembleClothRecord } from './mint/assemble-cloth';
+import type { ClothRecord } from './mint/scarf-capture';
 import { loadProfile, saveProfile } from './seat/profile-store';
 import { isValidPubkey } from './seat/validate';
 
@@ -1749,7 +1751,10 @@ function handleNextGoalCall(state: ConnState, msg: Extract<ClientMsg, { type: 'n
   // atMs feeds the record row's openedAtMs (min over the book), which must
   // never be NaN/undefined (same trust level as PredictMsg.atMs otherwise).
   const atMs = typeof msg.atMs === 'number' && Number.isFinite(msg.atMs) ? msg.atMs : Date.now();
-  match.nextGoalCall(state.anonId, msg.call, marketAtCall, atMs);
+  // the live match minute at call time (the join cache's running latch) — stamps where this call
+  // will knot on the fan's scarf when it resolves. Null when no clocked message has arrived yet.
+  const minute = joinSnapshots.get(msg.matchId)?.lastMinute ?? null;
+  match.nextGoalCall(state.anonId, msg.call, marketAtCall, atMs, minute);
   broadcastToMatch(msg.matchId, match.nextGoalState(marketAtCall));
 }
 
@@ -2201,7 +2206,39 @@ async function handleSeatClaim(req: IncomingMessage, res: ServerResponse): Promi
         try {
           const result = match.verdictFor(grant.anonId)?.verdict ?? null;
           const fanNo = registry.fanNoFor(grant.anonId);
-          mint = await mintScarfForClaim(record, score, { result, fanNo });
+          // Assemble the fan's cloth record from the server's OWN authoritative data (the market's
+          // belief path, the on-disk goals, their rooted side + resolved NEXT GOAL calls) so the mint
+          // captures their REAL loom keepsake — never a client-sent record (law 1 + the claim gate).
+          // Null (unknown fixture / no belief) → the mint falls back to scarf-svg.
+          const fx = fixtureInfo(match.matchId);
+          let cloth: ClothRecord | null = null;
+          if (fx) {
+            let outcome: { sub: string; hit: boolean } | null = null;
+            if (record.call && result) {
+              const sub = record.call.home > record.call.away ? fx.home.code
+                : record.call.away > record.call.home ? fx.away.code : 'DRAW';
+              outcome = { sub, hit: result !== 'wrong' };
+            }
+            cloth = assembleClothRecord({
+              matchId: match.matchId,
+              home: { tri: fx.home.code, ink: fx.home.colors[0] },
+              away: { tri: fx.away.code, ink: fx.away.colors[0] },
+              score: [score.home, score.away],
+              root: record.side ?? null,
+              beliefPath: accumulators.get(match.matchId)?.getBeliefPath() ?? [],
+              record: latestSentimentRecordOnDisk(match.matchId),
+              nextGoalLog: match.fanStatsFor(grant.anonId)?.nextGoalLog ?? [],
+              outcome,
+              ks: {
+                editionNo: fanNo,
+                owner: pubkey,
+                call: outcome
+                  ? { label: `CALLED ${outcome.sub}${result === 'exact' ? ' · EXACT' : outcome.hit ? ' · OUTCOME' : ' · MISSED'}`, hit: outcome.hit }
+                  : null,
+              },
+            });
+          }
+          mint = await mintScarfForClaim(record, score, { result, fanNo, cloth });
         } catch (err) {
           console.warn(`[seat] mint threw unexpectedly for ${pubkey.slice(0, 8)}: ${String(err)}`);
         }
