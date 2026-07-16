@@ -37,6 +37,14 @@ body.embed .wrap{padding:6px 8px 8px}
 /* THE SHOOTOUT — the loom frame becomes a board when a match goes to penalties */
 .loomv.pens{overflow:hidden}
 /* headless mint capture (?keepsake=1&export=1): unclip the scroll chain so the whole sealed cloth lays out for one screenshot of #loomsvg */
+.collectbar{flex:none;padding:9px 4px calc(11px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:6px}
+.collectbar .ck{font-family:var(--disp);font-weight:900;font-size:14px;letter-spacing:.06em;color:var(--card);background:var(--ink);border:none;padding:12px 26px;cursor:pointer;box-shadow:0 2px 0 rgba(26,24,21,.28)}
+.collectbar .ck:active{transform:translateY(1px);box-shadow:0 1px 0 rgba(26,24,21,.28)}
+.collectbar .ck.collecting{opacity:.6;cursor:default}
+.collectbar .ck.done{background:var(--gold);color:var(--ink);cursor:default}
+.ckchain{font-family:system-ui,-apple-system,sans-serif;font-weight:600;font-size:11px;line-height:1.5;color:var(--sub);text-align:center;max-width:340px}
+.ckchain a{color:#C8504D;text-decoration:none;border-bottom:1px solid rgba(200,80,77,.45)}
+html.lexport .collectbar{display:none}   /* the keepsake capture is the cloth only — never the Collect chrome */
 html.lexport,html.lexport body{height:auto;overflow:visible}
 html.lexport .wrap{height:auto}
 html.lexport .loomwrap{flex:none}
@@ -79,6 +87,10 @@ html.lexport .loomv svg{animation:none;transform:none}
   <div class="mast"><span class="sc"><b class="h" id="hT">ARG</b> <span id="sc">0–0</span> <b class="a" id="aT">CPV</b></span><span class="rp"><span class="dot" id="liveDot"></span><span id="rp">REPLAY · 0′</span></span></div>
   <div class="sub">THE LOOM · THE MATCH, WOVEN</div>
   <div class="loomwrap"><div class="loomv" id="loomv"></div><div class="gooool" id="gooool"><img src="assets/gooool-v2.png" alt="GOOOL"></div><div class="board" id="board"></div></div>
+  <div class="collectbar" id="collectbar" hidden>
+    <button class="ck" id="loomKeep">COLLECT YOUR SCARF</button>
+    <div class="ckchain" id="loomChain" hidden></div>
+  </div>
 </div>
 
 <script src="plate/arg-cpv-data.js"></script>
@@ -215,6 +227,7 @@ html.lexport .loomv svg{animation:none;transform:none}
     if(M.dur-M.t>0.8)M.dur=Math.max(1,M.t);   // trim the un-woven warp to the whistle (live frames are cut long; the seed is already true)
     bindPersonal();   // final pull of the fan's side + resolved calls, so the sealed keepsake carries them
     dirty=true; writeCloth();
+    if(!KEEP){ var cb=document.getElementById('collectbar'); if(cb&&clothId())cb.hidden=false; }   // the scarf is sealed — offer to collect it (owner, Jul 16: the scarf is the collectible)
     // the board holds long enough to read the verdict, then lifts off the pressed cloth (which scrolls again)
     setTimeout(function(){ var bd=document.getElementById('board');
       if(bd&&bd.classList.contains('on')){ bd.classList.add('fold'); setTimeout(function(){ loomEl.className='loomv'; },950); } },2600);
@@ -771,6 +784,30 @@ html.lexport .loomv svg{animation:none;transform:none}
   window.addEventListener('storage',function(e){ if(!e)return; var k=e.key||''; if(k==='rooot.pass'||k.indexOf('rooot.calls.')===0)bindPersonal(); });
   requestAnimationFrame(loop);
   setInterval(function(){ if(document.hidden) step((window.performance&&performance.now())||Date.now()); }, 250);   // keep weaving when backgrounded (rAF pauses)
+
+  // COLLECT — the woven scarf IS the keepsake (owner, Jul 16). The cloth already sealed locally at
+  // full time (writeCloth), so it's safe the instant the whistle blows; Collect mints it to the fan's
+  // own key via __seat.claim — one honest tap, a plain proof link, never a faked asset. No adapter/
+  // no id → just the cabinet walk-home, never a fake claim.
+  (function(){
+    var btn=document.getElementById('loomKeep'), chain=document.getElementById('loomChain');
+    if(!btn)return;
+    function cabHref(){ var id=clothId(); return 'cabinet.html?from=keep'+(DEMOQ?'&demo=1':'&live=1'+(id?'&match='+encodeURIComponent(id):'')); }
+    function msg(h){ if(chain){ chain.hidden=false; chain.innerHTML=h; } }
+    btn.onclick=function(){
+      if(btn.dataset.busy||btn.dataset.done)return;
+      var id=clothId();
+      if(!window.__seat||typeof window.__seat.claim!=='function'||!id){ msg('<a href="'+cabHref()+'">→ it’s in your cabinet</a>'); return; }
+      btn.dataset.busy='1'; btn.classList.add('collecting'); btn.textContent='COLLECTING…'; msg('collecting your scarf — a few seconds');
+      window.__seat.claim({matchId:id}).then(function(res){
+        btn.dataset.busy=''; btn.classList.remove('collecting');
+        if(res&&res.mint){ btn.dataset.done='1'; btn.classList.add('done'); btn.textContent='COLLECTED ✓';
+          var url=res.mint.asset?('https://explorer.solana.com/address/'+encodeURIComponent(res.mint.asset)+'?cluster=devnet'):res.mint.txUrl;
+          msg('permanently yours · <a href="'+url+'" target="_blank" rel="noopener">view it ↗</a> · <a href="'+cabHref()+'">cabinet</a>'); }
+        else { btn.textContent='COLLECT YOUR SCARF'; msg('your seat is saved — your scarf is ready at full time · <a href="'+cabHref()+'">cabinet</a>'); }
+      }).catch(function(){ btn.dataset.busy=''; btn.classList.remove('collecting'); btn.textContent='TRY AGAIN'; msg('<span style="color:#C8302A">something went wrong — try again</span> · <a href="'+cabHref()+'">cabinet</a>'); });
+    };
+  })();
   // (the legend is dead — the cloth answers a thumb, and the goal teaches the alphabet)
 })();
 </script>
@@ -778,5 +815,6 @@ html.lexport .loomv svg{animation:none;transform:none}
 <script src="plate/demo-suicol.js"></script>
 <script src="demo-feed.js"></script>
 <script src="loom-adapter.js"></script>
+<script src="seat-adapter.js"></script>
 </body>
 </html>

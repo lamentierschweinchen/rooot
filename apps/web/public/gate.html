@@ -299,7 +299,7 @@ function wireLiveGate(){
 }
 if(LIVE&&!wireLiveGate()){ var _liveGate=setInterval(function(){ if(wireLiveGate())clearInterval(_liveGate); },120); }
 
-function ready(){ if(side && touched) go.classList.add('ready'); }
+function ready(){ if(side) go.classList.add('ready'); }   // side picked = submittable; the shown score (0–0 or tapped) is the call
 
 // ?demo=1 — the market bar reads the real de-vigged 1X2 from window.__match (no longer sample)
 function paintMarket(m){ if(!m||!m.market)return; var mk=m.market, t=m.teams||{};
@@ -331,7 +331,7 @@ function paintScore(){ [].forEach.call(score.querySelectorAll('.scn'),function(n
 });
 go.onclick=function(){
   if(!go.classList.contains('ready')){
-    var need=!side?ends:score;   // the first unfinished step shakes — feedback, not an error
+    var need=ends;   // side is the only gate now — nudge the picker if they haven't chosen one
     need.classList.remove('nudge'); void need.offsetWidth; need.classList.add('nudge');
     return;
   }
