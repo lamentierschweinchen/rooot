@@ -11,3 +11,6 @@ docs/txline/probe/
 .vercel
 .dev-shots/
 .superpowers/
+
+# retired material — kept locally, out of git (AGENTS.md: nobody builds here)
+archive/
