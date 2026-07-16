@@ -24,10 +24,24 @@
   // leaves every other activation path (/live, ?site=1, ?demo=1) byte-identical.
   if (q.get('keepsake') === '1') return;
   var DEMO = q.get('demo') === '1';   // live by default; demo only when explicitly asked
+  // ?replay=1 — the SEALED-MATCH front door (/live rewrites here). A finished match is
+  // served as a self-contained fast-forward weave off the baked window.__DEMO_ENGARG feed
+  // (no live wire to a stuck room): it weaves the REAL recorded odds/events, reaches
+  // FULL_TIME, seals into the collectible keepsake. The masthead says REPLAY (mode below).
+  // /live is a Vercel REWRITE to woven-loom — the browser path stays "/live" and the rewrite's
+  // ?replay query never reaches the client, so the sealed-replay signal rides the PATHNAME. The
+  // explicit ?replay=1 stays supported for direct woven-loom.html testing.
+  var REPLAY = q.get('replay') === '1' || location.pathname === '/live';
+  var REPLAY_SECONDS = 30;   // the whole match compressed into this many real seconds — an "extreme fast forward" (owner, Jul 16). demo-feed caps the recording's dead-air gaps (half-time) so this stays even.
   // Activate on the explicit dev opt-in (?loomfeed=1) OR the clean live front
-  // door (rooot.club / /live, served by a rewrite). Direct /loom-proto stays
-  // the self-contained demo — untouched.
-  var SITE = location.pathname === '/' || location.pathname === '/live' || q.get('site') === '1' || DEMO;
+  // door (rooot.club / /live, served by a rewrite) OR the sealed replay (?replay=1 /
+  // /live). REPLAY must be in SITE: without it, ?replay=1 on a bare /woven-loom.html
+  // path early-returned here, so L.live() never ran, M.live stayed false, and the
+  // page fell back to the built-in ARG-CPV seed (its 3-2 scoreline showing under ENG-
+  // ARG colours) instead of weaving the real baked feed. /live already matched via the
+  // pathname; adding REPLAY makes direct ?replay=1 testing behave identically. Direct
+  // /loom-proto stays the self-contained demo — untouched.
+  var SITE = location.pathname === '/' || location.pathname === '/live' || q.get('site') === '1' || DEMO || REPLAY;
   if (q.get('loomfeed') !== '1' && !SITE) return;
   var explicitMatch = q.get('match');   // ?match= always wins — never touches the manifest
   var wsBase = q.get('ws') || 'wss://rooot-stands.fly.dev/';
@@ -103,7 +117,7 @@
     // flagged ?replay=1 on a ?ws= endpoint) tells the masthead the truth — the adapter has no
     // way to infer "this is history" from the wire's shape alone, so the operator states it.
     // Never fires on the real live path. Guarded so an older loom build (no .mode yet) can't throw.
-    if ((DEMO || q.get('replay') === '1') && typeof L.mode === 'function') L.mode('replay');
+    if ((DEMO || REPLAY) && typeof L.mode === 'function') L.mode('replay');
 
     var minute = 0;            // current match minute (decimal), the live edge
     var haveMinute = false;    // true once the wire ANCHORS a real match minute. Gates the
@@ -519,10 +533,15 @@
     // the loom shows the REAL recorded match offline, not its ARG-CPV demo seed.
     if (DEMO && !q.get('ws') && window.__demoFeed) {
       window.__demoFeed.start(function (msg) { try { onFeed(msg); } catch (err) { console.warn('[loom-adapter] translate error', err); } });
+    } else if (REPLAY && !q.get('ws') && window.__demoFeed && window.__DEMO_ENGARG) {
+      // /live: fast-forward-weave the real finished ENG-ARG match to full time, then seal into the keepsake
+      window.__demoFeed.startFeed(window.__DEMO_ENGARG, function (msg) { try { onFeed(msg); } catch (err) { console.warn('[loom-adapter] translate error', err); } }, REPLAY_SECONDS);
     } else {
       connect();
     }
   });
   }
-  if (DEMO) { boot(explicitMatch || '18209181'); } else { resolveMatchId(explicitMatch, boot); }
+  if (DEMO) { boot(explicitMatch || '18209181'); }
+  else if (REPLAY) { boot(explicitMatch || '18241006'); }   // the sealed ENG-ARG replay boots on its fixture id — teams/colours ride the baked feed head
+  else { resolveMatchId(explicitMatch, boot); }
 })();

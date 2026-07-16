@@ -22,21 +22,37 @@
 
   /**
    * Play `feed` (sorted { atMs, msg }[]) into `onMsg`, compressed into
-   * `demoSeconds` of wall-clock time. Returns { stop() }. Pure enough to be
-   * Node-callable (no window/document reads) — only Date.now()/setInterval
-   * are used, both available in Node too.
+   * `demoSeconds` of wall-clock time — with dead-air gaps between messages
+   * capped (see GAP_CAP_MS below) so a long stall in the recording (half-time,
+   * a recorder reconnect) doesn't stall the weave. Returns { stop() }. Pure
+   * enough to be Node-callable (no window/document reads) — only Date.now()/
+   * setInterval are used, both available in Node too.
    */
   function play(feed, onMsg, demoSeconds) {
     var secs = typeof demoSeconds === 'number' && demoSeconds > 0 ? demoSeconds : DEMO_SECONDS;
     if (!feed || !feed.length) return { stop: function () {} };
-    var t0 = feed[0].atMs;
-    var span = Math.max(1, feed[feed.length - 1].atMs - t0); // guard a degenerate single-tick feed
+    // The playhead runs over a COMPRESSED timeline, not raw receivedAtMs: the empty stretches in
+    // the recording (the half-time break — a real ~226s dead gap in the eng-arg capture — and the
+    // recorder's reconnect/rotation gaps) are capped so the weave never stalls on dead air. This
+    // mirrors the live replay's own gap cap (services/stands/src/ingest/replay.ts caps inter-line
+    // gaps at 5s). Honest: real messages, real order — only the empty time between them shrinks,
+    // so the whole match weaves at an even, genuinely-fast pace across `secs` (owner: extreme
+    // fast-forward). eff[k] = cumulative CAPPED ms elapsed up to message k.
+    var GAP_CAP_MS = 5000;
+    var eff = new Array(feed.length);
+    eff[0] = 0;
+    for (var k = 1; k < feed.length; k++) {
+      var g = feed[k].atMs - feed[k - 1].atMs;
+      if (!(g > 0)) g = 0; // out-of-order / same-instant merge → no advance
+      eff[k] = eff[k - 1] + Math.min(g, GAP_CAP_MS);
+    }
+    var span = Math.max(1, eff[feed.length - 1]); // guard a degenerate single-tick feed
     var startWall = Date.now();
     var i = 0;
     var timer = setInterval(function () {
       var elapsedMs = Date.now() - startWall;
-      var playheadAtMs = t0 + (elapsedMs / (secs * 1000)) * span; // wall-clock -> original timeline
-      while (i < feed.length && feed[i].atMs <= playheadAtMs) {
+      var playhead = (elapsedMs / (secs * 1000)) * span; // wall-clock -> compressed timeline
+      while (i < feed.length && eff[i] <= playhead) {
         try {
           onMsg(feed[i].msg);
         } catch (e) {}
@@ -58,16 +74,25 @@
   // match-read, loom-adapter, stats-adapter) rides the SAME clock instead of each spinning
   // its own drifting playback. Consumers all subscribe at page load, before the first 100ms
   // tick fires, so none miss the opening messages.
-  var subs = [], player = null;
+  var subs = [], player = null, feedData = null, feedSecs = DEMO_SECONDS;
   function ensurePlaying() {
-    if (player || !window.__DEMO_SUICOL) return;
-    player = play(window.__DEMO_SUICOL, function (msg) {
+    var data = feedData || window.__DEMO_SUICOL;   // an explicit startFeed() feed wins; else the SUI-COL walkthrough default
+    if (player || !data) return;
+    player = play(data, function (msg) {
       for (var i = 0; i < subs.length; i++) { try { subs[i](msg); } catch (e) {} }
-    }, DEMO_SECONDS);
+    }, feedSecs);
   }
   window.__demoFeed = {
     DEMO_SECONDS: DEMO_SECONDS,
     subscribe: function (onMsg) { subs.push(onMsg); ensurePlaying(); return { stop: function () {} }; },
     start: function (onMsg) { return this.subscribe(onMsg); }, // alias — shares the one playback
+    // Play a SPECIFIC baked feed (e.g. window.__DEMO_ENGARG for the /live sealed replay) instead of
+    // the SUI-COL walkthrough default, optionally compressed into a different wall-clock window
+    // (the /live hero wants an extreme fast-forward weave, not the 150s walkthrough pace).
+    startFeed: function (data, onMsg, demoSeconds) {
+      if (data) feedData = data;
+      if (typeof demoSeconds === 'number' && demoSeconds > 0) feedSecs = demoSeconds;
+      subs.push(onMsg); ensurePlaying(); return { stop: function () {} };
+    },
   };
 })(typeof window !== 'undefined' ? window : this);

@@ -38,6 +38,7 @@ body.embed .wrap{padding:6px 8px 8px}
 .loomv.pens{overflow:hidden}
 /* headless mint capture (?keepsake=1&export=1): unclip the scroll chain so the whole sealed cloth lays out for one screenshot of #loomsvg */
 .collectbar{flex:none;padding:9px 4px calc(11px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:6px}
+.collectbar[hidden]{display:none}   /* the [hidden] attribute (unset only at seal()) must beat the display:flex above — else the Collect button shows mid-weave, before the cloth is sealed */
 .collectbar .ck{font-family:var(--disp);font-weight:900;font-size:14px;letter-spacing:.06em;color:var(--card);background:var(--ink);border:none;padding:12px 26px;cursor:pointer;box-shadow:0 2px 0 rgba(26,24,21,.28)}
 .collectbar .ck:active{transform:translateY(1px);box-shadow:0 1px 0 rgba(26,24,21,.28)}
 .collectbar .ck.collecting{opacity:.6;cursor:default}
@@ -812,7 +813,16 @@ html.lexport .loomv svg{animation:none;transform:none}
 })();
 </script>
 <script src="loom-tape.js"></script>
-<script src="plate/demo-suicol.js"></script>
+<!-- The baked serverless replay feed — load ONLY the one this view needs (each ~2MB), synchronously
+     before demo-feed.js reads its global. ?replay=1 (/live) → the sealed ENG-ARG fast-forward weave;
+     ?demo=1 → the SUI-COL walkthrough. A plain live loom loads neither (saves the download). -->
+<script>
+(function(){ var q=new URLSearchParams(location.search);
+  var replay = q.get('replay')==='1' || location.pathname==='/live';   // /live rewrites to woven-loom — the replay signal rides the PATHNAME (the rewrite's query never reaches the client)
+  var b = replay ? 'plate/demo-engarg.js' : (q.get('demo')==='1' ? 'plate/demo-suicol.js' : null);
+  if (b) document.write('<scr'+'ipt src="'+b+'"></scr'+'ipt>');
+})();
+</script>
 <script src="demo-feed.js"></script>
 <script src="loom-adapter.js"></script>
 <!-- SEAT — the loom's Collect mints the scarf, so it needs the full claim stack in the
