@@ -35,6 +35,11 @@ import { uploadRelic } from '../mint/storage';
 import { mintRelic } from '../mint/mint';
 import { makeScarfCoverPng } from '../mint/cover';
 import { scarfSvg } from '../mint/scarf-svg';
+import { captureScarfPng, type ClothRecord } from '../mint/scarf-capture';
+
+/** Origin the headless capture loads the loom from (the deployed surfaces). Fly sets this to the
+ * production origin; defaults to it so a local/dev mint still points somewhere real. */
+const SCARF_CAPTURE_BASE = process.env.SCARF_CAPTURE_BASE || 'https://rooot.club';
 import { ensureIrysFunded } from '../mint/irys-fund';
 import { getMintRuntime } from '../mint/runtime';
 import { fixtureInfo } from '../sentiment/teams';
@@ -54,6 +59,12 @@ export interface ScarfExtras {
   result: 'exact' | 'outcome' | 'wrong' | null;
   /** THE FAN SERIAL (registry.ts's fanNoFor) — the fan's global, persistent, first-come ordinal. */
   fanNo: number;
+  /** The fan's sealed cloth record, ASSEMBLED SERVER-SIDE from authoritative match data (belief,
+   * events, score, rooted side, resolved calls) — NEVER a client-sent record (law 1: nothing
+   * renders that didn't happen; and the claim honesty gate never trusts the body). When present,
+   * the mint captures the real loom keepsake off it as the cover; absent → the scarf-svg
+   * reconstruction. Optional so a mint without an assembled record still produces an honest cover. */
+  cloth?: ClothRecord | null;
 }
 
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
@@ -139,27 +150,42 @@ async function mintScarfNow(record: ClaimRecord, score: LiveScoreSnapshot, extra
     const capturedAtISO = new Date().toISOString();
     const facts = scarfFactsFor(record, relic.finalScore, fx, extras);
 
-    // The on-chain cover IS the scarf (mint/scarf-svg.ts, vendored from the design lane): the two
-    // team fields, the real final score, the fan's serial + date, and any goals woven in as
-    // medallions at their minute. Honest by construction — empty goals → plain cloth, never a
-    // fabricated mark. Ordered fallback per the capture recipe (scarf-svg → gradient): the branded
-    // gradient (cover.ts) only if the render throws, never the wrong match, never a blank.
-    let cover: Buffer;
-    let coverMime: string;
-    try {
-      cover = Buffer.from(scarfSvg({
-        home: { tri: relic.fixture.home.code, color: relic.fixture.home.colors[0] ?? '#8C8467' },
-        away: { tri: relic.fixture.away.code, color: relic.fixture.away.colors[0] ?? '#8C8467' },
-        score: { h: relic.finalScore.home, a: relic.finalScore.away },
-        dateISO: relic.fixture.kickoffISO,
-        serial: facts.serial,
-        events: relic.goals.map((g) => ({ kind: 'goal' as const, minute: g.minute ?? 0, side: g.side })),
-      }), 'utf8');
-      coverMime = 'image/svg+xml';
-    } catch (err) {
-      console.warn(`[seat:mint] scarf-svg render failed for ${record.matchId}, falling back to gradient cover: ${String(err)}`);
-      cover = Buffer.from(makeScarfCoverPng());
-      coverMime = 'image/png';
+    // The on-chain cover, in the capture recipe's ordered fallback (capture → scarf-svg → gradient):
+    //  (1) the fan's REAL loom keepsake — captured headless off the deployed loom with the
+    //      server-assembled cloth record, so their belief cloth + rooted selvage + call knots ARE
+    //      the on-chain image. Honest by construction: the record is built server-side from
+    //      authoritative match data, never client-sent (law 1). Fires only when a record was assembled.
+    //  (2) scarf-svg — the server-side reconstruction (team fields, real score, goal medallions)
+    //      when no cloth record is available or the capture fails.
+    //  (3) the branded gradient (cover.ts) — last resort; never the wrong match, never a blank.
+    let cover: Buffer | null = null;
+    let coverMime = 'image/png';
+    if (extras.cloth) {
+      const shot = await captureScarfPng(extras.cloth, { base: SCARF_CAPTURE_BASE, matchId: record.matchId });
+      if (shot) {
+        cover = shot;
+        coverMime = 'image/png';
+        console.log(`[seat:mint] captured the fan's loom keepsake (${shot.length}b) for ${record.matchId} — the on-chain scarf is their real cloth`);
+      } else {
+        console.warn(`[seat:mint] keepsake capture returned null for ${record.matchId} — falling back to scarf-svg`);
+      }
+    }
+    if (!cover) {
+      try {
+        cover = Buffer.from(scarfSvg({
+          home: { tri: relic.fixture.home.code, color: relic.fixture.home.colors[0] ?? '#8C8467' },
+          away: { tri: relic.fixture.away.code, color: relic.fixture.away.colors[0] ?? '#8C8467' },
+          score: { h: relic.finalScore.home, a: relic.finalScore.away },
+          dateISO: relic.fixture.kickoffISO,
+          serial: facts.serial,
+          events: relic.goals.map((g) => ({ kind: 'goal' as const, minute: g.minute ?? 0, side: g.side })),
+        }), 'utf8');
+        coverMime = 'image/svg+xml';
+      } catch (err) {
+        console.warn(`[seat:mint] scarf-svg render failed for ${record.matchId}, falling back to gradient cover: ${String(err)}`);
+        cover = Buffer.from(makeScarfCoverPng());
+        coverMime = 'image/png';
+      }
     }
     await ensureIrysFunded(umi, cover.length + 8192);
 

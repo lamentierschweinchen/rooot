@@ -41,6 +41,7 @@
     "@metaplex-foundation/umi-bundle-defaults": "1.5.1",
     "@metaplex-foundation/umi-uploader-irys": "1.5.0",
     "@solana/web3.js": "1.98.4",
+    "playwright": "1.48.2",
     "ws": "^8.18.0"
   },
   "devDependencies": {
