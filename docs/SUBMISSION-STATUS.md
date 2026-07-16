@@ -64,60 +64,54 @@ The loom was 90% built for this; the gap was a producer and persistence.
   blocked by a harness artifact (the demo's rAF clock jumps when the tab backgrounds). The
   live NEXT GOAL path and the whole loom side are runtime-proven.
 
-### Mint image — the on-chain scarf (verified to image + typecheck + storage)
-- Vendored the design lane's `scarf-svg` into the stands mint lane
-  (`services/stands/src/mint/scarf-svg.ts` + `scarf-fonts.ts`) — the Docker image copies
-  `services/stands` only, so it must ship in-lane.
-- `mint-scarf.ts` renders it as the claim-mint cover: team fields, real final score, the
-  fan's serial + date, goals as medallions (empty goals → plain cloth, honest). Uploaded
-  as `image/svg+xml`; the branded gradient stays as the recipe's ordered fallback.
-- **Proof:** stands typecheck green; `storage.ts` propagates the svg mime (Irys
-  Content-Type tag + metadata `files[].type`); the vendored `.ts` renders the ENG-ARG claim
-  scarf via `tsx` (the stands' own runtime), screenshotted.
+### Mint image — the on-chain scarf IS the fan's woven loom (Fly + Playwright)
+- The mint captures the fan's **real sealed loom keepsake** headless — chromium on the Fly
+  stands (`mint/scarf-capture.ts`) renders the deployed `rooot.club` loom against a
+  server-assembled cloth record (belief + events + score + rooted selvage + resolved calls),
+  and that PNG is the on-chain image: the pure-odds cloth the fan watched, with their own marks.
+- **Ordered fallback** (never the wrong match, never blank): capture → `scarf-svg`
+  (server-side reconstruction) → branded gradient. Pure-odds means the cloth has **no goal
+  medallions by design** — a plain belief weave is correct, not a gap.
+- **Proof:** the capture runs against `rooot.club` → a 788×1868 personal keepsake PNG
+  (screenshotted); the server-side record assembler is unit-verified; stands typecheck green;
+  chromium ships in the Fly image (deployed). *One thing left:* a live devnet Collect to confirm
+  the Fly capture end-to-end (P1 below).
 
 ---
 
 ## TODOs before submission (prioritized)
 
-### P0 — blocks a live submission
-1. **Deploy `main` to production** — `vercel --prod` from the repo root (owner action;
-   the agent deploy-classifier blocks it). This aliases **rooot.club** to the new build →
-   design + P2 + mint-image all go live at once. *Everything below assumes this is done.*
-2. **Verify prod after deploy** — the 7 surfaces on `rooot.club` (not the `*.vercel.app`
-   URLs, which are SSO-walled). Spot-check `/live`, `/demo`, `/terrace`, the gate.
+### ✅ Done — deployed
+1. ~~Deploy `main` to production~~ — **done.** Both deploys shipped: Vercel (`rooot.club` →
+   the pure-odds loom + design + P2 + gate/keepsake fixes) and the Fly stands (mint code +
+   chromium). Spot-checked live: `/live` weaves, gate 0–0 submits, cabinet reads "you".
 
-### P1 — submission quality
-3. **Devnet mint smoke-test** — claim a scarf on a post-FT match, confirm the new
-   `image/svg+xml` cover mints and renders in a Solana explorer / wallet. The mint/upload
-   logic is unchanged (only the cover bytes + mime differ), so risk is low — but it's the
-   one unverified link in the mint-image chain.
-4. **Refresh [SUBMISSION-tech-doc.md](SUBMISSION-tech-doc.md)** (Jul 14) — add the woven
-   keepsake scarf, the P2 personalization, and the on-chain scarf image. It currently
-   under-sells what now ships.
+### P1 — the one thing left to prove
+2. **Devnet mint smoke-test** — the mint captures the loom off `rooot.club` (deploy-first
+   ordering is satisfied), but no live Collect has confirmed the **Fly** capture end-to-end.
+   It fails *soft* — a browser-launch / URL / timing failure falls back to `scarf-svg` (no
+   root, no calls) and logs a warning, so it wouldn't crash but the keepsake would quietly be
+   the fallback, not the loom. **Do one Collect on `rooot.club` (ENG-ARG is sealed), then
+   check the Fly logs** for `captured the fan's loom keepsake (…b)` vs `falling back to
+   scarf-svg`, and eyeball the minted image in a wallet.
+3. **Refresh [SUBMISSION-tech-doc.md](SUBMISSION-tech-doc.md)** (Jul 14) — add the woven
+   keepsake scarf, the P2 personalization, and the on-chain scarf image. Under-sells what ships.
 
-### P2 — enhancements (optional, only if time)
-5. **Decision — which scarf is THE minted image?** (owner values call — see below).
-6. **Weave goals into the minted scarf** — the claim relic has `goals: []`, so the on-chain
-   scarf is currently plain cloth (real score, no goal medallions). Feeding the goal
-   timeline (from the sentiment record / match state) would light up the medallions.
-7. **Next live match**, if one falls before Jul 19 — cutover + record it (grows the
+### P2 — optional
+4. **Next live match**, if one falls before Jul 19 — cutover + record it (grows the
    [live-feed corpus](LIVE-FEED-CORPUS.md); every messy feed makes us more robust).
 
 ---
 
-## Decisions for the owner
+## Decisions — resolved (Jul 16)
 
-- **Which scarf design is the on-chain keepsake?** There are two honest renders:
-  - **The loom keepsake** (vertical, the belief woven as colour bands, the rooted-team
-    selvage, the call knots) — rich and *personal* (carries P2). It's the scarf the fan
-    watches weave. Rendering it to an image needs a headless browser (proven:
-    `loom-keepsake-capture.mjs`), which the Fly server doesn't have.
-  - **scarf-svg** (horizontal, team fields + score cartouche + goal medallions) —
-    server-renderable, zero-dep, now wired as the mint cover.
-  - Right now the mint ships **scarf-svg** (the server-side path). If we want the on-chain
-    image to *be the loom the fan watched* (with their marks), we'd run the Playwright
-    capture in a mint pipeline that has a browser. **Ship scarf-svg as-is, or invest in the
-    loom-capture path?**
+- **Which scarf is the on-chain keepsake?** → **the loom keepsake.** The mint runs the
+  Playwright capture on the Fly stands (chromium added) and mints the fan's woven **pure-odds**
+  loom — the belief cloth, rooted selvage, and call knots. `scarf-svg` is the fallback only.
+- **The 0–0 gate** → side-picked submits (0–0 included); no forced score tap.
+- **The keepsake collect surface** → the loom got a **Collect** button (the scarf is the
+  collectible); the terrace card stays as a lighter local memento.
+- **Market vs crowd bar** → keep the percentage (already labelled `ODDS` vs `FAN PREDICTIONS`).
 
 ---
 
