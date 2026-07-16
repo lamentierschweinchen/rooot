@@ -48,6 +48,7 @@ import {
   parseLineups,
 } from '../contracts/normalize';
 import type { FeedMsg } from '../contracts/feed';
+import type { FixtureRoster } from '../contracts/normalize';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -58,6 +59,10 @@ const SCORES_FILE = path.join(ROOT, 'fixtures/live-eng-arg/scores-engarg.jsonl')
 const SCORES_FILE_2H = path.join(ROOT, 'fixtures/live-eng-arg/scores-engarg-2h.jsonl');
 const ODDS_FILE = path.join(ROOT, 'fixtures/live-eng-arg/odds-engarg.jsonl');
 const ODDS_FILE_2H = path.join(ROOT, 'fixtures/live-eng-arg/odds-engarg-2h.jsonl');
+// The one-shot `Action:"lineups"` envelope, recovered from the scores snapshot by
+// scripts/recover-engarg-lineups.ts (the recording started after it broadcast). Fills
+// the stadium TEAM SHEET and names the whistle/bench events. Gitignored like the rest.
+const LINEUPS_FILE = path.join(ROOT, 'fixtures/live-eng-arg/lineups-engarg.jsonl');
 const OUT_FILE = path.join(ROOT, 'apps/web/public/plate/demo-engarg.js');
 
 interface RawLine {
@@ -88,7 +93,7 @@ function peekFixtureId(raw: string): number | null {
  * __disconnect transport lines) pass the filter harmlessly — they simply
  * fail every parser's own guards and contribute nothing.
  */
-function bakeFile(file: string): Baked[] {
+function bakeFile(file: string, roster?: FixtureRoster): Baked[] {
   const out: Baked[] = [];
   const text = fs.readFileSync(file, 'utf8');
   for (const line of text.split('\n')) {
@@ -110,7 +115,7 @@ function bakeFile(file: string): Baked[] {
     if (sc) out.push({ atMs: at, msg: { type: 'score', ev: sc } });
     const stt = parseStatusMessage(raw, at, 'replay');
     if (stt) out.push({ atMs: at, msg: { type: 'status', ev: stt } });
-    const led = parseLedgerMessage(raw, at, 'replay');
+    const led = parseLedgerMessage(raw, at, 'replay', roster);
     if (led) out.push({ atMs: at, msg: { type: 'ledger', msg: led } });
     const od = parseOddsMessage(raw, at, 'replay');
     if (od) out.push({ atMs: at, msg: { type: 'odds', tick: od } });
@@ -126,12 +131,49 @@ function bakeFile(file: string): Baked[] {
   return out;
 }
 
+/**
+ * Build the fixture roster from the recovered lineups file — the byPlayerId map
+ * that names goal/card/sub/injury rows. Returns undefined if the file is absent
+ * (recovery not run) or carries no parseable lineups, in which case the bake still
+ * succeeds with honestly-nameless events (the same degrade-gracefully stance the
+ * live server's seedSnapshot takes). Never fabricates — the roster is only ever
+ * the real wire's `Action:"lineups"` envelope run through parseLineups.
+ */
+function buildRoster(file: string): FixtureRoster | undefined {
+  if (!fs.existsSync(file)) {
+    console.warn(`[bake-engarg] no lineups file at ${file} — events stay nameless (run scripts/recover-engarg-lineups.ts).`);
+    return undefined;
+  }
+  const text = fs.readFileSync(file, 'utf8');
+  for (const line of text.split('\n')) {
+    const t = line.trim();
+    if (!t) continue;
+    let o: RawLine;
+    try {
+      o = JSON.parse(t) as RawLine;
+    } catch {
+      continue;
+    }
+    const raw = typeof o.data === 'string' ? o.data : JSON.stringify(o.data);
+    const roster = parseLineups(raw);
+    if (roster && roster.fixtureId === FIXTURE_ID) return roster;
+  }
+  console.warn(`[bake-engarg] lineups file ${file} carried no parseable lineups envelope — events stay nameless.`);
+  return undefined;
+}
+
 function main(): void {
-  const scores = bakeFile(SCORES_FILE);
-  const scores2h = bakeFile(SCORES_FILE_2H);
-  const odds = bakeFile(ODDS_FILE);
-  const odds2h = bakeFile(ODDS_FILE_2H);
-  let merged = [...scores, ...scores2h, ...odds, ...odds2h].sort((a, b) => a.atMs - b.atMs);
+  // Build the roster ONCE from the recovered lineups, then thread it through every
+  // ledger parse so goals/cards/subs/injuries resolve real names from the same wire.
+  const roster = buildRoster(LINEUPS_FILE);
+  const scores = bakeFile(SCORES_FILE, roster);
+  const scores2h = bakeFile(SCORES_FILE_2H, roster);
+  const odds = bakeFile(ODDS_FILE, roster);
+  const odds2h = bakeFile(ODDS_FILE_2H, roster);
+  // Bake the lineups file too so a {type:'lineup'} message exists for the head to
+  // re-attach → the stadium TEAM SHEET fills. (roster passed for parity; no ledger there.)
+  const lineupMsgs = bakeFile(LINEUPS_FILE, roster);
+  let merged = [...scores, ...scores2h, ...odds, ...odds2h, ...lineupMsgs].sort((a, b) => a.atMs - b.atMs);
 
   // Capture pre-match head data that must survive the trim: the starting XI (lineups arrive ~1h
   // before kickoff, well outside the trim window below).
@@ -170,7 +212,8 @@ function main(): void {
 
   console.log(
     `[bake-engarg] fixture ${FIXTURE_ID}: score=${counts.score} status=${counts.status} ` +
-      `ledger=${counts.ledger} odds=${counts.odds} -> ${merged.length} total messages`,
+      `ledger=${counts.ledger} odds=${counts.odds} lineup=${counts.lineup ?? 0} ` +
+      `(roster ${roster ? `${roster.byPlayerId.size} players` : 'ABSENT'}) -> ${merged.length} total messages`,
   );
 
   if (merged.length === 0) {
@@ -205,9 +248,9 @@ function main(): void {
   const body =
     `// AUTO-GENERATED by scripts/bake-engarg.ts — do not hand-edit.\n` +
     `// ENG-ARG (fixture ${FIXTURE_ID}) replay, merged from fixtures/live-eng-arg/scores-engarg.jsonl\n` +
-    `// + scores-engarg-2h.jsonl + odds-engarg.jsonl + odds-engarg-2h.jsonl, baked ${new Date().toISOString()}.\n` +
+    `// + scores-engarg-2h.jsonl + odds-engarg.jsonl + odds-engarg-2h.jsonl + lineups-engarg.jsonl, baked ${new Date().toISOString()}.\n` +
     `// ${merged.length} messages (score=${counts.score} status=${counts.status} ledger=${counts.ledger} ` +
-    `odds=${counts.odds}), sorted by receivedAtMs.\n` +
+    `odds=${counts.odds} lineup=${counts.lineup ?? 0}), sorted by receivedAtMs.\n` +
     `var __DEMO_ENGARG = ${JSON.stringify(merged)};\n` +
     `if (typeof window !== 'undefined') window.__DEMO_ENGARG = __DEMO_ENGARG;\n` +
     `if (typeof module !== 'undefined' && module.exports) module.exports = { feed: __DEMO_ENGARG };\n`;
