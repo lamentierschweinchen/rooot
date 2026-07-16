@@ -1,5 +1,12 @@
 # PAPER & CLOTH — the site language (the law)
 
+> **STATUS (Jul 16):** this is the design *language / aesthetic* reference — the paper-and-cloth
+> world below is what stands. It is NOT the current build map. The shipped product is the **seven**
+> static surfaces in `apps/web/public/` (gate · ground · woven-loom · terrace · stadium · cabinet ·
+> showcase) — see `AGENTS.md` + `docs/SUBMISSION-STATUS.md` for what's live. Any passage describing a
+> different surface set (six surfaces, LOBBY / BACK PAGE) or a "build inside `archive/src-spa-frozen/`"
+> plan predates the ship and is historical — do not act on it.
+
 *Owner-approved direction (Jul 5, design session). Synthesizes the loom lineage
 (woven cloth), the pop/print lineage (SYSTEM.md · POP-LANGUAGE.md · archive/design-docs-consumed/design/BRIEF-PRINT-SOUL.md),
 the mechanism schema (docs/MECHANISMS.md), and the sentiment lens (docs/SENTIMENT.md)

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "ROOOT — the fan experience. Phone-first Vite app: the stage (tide-on-pitch), the crowd (ends/cheer/pulse/rows), the relics (scarf/pin/trophy case), the mint.",
+  "description": "ROOOT — a free, live, honest World Cup fan experience: a paper-and-cloth match programme that comes alive on your phone and on-chain. Seven static surfaces (gate · ground · woven-loom · terrace · stadium · cabinet · showcase) + vanilla adapters.",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

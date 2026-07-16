@@ -33,9 +33,8 @@ ROOOT/
 ```
 
 The old single-page app under `apps/web/src/` (`main.ts` + `stage/`, `crowd/`,
-`relics/`, `mint/`, `data/`, `lib/`) is frozen and unused — `index.html` no longer
-imports it and nothing a fan reaches runs it. It is being retired to
-`archive/src-spa-frozen/`.
+`relics/`, `mint/`, `data/`, `lib/`) was retired to `archive/src-spa-frozen/` and
+lives there frozen — `index.html` no longer imports it and nothing a fan reaches runs it.
 
 ## Data flow (one server, two buses)
 

@@ -8,7 +8,6 @@
     "dev": "npm --prefix apps/web run dev",
     "build": "npm --prefix apps/web run build",
     "typecheck": "tsc --noEmit && npm --prefix apps/web run typecheck && npm --prefix services/stands run typecheck",
-    "spike": "tsx scripts/txline-spike.ts",
     "subscribe": "tsx scripts/txline-subscribe.ts",
     "record": "tsx scripts/record.ts",
     "inspect": "tsx scripts/replay-inspect.ts"

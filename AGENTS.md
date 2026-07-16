@@ -58,8 +58,8 @@ config (`vercel.json`, `services/stands/fly.toml`) are integration seams — the
 coordinator repoints them at cutover.
 
 The old `apps/web/src/` SPA (`main.ts` + `stage/`, `crowd/`, `relics/`, `mint/`,
-`data/`, `lib/`) is frozen and unused — nothing a fan reaches runs it. It is being
-retired to `archive/src-spa-frozen/`; don't build there.
+`data/`, `lib/`) was retired to `archive/src-spa-frozen/` and lives there frozen —
+nothing a fan reaches runs it; don't build there.
 
 Stay in your lane's directories + your own new files. If two lanes must touch the
 same file, stop and tell the coordinator.

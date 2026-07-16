@@ -251,7 +251,7 @@ function deriveRecord(sc){ var n=0; for(var i=0;i<sc.length;i++)if(sc[i].result=
 // (it ended 0–0, spot-decided — the face must say what the cloth says). The others have no recorded
 // cloth on this phone, so their tap honestly says NOTHING KEPT. Rack hangs newest first.
 var SAMPLE={
-  profile:{displayName:'lukas',sides:['SUI','ARG'],since:"'26"},
+  profile:{displayName:'you',sides:['SUI','ARG'],since:"'26"},
   record:{lived:12,calls:34,nailed:21,loudestNight:'ARG'},
   scarves:[
     {asset:'d2',matchId:'18202783',home:'SUI',away:'COL',score:'0–0',call:'SUI 2–1',result:'wrong',  comp:'WORLD CUP',date:"07 JUL '26",serial:'009',dur:96, share:[.55,.5,.48,.52,.5,.47,.5,.53,.49,.5,.52,.48,.5,.5], goals:[]},
@@ -291,7 +291,7 @@ function profileFromPass(){ var p=null; try{ p=JSON.parse(localStorage.getItem('
 }
 // the kept scarf IS the real cloth (the exact render the mint captures) — previewed to its head,
 // unrolling in place on tap. img = the minted imageUri, or the captured demo cloth.
-function scarfHTML(s){ var img=s.img||('plate/scarves/'+(s.matchId||'')+'.jpg');
+function scarfHTML(s){ var img=s.img||s.image||('plate/scarves/'+(s.matchId||'')+'.jpg');   // the minted scarf: album's imageUri (s.image, DAS links.image) or a captured-cloth s.img; demo jpg last
   return '<div class="keep reveal" data-match="'+(s.matchId||s.home+'-'+s.away)+'">'+
     '<div class="scarf"><img src="'+img+'" alt="'+s.home+' '+s.score+' '+s.away+' woven scarf" loading="lazy">'+
       '<div class="fade"><span class="un">tap to unroll</span></div></div>'+
@@ -354,10 +354,11 @@ function render(){
   el('cardsWrap').style.display=cards.length?'':'none';
   if(cards.length)el('cardrack').innerHTML=cards.map(cardHTML).join('');
 
-  // THE PINS — counters are post-MVP (all 7 have no per-fan source yet), so we keep sample ranks; only a
-  // genuinely empty seat forces them all locked. When the coordinator ships real counters, wire them here.
+  // THE PINS — the seven virtues have NO real per-fan counter yet (post-MVP). Honesty law 1: never
+  // show a fabricated count on a REAL seat — so a real fan sees every virtue still-to-earn until the
+  // counters are wired; only the DEMO sample walkthrough shows illustrative ranks. Wire real counts here.
   el('pins').innerHTML=VIRTUES.map(function(v){
-    var c=empty?0:v.c, rk=rankOf(c,v.t), locked=rk==='locked';
+    var c=d.real?0:v.c, rk=rankOf(c,v.t), locked=rk==='locked';
     var cnt=locked?'EARN IT AT A MATCH':(fmtC(c)+' '+v.unit);
     return '<div class="pin reveal '+rk+'"><div class="medal"><img src="plate/gens/trophies/'+v.img+'" alt="'+v.l+'" style="width:'+v.sz+'px;height:'+v.sz+'px"></div><div class="pl">'+v.l+'</div><div class="pc">'+cnt+'</div></div>';
   }).join('');
