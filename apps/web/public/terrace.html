@@ -220,6 +220,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .sk-x:active{transform:translateY(1px)}
 /* three named goals must fit the card's width */
 #kGoalsRow b{font-size:8px;letter-spacing:.04em;white-space:normal;text-align:right;line-height:1.4}
+#kGoalsRow[hidden]{display:none}   /* .krow's display:flex would out-rank the hidden attribute */
 /* sealed room: the card reads alone first — the stand waits behind a near-solid sheet */
 .sealedstand .keepsake{background:rgba(26,24,21,.9)}
 /* THE CARD — the one you held up in the stands; your end's colours, your seat, your numbers.
@@ -1176,7 +1177,7 @@ if(LIVE&&window.__matchday)window.__matchday.ready.then(function(md){
     fetch('plate/finals/'+MATCH_ID+'.json').then(function(r){return r.ok?r.json():null;}).then(function(fin){
       if(!fin)return;
       window.__FINALS=fin;
-      if(M._ft&&el('keepsake').classList.contains('on'))showKeepsake();   // re-print the open card with the goals row
+      if(M._ft)showKeepsake();   // re-print the card with the goals row (it may still be inside its 900ms open beat)
       if(fin.market&&fin.market.open&&fin.market.close){
         M.mkt0={h:fin.market.open.home,d:fin.market.open.draw,a:fin.market.open.away};   // the pre-game baseline (setMove's short-key shape)
         marketUpdate(fin.market.close);      // …and the whistle's read — the real painters draw bar + moves
