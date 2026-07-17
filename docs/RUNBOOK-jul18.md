@@ -52,6 +52,9 @@ node -e 'import("node:fs").then(async({readFileSync})=>{const t=JSON.parse(readF
 6. **Collect + scarf**: real-device collect; the mint captures the SCARF (goals woven). Verify the
    album shows it (the DAS poll gives it ~40s max).
 7. **Night report**: `node scripts/night-report.mjs <capture>` per its README; commit the dossier.
+8. **Tech-doc explorer links → tonight's fresh anchors** (pitch lane, 17 Jul: the Jul-10 ESP–BEL
+   anchor tx is already pruned from public devnet RPC history — dead links read as fake to a judge).
+   Swap the doc's cited txs for tonight's anchor sig before submitting.
 
 ## Sunday deltas (the final)
 
