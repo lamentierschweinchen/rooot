@@ -19,6 +19,10 @@ body{background:var(--paper);font-family:var(--disp);color:var(--ink);-webkit-fo
 .mast .rp{text-align:right;padding-left:10px;font-weight:700;font-size:9px;letter-spacing:.16em;color:var(--sub);display:flex;align-items:center;gap:6px}
 .mast .rp .dot{width:6px;height:6px;border-radius:50%;background:#C8202A;animation:blink 1.4s infinite}   /* only a LIVE wire earns the lamp */
 .mast .rp .dot.off{display:none}
+.mast .skip{margin-left:8px;padding:4px 8px;background:var(--ink);color:var(--card);border:none;font-family:inherit;
+  font-weight:800;font-size:8px;letter-spacing:.16em;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.mast .skip:active{transform:translateY(1px)}
+.mast .skip[hidden]{display:none}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
 .sub{font-weight:600;font-size:8.5px;letter-spacing:.13em;color:var(--sub);margin-bottom:10px}
 /* embed mode — framed inside the composite: shed the chrome, the cloth fills */
@@ -42,6 +46,7 @@ body.embed .wrap{padding:6px 8px 8px}
 .collectbar .ck{font-family:var(--disp);font-weight:900;font-size:14px;letter-spacing:.06em;color:var(--card);background:var(--ink);border:none;padding:12px 26px;cursor:pointer;box-shadow:0 2px 0 rgba(26,24,21,.28)}
 .collectbar .ck:active{transform:translateY(1px);box-shadow:0 1px 0 rgba(26,24,21,.28)}
 .collectbar .ck.collecting{opacity:.6;cursor:default}
+.collectbar .ck.save{background:transparent;color:var(--ink);border:1.5px solid var(--ink);font-size:10px;letter-spacing:.12em;padding:9px 14px;box-shadow:none}   /* the optional account step — quiet, never the main act */
 .collectbar .ck.done{background:var(--gold);color:var(--ink);cursor:default}
 .ckchain{font-family:system-ui,-apple-system,sans-serif;font-weight:600;font-size:11px;line-height:1.5;color:var(--sub);text-align:center;max-width:340px}
 .ckchain a{color:#C8504D;text-decoration:none;border-bottom:1px solid rgba(200,80,77,.45)}
@@ -85,7 +90,8 @@ html.lexport .loomv svg{animation:none;transform:none}
 </head>
 <body>
 <div class="wrap">
-  <div class="mast"><span class="sc"><b class="h" id="hT">ARG</b> <span id="sc">0–0</span> <b class="a" id="aT">CPV</b></span><span class="rp"><span class="dot" id="liveDot"></span><span id="rp">REPLAY · 0′</span></span></div>
+  <div class="mast"><span class="sc"><b class="h" id="hT">ARG</b> <span id="sc">0–0</span> <b class="a" id="aT">CPV</b></span><span class="rp"><span class="dot" id="liveDot"></span><span id="rp">REPLAY · 0′</span><button class="skip" id="skipBtn" hidden type="button">SKIP →</button></span></div>
+  <script>document.getElementById('skipBtn').onclick=function(){ if(window.__demoFeed)window.__demoFeed.finish(); };</script>
   <div class="sub">THE LOOM · THE MATCH, WOVEN</div>
   <div class="loomwrap"><div class="loomv" id="loomv"></div><div class="gooool" id="gooool"><img src="assets/gooool-v2.png" alt="GOOOL"></div><div class="board" id="board"></div></div>
   <div class="collectbar" id="collectbar" hidden>
@@ -706,6 +712,10 @@ html.lexport .loomv svg{animation:none;transform:none}
     else { lbl='REPLAY · '+mm+'′'; dcls='dot off'; }   // a replay is just a small true word — no lamp, no ceremony (owner)
     document.getElementById('rp').textContent=lbl;
     var _d=document.getElementById('liveDot'); if(_d.className!==dcls)_d.className=dcls;
+    // a replay can always be skipped to the whistle (owner, 17 Jul) — the tape drains, nothing is invented
+    var _sk=document.getElementById('skipBtn');
+    if(_sk){ var canSkip=!KEEP&&!SEALED&&!M.over&&M.src!=='live'&&!!window.__demoFeed;
+      if(_sk.hidden===canSkip)_sk.hidden=!canSkip; }
     if(dirty){ dirty=false; renderCloth(); }
     // export-ready: the sealed cloth is drawn and fully unrolled — the mint capture waits on this,
     // then screenshots #loomsvg. 'empty' tells it the record was missing so it never mints a blank.
@@ -790,26 +800,40 @@ html.lexport .loomv svg{animation:none;transform:none}
   setInterval(function(){ if(document.hidden) step((window.performance&&performance.now())||Date.now()); }, 250);   // keep weaving when backgrounded (rAF pauses)
 
   // COLLECT — the woven scarf IS the keepsake (owner, Jul 16). The cloth already sealed locally at
-  // full time (writeCloth), so it's safe the instant the whistle blows; Collect mints it to the fan's
-  // own key via __seat.claim — one honest tap, a plain proof link, never a faked asset. No adapter/
-  // no id → just the cabinet walk-home, never a fake claim.
+  // full time (writeCloth) — so COLLECT completes instantly, no biometric, no network (owner, 17 Jul:
+  // the account must never interrupt the experience). Saving it to an account (Face ID passkey →
+  // a real Metaplex Core scarf) is a separate, optional tap that can fail and be retried without
+  // touching the collect. Never fabricates an asset or a tx.
   (function(){
     var btn=document.getElementById('loomKeep'), chain=document.getElementById('loomChain');
     if(!btn)return;
     function cabHref(){ var id=clothId(); return 'cabinet.html?from=keep'+(DEMOQ?'&demo=1':'&live=1'+(id?'&match='+encodeURIComponent(id):'')); }
     function msg(h){ if(chain){ chain.hidden=false; chain.innerHTML=h; } }
+    var save=null;
+    function offerSave(){
+      if(save||!window.__seat||typeof window.__seat.claim!=='function'||!clothId())return;
+      save=document.createElement('button');
+      save.className='ck save'; save.type='button'; save.textContent='SAVE TO YOUR ACCOUNT · FACE ID';
+      btn.parentNode.insertBefore(save,btn.nextSibling);
+      save.onclick=function(){
+        if(save.dataset.busy||save.dataset.done)return;
+        var id=clothId(); if(!id)return;
+        save.dataset.busy='1'; save.classList.add('collecting'); save.textContent='SAVING…'; msg('saving — a few seconds');
+        window.__seat.claim({matchId:id}).then(function(res){
+          save.dataset.busy=''; save.classList.remove('collecting');
+          if(res&&res.mint){ save.dataset.done='1'; save.classList.add('done'); save.textContent='SAVED ✓';
+            var url=res.mint.asset?('https://explorer.solana.com/address/'+encodeURIComponent(res.mint.asset)+'?cluster=devnet'):res.mint.txUrl;
+            msg('yours on any device · <a href="'+url+'" target="_blank" rel="noopener">details ↗</a> · <a href="'+cabHref()+'">cabinet</a>'); }
+          else { save.textContent='SAVE TO YOUR ACCOUNT · FACE ID'; msg('your seat is saved — your scarf is ready at full time · <a href="'+cabHref()+'">cabinet</a>'); }
+        }).catch(function(){ save.dataset.busy=''; save.classList.remove('collecting'); save.textContent='TRY AGAIN · FACE ID';
+          msg('not saved — try again any time · <a href="'+cabHref()+'">cabinet</a>'); });
+      };
+    }
     btn.onclick=function(){
-      if(btn.dataset.busy||btn.dataset.done)return;
-      var id=clothId();
-      if(!window.__seat||typeof window.__seat.claim!=='function'||!id){ msg('<a href="'+cabHref()+'">→ it’s in your cabinet</a>'); return; }
-      btn.dataset.busy='1'; btn.classList.add('collecting'); btn.textContent='COLLECTING…'; msg('collecting your scarf — a few seconds');
-      window.__seat.claim({matchId:id}).then(function(res){
-        btn.dataset.busy=''; btn.classList.remove('collecting');
-        if(res&&res.mint){ btn.dataset.done='1'; btn.classList.add('done'); btn.textContent='COLLECTED ✓';
-          var url=res.mint.asset?('https://explorer.solana.com/address/'+encodeURIComponent(res.mint.asset)+'?cluster=devnet'):res.mint.txUrl;
-          msg('permanently yours · <a href="'+url+'" target="_blank" rel="noopener">view it ↗</a> · <a href="'+cabHref()+'">cabinet</a>'); }
-        else { btn.textContent='COLLECT YOUR SCARF'; msg('your seat is saved — your scarf is ready at full time · <a href="'+cabHref()+'">cabinet</a>'); }
-      }).catch(function(){ btn.dataset.busy=''; btn.classList.remove('collecting'); btn.textContent='TRY AGAIN'; msg('<span style="color:#C8302A">something went wrong — try again</span> · <a href="'+cabHref()+'">cabinet</a>'); });
+      if(btn.dataset.done)return;
+      btn.dataset.done='1'; btn.classList.add('done'); btn.textContent='COLLECTED ✓';
+      msg('<a href="'+cabHref()+'">→ it’s in your cabinet</a>');
+      offerSave();
     };
   })();
   // (the legend is dead — the cloth answers a thumb, and the goal teaches the alphabet)

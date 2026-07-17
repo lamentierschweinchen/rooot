@@ -192,11 +192,22 @@ function setLens(name){
   [].forEach.call(dial.children,function(t){ t.classList.toggle('on', t.dataset.lens===name); });
 }
 [].forEach.call(dial.children,function(t){ t.onclick=function(){ setLens(t.dataset.lens); }; });
-// lean the dial by swiping the frame (the lens iframe keeps its own touches)
+// lean the dial by swiping the frame — from ANY lens, not just the stands (owner, 17 Jul:
+// "as easy as swipe one direction"). The iframe keeps its own touches, so the same
+// handler binds INSIDE each lens document as it loads (same-origin); a dominant-axis
+// guard keeps vertical scrolling (loom, stadium cards) from stealing a swipe.
 var cx=0;
+function swipeTo(dx,dy){ if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy||0)*1.5){ var ni=Math.max(0,Math.min(order.length-1,cur+(dx<0?1:-1))); setLens(order[ni]); } }
 wrap.addEventListener('touchstart',function(e){cx=e.touches[0].clientX;},{passive:true});
-wrap.addEventListener('touchend',function(e){ var dx=e.changedTouches[0].clientX-cx;
-  if(Math.abs(dx)>50){ var ni=Math.max(0,Math.min(order.length-1,cur+(dx<0?1:-1))); setLens(order[ni]); } },{passive:true});
+wrap.addEventListener('touchend',function(e){ swipeTo(e.changedTouches[0].clientX-cx,0); },{passive:true});
+lens.addEventListener('load',function(){
+  try{
+    var d=lens.contentDocument; if(!d)return;
+    var sx=0,sy=0;
+    d.addEventListener('touchstart',function(e){ sx=e.touches[0].clientX; sy=e.touches[0].clientY; },{passive:true});
+    d.addEventListener('touchend',function(e){ swipeTo(e.changedTouches[0].clientX-sx,e.changedTouches[0].clientY-sy); },{passive:true});
+  }catch(e){}
+});
 // their mini mosaic
 var mt=el('miniThem'); for(var i=0;i<16;i++)mt.insertAdjacentHTML('beforeend','<i></i>');
 // your cheer (tap → fills + decays; a ROOOT! burst at the peak)
@@ -294,9 +305,22 @@ if(!LIVE){
   function finish(id,fx){ if(done)return; done=true; boot(id,fx); }
   // the schedule first — it knows every matchday fixture with a real phase (same
   // pattern as gate.html); the literal table serves only ids the schedule never met.
+  // A param-less ground NORMALIZES to ?match=<id> and reloads: the page's own
+  // adapters resolve the match from the URL, so the id must live there or the
+  // chrome and the wire can disagree (the FRA-1-2-ENG chimera, 17 Jul). Policy:
+  // the live match if any, else the one whose gates are open, else the last
+  // sealed programme (shut gates = the ground shows the sealed match; the gate
+  // holds the upcoming one).
   if(window.__matchday){
     window.__matchday.ready.then(function(md){
-      var fx=explicitMatch?md.get(explicitMatch):md.current;
+      if(!explicitMatch){
+        var live=null,gates=null;
+        md.fixtures.forEach(function(f){ if(f.phase==='LIVE'&&!live)live=f; if(f.phase==='GATES_OPEN'&&!gates)gates=f; });
+        var target=live||gates||md.lastSealed||md.current;
+        if(target){ var qs=new URLSearchParams(location.search); qs.set('match',target.matchId);
+          location.replace('ground.html?'+qs.toString()); return; }
+      }
+      var fx=explicitMatch?md.get(explicitMatch):null;
       if(fx)finish(fx.matchId,fromSchedule(fx));
       else if(explicitMatch&&FIXTURES[explicitMatch])finish(explicitMatch,FIXTURES[explicitMatch]);
     });

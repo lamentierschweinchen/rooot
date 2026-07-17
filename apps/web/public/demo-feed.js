@@ -64,6 +64,16 @@
       stop: function () {
         clearInterval(timer);
       },
+      // skip to the end: drain every remaining message NOW (same order, same
+      // messages — only the waiting goes). The whole page lands on FULL TIME
+      // together, since every consumer rides this one playback.
+      finish: function () {
+        clearInterval(timer);
+        while (i < feed.length) {
+          try { onMsg(feed[i].msg); } catch (e) {}
+          i++;
+        }
+      },
     };
   }
 
@@ -94,5 +104,7 @@
       if (typeof demoSeconds === 'number' && demoSeconds > 0) feedSecs = demoSeconds;
       subs.push(onMsg); ensurePlaying(); return { stop: function () {} };
     },
+    // skip the shared playback to its end (the loom's SKIP control) — no-op before it starts
+    finish: function () { if (player) player.finish(); },
   };
 })(typeof window !== 'undefined' ? window : this);

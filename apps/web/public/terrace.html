@@ -259,6 +259,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .scarf .sk-keep{margin-top:7px;width:100%;padding:11px;background:var(--ink);color:var(--card);border:none;font-family:var(--disp);font-weight:900;font-size:11px;letter-spacing:.12em;cursor:pointer;
   box-shadow:3px 3px 0 rgba(26,24,21,.32);transition:box-shadow .08s,transform .08s}
 .scarf .sk-keep:active{transform:translate(2px,2px);box-shadow:1px 1px 0 rgba(26,24,21,.32)}   /* the stamp presses */
+.scarf .sk-save{background:transparent;color:var(--ink);border:1.5px solid var(--ink);font-size:8.5px;letter-spacing:.14em;padding:8px;box-shadow:none}   /* the optional account step — quiet, never the main act */
 /* SEAT — one honest Collect. The local keepsake seals first, then the fan's own passkey
    claims a real self-custody scarf. States show only what is true: a plain proof link on
    success, an honest note on a not-yet / cancelled / offline claim — the local keepsake is
@@ -696,38 +697,44 @@ function showCab(){   // the walk-home stays reachable in EVERY branch (preserve
 }
 function assetUrl(asset){ return 'https://explorer.solana.com/address/'+encodeURIComponent(asset)+'?cluster=devnet'; }
 
-// COLLECT — one honest tap. The local keepsake seals FIRST (keepLocal, above — so "your scarf
-// is safe" is literally true even if the claim fails), then the fan's OWN key derives from
-// Face/Touch ID (self-custody, walletless) and window.__seat.claim() records a REAL Metaplex Core
-// scarf, and we show a plain proof link. One tap, not two: the biometric is expected because the
-// fan asked to collect, so there is no surprise to guard against. Never fabricates an asset or a tx.
+// COLLECT — instant and local (owner, 17 Jul: the account must never interrupt the
+// experience). One tap seals the keepsake on this device — no biometric, no network.
+// Saving it to an account (Face ID passkey → a REAL Metaplex Core scarf) is a separate,
+// optional tap below, retryable without touching the collect. Never fabricates a claim.
+var skMint=null;
+function offerMint(){
+  if(skMint||!window.__seat||typeof window.__seat.claim!=='function')return;
+  skMint=document.createElement('button');
+  skMint.className='sk-keep sk-save'; skMint.type='button'; skMint.textContent='SAVE TO YOUR ACCOUNT · FACE ID';
+  el('skKeep').parentNode.insertBefore(skMint,el('skKeep').nextSibling);
+  skMint.onclick=function(){
+    if(skMint.dataset.busy||skMint.dataset.done)return;
+    skMint.dataset.busy='1'; skMint.classList.add('collecting'); skMint.textContent='SAVING…';
+    chainMsg('<span class="live"></span>saving — a few seconds',''); showCab();
+    window.__seat.claim({matchId:MATCH_ID}).then(function(res){
+      skMint.dataset.busy=''; skMint.classList.remove('collecting');
+      if(res && res.mint){
+        skMint.dataset.done='1'; skMint.classList.add('done'); skMint.textContent='SAVED ✓';
+        var url=res.mint.asset?assetUrl(res.mint.asset):res.mint.txUrl;
+        chainMsg('<span class="live" style="animation:none"></span>yours on any device<br>'+
+          '<a href="'+url+'" target="_blank" rel="noopener">details ↗</a>',''); showCab();
+      } else {
+        skMint.textContent='SAVE TO YOUR ACCOUNT · FACE ID';
+        chainMsg('your seat is saved — your scarf is ready at full time.',''); showCab();
+      }
+    }).catch(function(){
+      skMint.dataset.busy=''; skMint.classList.remove('collecting'); skMint.textContent='TRY AGAIN · FACE ID';
+      chainMsg('not saved — try again any time.',''); showCab();
+    });
+  };
+}
 el('skKeep').onclick=function(){
   var b=el('skKeep');
-  if(b.dataset.busy) return;                                  // a claim is in flight (~5-20s) — ignore re-taps
   if(b.dataset.stage==='done') return;                        // already collected — it is permanently theirs
-  keepLocal();                                                // seal the local keepsake FIRST, always, unblocked
-  // no adapter → stay honest: the keepsake is kept, offer a retry, never fake a claim.
-  if(!window.__seat || typeof window.__seat.claim!=='function'){
-    b.classList.remove('collecting'); b.classList.add('retry'); b.textContent='Try again';
-    chainMsg('<span class="err">Something went wrong — try again.</span>',''); showCab(); return;
-  }
-  b.dataset.busy='1'; b.classList.remove('retry'); b.classList.add('collecting'); b.textContent='Collecting…';
-  chainMsg('<span class="live"></span>collecting your scarf — a few seconds',''); showCab();
-  window.__seat.claim({matchId:MATCH_ID}).then(function(res){
-    b.dataset.busy=''; b.classList.remove('collecting');
-    if(res && res.mint){                                      // a REAL claim — show a plain proof link
-      b.classList.add('done'); b.dataset.stage='done'; b.textContent='Collected ✓';
-      var url=res.mint.asset?assetUrl(res.mint.asset):res.mint.txUrl;
-      chainMsg('<span class="live" style="animation:none"></span>permanently yours<br>'+
-        '<a href="'+url+'" target="_blank" rel="noopener">view it ↗</a>',''); showCab();
-    } else {                                                  // seat saved, scarf not yet ready (before full time) — honest, retryable
-      b.textContent='Collect';                                // back to idle — collect again at full time
-      chainMsg('your seat is saved — your scarf is ready at full time.',''); showCab();
-    }
-  }).catch(function(){                                        // cancelled Face ID / unsupported / offline — keep local, offer retry, NEVER fake
-    b.dataset.busy=''; b.classList.remove('collecting'); b.classList.add('retry'); b.textContent='Try again';
-    chainMsg('<span class="err">Something went wrong — try again.</span>',''); showCab();
-  });
+  keepLocal();                                                // seal the local keepsake — instant, unblocked, done
+  b.classList.add('done'); b.dataset.stage='done'; b.textContent='Collected ✓';
+  chainMsg('in your cabinet on this phone.',''); showCab();
+  offerMint();                                                // the account is an offer, never a gate
 };
 el('keepsake').addEventListener('click',function(e){ if(e.target===el('keepsake'))el('keepsake').classList.remove('on'); });   // tap outside: stay in the stands
 
