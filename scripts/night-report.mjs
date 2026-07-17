@@ -251,7 +251,10 @@ function normalizeSentimentRecord(raw, sourcePath) {
       consensus: raw.fans?.consensus ?? null,
       calls: raw.fans?.calls ?? null,
       faith: raw.fans?.faith ?? null,
+      engagement: raw.fans?.engagement ?? null,   // the harvest (2026-07-18)
+      scorelines: raw.fans?.scorelines ?? null,
     },
+    points: raw.points ?? null,                    // the harvest (2026-07-18)
     feel: raw.feel ?? null,
     events,
     spells: null, // this record shape never carries territory/spell data
@@ -887,6 +890,23 @@ function renderMarkdown(model, computed) {
   if (model.fixtureResolvedFrom) out.push('');
   if (model.fixtureResolvedFrom) out.push(`_Team identity resolved from ${model.fixtureResolvedFrom} (this capture carries no fixture object of its own)._`);
   out.push('');
+
+  // ── THE HARVEST (records crystallized 2026-07-18+) — printed only when the
+  // record carries the fields; older records read exactly as before. ──
+  const eng = model.fans?.engagement;
+  const sl = model.fans?.scorelines;
+  const pts = model.points;
+  const rs = model.feel?.roarSeries;
+  if (eng || sl || pts || (rs && rs.length)) {
+    out.push('## The harvest — the night, counted');
+    out.push('');
+    if (eng) out.push(`- **Engagement (server-tallied):** ${eng.fans} fans · ${eng.cheers} granted cheers · ${eng.reacts} reactions · ${eng.watchMinutes} watch-minutes${eng.arrivals?.length ? ` · arrivals across ${eng.arrivals.length} five-minute bucket(s)` : ''}.`);
+    if (sl?.length) out.push(`- **The crowd's board:** ${sl.map((s) => `${s.h}–${s.a}${s.n > 1 ? ` ×${s.n}` : ''}`).join(' · ')}.`);
+    if (pts) out.push(`- **Points earned (formula v${pts.formulaV}):** ${pts.total.toLocaleString()} across ${pts.fans} fan(s); top: ${pts.top.map((t) => `Nº ${t.serial ?? '—'} · ${t.points}`).join(', ')}.`);
+    if (rs?.length) out.push(`- **Roar series:** ${rs.length} samples (~30s cadence) — the per-minute curve Faith Under Fire / Roar Elasticity / Aftershock Half-Life need; formulas land in a later dossier pass.`);
+    out.push('');
+  }
+
   out.push('---');
   out.push('');
 
