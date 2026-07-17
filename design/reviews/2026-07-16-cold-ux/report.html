@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ROOOT — cold first-impressions UX review</title>
+  <style>
+    :root {
+      --paper: #eee7d1;
+      --ink: #181814;
+      --muted: #6f6a5e;
+      --line: #aaa28d;
+      --red: #bd3c33;
+      --green: #3f735e;
+      --gold: #d5a735;
+      --blue: #7592bd;
+    }
+    * { box-sizing: border-box; }
+    html { background: #191916; color: var(--ink); }
+    body {
+      margin: 0 auto;
+      max-width: 1180px;
+      background:
+        repeating-linear-gradient(0deg, rgba(24,24,20,.025) 0 1px, transparent 1px 5px),
+        var(--paper);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.48;
+    }
+    header { padding: 54px 6vw 40px; border-top: 9px solid var(--green); border-bottom: 1px solid var(--ink); }
+    header:before { content: ""; display: block; height: 9px; width: 66%; margin: -63px 0 54px 34%; background: linear-gradient(90deg, var(--red) 0 33%, var(--gold) 33% 66%, var(--blue) 66%); }
+    main { padding: 0 6vw 72px; }
+    h1, h2, h3 { margin: 0; line-height: 1.02; letter-spacing: -.035em; }
+    h1 { max-width: 880px; font-size: clamp(3rem, 8vw, 6.8rem); }
+    h2 { margin-top: 64px; padding-top: 14px; border-top: 3px solid var(--ink); font-size: clamp(1.8rem, 4vw, 3rem); }
+    h3 { margin-top: 24px; font-size: 1.18rem; }
+    p, li { max-width: 820px; }
+    .eyebrow { margin-bottom: 16px; font: 800 .78rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .16em; text-transform: uppercase; color: var(--red); }
+    .lede { max-width: 880px; margin: 24px 0 0; font-size: clamp(1.15rem, 2.3vw, 1.55rem); }
+    .verdict-strip { display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: end; margin-top: 36px; padding: 20px 0; border-block: 1px solid var(--ink); }
+    .score { font-size: 4.2rem; font-weight: 900; line-height: .85; color: var(--red); }
+    .score small { display: block; margin-top: 10px; font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+    .note { color: var(--muted); font-size: .9rem; }
+    .callout { margin: 26px 0; padding: 22px 24px; background: var(--ink); color: var(--paper); font-size: 1.12rem; }
+    .shot-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin: 28px 0 8px; }
+    figure { margin: 0; }
+    figure img { display: block; width: 100%; max-width: 390px; margin: 0 auto; border: 1px solid var(--ink); box-shadow: 7px 8px 0 rgba(24,24,20,.16); }
+    figcaption { max-width: 390px; margin: 13px auto 0; font-size: .85rem; color: var(--muted); }
+    figcaption strong { color: var(--ink); }
+    table { width: 100%; margin: 26px 0; border-collapse: collapse; font-size: .92rem; }
+    th, td { padding: 11px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; }
+    td:nth-child(2) { white-space: nowrap; font-weight: 900; }
+    ol, ul { padding-left: 1.25rem; }
+    li { margin: 10px 0; }
+    .ranked { list-style: none; padding: 0; counter-reset: fixes; }
+    .ranked li { counter-increment: fixes; position: relative; padding: 18px 18px 18px 70px; border-top: 1px solid var(--ink); }
+    .ranked li:before { content: counter(fixes, decimal-leading-zero); position: absolute; left: 8px; top: 18px; font: 900 1.45rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--red); }
+    .delights li:before { color: var(--green); }
+    .friction { columns: 2; column-gap: 42px; }
+    .friction li { break-inside: avoid; }
+    .tag { display: inline-block; margin-right: .35rem; padding: .16rem .38rem; border: 1px solid currentColor; font: 800 .7rem/1.1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--red); }
+    footer { padding: 28px 6vw 44px; border-top: 1px solid var(--ink); color: var(--muted); font-size: .82rem; }
+    @media (max-width: 700px) {
+      header, main, footer { padding-left: 20px; padding-right: 20px; }
+      .shot-grid { grid-template-columns: 1fr; }
+      .verdict-strip { grid-template-columns: 1fr; }
+      .friction { columns: 1; }
+      table { font-size: .82rem; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="eyebrow">Cold first-impressions review · phone viewport 390×844 · 16 July 2026</div>
+    <h1>Beautiful match programme. Weak shared watch.</h1>
+    <p class="lede">ROOOT has a rare, coherent visual idea and a genuinely appealing physical-programme metaphor. The first-time journey does not yet support its promise: both entrance links fail locally, the “live” match jumps to full time, collecting never resolves, and the cabinet contradicts the thing I just collected.</p>
+    <div class="verdict-strip">
+      <div><strong>My honest outcome:</strong> I would explore for ten minutes. I would not trust it enough to stay for 90, return next match, or invite a friend yet.</div>
+      <div class="score">4.6<small>overall / 10</small></div>
+    </div>
+    <p class="note">Method: black-box walkthrough only. I did not read source, README, comments, product docs, or design docs. I used the visible UI and screenshots. The standard local start command served the product, but the extensionless front-door links returned the landing page; I used the corresponding static <code>.html</code> route only to continue the review.</p>
+  </header>
+
+  <main>
+    <h2>1. The 5-second test</h2>
+    <p><strong>I understood “interactive live match companion,” not “a place where I can actually watch the broadcast.”</strong> The headline “The live match, woven as it happens” is intriguing; the paragraph explains side, score call, crowd and keepsake. That is enough to decode the concept, but it takes reading. Given my friend’s “come watch it with me,” I initially expected video or at least a conventional live commentary. The screen should explicitly say “a second screen for the match” or “keep the broadcast on; this is the crowd and programme beside it.”</p>
+    <div class="shot-grid">
+      <figure><img src="01-front-door.png" alt="ROOOT front door on a 390 pixel phone viewport"><figcaption><strong>Front door, 0:00.</strong> Strong identity, but the explanatory paragraph does the strategic work the interface should do more simply.</figcaption></figure>
+      <figure><img src="02-gate-arrival.png" alt="Near-black transition after tapping Enter the Gate"><figcaption><strong>After “Enter the Gate.”</strong> A near-black transition appears, then the same landing content returns under a new URL. This feels broken, not cinematic.</figcaption></figure>
+    </div>
+
+    <h2>2. Getting in</h2>
+    <p><span class="tag">Bounce risk</span> The welcome becomes a wall at the first tap. “Enter the Gate” and “Open Walkthrough” both change the URL, briefly obscure the page, and return me to the same front door with no error. Once I manually reach the gate, the experience improves sharply: one card, two obvious steps, large targets, decisive selected state.</p>
+    <p>The gate still makes me infer too much. Score boxes increment but offer no minus or reset. “How sure?” has no explained effect. “The market reads / live wire waiting” sounds authoritative but gives no recovery or expectation. The disabled-looking “Take your place” button only becomes active after choosing a side, but the required order is not stated.</p>
+    <div class="shot-grid">
+      <figure><img src="06-gate-direct.png" alt="Gate screen before choosing a side"><figcaption><strong>Gate, arrival.</strong> The best-composed screen: one visual object, clear two-step hierarchy, generous touch targets.</figcaption></figure>
+      <figure><img src="09-confidence-set.png" alt="Gate with England selected and a 2 to 1 score prediction"><figcaption><strong>Gate, prediction complete.</strong> England’s black selected panel is excellent feedback. “A lean” is visible, but its consequence remains opaque.</figcaption></figure>
+    </div>
+
+    <h2>3. The main event</h2>
+    <p><strong>It currently competes with football more than it supports it.</strong> The ground opens with a next-goal prompt over crowd prediction, market, two supporter ends, a cheer mechanic, three view tabs, cabinet, seat metadata, score and clock. On a phone, this is too many simultaneous ideas. A lurker should get score, minute, one meaningful visual and ambient crowd first; prompts and analysis can surface progressively.</p>
+    <p>Trust is the larger problem. I saw 0–0, then 1–2 at 101′ and full time within seconds. I never experienced a goal. The crowd panel said “from 1 prediction” and “100%” with an average of 1.0–0.0, while my saved prediction was 2–1. Later, “you + 6,” “6 here,” “cheers 0,” and “minutes watched 0” coexist. I cannot form a stable model of what is live, what is mine, and what is everyone else’s.</p>
+    <div class="shot-grid">
+      <figure><img src="10-take-place-result.png" alt="Dense ground screen at 0 to 0 with next goal prompt"><figcaption><strong>Ground, kickoff state.</strong> Visually rich, cognitively crowded. The prompt blocks the match view before I have oriented myself.</figcaption></figure>
+      <figure><img src="11-next-goal-picked.png" alt="Full-time card showing England 1 Argentina 2"><figcaption><strong>Seconds later, full time.</strong> The replay skips the emotional arc. The card says I was there for zero minutes and made zero cheers.</figcaption></figure>
+    </div>
+
+    <h2>4. What it asks of me</h2>
+    <p>The side choice is obvious and satisfying. The score call is legible, though the tap-to-increment mechanic is slow to correct. Confidence feels like survey garnish because no later screen tells me how it affected anything. “Next goal?” arrives too early and visually behaves like a modal interrupt. “Tap here to cheer” did not produce visible feedback; the footer remained “quiet.” That turns the core emotional action into busywork.</p>
+    <p>The stadium’s hotspots are the opposite: not obvious enough. The pitch illustration invites exploration, but the circles are unlabeled until tapped. During a match I would not hunt for the difference between “control,” “the book,” “the market,” and “set pieces.” Once opened, though, the cards are excellent pieces of sports information design.</p>
+    <div class="shot-grid">
+      <figure><img src="19-stadium.png" alt="Illustrated stadium data map with unlabeled circular hotspots"><figcaption><strong>Stadium map.</strong> Beautiful object, weak information scent. The circles look draggable, tappable or decorative; I cannot tell.</figcaption></figure>
+      <figure><img src="20-stadium-goal-overlay.png" alt="Goal-mouth shot map card"><figcaption><strong>Goal station.</strong> One of the strongest moments: the football data becomes a memorable printed diagram. Fixed chrome clips the lower table on this viewport.</figcaption></figure>
+    </div>
+
+    <h2>5. The payoff</h2>
+    <p>The idea is strong enough to bring me back: a match becomes a scarf/card/pin record of the night. The execution currently breaks the promise. “Collect” stays on “Collecting… a few seconds,” never resolves, and produces a console error. The cabinet then shows three empty scarf slots and says “your first match awaits,” while a card directly below records the match. “Sample shown until wired” exposes implementation status inside the fan experience.</p>
+    <div class="callout">If the keepsake is the retention engine, collection must be the most reliable, emotionally explicit state in the entire product: what I earned, why it looks this way, where it now lives, and a single unambiguous success receipt.</div>
+    <div class="shot-grid">
+      <figure><img src="13-collected-or-stuck.png" alt="Full-time match card stuck on Collecting"><figcaption><strong>Collect, stalled.</strong> No timeout, retry, failure explanation or success receipt. The value moment becomes uncertainty.</figcaption></figure>
+      <figure><img src="15-cabinet-card.png" alt="Cabinet showing empty scarf slots, one match card, and earnable pins"><figcaption><strong>Cabinet, after collect.</strong> The match card and pin system are appealing, but empty scarf slots contradict the collection promise; prototype copy remains visible.</figcaption></figure>
+    </div>
+
+    <h2>6. “Together”</h2>
+    <p><strong>The product gives me a crowd, not my friend.</strong> I can see anonymous quantities—“6 here,” “you + 6,” a prediction count—but no friend identity, shared room, invitation context, side choice, prediction, cheer, reaction trail or post-match comparison. My friend’s role ends when they send the link.</p>
+    <p>The missing minimum is not chat. It is a friend-aware deep link and presence layer: “Maya invited you · she’s in the Argentina end,” a small shared reaction trail, and a post-match two-person recap. That would make the existing crowd mechanics emotionally legible without turning the app into another group messenger.</p>
+
+    <h2>7. Craft</h2>
+    <p><strong>Where it sings:</strong> the paper, ticket, cloth and screen-print language is unusually coherent. The palette feels like a programme, not a betting product. Selected states have weight. The goal-mouth and set-piece cards turn data into objects worth looking at. The tone—“take your place,” “your end,” “woven from the match”—has ownership and atmosphere.</p>
+    <p><strong>Where it is rough:</strong> tiny uppercase copy and wide tracking become illegible at 390px. Faded beige-on-beige metadata lacks contrast. The top tabs and labels clip at the edges. Fixed header/footer chrome starves overlays of vertical space. Full-page black wipes fire on small taps and look like rendering failures. The loom is mostly a huge near-empty red/grey field with cryptic minute marks; it asks for interpretation without providing a key. The writing shifts from evocative (“yours, forever”) to system/prototype voice (“live wire waiting,” “sample shown until wired”).</p>
+    <div class="shot-grid">
+      <figure><img src="16-loom.png" alt="Tall red and grey woven match view"><figcaption><strong>Loom.</strong> Distinctive texture and concept, but little readable match information and too much empty vertical surface.</figcaption></figure>
+      <figure><img src="21-stadium-next-card.png" alt="Set pieces card with illustrated corner flag"><figcaption><strong>Set pieces.</strong> Strong illustration and comparison; missing header context after carousel movement and bottom chrome reduce clarity.</figcaption></figure>
+    </div>
+
+    <h2>8. Friction log</h2>
+    <ol class="friction">
+      <li>Both front-door links return me to the landing page after a dark transition.</li>
+      <li>No error or alternate route is offered when entry fails.</li>
+      <li>The product never clearly says it is a second screen, not the broadcast.</li>
+      <li>Score inputs only increment; correction/reset is undiscoverable.</li>
+      <li>“How sure?” has no explained benefit or later payoff.</li>
+      <li>“Live wire · waiting” does not tell me whether anything is wrong.</li>
+      <li>Next-goal prompt blocks the ground before orientation.</li>
+      <li>Replay skips from kickoff to full time too quickly to follow.</li>
+      <li>Crowd average contradicts the prediction shown at full time.</li>
+      <li>“you + 6” and “6 here” do not explain who or what is counted.</li>
+      <li>Cheer tap produces no visible change; status stays “quiet.”</li>
+      <li>Full-time card reports zero minutes and zero cheers despite presence.</li>
+      <li>30% accuracy has no visible calculation or interpretation.</li>
+      <li>Collecting never resolves and offers no retry.</li>
+      <li>Cabinet says first match awaits while showing one match lived.</li>
+      <li>No scarf appears after the scarf collection action.</li>
+      <li>Prototype copy (“sample shown until wired”) is fan-visible.</li>
+      <li>Stadium hotspots are unlabeled and not semantically button-like.</li>
+      <li>Small uppercase metadata is difficult to read.</li>
+      <li>Fixed chrome clips content and weakens overlays.</li>
+      <li>No friend identity, room, presence or shared recap exists.</li>
+    </ol>
+
+    <h2>9. Verdict</h2>
+    <p><strong>Stay to full time?</strong> No. I would sample the visual novelty, then return to the broadcast or group chat. The live experience asks for attention without giving me a reliable shared story of the match.</p>
+    <p><strong>Come back next match?</strong> Not yet. The cabinet could become a reason, but the collection failure and contradictory empty state tell me the memory is not dependable.</p>
+    <p><strong>Invite someone?</strong> No. I cannot explain what we would do together beyond seeing anonymous crowd numbers. The friend-specific loop is the central missing product feature, not a polish item.</p>
+
+    <h2>10. Top fixes, ranked</h2>
+    <ol class="ranked">
+      <li><strong>Front door — make every invite deep-link reliably into the match.</strong> Fix the gate and walkthrough routes, preserve inviter/match context, and show a human recovery state. Nothing else matters if the first tap loops.</li>
+      <li><strong>Ground — establish one trustworthy match timeline.</strong> Pace the walkthrough through kickoff, goals and full time; reconcile score, minute, crowd prediction, my prediction, presence, cheers and watched time. Trust is the product.</li>
+      <li><strong>Full time + cabinet — make collection atomic and explicit.</strong> Show pending, success or recoverable failure; then render the actual scarf immediately. Remove all prototype copy and contradictory empty states.</li>
+      <li><strong>Invitation + stands — design friend presence.</strong> Add inviter identity, shared match room/deep link, friend side/prediction/reactions and a two-person full-time recap. This converts “crowd” into “with my friend.”</li>
+      <li><strong>Live views — reduce simultaneous demands.</strong> Default to a calm score/crowd view, defer next-goal and market detail, label stadium stations, explain confidence and cheer feedback, and remove heavy black wipes from microinteractions.</li>
+    </ol>
+
+    <h2>Top 3 delights</h2>
+    <ol class="ranked delights">
+      <li><strong>The gate’s selected-side transformation.</strong> England turning into a solid black panel with “you’re in” feels like taking a real place, not toggling a filter.</li>
+      <li><strong>The stadium data plates.</strong> Goal-mouth dots and the corner-flag card make match statistics physical, specific and memorable.</li>
+      <li><strong>The cabinet metaphor.</strong> Match card, woven scarf slots and earnable pins create a credible long-term memory system—even though the current state logic fails.</li>
+    </ol>
+
+    <h2>Scorecard</h2>
+    <table>
+      <thead><tr><th>Dimension</th><th>Score</th><th>Evidence</th></tr></thead>
+      <tbody>
+        <tr><td>Onboarding</td><td>4/10</td><td>Concept is explainable, gate is strong, but both primary routes fail and companion-vs-broadcast expectation is unclear.</td></tr>
+        <tr><td>Core experience</td><td>5/10</td><td>Prediction works; live match is dense, replay skips its arc, cheer feedback fails, data states conflict.</td></tr>
+        <tr><td>Error handling</td><td>2/10</td><td>Entry loops silently; collecting stalls without timeout, explanation or retry.</td></tr>
+        <tr><td>Information architecture</td><td>5/10</td><td>Three top-level live views are findable; their roles are unclear and cabinet opens inside the ground shell.</td></tr>
+        <tr><td>Visual design & polish</td><td>8/10</td><td>Distinctive, coherent and art-directed; tiny type, clipping and blackout transitions hold it back.</td></tr>
+        <tr><td>Performance</td><td>5/10</td><td>Screens load quickly, but transition masks feel stalled and replay pacing is unusably abrupt.</td></tr>
+        <tr><td>Accessibility</td><td>4/10</td><td>Large gate targets; low-contrast microcopy, tiny caps, clipped content and unlabeled generic stadium hotspots.</td></tr>
+        <tr><td>Feature completeness</td><td>4/10</td><td>Prediction, live views and cabinet exist; invite context, friend layer, reliable walkthrough and actual keepsake completion do not.</td></tr>
+      </tbody>
+    </table>
+  </main>
+  <footer>ROOOT cold first-impressions walkthrough · Evidence captured at 390×844 except the unused direct demo check. Review based solely on visible behaviour.</footer>
+</body>
+</html>

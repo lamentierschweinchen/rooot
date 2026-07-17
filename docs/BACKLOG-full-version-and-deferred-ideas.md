@@ -123,6 +123,36 @@ persistence + canary are its foundation.
 
 ---
 
+## 11 · THE FRIEND LAYER — an additional experience, not a feature (owner call, 2026-07-17)
+
+The Jul-16 cold UX review named this the product's biggest gap: ROOOT gives a fan *a
+crowd*, not *their friend* — no inviter identity, shared room, presence, reaction
+trail, or post-match two-person recap. The owner's call: this is **an entire second
+experience**, deliberately out of the submission and onto the roadmap. The shape when
+we build it:
+- **Friend-aware deep links** — "Maya invited you · she's in the ARG end"; inviter +
+  match context survive the gate.
+- **Presence + shared reaction trail** — see your friend's side, prediction, cheers on
+  the surfaces you both watch (not chat; ambient).
+- **Two-person full-time recap** — who called it, who cheered louder, side by side on
+  one keepsake-grade card.
+- **Rooms** — a match link that holds a small group's ends together across surfaces.
+The minimal **scarf share** (native share of the minted PNG + link) ships in the
+submission; the full share-card/OG system rides with this layer.
+
+## 12 · HARDENING DEFERRED FROM THE SUBMISSION (Codex review, 2026-07-16)
+
+Consciously flagged-not-fixed for devnet; first mainnet work:
+- **Mint auth** — prove key ownership (server nonce signed by the derived key);
+  today anyone can mass-mint at the service's expense (devnet-acceptable).
+- **Law-8 fallback** — capture-fail currently mints the code-drawn `scarf-svg`;
+  owner decision pending on fail-closed instead.
+- **Album fail-closed** when the collection is unresolvable (env-pinned today).
+- **Privy claim path** for PRF-less devices (today: honest error only).
+- **Hero feed slimming** — the 2.6MB baked replay carries duplicated raw envelopes.
+
+---
+
 ## HOW TO USE THIS
 
 Tonight = the Release Gate only. Everything here is **deliberately deprioritized** — do not pull it into tonight's scope. But when the owner asks "what about X" or you're weighing a scope call, this is the map of the full version so nothing gets silently dropped. **§2 (in-game predictions) is the one with a real hole — get the owner/Codex/Design to fill it before it's lost.**
