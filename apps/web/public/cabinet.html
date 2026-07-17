@@ -86,6 +86,9 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .scarf .un{font-weight:800;font-size:7.5px;letter-spacing:.18em;color:var(--sub)}
 .hall{display:flex;justify-content:space-between;align-items:baseline;margin-top:6px;padding:0 2px;font-weight:700;font-size:7.5px;letter-spacing:.05em;color:var(--sub)}
 .hall .call b{color:var(--ink)}
+.hall .hr8{display:inline-flex;align-items:baseline;gap:8px}
+.hall .share{font-family:var(--disp);font-weight:800;font-size:7px;letter-spacing:.16em;color:var(--ink);background:none;border:1.2px solid var(--ink);padding:2px 6px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.hall .share:active{transform:translateY(1px)}
 .hall .hit{color:var(--verde);font-weight:900}
 .hall .miss{color:var(--sub)}
 .hall .no{color:var(--gold);font-weight:800}
@@ -171,7 +174,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
   <div class="sec"><span class="t">THE PINS</span><span class="c">the fan virtues · bronze → silver → gold · earned, not bought</span></div>
   <div class="pins" id="pins"></div>
 
-  <div class="foot reveal">your cabinet fills as you live matches · each scarf is the match woven from the real feed<br>provenance sits on-chain — yours to keep, worthless to flip · sample shown until wired</div>
+  <div class="foot reveal">your cabinet fills as you live matches · each scarf is the match woven from the real feed<br>yours, forever</div>
 </div>
 
 <!-- SEAT — the cabinet is READ-ONLY (it never mints), so it loads only the adapter:
@@ -313,7 +316,7 @@ function scarfHTML(s){ var img=esc(s.img||s.image||('plate/scarves/'+(s.matchId|
   return '<div class="keep reveal" data-match="'+(matchId||home+'-'+away)+'">'+
     '<div class="scarf"><img src="'+img+'" alt="'+home+' '+score+' '+away+' woven scarf" loading="lazy" onerror="this.parentNode.classList.add(\'noimg\');this.remove()">'+
       '<div class="fade"><span class="un">tap to unroll</span></div></div>'+
-    '<div class="hall"><span class="call"><b>'+home+' '+score+' '+away+'</b> · '+esc(s.date)+(s.call?' · predicted '+esc(s.call)+' '+resTag(s.result):' · you were there')+'</span><span>Nº '+esc(s.serial)+'</span></div>'+
+    '<div class="hall"><span class="call"><b>'+home+' '+score+' '+away+'</b> · '+esc(s.date)+(s.call?' · predicted '+esc(s.call)+' '+resTag(s.result):' · you were there')+'</span><span class="hr8"><button class="share" type="button" data-home="'+home+'" data-away="'+away+'" data-score="'+score+'" data-call="'+esc(s.call||'')+'" data-serial="'+esc(s.serial)+'">SHARE</button>Nº '+esc(s.serial)+'</span></div>'+
   '</div>';
 }
 // THE CARD on the shelf — a miniature of the one you held: your end's colours, your seat, your numbers
@@ -365,6 +368,15 @@ function render(){
     // tap → THAT match's kept cloth, keyed by its id (rooot.cloth.<matchId>, pressed at full time).
     // an id with no record gets the loom's honest NOTHING KEPT — never another match's cloth.
     [].forEach.call(document.querySelectorAll('.keep'),function(k){ k.onclick=function(){ k.classList.toggle('open'); }; });   // the scarf unrolls in place
+    // SHARE — the kept scarf travels (owner decision, 17 Jul): native share where it exists,
+    // clipboard otherwise. Voice: the call if you made one, the night if you didn't.
+    [].forEach.call(document.querySelectorAll('.keep .share'),function(b){ b.onclick=function(e){
+      e.stopPropagation();
+      var d2=b.dataset, hasNo=d2.serial&&d2.serial!=='—';
+      var line=(d2.call?('I called '+d2.call):(d2.home+' '+d2.score+' '+d2.away+', woven'))+(hasNo?(' — scarf Nº '+d2.serial):'')+' · rooot.club/live';
+      if(navigator.share){ navigator.share({text:line,url:'https://rooot.club/live'}).catch(function(){}); }
+      else if(navigator.clipboard){ navigator.clipboard.writeText(line).then(function(){ b.textContent='COPIED'; setTimeout(function(){b.textContent='SHARE';},1400); }).catch(function(){}); }
+    }; });
   } else {
     el('rack').innerHTML='<div class="emptyrack"><div class="pocket"></div><div class="pocket"></div><div class="pocket"></div>'+
       '<div class="emptymsg">your first match awaits — live one and its scarf is woven here, yours forever</div></div>';

@@ -388,7 +388,7 @@ body.embed .backg,body.embed .foot,body.embed .matchbar{display:none}
     </div>
   </div>
 
-  <div class="foot" id="foot">crowd figures are sample — they wire to live counts · events replayed from a recorded match</div>
+  <div class="foot" id="foot"></div>
 </div>
 
 <!-- demo engine — private prototype default: baked recording → serverless feed → window.__match + window.__stands -->
@@ -525,8 +525,9 @@ function bumpEnd(node,list,k){ if(!node)return; node.classList.remove('surge'); 
 function sumReacts(){ var n=0; for(var t in M.reacts)n+=M.reacts[t]||0; return n; }
 function updateXP(final){
   var x=el('xp'); if(!x||!window.__myRecord)return;
-  var pred=PASS&&PASS.call?{h:PASS.call.h,a:PASS.call.a}:null;
-  x.textContent=window.__myRecord.score({pred:pred,cheers:M.cheerN,reacts:sumReacts(),mins:Math.floor(M.vSec/60),final:final||null,conv:(PASS&&PASS.conv)||0});
+  var mine=PASS&&String(PASS.matchId)===String(MATCH_ID);   // a pass from ANOTHER match earns nothing here
+  var pred=mine&&PASS.call?{h:PASS.call.h,a:PASS.call.a}:null;
+  x.textContent=window.__myRecord.score({pred:pred,cheers:M.cheerN,reacts:sumReacts(),mins:Math.floor(M.vSec/60),final:final||null,conv:mine?(PASS.conv||0):0});
 }
 updateXP();   // a stamped prediction earns from the moment you walk in
 function tap(){ if(M._ft){ el('keepsake').classList.add('on'); return; }   // the match is over — a tap brings your card back, not a cheer into an empty ground
@@ -663,7 +664,7 @@ function showKeepsake(){
   // accuracy 0–100 (owner formula): 50 for the right result + 25 per team's goals, −10 per goal off
   var accScore=function(p,f){ var r=Math.sign(p.home-p.away)===Math.sign(f.home-f.away)?50:0;
     var g=function(a,b){return Math.max(0,25-10*Math.abs(a-b));}; return r+g(p.home,f.home)+g(p.away,f.away); };
-  var p=vm&&vm.predicted?vm.predicted:(PASS&&PASS.call?{home:PASS.call.h,away:PASS.call.a}:null);
+  var p=vm&&vm.predicted?vm.predicted:(PASS&&PASS.call&&String(PASS.matchId)===String(MATCH_ID)?{home:PASS.call.h,away:PASS.call.a}:null);
   var f=vm&&vm.final?vm.final:{home:M.score[0],away:M.score[1]};
   if(p){ el('kPred').textContent=HOME_TRI+' '+p.home+'–'+p.away+' '+AWAY_TRI+' · '+accScore(p,f)+'% ACCURACY'; }
   else el('kPredRow').style.display='none';
@@ -683,7 +684,7 @@ function showKeepsake(){
   // fan's session counters are empty), else this session scored live, final bonus included
   if(window.__myRecord){ var keptRec=null; try{keptRec=JSON.parse(localStorage.getItem('rooot.kept.'+MATCH_ID)||'null');}catch(e){}
     var kpts=keptRec?window.__myRecord.pointsFor(MATCH_ID)
-      :window.__myRecord.score({pred:p?{h:p.home,a:p.away}:null,cheers:M.cheerN,reacts:sumReacts(),mins:Math.floor(M.vSec/60),final:f?{h:f.home,a:f.away}:null,conv:(PASS&&PASS.conv)||0});
+      :window.__myRecord.score({pred:p?{h:p.home,a:p.away}:null,cheers:M.cheerN,reacts:sumReacts(),mins:Math.floor(M.vSec/60),final:f?{h:f.home,a:f.away}:null,conv:(PASS&&String(PASS.matchId)===String(MATCH_ID)&&PASS.conv)||0});
     el('kPts').textContent='+'+kpts;
     var xEl=el('xp'); if(xEl)xEl.textContent=kpts; }   // the pit counter agrees with the card, always
   var MON=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'], d=new Date();
@@ -746,6 +747,20 @@ function offerMint(){
     });
   };
 }
+var skShare=null;
+function offerShare(){
+  if(skShare)return;
+  skShare=document.createElement('button');
+  skShare.className='sk-keep sk-save'; skShare.type='button'; skShare.textContent='SHARE';
+  el('skKeep').parentNode.appendChild(skShare);
+  skShare.onclick=function(){
+    var call=PASS&&PASS.call&&String(PASS.matchId)===String(MATCH_ID)?(HOME_TRI+' '+PASS.call.h+'–'+PASS.call.a+' '+AWAY_TRI):null;
+    var fn=window.__stands&&window.__stands.fanNo;
+    var line=(call?('I called '+call):(HOME_TRI+' '+M.score[0]+'–'+M.score[1]+' '+AWAY_TRI+', I was there'))+(fn?(' — scarf Nº '+String(fn).padStart(3,'0')):'')+' · rooot.club/live';
+    if(navigator.share){ navigator.share({text:line,url:'https://rooot.club/live'}).catch(function(){}); }
+    else if(navigator.clipboard){ navigator.clipboard.writeText(line).then(function(){ skShare.textContent='COPIED'; setTimeout(function(){skShare.textContent='SHARE';},1400); }).catch(function(){}); }
+  };
+}
 el('skKeep').onclick=function(){
   var b=el('skKeep');
   if(b.dataset.stage==='done') return;                        // already collected — it is permanently theirs
@@ -753,6 +768,7 @@ el('skKeep').onclick=function(){
   b.classList.add('done'); b.dataset.stage='done'; b.textContent='Collected ✓';
   chainMsg('in your cabinet on this phone.',''); showCab();
   offerMint();                                                // the account is an offer, never a gate
+  offerShare();                                               // and the night travels, if you want it to
 };
 el('keepsake').addEventListener('click',function(e){ if(e.target===el('keepsake'))el('keepsake').classList.remove('on'); });   // tap outside: stay in the stands
 
@@ -1144,6 +1160,17 @@ var NEUTRAL_TERR_FX={home:{tri:'—',name:'',color:'#8C8467',sec:null},away:{tri
 function startLive(){ if(!wireLive()){ var _liveTerrace=setInterval(function(){ if(wireLive())clearInterval(_liveTerrace); },160); } }
 if(LIVE){
   var explicitTerr=PARAMS.get('match');
+  // param-less terrace NORMALIZES to ?match=<id> like the ground (17 Jul): the page and its
+  // adapters must resolve the SAME match from the URL — never a stale literal default.
+  if(!explicitTerr&&window.__matchday){
+    window.__matchday.ready.then(function(md){
+      var live=null,gates=null;
+      md.fixtures.forEach(function(f){ if(f.phase==='LIVE'&&!live)live=f; if(f.phase==='GATES_OPEN'&&!gates)gates=f; });
+      var target=live||gates||md.lastSealed||md.current;
+      if(target){ var qs2=new URLSearchParams(location.search); qs2.set('match',target.matchId);
+        location.replace('terrace.html?'+qs2.toString()); }
+    });
+  }
   if(explicitTerr&&FIXTURES[explicitTerr]){ startLive(); }   // explicit AND in the literal table → FX already correct, no async wait
   else{                                                       // no ?match, OR a ?match we have no literal for → consult the manifest, then fixtureInfo (honest fallbacks: never a stale literal)
     var _fxDone=false;

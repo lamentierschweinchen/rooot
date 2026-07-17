@@ -83,6 +83,11 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
   transition:transform .52s cubic-bezier(.5,0,.2,1),opacity .34s;pointer-events:none;overflow-y:auto;padding-bottom:84px;
   background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='120' height='120' filter='url(%23n)' opacity='0.04'/></svg>");}
 .sheet.open{opacity:1;transform:scale(1);pointer-events:auto}
+/* a sheet taller than the fold says so — a small bouncing cue above the card nav, retired on first scroll */
+.morehint{position:sticky;bottom:52px;z-index:13;width:26px;height:26px;margin:-26px auto 0;display:flex;align-items:center;justify-content:center;
+  background:var(--ink);color:var(--card);border-radius:50%;font-weight:900;font-size:13px;pointer-events:none;
+  animation:morebob 1.6s ease-in-out infinite;box-shadow:0 2px 8px rgba(26,24,21,.3)}
+@keyframes morebob{0%,100%{transform:translateY(0);opacity:.85}50%{transform:translateY(4px);opacity:1}}
 .cardnav{position:absolute;bottom:0;left:0;right:0;z-index:14;display:none;align-items:center;justify-content:center;gap:16px;padding:11px 12px;background:var(--card);border-top:1.5px solid var(--ink);box-shadow:0 -4px 16px rgba(26,24,21,.13)}
 .cardnav.on{display:flex}
 .cn{width:30px;height:30px;border-radius:50%;border:none;background:var(--ink);color:var(--card);font-family:var(--disp);font-weight:900;font-size:16px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
@@ -389,6 +394,13 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
   // secondary (change-strip) colours — so two same-primary teams never read as one
   var SEC={ARG:'#EDE9DE',CPV:'#12388C',BRA:'#1E8C4C',NOR:'#00205B',MEX:'#C8102E',ENG:'#EDE9DE',POR:'#DA020E',ESP:'#F1BF00',USA:'#B4232B',BEL:'#FDDA24',EGY:'#111111',SUI:'#EDE9DE',COL:'#003893',FRA:'#EDE9DE',MAR:'#006233'};
   var q=new URLSearchParams(location.search), DEMO=q.get('demo')==='1', WS=q.get('ws');   // live is the default; specimen only under ?demo=1
+  // sealed lens (embed+replay): drain the tape immediately — the ground's header says FULL
+  // TIME, so the plate must open on the settled truth, not a 30s re-run (standalone replay
+  // keeps the fast-forward show; sealed-first there is /live's job)
+  if(q.get('embed')&&q.get('replay')==='1'){
+    (function(){ var t=setInterval(function(){ if(window.__demoFeed&&window.__demoFeed.finish())clearInterval(t); },120);
+      setTimeout(function(){ clearInterval(t); },8000); })();
+  }
   // ?replay=1 (+ the /live·/loom rewrites) — the sealed ENG-ARG replay: a recorded finished match,
   // not the live wire. It shares the "recorded/REPLAY masthead, feed fills the cards" behaviour with
   // ?demo=1 (both are non-live), so LIVE excludes it and demoOn (below) folds it in.
@@ -707,6 +719,14 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     sh.style.transformOrigin=origin||'50% 50%';
     sh.classList.add('open'); el('ground').classList.add('dimmed');
     openSheet=sh; syncNav(place);
+    // more below the fold → say so once; the cue leaves on the first scroll
+    var old=sh.querySelector('.morehint'); if(old)old.remove();
+    setTimeout(function(){
+      if(sh.scrollHeight>sh.clientHeight+24&&sh.scrollTop<8){
+        var mh=document.createElement('div'); mh.className='morehint'; mh.textContent='⌄'; sh.appendChild(mh);
+        sh.addEventListener('scroll',function once(){ mh.remove(); sh.removeEventListener('scroll',once); },{passive:true});
+      }
+    },600);
   }
   function close(){ if(openSheet){openSheet.classList.remove('open');openSheet=null;} el('ground').classList.remove('dimmed'); el('cardnav').classList.remove('on'); }
   function nav(dir){ if(!openSheet)return; var cur=openSheet.id.replace('sheet-',''),i=0;

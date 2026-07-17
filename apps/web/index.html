@@ -119,6 +119,9 @@
       <div class="step"><b>STANDS</b><span>real crowd counts, cheers, and predictions</span></div>
       <div class="step"><b>KEEP</b><span>the full-time cloth is yours to keep</span></div>
     </section>
+    <footer style="background:var(--paper);padding:0 clamp(18px,5vw,62px) 26px;font-weight:700;font-size:9px;letter-spacing:.08em;color:var(--sub)">
+      ROOOT · '26 · real counts, real odds, no stakes · <a href="/about" style="color:var(--ink)">about</a>
+    </footer>
   </main>
   <script src="/matchday.js"></script>
   <script>
@@ -135,6 +138,7 @@
       if(!location.port)return href;
       if(href.indexOf('/live')===0)return '/woven-loom.html?replay=1'+(href.indexOf('rewatch=1')>=0?'&rewatch=1':'');
       if(href.indexOf('/demo')===0)return '/showcase.html';
+      if(href.indexOf('/about')===0)return '/about.html';
       return href.replace(/^\/gate(\?|$)/,'/gate.html$1');
     }
     [].forEach.call(document.querySelectorAll('a[href^="/"]'),function(a){ a.setAttribute('href',devPath(a.getAttribute('href'))); });

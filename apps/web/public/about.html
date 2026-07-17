@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ROOOT — about</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#E6DBC2">
+<style>
+@font-face{font-family:'Anybody';src:url(plate/fonts/anybody.woff2) format('woff2');font-weight:400 700;font-display:swap}
+@font-face{font-family:'Anybody';src:url(plate/fonts/anybody900.woff2) format('woff2');font-weight:800 900;font-display:swap}
+:root{--paper:#E6DBC2;--card:#F3ECDB;--ink:#1A1815;--sub:#6F674D;--gold:#C79A38;--verde:#2E6A4E;--disp:'Anybody','Arial Black',sans-serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--disp);-webkit-font-smoothing:antialiased;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='120' height='120' filter='url(%23n)' opacity='0.05'/></svg>")}
+.wrap{max-width:440px;margin:0 auto;padding:22px 20px 40px}
+.band{display:flex;height:5px;margin-bottom:18px}
+.band i{flex:1}.band .v{background:var(--verde)}.band .r{background:#D52B1E}.band .a{background:#E8B10A}.band .g{background:var(--gold)}
+a.backg{display:inline-block;font-weight:800;font-size:8px;letter-spacing:.1em;color:var(--sub);text-decoration:none;margin-bottom:10px}
+h1{font-weight:900;font-size:30px;line-height:.95}
+.sub{font-weight:700;font-size:9px;letter-spacing:.06em;color:var(--sub);margin-top:6px}
+section{margin-top:24px;background:var(--card);border:1.5px solid var(--ink);padding:14px 15px}
+h2{font-weight:900;font-size:11px;letter-spacing:.18em;margin-bottom:8px}
+p{font-weight:700;font-size:10.5px;line-height:1.65;color:var(--ink)}
+p+p{margin-top:8px}
+p a{color:var(--ink)}
+p .q{color:var(--sub)}
+.foot{margin-top:26px;text-align:center;font-weight:700;font-size:8px;letter-spacing:.08em;color:var(--sub);line-height:1.7}
+.foot a{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="band"><i class="v"></i><i class="r"></i><i class="a"></i><i class="g"></i></div>
+  <a class="backg" href="/">‹ THE MATCHDAY</a>
+  <h1>ABOUT ROOOT</h1>
+  <div class="sub">a match program that comes alive</div>
+
+  <section>
+    <h2>WHAT THIS IS</h2>
+    <p>ROOOT is a free, live fan experience for the tournament. You take a side, predict the score, and watch the match weave itself — the market's read beside the crowd's roar. At full time you keep what you lived: the woven cloth of that night, yours.</p>
+  </section>
+
+  <section>
+    <h2>THE NUMBERS ARE REAL</h2>
+    <p>Every mark on these pages maps to something that happened: the live odds feed, real fans' taps, or the record of the match itself. Crowd counts are counted, never invented. The odds are the market's own de-vigged read, shown plainly.</p>
+    <p class="q">Nothing here is a wager. The odds are a reading, and reading is free — there is no stake, no token to buy, nothing to flip.</p>
+  </section>
+
+  <section>
+    <h2>YOURS, FOREVER</h2>
+    <p>When you collect a scarf it's kept on your device instantly. If you choose to save it to an account, it's recorded to a key only you hold — made with your device's own Face or Touch ID, no wallet app, no seed phrase — and it stays yours on any device. Each scarf's record is public and permanent.</p>
+  </section>
+
+  <section>
+    <h2>WHO MADE IT</h2>
+    <p>Built by one fan and a small team of machines for the TxODDS hackathon, on Solana devnet, with live data from TxODDS. Questions, problems, ideas: <a href="https://github.com/lamentierschweinchen/rooot">github.com/lamentierschweinchen/rooot</a>.</p>
+  </section>
+
+  <div class="foot">ROOOT · '26 · <a href="/">the matchday</a> · <a href="/live">the sealed match</a> · <a href="/demo">the walkthrough</a></div>
+</div>
+</body>
+</html>

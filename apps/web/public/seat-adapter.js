@@ -205,6 +205,21 @@
           window.__seat.profile = body.profile;
           publish();
           fetchAlbum(res.pubkey); // a fresh claim may have just minted a new scarf -- refresh the album
+          // DAS indexes the mint asynchronously -- one fetch can land BEFORE the new scarf
+          // exists in the index (the Nº 027 empty-shelf sighting). Poll with backoff until
+          // the asset appears (or give up quietly; the local keep is on the shelf either way).
+          if (body.mint && body.mint.asset) {
+            var want = body.mint.asset, delays = [2500, 5000, 10000, 20000];
+            (function ensure(i) {
+              if (i >= delays.length) return;
+              setTimeout(function () {
+                var have = (window.__album.scarves || []).some(function (s) { return s.asset === want; });
+                if (have) return;
+                fetchAlbum(res.pubkey);
+                ensure(i + 1);
+              }, delays[i]);
+            })(0);
+          }
           return { pubkey: res.pubkey, mint: body.mint };
         });
       });

@@ -846,11 +846,25 @@ html.lexport .loomv svg{animation:none;transform:none}
           msg('not saved — try again any time · <a href="'+cabHref()+'">cabinet</a>'); });
       };
     }
+    function offerShare(){
+      if(document.getElementById('loomShare'))return;
+      var sh=document.createElement('button');
+      sh.id='loomShare'; sh.className='ck save'; sh.type='button'; sh.textContent='SHARE';
+      btn.parentNode.appendChild(sh);
+      sh.onclick=function(){
+        var pass=null; try{ pass=JSON.parse(localStorage.getItem('rooot.pass')||'null'); }catch(e){}
+        var call=pass&&pass.call&&String(pass.matchId)===String(clothId())?(pass.home+' '+pass.call.h+'–'+pass.call.a+' '+pass.away):null;
+        var fn=window.__stands&&window.__stands.fanNo;
+        var line=(call?('I called '+call):(M.hTri+' '+M.score[0]+'–'+M.score[1]+' '+M.aTri+', woven'))+(fn?(' — scarf Nº '+String(fn).padStart(3,'0')):'')+' · rooot.club/live';
+        if(navigator.share){ navigator.share({text:line,url:'https://rooot.club/live'}).catch(function(){}); }
+        else if(navigator.clipboard){ navigator.clipboard.writeText(line).then(function(){ sh.textContent='COPIED'; setTimeout(function(){sh.textContent='SHARE';},1400); }).catch(function(){}); }
+      };
+    }
     btn.onclick=function(){
       if(btn.dataset.done)return;
       btn.dataset.done='1'; btn.classList.add('done'); btn.textContent='COLLECTED ✓';
       msg('<a href="'+cabHref()+'">→ it’s in your cabinet</a>');
-      offerSave();
+      offerSave(); offerShare();
     };
   })();
   // (the legend is dead — the cloth answers a thumb, and the goal teaches the alphabet)
