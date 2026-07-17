@@ -31,7 +31,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .dseg{flex:1;display:flex;flex-direction:column;justify-content:center;padding:7px 4px 6px;text-align:center;background:var(--card);color:var(--sub);cursor:pointer;border:none;-webkit-tap-highlight-color:transparent;position:relative;transition:background .2s,color .2s}
 .dseg+.dseg{border-left:1.5px solid var(--ink)}
 .dseg .dt{display:block;font-family:var(--disp);font-weight:900;font-size:10px;letter-spacing:.09em;line-height:1}
-.dseg .dhint{display:block;font-weight:700;font-size:6px;letter-spacing:.13em;margin-top:3px;opacity:.7}
+.dseg .dhint{display:block;font-weight:700;font-size:7.5px;letter-spacing:.13em;margin-top:3px;opacity:.7}
 .dseg.on{background:var(--ink);color:var(--card)}
 .dseg.on .dhint{opacity:.6}
 .dseg.home::after{content:"⌂";position:absolute;top:3px;right:5px;font-size:7px;opacity:.45}
@@ -55,8 +55,9 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .them .ct{font-weight:700;font-size:7.5px;letter-spacing:.06em;color:var(--sub);white-space:nowrap}
 
 /* the centre — the lens you dial to */
-.center{position:relative;flex:1;min-height:0;background:var(--card)}
-.center iframe{width:100%;height:100%;border:none;display:block;background:var(--paper)}
+.center{position:relative;flex:1;min-height:0;background:var(--card);overflow:hidden}
+.center iframe{position:absolute;inset:0;width:100%;height:100%;border:none;display:block;background:var(--paper);
+  transition:transform .3s cubic-bezier(.3,0,.2,1)}   /* three living panes sliding — no reloads, no lost state (owner, 17 Jul) */
 
 /* your end — the foreground you cheer from */
 .you{position:relative;max-height:118px;background:linear-gradient(0deg,rgba(32,73,170,.19),transparent);padding:9px 13px 11px;cursor:pointer;-webkit-tap-highlight-color:transparent;border-top:1.5px solid var(--ink)}
@@ -95,11 +96,13 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
   <div class="them" id="themBand">
     <span class="nm" id="themNm">CPV · THEIR END</span>
     <div class="mini" id="miniThem"></div>
-    <span class="ct" id="themCt">14,100</span>
+    <span class="ct" id="themCt">—</span>
   </div>
 
   <div class="center" id="center">
-    <iframe id="lens" title="centre view" src="about:blank"></iframe>
+    <iframe id="pane-loom" class="pane" title="the loom" src="about:blank"></iframe>
+    <iframe id="pane-stands" class="pane" title="the stands" src="about:blank"></iframe>
+    <iframe id="pane-stadium" class="pane" title="the stadium" src="about:blank"></iframe>
   </div>
 
   <div class="you" id="youEnd">
@@ -166,7 +169,8 @@ function fromSchedule(fx){
 }
 var PASS=null; try{ PASS=JSON.parse(localStorage.getItem('rooot.pass')||'null'); }catch(e){}
 var byq=function(s){return document.querySelector(s);}, el=function(i){return document.getElementById(i);};
-var wrap=el('wrap'), dial=el('dial'), lens=el('lens');
+var wrap=el('wrap'), dial=el('dial');
+var panes={loom:el('pane-loom'),stands:el('pane-stands'),stadium:el('pane-stadium')};
 
 function boot(MATCH_ID,FX){
 var SEALED=FX.phase==='FULL_TIME'&&FX.replay;   // the sealed programme — baked data, not a dead wire
@@ -185,30 +189,36 @@ function lensSrc(name){
 }
 var order=['loom','stands','stadium'], cur=1;   // THE STANDS is home
 window.__groundLens=function(name){ setLens(name); };   // the lenses may flip the dial (the stadium's stands-dot)
+function slide(){ order.forEach(function(n,i){ panes[n].style.transform='translateX('+((i-cur)*100)+'%)'; }); }
 function setLens(name){
   if(order.indexOf(name)<0)return;
   cur=order.indexOf(name);
-  lens.src=lensSrc(name);
+  slide();   // the panes never reload — every lens keeps its scroll, its cards, its state
   wrap.classList.toggle('crowd-full', name==='stands');   // stands = crowd full; loom/stadium = crowd frames the lens
   [].forEach.call(dial.children,function(t){ t.classList.toggle('on', t.dataset.lens===name); });
 }
 [].forEach.call(dial.children,function(t){ t.onclick=function(){ setLens(t.dataset.lens); }; });
-// lean the dial by swiping the frame — from ANY lens, not just the stands (owner, 17 Jul:
-// "as easy as swipe one direction"). The iframe keeps its own touches, so the same
-// handler binds INSIDE each lens document as it loads (same-origin); a dominant-axis
-// guard keeps vertical scrolling (loom, stadium cards) from stealing a swipe.
+// lean the dial by swiping — from ANY lens (owner, 17 Jul: "as easy as swipe one
+// direction"). Each pane is same-origin, so the swipe binds INSIDE every pane's
+// document as it loads (pointer + touch both, for every mobile engine); a
+// dominant-axis guard keeps vertical scrolling from stealing a swipe.
 var cx=0;
 function swipeTo(dx,dy){ if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy||0)*1.5){ var ni=Math.max(0,Math.min(order.length-1,cur+(dx<0?1:-1))); setLens(order[ni]); } }
 wrap.addEventListener('touchstart',function(e){cx=e.touches[0].clientX;},{passive:true});
 wrap.addEventListener('touchend',function(e){ swipeTo(e.changedTouches[0].clientX-cx,0); },{passive:true});
-lens.addEventListener('load',function(){
-  try{
-    var d=lens.contentDocument; if(!d)return;
-    var sx=0,sy=0;
-    d.addEventListener('touchstart',function(e){ sx=e.touches[0].clientX; sy=e.touches[0].clientY; },{passive:true});
-    d.addEventListener('touchend',function(e){ swipeTo(e.changedTouches[0].clientX-sx,e.changedTouches[0].clientY-sy); },{passive:true});
-  }catch(e){}
-});
+function bindSwipe(frame){
+  frame.addEventListener('load',function(){
+    try{
+      var d=frame.contentDocument; if(!d)return;
+      var sx=0,sy=0,pd=false;
+      d.addEventListener('touchstart',function(e){ sx=e.touches[0].clientX; sy=e.touches[0].clientY; },{passive:true});
+      d.addEventListener('touchend',function(e){ swipeTo(e.changedTouches[0].clientX-sx,e.changedTouches[0].clientY-sy); },{passive:true});
+      d.addEventListener('pointerdown',function(e){ if(e.pointerType==='touch')return; pd=true; sx=e.clientX; sy=e.clientY; },{passive:true});
+      d.addEventListener('pointerup',function(e){ if(!pd)return; pd=false; swipeTo(e.clientX-sx,e.clientY-sy); },{passive:true});
+    }catch(e){}
+  });
+}
+order.forEach(function(n){ bindSwipe(panes[n]); });
 // their mini mosaic
 var mt=el('miniThem'); for(var i=0;i<16;i++)mt.insertAdjacentHTML('beforeend','<i></i>');
 // your cheer (tap → fills + decays; a ROOOT! burst at the peak)
@@ -286,6 +296,7 @@ function wireLive(){
   return wireLive.didStands&&wireLive.didStats;
 }
 if(LIVE&&!wireLive()){ var _liveGround=setInterval(function(){ if(wireLive())clearInterval(_liveGround); },160); }
+order.forEach(function(n){ panes[n].src=lensSrc(n); });   // all three panes live from the start — swaps are slides, never reloads
 setLens('stands');   // open at home — you take your place in THE STANDS
 } // end boot
 

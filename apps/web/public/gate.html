@@ -370,6 +370,21 @@ go.onclick=function(){
 // no watch-only entrance — the door asks for a side and a score, deliberately (owner, 13 Jul:
 // opinionated app; root + cheer + predict is the product AND the data)
 
+// a stamped pass never re-asks (owner, 17 Jul: no logging the same prediction twice) —
+// a returning fan finds their side, score, and dial already set, and the button walks
+// them straight back in. Any tap still changes anything; TAKE YOUR PLACE re-stamps.
+(function(){
+  var pass=null; try{ pass=JSON.parse(localStorage.getItem('rooot.pass')||'null'); }catch(e){}
+  if(!pass||String(pass.matchId)!==String(MATCH_ID)||!pass.call)return;
+  side=pass.side; sco={h:pass.call.h,a:pass.call.a}; touched=true; conv=pass.conv||0;
+  var pickEl=ends.children[side==='a'?1:0];
+  if(pickEl){ ends.classList.add('picked'); [].forEach.call(ends.children,function(e){e.classList.toggle('on',e===pickEl);});
+    document.documentElement.style.setProperty('--pick',SIDECOL[side]); }
+  paintScore();
+  if(conv){ [].forEach.call(pips.children,function(e){e.classList.toggle('on',+e.dataset.lv<=conv);}); cl.textContent=CONVLBL[conv]||'—'; }
+  go.classList.add('ready');
+  go.innerHTML="BACK TO YOUR SEAT<small>◆ YOU'RE IN · "+FX.home.tri+' '+sco.h+'–'+sco.a+' '+FX.away.tri+' →</small>';
+})();
 // gates open 30min before kickoff — until then the whole turnstile waits (owner, 17 Jul:
 // "we can only interact once we can enter"). The lock lifts by itself the moment the
 // phase flips (matchday's 30s clock) — the gate opens in your hand.

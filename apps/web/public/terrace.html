@@ -76,7 +76,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 /* the consensus — the scoreline the crowd holds up, BESIDE the market (never blended) */
 /* the seam's data block — one keylined box, two cells, the centre rule is the crowd/market boundary */
-.crowdcall{align-self:stretch;transition:opacity .3s}   /* .mid centres its children — stretch the plate wrapper to the full seam width */
+.crowdcall{align-self:stretch;transition:opacity .3s;margin:0 -14px}   /* the plate bleeds past the seam's padding — every pixel of phone width is type (owner, 17 Jul) */
 /* THE PLATE — a printed prediction card, THE CROWD over THE MARKET (portrait, phone-legible).
    Crowd = fan predictions · avg prediction · heart-v-head (each fanbase vs the market).
    Market = chance to win (mirrors the fan bar) · move since kickoff. Team inks; never blended. */
@@ -87,27 +87,27 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .pfield{position:absolute;left:8.5%;right:8.5%;display:flex;flex-direction:column;justify-content:center}
 .pfield.crowd{top:11.8%;height:31%}   /* bottom ~42.8% — clears the printed divider domes (measured top ~45.8%) */
 .pfield.market{top:60.4%;height:34.5%}
-.plbl{font-weight:900;font-size:7px;letter-spacing:.12em;color:var(--sub)}
+.plbl{font-weight:900;font-size:9px;letter-spacing:.12em;color:var(--sub)}
 .plbl.row{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
-.pcount{font-weight:800;font-size:6.5px;letter-spacing:.08em;color:var(--sub);white-space:nowrap}
+.pcount{font-weight:800;font-size:8px;letter-spacing:.08em;color:var(--sub);white-space:nowrap}
 .pcbar{display:flex;height:22px;border:1.5px solid var(--ink);overflow:hidden;background:var(--paper);margin-top:4px}
-.pcbar i{display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:900;font-size:9px;overflow:hidden;white-space:nowrap;min-width:0;transition:flex-basis .45s cubic-bezier(.4,0,.2,1)}
+.pcbar i{display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:900;font-size:11.5px;overflow:hidden;white-space:nowrap;min-width:0;transition:flex-basis .45s cubic-bezier(.4,0,.2,1)}
 .pcbar .h{background:var(--you);color:var(--youInk,var(--card))}
 .pcbar .d{background:var(--oat,#CDBE97);color:var(--ink);border-left:1.5px solid var(--ink);border-right:1.5px solid var(--ink)}
 .pcbar .a{background:var(--them);color:var(--themInk,var(--ink))}
-.pends{display:flex;justify-content:space-between;font-weight:900;font-size:7.5px;letter-spacing:.05em;margin-top:2px}
+.pends{display:flex;justify-content:space-between;font-weight:900;font-size:9.5px;letter-spacing:.05em;margin-top:2px}
 .pends .e1{color:var(--you)}.pends .e2{color:var(--sub)}.pends .e3{color:var(--them)}
 .pcrow{display:flex;gap:14px;margin-top:5px;align-items:flex-start}
 .pboard{display:inline-flex;background:var(--ink);border-radius:3px;overflow:hidden}
 .pbt{display:flex;flex-direction:column;align-items:center;padding:4px 10px 5px}
 .pbt+.pbt{border-left:1.5px solid #4a463c}
-.pbt s{font-weight:900;font-size:6.5px;letter-spacing:.1em;text-decoration:none;margin-bottom:2px}
+.pbt s{font-weight:900;font-size:8px;letter-spacing:.1em;text-decoration:none;margin-bottom:2px}
 .pbt.h s{color:var(--you)}.pbt.a s{color:var(--them)}
-.pbt b{font-weight:900;font-size:18px;color:var(--card);font-variant-numeric:tabular-nums;line-height:1}
+.pbt b{font-weight:900;font-size:22px;color:var(--card);font-variant-numeric:tabular-nums;line-height:1}
 .fvm{flex:1;min-width:0}
-.fvrow{display:grid;grid-template-columns:24px 1fr 28px;align-items:center;gap:6px;height:14px}
+.fvrow{display:grid;grid-template-columns:32px 1fr 36px;align-items:center;gap:6px;height:15px}
 .fvrow+.fvrow{margin-top:4px}
-.ft{font-weight:900;font-size:8px}.ft.t1{color:var(--you)}.ft.t3{color:var(--them)}
+.ft{font-weight:900;font-size:10px}.ft.t1{color:var(--you)}.ft.t3{color:var(--them)}
 .fvtrack{position:relative;height:11px}
 .fvtrack::after{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:var(--line);transform:translateY(-50%)}
 .fvconn{position:absolute;top:50%;height:3px;transform:translateY(-50%);z-index:1}
@@ -115,23 +115,23 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .mdot,.fdot{position:absolute;top:50%;transform:translate(-50%,-50%);border-radius:50%;border:1.5px solid var(--ink);z-index:2}
 .mdot{width:8px;height:8px;background:var(--paper);z-index:3}   /* hollow market dot rides above the filled fans dot so a tiny gap still reads as two markers */
 .fdot{width:10px;height:10px}.fdot.t1{background:var(--you)}.fdot.t3{background:var(--them)}
-.fvgap{font-weight:900;font-size:9px;text-align:right;color:var(--ink);font-variant-numeric:tabular-nums}
-.fvkey{display:inline-flex;gap:11px;font-weight:800;font-size:6px;letter-spacing:.04em;color:var(--sub);margin-top:3px;align-items:center;align-self:flex-start;background:#F1DEBF;padding:1px 3px;border-radius:2px}   /* cream backing (matches the card) so the legend + its filled dot never vanish on a printed accent */
+.fvgap{font-weight:900;font-size:11px;text-align:right;color:var(--ink);font-variant-numeric:tabular-nums}
+.fvkey{display:inline-flex;gap:11px;font-weight:800;font-size:7.5px;letter-spacing:.04em;color:var(--sub);margin-top:3px;align-items:center;align-self:flex-start;background:#F1DEBF;padding:1px 3px;border-radius:2px}   /* cream backing (matches the card) so the legend + its filled dot never vanish on a printed accent */
 .fvkey i{display:inline-block;width:7px;height:7px;border-radius:50%;border:1.25px solid var(--ink);vertical-align:-1px;margin-right:3px}
 .fvkey .km{background:var(--paper)}.fvkey .kf{background:var(--ink)}
 .pdiv{margin-top:8px}
-.pdrow{display:grid;grid-template-columns:30px 1fr;align-items:center;gap:8px;height:14px}
+.pdrow{display:grid;grid-template-columns:42px 1fr;align-items:center;gap:8px;height:15px}
 .pdrow+.pdrow{margin-top:4px}
-.pdt{font-weight:900;font-size:8px}.pdt.t1{color:var(--you)}.pdt.t2{color:var(--sub)}.pdt.t3{color:var(--them)}
+.pdt{font-weight:900;font-size:10px}.pdt.t1{color:var(--you)}.pdt.t2{color:var(--sub)}.pdt.t3{color:var(--them)}
 .pdtrack{position:relative;height:9px}
 .pdtrack::before{content:"";position:absolute;left:50%;top:-5px;height:19px;width:1.5px;background:var(--ink);transform:translateX(-50%);z-index:0}
 .pdbar{position:absolute;top:0;height:9px;border:1.25px solid var(--ink);z-index:1;transition:width .4s}
 .pdbar.dn{right:50%}.pdbar.up{left:50%}
 .pdbar.b1{background:var(--you)}.pdbar.b2{background:var(--oat,#CDBE97)}.pdbar.b3{background:var(--them)}
-.pdval{position:absolute;top:50%;transform:translateY(-50%);font-weight:900;font-size:8.5px;color:var(--ink);font-variant-numeric:tabular-nums}
+.pdval{position:absolute;top:50%;transform:translateY(-50%);font-weight:900;font-size:10.5px;color:var(--ink);font-variant-numeric:tabular-nums}
 .pdbar.dn .pdval{right:100%;margin-right:5px}.pdbar.up .pdval{left:100%;margin-left:5px}
-.pdaxis{display:grid;grid-template-columns:30px 1fr;gap:8px;margin-top:6px}
-.pdaxis .c{text-align:center;font-weight:800;font-size:6.5px;letter-spacing:.1em;color:var(--sub)}
+.pdaxis{display:grid;grid-template-columns:42px 1fr;gap:8px;margin-top:6px}
+.pdaxis .c{text-align:center;font-weight:800;font-size:8px;letter-spacing:.1em;color:var(--sub)}
 .pwait{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;background:#F1DEBF;font-weight:800;font-size:8.5px;letter-spacing:.1em;color:var(--sub);padding:0 12px;z-index:3}   /* matches the card's printed cream (sampled) so it cleanly veils the empty crowd field */
 .pfield.lite .needsfans{display:none}   /* the sim carries no per-fan predictions — hide the split + heart-v-head, never fabricate them */
 .pfield.lite .pcrow{justify-content:center}   /* sim shows only the average — centre the lone scoreboard instead of floating it left */
@@ -170,7 +170,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .popt.on{background:var(--ink);color:var(--card)}
 .popt.win{background:var(--verde);color:var(--card)}
 .popt.lose{opacity:.32}
-.pmkt{font-weight:800;font-size:8px;letter-spacing:.04em;color:var(--gold);margin-top:9px}
+.pmkt{font-weight:800;font-size:9.5px;letter-spacing:.04em;color:var(--gold);margin-top:9px}
 .pmkt.ng{color:var(--sub)}   /* NEXT GOAL's live split is a crowd count, never the market's gold register */
 .pbar{height:5px;background:var(--paper);border:2px solid var(--ink);margin-top:9px;overflow:hidden}
 .pfill{height:100%;width:100%;background:var(--gold)}
@@ -858,7 +858,7 @@ function refreshHvH(){ if(!M.br||!M.mkt)return; var br=M.br, mk=M.mkt;
 function setMove(mk){ if(!M.mkt0)M.mkt0={h:mk.home,d:mk.draw,a:mk.away};
   var defs=[['h',mk.home,M.mkt0.h,'mvH','mvHv','b1'],['d',mk.draw,M.mkt0.d,'mvD','mvDv','b2'],['a',mk.away,M.mkt0.a,'mvA','mvAv','b3']];
   for(var i=0;i<defs.length;i++){ var q=defs[i], delta=Math.round((q[1]-q[2])*100), bar=el(q[3]), val=el(q[4]); if(!bar)continue;
-    bar.className='pdbar '+q[5]+' '+(delta<0?'dn':'up'); bar.style.width=Math.min(48,Math.abs(delta)*4.5)+'%';
+    bar.className='pdbar '+q[5]+' '+(delta<0?'dn':'up'); bar.style.width=Math.min(38,Math.abs(delta)*3.6)+'%';   // reach capped so the value never collides with its label at the new type size
     if(val)val.textContent=(delta>0?'+':delta<0?'−':'')+Math.abs(delta); }
 }
 function ccUpdate(c){ if(!c)return;
