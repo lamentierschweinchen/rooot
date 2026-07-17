@@ -335,6 +335,9 @@ html.lexport .loomv svg{animation:none;transform:none}
   var GOALOPT=Q.get('goalopt')||'b';   // goals read as goals (owner): weft + king, no score tab. a = +score tabs · c = king alone
   var MARKS=Q.get('marks')||'chip';    // chip = printed backing tags · cloth = stitched straight into the bands (L11 feasibility)
   var EVSET=Q.get('events')||'none';   // PURE ODDS by default (owner): just the woven colour + calls, no event marks. none · goals · core · all
+  // THE SCARF (owner, 17 Jul): the loom stays the loom, but what you COLLECT carries the
+  // match — the kept/captured cloth weaves its goals (gold wefts + medallions) by default.
+  if((KEEP||Q.get('export')==='1')&&!Q.get('events'))EVSET='goals';
   var CORDS=Q.get('cords')==='on';     // possession + danger cords OFF by default (owner: 'lose the possession/danger bands')
   // The loom is one way to WATCH the game (owner): frequent, alive, never full. All shot outcomes
   // weave (a miss is a heartbeat too), corners keep the rhythm; offsides/safe free kicks/injuries
