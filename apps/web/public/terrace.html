@@ -818,7 +818,9 @@ function fire(ev){
   else if(ev.k=='whistle'){ big.textContent='FULL-TIME'; showKeepsake(); }
   // their mood (sample) for reacting events
   var r=REACT[ev.k+'-'+ev.side];
-  if(r){ var md=el('moodThem'); md.textContent='THEIR END: '+r.them[0]; md.classList.add('on'); setTimeout(function(){md.classList.remove('on');},4200); }
+  if(r){ var md=el('moodThem'); var e2=embFor(String(r.them[0]).toLowerCase());
+    md.innerHTML=e2?('THEIR END <img src="plate/gens/reactions/'+e2+'.png" alt="'+r.them[0]+'" style="width:16px;height:16px;vertical-align:-3px">'):('THEIR END: '+r.them[0]);
+    md.classList.add('on'); setTimeout(function(){md.classList.remove('on');},4200); }
   // gate a reaction
   if(emo[ev.k]&&ev.side){ M.await={ev:ev}; showPicker(null); }
   else if(ev.k=='pen'){ M.await={ev:ev,home:'PENALTY',away:'NEVER',q:'WAS IT A PENALTY?'}; showPicker(['PENALTY','NEVER']); }
@@ -1149,7 +1151,7 @@ function showTokenTray(tokens){
   var pks=document.createElement('div'); pks.className='pks';
   tokens.forEach(function(tok){
     var emb=embFor(tok), b=document.createElement('div');
-    if(emb){ b.className='pk feel'; b.innerHTML='<img src="plate/gens/reactions/'+emb+'.png" alt="'+tok+'"><span>'+String(tok).toUpperCase()+'</span>'; }
+    if(emb){ b.className='pk feel'; b.innerHTML='<img src="plate/gens/reactions/'+emb+'.png" alt="'+tok+'">'; }   // the symbol speaks for itself (owner, 18 Jul) — no caption
     else { b.className='pk'; b.textContent=String(tok).toUpperCase(); }   // unmapped token → word chip (never invents an emblem)
     b.onclick=function(ev){ev.stopPropagation();pickToken(tok,b);};
     pks.appendChild(b);
@@ -1184,7 +1186,7 @@ function fillSplit(slot,d,label){
   var f=el('split'+slot+'f'), c=el('split'+slot+'c'), im=el('split'+slot+'e'), nm=el('split'+slot+'n');
   if(nm)nm.textContent=label;
   if(!d||!d.n){ if(f){f.textContent='QUIET';f.style.width='28%';} if(c)c.textContent='0'; if(im)im.style.display='none'; return; }   // a silent end is honestly quiet, never zeros-as-mood
-  if(f){ f.textContent=String(d.top||'').toUpperCase(); f.style.width=Math.max(28,Math.round((d.pct||0)*100))+'%'; }
+  if(f){ f.textContent=Math.round((d.pct||0)*100)+'%'; f.style.width=Math.max(28,Math.round((d.pct||0)*100))+'%'; }   // the emblem beside speaks the mood; the bar speaks only the share (owner, 18 Jul)
   if(c)c.textContent=d.n;
   var emb=embFor(d.top);
   if(im){ if(emb){im.src='plate/gens/reactions/'+emb+'.png';im.style.display='';} else im.style.display='none'; }
