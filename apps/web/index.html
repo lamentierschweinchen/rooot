@@ -15,6 +15,7 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:image" content="https://rooot.club/og.png" />
   <title>ROOOT - Matchday</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <style>
     @font-face{font-family:'Anybody';src:url('/plate/fonts/anybody.woff2') format('woff2');font-weight:400 700;font-display:swap}
     @font-face{font-family:'Anybody';src:url('/plate/fonts/anybody900.woff2') format('woff2');font-weight:800 900;font-display:swap}
@@ -27,15 +28,16 @@
     a{color:inherit}
     .hero{
       min-height:86svh;position:relative;display:grid;align-items:end;overflow:hidden;
+      background-color:#4A4536; /* the fold can never be a void — image or not, copy stays legible */
       background:
         linear-gradient(180deg,rgba(230,219,194,.16) 0%,rgba(26,24,21,.08) 36%,rgba(26,24,21,.78) 100%),
-        url('/plate/gens/stadium-hero.png') center 42%/cover no-repeat;
+        url('/plate/gens/stadium-hero.jpg') center 42%/cover no-repeat #4A4536;
     }
     .hero::after{content:"";position:absolute;inset:0;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='120' height='120' filter='url(%23n)' opacity='0.055'/></svg>");pointer-events:none}
     .bar{position:absolute;top:0;left:0;right:0;height:7px;display:flex;z-index:2}.bar i{flex:1}.bar .v{background:var(--verde)}.bar .r{background:var(--sui)}.bar .a{background:var(--col)}.bar .g{background:var(--gold)}
     .mast{position:absolute;top:24px;left:clamp(18px,5vw,62px);right:clamp(18px,5vw,62px);z-index:2;display:flex;align-items:center;justify-content:space-between;gap:18px;color:var(--card)}
     .word{font-weight:900;font-size:18px;letter-spacing:.08em;text-shadow:0 2px 14px rgba(0,0,0,.42)}
-    .status{font-weight:800;font-size:9px;letter-spacing:.17em;color:#F2D988;text-align:right;text-shadow:0 2px 12px rgba(0,0,0,.45)}
+    .status{font-weight:800;font-size:9px;letter-spacing:.17em;color:var(--ink);text-align:right;background:rgba(243,236,219,.88);border:1.5px solid var(--ink);padding:6px 8px 5px;box-shadow:3px 3px 0 rgba(26,24,21,.35)}
     .copy{position:relative;z-index:2;width:min(980px,100%);padding:0 clamp(18px,5vw,62px) clamp(34px,8vh,74px);color:var(--card);text-shadow:0 3px 18px rgba(0,0,0,.48)}
     h1{margin:0;font-weight:900;font-size:clamp(64px,17vw,178px);line-height:.78;letter-spacing:0}
     .line{max-width:720px;margin:18px 0 0;font-weight:800;font-size:clamp(17px,2.8vw,30px);line-height:1.05;color:#FFF4D8}
@@ -75,56 +77,89 @@
       <div class="bar" aria-hidden="true"><i class="v"></i><i class="r"></i><i class="a"></i><i class="g"></i></div>
       <header class="mast">
         <div class="word">ROOOT</div>
-        <div class="status">TONIGHT 21:00<br>ESP v BEL</div>
+        <div class="status">THIRD PLACE · SAT<br>FRA v ENG</div>
       </header>
       <div class="ticket" aria-hidden="true">
         <div class="tbar"><i class="v"></i><i class="r"></i><i class="a"></i><i class="g"></i></div>
         <div class="body">
           <div class="k">ADMIT ONE</div>
-          <div class="fx">ESP<span>v</span>BEL</div>
-          <div class="meta">MATCH CLOTH<br>PRINTS FROM 21:00</div>
+          <div class="fx">FRA<span>v</span>ENG</div>
+          <div class="meta">THIRD PLACE<br>KICKOFF SATURDAY</div>
         </div>
       </div>
       <div class="copy">
         <h1>ROOOT</h1>
         <p class="line">The live match, woven as it happens.</p>
-        <p class="sub">Take a side, call the score, and enter the Spain v Belgium ground. Crowd counts, cheers, and calls move on the live wire; open the walkthrough for the full gate-to-cabinet demo.</p>
+        <p class="sub">France v England kicks off Saturday; gates open 30 minutes before. Take a side, predict the score, and watch the match weave live. Until then, England 1–2 Argentina is up to rewatch.</p>
         <div class="actions">
-          <a class="enter" href="/gate?live=1">ENTER THE GATE</a>
+          <a class="enter" href="/live">REWATCH ENG 1–2 ARG</a>
           <a class="walk" href="/demo">OPEN WALKTHROUGH</a>
         </div>
       </div>
     </section>
-    <section class="route" aria-label="Prototype flow">
-      <div class="step"><b>GATE</b><span>pick an end and stamp a score call</span></div>
-      <div class="step"><b>LIVE</b><span>Spain v Belgium woven from the wire</span></div>
-      <div class="step"><b>STANDS</b><span>real anonymous counts, cheers, and crowd calls</span></div>
-      <div class="step"><b>KEEP</b><span>the full-time cloth becomes the match relic</span></div>
+    <section class="route" aria-label="How it works">
+      <div class="step"><b>GATE</b><span>pick a side and predict the score</span></div>
+      <div class="step"><b>LIVE</b><span>the match woven from the wire, as it happens</span></div>
+      <div class="step"><b>STANDS</b><span>real crowd counts, cheers, and predictions</span></div>
+      <div class="step"><b>KEEP</b><span>the full-time cloth is yours to keep</span></div>
     </section>
   </main>
+  <script src="/matchday.js"></script>
   <script>
-  // T16 — the landing reads the __fixture manifest so tonight's game needs zero surface
-  // edits. Fetch-fail/malformed -> leave the static ESP-BEL content above exactly as
-  // printed (never invent a fixture). Never say a match is LIVE before its kickoff —
-  // the computed line always reads "TONIGHT HH:MM", matching the static copy's voice.
+  // The landing reads posture from window.__matchday — the one clock — so the
+  // door always tells the truth: what's next, when the gates open, what's live,
+  // what sealed. Fetch-fail/malformed -> the static copy above stays exactly as
+  // printed (the real schedule as of deploy; never invent a fixture).
   (function(){
-    window.__fixtureReady = window.__fixtureReady || fetch('/fixture.json')
-      .then(function(r){ return r.ok ? r.json() : null; })
-      .catch(function(){ return null; });
-    window.__fixtureReady.then(function(fx){
-      if(!fx || !fx.matchId || !fx.home || !fx.away) return;
-      var hc=fx.home.code, ac=fx.away.code, hn=fx.home.name, an=fx.away.name;
-      var hhmm='';
-      try{ hhmm=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Madrid',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(fx.kickoffUtc)); }catch(e){}
-      var kickLabel=hhmm?('TONIGHT '+hhmm):'TONIGHT';
-      var status=document.querySelector('.status'); if(status)status.innerHTML=kickLabel+'<br>'+hc+' v '+ac;
-      var fxEl=document.querySelector('.ticket .fx'); if(fxEl)fxEl.innerHTML=hc+'<span>v</span>'+ac;
-      var meta=document.querySelector('.ticket .meta'); if(meta)meta.innerHTML='MATCH CLOTH<br>'+(hhmm?('PRINTS FROM '+hhmm):'PRINTS AT KICK-OFF');
-      var pairing=hn+' v '+an;
-      var sub=document.querySelector('.sub'); if(sub)sub.innerHTML=sub.innerHTML.replace(/Spain v Belgium/g,pairing);
-      var liveStep=document.querySelectorAll('.route .step span')[1]; if(liveStep)liveStep.textContent=liveStep.textContent.replace(/Spain v Belgium/g,pairing);
-      var cta=document.querySelector('.enter'); if(cta)cta.setAttribute('href','/gate?live=1&match='+encodeURIComponent(fx.matchId));
-    });
+    if(!window.__matchday) return;
+    function set(sel,html){ var el=document.querySelector(sel); if(el)el.innerHTML=html; }
+    // local dev has no vercel rewrites (/live, /demo, clean /gate) — map to the real files
+    // so a local walk clicks through. Prod (no port) keeps the canonical routes.
+    function devPath(href){
+      if(!location.port)return href;
+      if(href.indexOf('/live')===0)return '/woven-loom.html?replay=1';
+      if(href.indexOf('/demo')===0)return '/showcase.html';
+      return href.replace(/^\/gate(\?|$)/,'/gate.html$1');
+    }
+    [].forEach.call(document.querySelectorAll('a[href^="/"]'),function(a){ a.setAttribute('href',devPath(a.getAttribute('href'))); });
+    function render(md){
+      var fx=md.current; if(!fx||!fx.home||!fx.away) return;
+      var hc=fx.home.code, ac=fx.away.code, pair=fx.home.name+' v '+fx.away.name;
+      var codes=hc+' v '+ac, stage=fx.stage||'';
+      var kick=md.kickLabel(fx), gates=md.gatesLabel(fx);
+      var sealed=md.lastSealed, sealedLine=sealed?(sealed.home.code+' '+sealed.finalScore.home+'–'+sealed.finalScore.away+' '+sealed.away.code):null;
+      var enter=document.querySelector('.enter');
+
+      if(fx.phase==='UPCOMING'){
+        set('.status',(stage?stage+' · ':'')+kick+'<br>'+codes);
+        set('.ticket .fx',hc+'<span>v</span>'+ac);
+        set('.ticket .meta',(stage?stage+'<br>':'')+'KICKOFF '+kick+' · GATES '+gates);
+        set('.sub',pair+' — kickoff '+kick+', gates open '+gates+'. Take a side, predict the score, and watch the match weave live.'+(sealedLine?' Until then, '+sealedLine+' is up to rewatch.':''));
+        if(enter&&sealedLine){ enter.textContent='REWATCH '+sealedLine; enter.setAttribute('href',devPath('/live')); }
+      } else if(fx.phase==='GATES_OPEN'){
+        set('.status','GATES OPEN · '+kick.replace(/^\S+ /,'')+'<br>'+codes);
+        set('.ticket .fx',hc+'<span>v</span>'+ac);
+        set('.ticket .meta',(stage?stage+'<br>':'')+'GATES OPEN · KICKOFF '+kick);
+        set('.sub','The gates are open. Take a side, predict the score, and take your place before '+pair+' kicks off.');
+        if(enter){ enter.textContent='ENTER THE GATE'; enter.setAttribute('href',devPath('/gate?live=1&match='+encodeURIComponent(fx.matchId))); }
+      } else if(fx.phase==='LIVE'){
+        set('.status','LIVE<br>'+codes);
+        set('.ticket .fx',hc+'<span>v</span>'+ac);
+        set('.ticket .meta',(stage?stage+'<br>':'')+'LIVE NOW');
+        set('.sub',pair+' is live and weaving now. Take a side, predict the score, and get in.');
+        if(enter){ enter.textContent='ENTER · LIVE'; enter.setAttribute('href',devPath('/gate?live=1&match='+encodeURIComponent(fx.matchId))); }
+      } else { // FULL_TIME
+        var ft=fx.sealed&&fx.finalScore?(hc+' '+fx.finalScore.home+'–'+fx.finalScore.away+' '+ac):codes;
+        set('.status','FULL TIME<br>'+ft);
+        set('.ticket .fx',hc+'<span>v</span>'+ac);
+        set('.ticket .meta',(stage?stage+'<br>':'')+'FULL TIME'+(fx.sealed&&fx.finalScore?' '+fx.finalScore.home+'–'+fx.finalScore.away:''));
+        set('.sub',pair+' is done'+(fx.sealed?' — the whole match is up to rewatch, start to whistle.':' — sealing the match now; the rewatch is up shortly.'));
+        if(enter&&fx.sealed){ enter.textContent='REWATCH '+ft; enter.setAttribute('href',devPath('/live')); }
+      }
+      var liveStep=document.querySelectorAll('.route .step span')[1];
+      if(liveStep)liveStep.textContent=(fx.phase==='LIVE')?(pair+' — weaving now'):'the match woven from the wire, as it happens';
+    }
+    window.__matchday.on(render);
   })();
   </script>
 </body>

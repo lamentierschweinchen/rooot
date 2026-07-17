@@ -101,6 +101,9 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .go{margin:20px 12px 14px;padding:15px;background:var(--ink);color:var(--card);border:none;font-family:var(--disp);
   font-weight:900;font-size:13px;letter-spacing:.14em;cursor:pointer;opacity:.32;transition:opacity .28s}
 .go.ready{opacity:1}
+/* gates not open yet — the whole turnstile waits (owner: we only interact once we can enter) */
+.gatelock .end,.gatelock .scn,.gatelock .pip{pointer-events:none;opacity:.45}
+.gatelock .go{pointer-events:none;opacity:.85;background:var(--paperd,#CBBF9E);color:var(--ink)}
 @keyframes nudge{30%{transform:translateX(-4px)}60%{transform:translateX(4px)}}
 .nudge{animation:nudge .28s ease}
 .go.ready:active{transform:translateY(1px)}
@@ -165,6 +168,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 </div>
 <!-- demo engine — private prototype default: baked recording → serverless feed → window.__match + window.__stands -->
 <script>if(/[?&]demo=1/.test(location.search))document.write('<scr'+'ipt src="plate/demo-suicol.js"></scr'+'ipt><scr'+'ipt src="demo-feed.js"></scr'+'ipt><scr'+'ipt src="match-read.js"></scr'+'ipt><scr'+'ipt src="crowd-sim.js"></scr'+'ipt>');</script>
+<script src="matchday.js"></script>
 <script src="stands-adapter.js"></script>
 <script>
 var side=null, sco={h:0,a:0}, touched=false, conv=0;
@@ -239,6 +243,25 @@ function fromFixtureInfo(fx){
     kick:'MATCHDAY'
   };
 }
+// the schedule (window.__matchday) — the one clock. Carries phase, stage, and the
+// sealed final, so the door's copy is never a stale literal: gates/kickoff before,
+// LIVE during, FULL TIME after. Viewer-local clock, one voice with the landing.
+function fromSchedule(fx,md){
+  var kick;
+  if(fx.phase==='UPCOMING')kick='KICKOFF '+md.kickLabel(fx)+' · GATES '+md.gatesLabel(fx);
+  else if(fx.phase==='GATES_OPEN')kick='GATES OPEN · KICKOFF '+md.kickLabel(fx).replace(/^\S+\s/,'');
+  else if(fx.phase==='LIVE')kick='LIVE NOW';
+  else kick='FULL TIME'+(fx.finalScore?' '+fx.finalScore.home+'–'+fx.finalScore.away:'');
+  // near-white kit colours (ENG) read washed once darkened — take the accent instead
+  function ink(cs){ var c=cs[0]; var r=parseInt(c.slice(1,3),16),g=parseInt(c.slice(3,5),16),b=parseInt(c.slice(5,7),16);
+    if((0.299*r+0.587*g+0.114*b)/255>0.85&&cs[1])c=cs[1]; return mastInk(c); }
+  return {
+    home:{tri:fx.home.code,name:String(fx.home.name).toUpperCase(),color:ink(fx.home.colors),flag:fx.home.flag||FLAG_EXC[fx.home.code]||fx.home.code},
+    away:{tri:fx.away.code,name:String(fx.away.name).toUpperCase(),color:ink(fx.away.colors),flag:fx.away.flag||FLAG_EXC[fx.away.code]||fx.away.code},
+    kick:kick,label:fx.stage||'MATCHDAY',phase:fx.phase,finalScore:fx.finalScore||null,
+    kickLbl:md.kickLabel(fx),gatesLbl:md.gatesLabel(fx)
+  };
+}
 
 function boot(MATCH_ID,FX){
 var MODE_Q=(DEMO?'&demo=1':'&live=1&match='+encodeURIComponent(MATCH_ID))+(WS?'&ws='+encodeURIComponent(WS):'');   // carry match always; ws only when present
@@ -255,7 +278,7 @@ function paintFixture(){
   document.documentElement.style.setProperty('--homeSeg',segInk(FX.home.color));
   document.documentElement.style.setProperty('--awaySeg',segInk(FX.away.color));
   var meta=document.querySelector('.mast .meta');
-  if(meta)meta.innerHTML='MATCHDAY · '+FX.home.tri+' v '+FX.away.tri+'<br>'+FX.kick+'<br><b class="serial">ADMIT ONE · &#39;26</b>';
+  if(meta)meta.innerHTML=(FX.label||'MATCHDAY')+' · '+FX.home.tri+' v '+FX.away.tri+'<br>'+FX.kick+'<br><b class="serial">ADMIT ONE · &#39;26</b>';
   var es=ends.children;
   [[es[0],FX.home],[es[1],FX.away]].forEach(function(pair){
     var node=pair[0], team=pair[1], flag=team.flag||team.tri;
@@ -271,10 +294,11 @@ function paintFixture(){
   [].forEach.call(score.querySelectorAll('.sct'),function(n,i){ n.textContent=i?FX.away.tri:FX.home.tri; });
   var st=document.querySelector('.stamp span'); if(st)st.textContent=FX.home.tri+' v '+FX.away.tri+' · '+FX.kick;
   if(LIVE){
-    var mr=document.querySelector('.mkt .mr'); if(mr)mr.textContent='LIVE WIRE · WAITING';
-    // no sample numbers on the live door — one plain fact until the wire prints (owner, 10 Jul: KISS)
-    var kt=(FX.kick||'').match(/\d{1,2}:\d{2}/);
-    var bar=document.querySelector('.mbar'); if(bar)bar.innerHTML='<i class="d" style="flex:100">'+(kt?'GAME STARTS AT '+kt[0]:FX.kick||'PRE-MATCH')+'</i>';
+    // no sample numbers on the live door — one plain fact until the wire prints (owner, 10 Jul: KISS).
+    // The fact is phase-aware (fromSchedule): kickoff+gates before, LIVE NOW during, FULL TIME after.
+    var mr=document.querySelector('.mkt .mr');
+    if(mr)mr.textContent=FX.phase==='LIVE'?'LIVE':(FX.phase==='FULL_TIME'?'FULL TIME':'PRE-MATCH');
+    var bar=document.querySelector('.mbar'); if(bar)bar.innerHTML='<i class="d" style="flex:100">'+(FX.kick||'PRE-MATCH')+'</i>';
   }
 }
 paintFixture();
@@ -330,6 +354,7 @@ function paintScore(){ [].forEach.call(score.querySelectorAll('.scn'),function(n
   };
 });
 go.onclick=function(){
+  if(document.documentElement.classList.contains('gatelock'))return;   // gates not open — nothing submits
   if(!go.classList.contains('ready')){
     var need=ends;   // side is the only gate now — nudge the picker if they haven't chosen one
     need.classList.remove('nudge'); void need.offsetWidth; need.classList.add('nudge');
@@ -344,6 +369,26 @@ go.onclick=function(){
 };
 // no watch-only entrance — the door asks for a side and a score, deliberately (owner, 13 Jul:
 // opinionated app; root + cheer + predict is the product AND the data)
+
+// gates open 30min before kickoff — until then the whole turnstile waits (owner, 17 Jul:
+// "we can only interact once we can enter"). The lock lifts by itself the moment the
+// phase flips (matchday's 30s clock) — the gate opens in your hand.
+var GO_HOME=go.innerHTML;
+function applyLock(){
+  var locked=FX.phase==='UPCOMING';
+  document.documentElement.classList.toggle('gatelock',locked);
+  if(locked){
+    var day=(FX.kickLbl||'').split(' ')[0], time=(FX.kickLbl||'').split(' ').pop();
+    go.innerHTML='GATES OPEN '+(day?day+' ':'')+(FX.gatesLbl||'')+'<small>KICKOFF '+time+'</small>';
+  } else if(go.innerHTML.indexOf('GATES OPEN')===0){ go.innerHTML=GO_HOME; }
+}
+applyLock();
+if(window.__matchday){
+  window.__matchday.on(function(md){
+    var f=md.get(MATCH_ID); if(!f||f.phase===FX.phase)return;
+    FX=fromSchedule(f,md); paintFixture(); applyLock();
+  });
+}
 } // end boot
 
 // T16/adopt-#1 fixture resolution chain: explicit ?match= + a literal FIXTURES entry wins
@@ -356,15 +401,26 @@ go.onclick=function(){
 // OTHER match's literal — that was the bug: FIXTURES['18218149'] shown mislabeled under
 // an unrelated matchId). FIXTURES above stays the override layer — a fixture living
 // there never waits on the wire.
-if(explicitMatch&&FIXTURES[explicitMatch]){
-  boot(explicitMatch,FIXTURES[explicitMatch]);
-}else if(!LIVE){
+if(!LIVE){
   var mid=explicitMatch||'18202783';
   boot(mid,FIXTURES[mid]||FIXTURES['18218149']);
 }else{
   var done=false, fallbackId=explicitMatch||'18218149';
   var NEUTRAL_FX={home:{tri:'—',name:'',color:'#8C8467',flag:''},away:{tri:'—',name:'',color:'#8C8467',flag:''},kick:'PRE-MATCH'};
   function finish(id,fx){ if(done)return; done=true; boot(id,fx); }
+  // the schedule first — matchday.js settles off the same fixture.json fetch (no added
+  // wait) and knows every matchday fixture with a real phase. It wins whenever it knows
+  // this match; the literal FIXTURES table is only the last-resort override for ids the
+  // schedule has never heard of (old recordings, tests).
+  if(window.__matchday){
+    window.__matchday.ready.then(function(md){
+      var fx=explicitMatch?md.get(explicitMatch):md.current;
+      if(fx)finish(fx.matchId,fromSchedule(fx,md));
+      else if(explicitMatch&&FIXTURES[explicitMatch])finish(explicitMatch,FIXTURES[explicitMatch]);
+    });
+  }else if(explicitMatch&&FIXTURES[explicitMatch]){
+    finish(explicitMatch,FIXTURES[explicitMatch]);
+  }
   // fixtureInfo — poll for window.__stands (stands-adapter.js resolves + connects async,
   // same idiom as wireLiveGate below); onFixtureInfo replays instantly if it already
   // arrived (onSentiment idiom), so this rarely waits the full interval in practice.
@@ -383,6 +439,7 @@ if(explicitMatch&&FIXTURES[explicitMatch]){
   })();
   window.__fixtureReady=window.__fixtureReady||fetch('/fixture.json').then(function(r){return r.ok?r.json():null;}).catch(function(){return null;});
   window.__fixtureReady.then(function(mf){
+    if(window.__matchday)return;   // the schedule path above owns resolution when matchday.js is on the page
     if(mf&&mf.matchId&&mf.home&&mf.away&&(!explicitMatch||explicitMatch===mf.matchId)){ finish(mf.matchId,fromManifest(mf)); }
     // else: a manifest for a DIFFERENT match tells us nothing about this one — never commit
     // it as if it did. Wait for fixtureInfo, or the final neutral timeout below.

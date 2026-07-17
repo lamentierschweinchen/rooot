@@ -22,6 +22,8 @@ export const FIXTURE_INFO: Record<string, Fx> = {
   '18222446': { home: C('ARG', 'Argentina', '#75AADB', '#F6B40E'), away: C('SUI', 'Switzerland', '#D52B1E', '#FFFFFF'), competition: 'World Cup', dateISO: '2026-07-12' },
   '18237038': { home: C('FRA', 'France', '#002395', '#ED2939'), away: C('ESP', 'Spain', '#AA151B', '#F1BF00'), competition: 'World Cup', dateISO: '2026-07-14' },
   '18241006': { home: C('ENG', 'England', '#FFFFFF', '#CF081F'), away: C('ARG', 'Argentina', '#75AADB', '#F6B40E'), competition: 'World Cup', dateISO: '2026-07-15' },
+  '18257865': { home: C('FRA', 'France', '#002395', '#ED2939'), away: C('ENG', 'England', '#FFFFFF', '#CF081F'), competition: 'World Cup', dateISO: '2026-07-18' },
+  '18257739': { home: C('ESP', 'Spain', '#AA151B', '#F1BF00'), away: C('ARG', 'Argentina', '#75AADB', '#F6B40E'), competition: 'World Cup', dateISO: '2026-07-19' },
 };
 
 export function fixtureInfo(matchId: string): Fx | null {

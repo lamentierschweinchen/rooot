@@ -78,6 +78,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 /* each kept scarf IS the real woven cloth (the same render the mint captures), previewed to the head
    of the scarf and unrolling in place on tap — never a reinterpretation */
 .scarf{position:relative;overflow:hidden;max-height:150px;border:2px solid var(--ink);box-shadow:4px 4px 0 rgba(26,24,21,.18);background:#EAE1C8;transition:max-height .6s cubic-bezier(.33,0,.15,1)}
+.scarf.noimg{min-height:64px}   /* image missing (un-minted keep) → plain paper, never a broken glyph */
 .keep.open .scarf{max-height:1600px}
 .scarf img{width:100%;display:block}
 .scarf .fade{position:absolute;left:0;right:0;bottom:0;height:56px;background:linear-gradient(rgba(234,225,200,0),rgba(234,225,200,.9) 72%);display:flex;align-items:flex-end;justify-content:center;padding-bottom:7px;pointer-events:none;transition:opacity .3s}
@@ -178,6 +179,8 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
      fetches their on-chain album (window.__album) with no Face-ID prompt. No claim here,
      so nacl/seat-passkey aren't needed (the terrace/loom load those to mint). Without this
      the cabinet never saw window.__seat/__album and could only show local cloths. -->
+<script src="matchday.js"></script>
+<script src="fan-record.js"></script>
 <script src="seat-adapter.js"></script>
 <script>
 var el=function(id){return document.getElementById(id);};
@@ -237,8 +240,11 @@ function scarvesFromCloths(cloths,kepts){
       img:(k&&k.imageUri)||null };   // the minted scarf image; scarfHTML falls back to the captured cloth
   });
 }
-// the record tiles, derived honestly from what this device kept
+// the record tiles — fan-record.js is the one counter (the full-time card and the
+// tiles must never disagree); the local derive stays only as its no-module fallback
 function deriveFromKept(scarves,kepts){
+  if(window.__myRecord){ var t=window.__myRecord.totals();
+    return {lived:t.lived,calls:t.predictions,nailed:t.exact,loudestNight:t.loudestNight}; }
   var ids={}; scarves.forEach(function(s){ids[s.matchId]=1;}); kepts.forEach(function(k){ids[k.matchId]=1;});
   var lived=Object.keys(ids).length, preds=0, exact=0;
   kepts.forEach(function(k){ if(k.pred){ preds++; if(k.final&&k.pred.h===k.final.h&&k.pred.a===k.final.a)exact++; } });
@@ -305,7 +311,7 @@ function esc(v){ return String(v==null?'':v).replace(/[&<>"']/g,function(c){retu
 function scarfHTML(s){ var img=esc(s.img||s.image||('plate/scarves/'+(s.matchId||'')+'.jpg'));   // the minted scarf: album's imageUri (s.image, DAS links.image) or a captured-cloth s.img; demo jpg last
   var home=esc(s.home), away=esc(s.away), score=esc(s.score), matchId=esc(s.matchId);
   return '<div class="keep reveal" data-match="'+(matchId||home+'-'+away)+'">'+
-    '<div class="scarf"><img src="'+img+'" alt="'+home+' '+score+' '+away+' woven scarf" loading="lazy">'+
+    '<div class="scarf"><img src="'+img+'" alt="'+home+' '+score+' '+away+' woven scarf" loading="lazy" onerror="this.parentNode.classList.add(\'noimg\');this.remove()">'+
       '<div class="fade"><span class="un">tap to unroll</span></div></div>'+
     '<div class="hall"><span class="call"><b>'+home+' '+score+' '+away+'</b> · '+esc(s.date)+(s.call?' · predicted '+esc(s.call)+' '+resTag(s.result):' · you were there')+'</span><span>Nº '+esc(s.serial)+'</span></div>'+
   '</div>';
@@ -342,11 +348,14 @@ function render(){
   el('record').innerHTML=[['st',R.lived,'MATCHES LIVED'],['st',R.calls,'PREDICTIONS'],['st gold',R.nailed,'EXACT'],['st',R.loudestNight||'—','LOUDEST NIGHT']]
     .map(function(t){return '<div class="'+t[0]+'"><b>'+t[1]+'</b><span class="l">'+t[2]+'</span></div>';}).join('');
 
-  // NEXT UP — the forward loop; no fixture → your first gate
+  // NEXT UP — the forward loop. The album's fixture first, else the schedule's next
+  // (matchday.js — the real kickoff, never a placeholder); no fixture at all → the gate.
+  if(!d.next&&window.__matchday&&window.__matchday.next){ var nf=window.__matchday.next;
+    d.next={home:nf.home.code,away:nf.away.code,kickoff:(nf.stage?nf.stage+' · ':'')+window.__matchday.kickLabel(nf),side:null}; }
   el('nextWrap').innerHTML=d.next
     ? '<div class="sec"><span class="t">NEXT UP</span><span class="c">the season continues</span></div>'+
-      '<a class="next" href="gate.html'+Q+'"><div><div class="fx">'+flagTile(d.next.home,'flagtile nf')+d.next.home+'<span class="v">v</span>'+d.next.away+flagTile(d.next.away,'flagtile nf')+'</div><div class="meta">'+d.next.kickoff+" · YOU'RE "+d.next.side+'</div></div><span class="go">→</span></a>'
-    : '<div class="sec"><span class="t">NEXT UP</span><span class="c">the season starts at the door</span></div>'+
+      '<a class="next" href="gate.html'+Q+'"><div><div class="fx">'+flagTile(d.next.home,'flagtile nf')+d.next.home+'<span class="v">v</span>'+d.next.away+flagTile(d.next.away,'flagtile nf')+'</div><div class="meta">'+d.next.kickoff+(d.next.side?" · YOU'RE "+d.next.side:'')+'</div></div><span class="go">→</span></a>'
+    : '<div class="sec"><span class="t">NEXT UP</span><span class="c">your first match starts at the gate</span></div>'+
       '<a class="next" href="gate.html'+Q+'"><div><div class="fx">TAKE YOUR PLACE</div><div class="meta">YOUR FIRST GATE →</div></div><span class="go">→</span></a>';
 
   // THE SCARVES — the rack, or empty NEED pockets (never a fake sticker)
@@ -379,6 +388,7 @@ function render(){
 var _bg=document.querySelector('.backg'); if(_bg)_bg.setAttribute('href','ground.html'+Q);   // keep the walkthrough in demo mode
 if(window.__seat&&window.__seat.on)window.__seat.on(render);   // re-render when identity / album land (coordinator interface)
 if(window.__album&&window.__album.on)window.__album.on(render);
+if(window.__matchday)window.__matchday.on(function(){render();});   // schedule lands / phase flips → NEXT UP stays true
 render();
 </script>
 </body>

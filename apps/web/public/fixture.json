@@ -6,7 +6,8 @@
     "colors": [
       "#FFFFFF",
       "#CF081F"
-    ]
+    ],
+    "flag": "ENG"
   },
   "away": {
     "code": "ARG",
@@ -14,9 +15,96 @@
     "colors": [
       "#75AADB",
       "#F6B40E"
-    ]
+    ],
+    "flag": "ARG"
   },
   "kickoffUtc": "2026-07-15T19:00:00Z",
   "competition": "World Cup",
-  "dateISO": "2026-07-15"
+  "dateISO": "2026-07-15",
+  "gatesOpenMinutes": 30,
+  "fixtures": [
+    {
+      "matchId": "18241006",
+      "stage": "SEMIFINAL",
+      "status": "sealed",
+      "home": {
+        "code": "ENG",
+        "name": "England",
+        "colors": [
+          "#FFFFFF",
+          "#CF081F"
+        ],
+        "flag": "ENG"
+      },
+      "away": {
+        "code": "ARG",
+        "name": "Argentina",
+        "colors": [
+          "#75AADB",
+          "#F6B40E"
+        ],
+        "flag": "ARG"
+      },
+      "kickoffUtc": "2026-07-15T19:00:00Z",
+      "competition": "World Cup",
+      "dateISO": "2026-07-15",
+      "finalScore": {
+        "home": 1,
+        "away": 2
+      },
+      "replay": true
+    },
+    {
+      "matchId": "18257865",
+      "stage": "THIRD PLACE",
+      "status": "upcoming",
+      "home": {
+        "code": "FRA",
+        "name": "France",
+        "colors": [
+          "#002395",
+          "#ED2939"
+        ],
+        "flag": "FRA"
+      },
+      "away": {
+        "code": "ENG",
+        "name": "England",
+        "colors": [
+          "#FFFFFF",
+          "#CF081F"
+        ],
+        "flag": "ENG"
+      },
+      "kickoffUtc": "2026-07-18T21:00:00Z",
+      "competition": "World Cup",
+      "dateISO": "2026-07-18"
+    },
+    {
+      "matchId": "18257739",
+      "stage": "THE FINAL",
+      "status": "upcoming",
+      "home": {
+        "code": "ESP",
+        "name": "Spain",
+        "colors": [
+          "#AA151B",
+          "#F1BF00"
+        ],
+        "flag": "SPA"
+      },
+      "away": {
+        "code": "ARG",
+        "name": "Argentina",
+        "colors": [
+          "#75AADB",
+          "#F6B40E"
+        ],
+        "flag": "ARG"
+      },
+      "kickoffUtc": "2026-07-19T19:00:00Z",
+      "competition": "World Cup",
+      "dateISO": "2026-07-19"
+    }
+  ]
 }
