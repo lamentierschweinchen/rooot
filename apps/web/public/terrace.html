@@ -668,18 +668,22 @@ function showKeepsake(){
   var f=vm&&vm.final?vm.final:{home:M.score[0],away:M.score[1]};
   if(p){ el('kPred').textContent=HOME_TRI+' '+p.home+'–'+p.away+' '+AWAY_TRI+' · '+accScore(p,f)+'% ACCURACY'; }
   else el('kPredRow').style.display='none';
-  el('kCheers').textContent=M.cheerN;
+  // a returning fan's card prints the KEPT record's numbers, not this session's zeros
+  var keptNow=null; try{ keptNow=JSON.parse(localStorage.getItem('rooot.kept.'+MATCH_ID)||'null'); }catch(e){}
+  var srcCheers=(keptNow&&M.cheerN===0)?(keptNow.cheers||0):M.cheerN;
+  var srcReacts=(keptNow&&sumReacts()===0)?(keptNow.reacts||{}):M.reacts;
+  el('kCheers').textContent=srcCheers;
   // the six emblems (owner's pop set) — count each, grayed unused; T6 aligns the sent-token vocabulary to these names
   var EMB=['joy','muscle','heartbreak','relief','anger','hope'];
   var ALIAS={euphoria:'joy',pride:'muscle',anguish:'heartbreak',rage:'anger',fury:'anger',prayer:'hope',tension:'hope'};
-  var cnt={}; for(var tk in M.reacts){ var e=EMB.indexOf(tk)>=0?tk:ALIAS[tk]; if(e)cnt[e]=(cnt[e]||0)+M.reacts[tk]; }
+  var cnt={}; for(var tk in srcReacts){ var e=EMB.indexOf(tk)>=0?tk:ALIAS[tk]; if(e)cnt[e]=(cnt[e]||0)+srcReacts[tk]; }
   var mh='';
   for(var s=0;s<6;s++){ var n=cnt[EMB[s]]||0;
     mh+='<span class="mom'+(n?'':' off')+'"><img class="g" src="plate/gens/reactions/'+EMB[s]+'.png" alt="'+EMB[s]+'"><small>'+n+'</small></span>'; }
   el('kMoms').innerHTML=mh;
   var fn=window.__stands&&window.__stands.fanNo;   // real serial when the wire assigns it (see HANDOFF-fan-serial) — never invented
   el('kNo').textContent=fn?('Nº '+String(fn).padStart(3,'0')):'Nº —';
-  el('kMins').textContent=Math.floor(M.vSec/60);
+  el('kMins').textContent=(keptNow&&M.vSec<30)?(keptNow.mins||0):Math.floor(M.vSec/60);
   // points on the card — the kept record's crystallized score when one exists (a returning
   // fan's session counters are empty), else this session scored live, final bonus included
   if(window.__myRecord){ var keptRec=null; try{keptRec=JSON.parse(localStorage.getItem('rooot.kept.'+MATCH_ID)||'null');}catch(e){}
