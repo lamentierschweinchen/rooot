@@ -24,6 +24,26 @@ English. When an honesty instinct fights fun, default to fun; take genuine value
 calls to the owner. Law 8 is hard: the generated art IS the surface — overlay data
 onto it, never rebuild it in code; if data won't fit, request a regen.
 
+## How to work — the failure mode to kill (owner, 2026-07-17)
+
+Past instances **"just worked away and produced useless results."** The owner wants
+a thinking partner, not a task-runner. The loop, every time:
+
+1. **Orient + verify** on prod (phone width) before touching anything.
+2. **Think** — form your own view of what matters and why.
+3. **Suggest** — bring the owner a short, opinionated plan: what, in what order,
+   what you'd push back on, and how each piece serves the coherent product (a
+   paper-and-cloth match programme, honest at the core, fun on the surface).
+   Sketches/pixels for anything visual.
+4. **Agree scope together**, then execute in **small steps** — each verified at
+   runtime, each sense-checked against the vision before moving to the next. If a
+   step stops making sense mid-way, STOP and say so; don't finish it beautifully in
+   the wrong direction.
+5. **Check in with evidence** (screenshots) at every unit. Nothing ships unseen.
+
+Your **first deliverable is not code** — it's your read + proposed plan after the
+prod walk. Challenge this brief where the product disagrees with it.
+
 ## State — verified live on prod (rooot.club)
 
 - **Collect flow end-to-end:** gate → surfaces → loom weaves the real recorded
@@ -38,10 +58,18 @@ onto it, never rebuild it in code; if data won't fit, request a regen.
 - Anchors + sentiment records land on devnet; night report:
   `docs/night-reports/18241006.md`.
 - Prod deploy status at handoff: **Vercel and Fly both current with `main`.**
-- The last cold UX review (390×844, taken BEFORE most fixes above):
-  `design/reviews/2026-07-16-cold-ux/report.html` — scored 4.6/10 with the visual
-  language praised; its structural complaints drive the TODO below. Don't re-fix
-  what's already fixed — verify against prod first.
+- Two external reviews, complementary lenses (both preserved as evidence):
+  - **UX walkthrough** (390×844, pre-fixes): `design/reviews/2026-07-16-cold-ux/report.html`
+    — 4.6/10; visual language praised, structural complaints drive T2.
+  - **Site analysis** (infra/SEO/trust, Jul 17): `design/reviews/2026-07-17-site-analysis.md`
+    — its 3 criticals are verified-real on prod TODAY (hero 404, stale "TONIGHT"
+    copy, missing landing favicon) and drive the top of T1. Its verdict on the
+    voice + honesty framework: "the moat — don't touch."
+  Don't re-fix what's already fixed — verify against prod first. Known ghosts: the
+  share mechanic is already decided-in (below), the post-match state is decision 4
+  (the analysis independently confirms it), and the "scarf missing from the
+  SCARVES shelf" sighting (Nº 027, post-fix) needs a **fresh-device verify** — it
+  may be an album-refresh race after mint, not the old bug.
 
 ## Owner decisions — locked 2026-07-17 (don't relitigate)
 
@@ -58,40 +86,68 @@ onto it, never rebuild it in code; if data won't fit, request a regen.
    direction with the owner before building (he reviews pixels, not prose).
 5. **Demo video: yes** — 60–90s, time-boxed **Jul 18**. Product polish first.
 
-## The TODO, ranked
+## The TODO, ranked — propose your sequencing to the owner before executing
 
-**T1 — credibility (do first, all bounded):**
-1. Sweep every fan-visible surface for prototype copy ("sample shown until wired",
-   "live wire · waiting", etc.) — replace with real states or honest quiet copy.
-2. Cabinet empty-state contradiction: it says "your first match awaits" with empty
-   scarf pockets while a match card sits right below. Reconcile the resolve logic.
-3. Cheer must give visible feedback everywhere it's offered (the UX review tapped
-   and nothing moved — the signature action can't be dead).
-4. Every Collect entry resolves: pending → success (receipt) or recoverable failure.
-   No silent stalls on any path (loom, terrace, demo).
+**T1 — broken or credibility-killing (all verified, all bounded):**
+1. **Landing hero 404** — `/plate/gens/stadium-hero.png` is the landing's CSS
+   background and doesn't exist; the fold is a beige void. Restore/repoint + a
+   fallback color so a missing image can never void the fold.
+2. **Landing favicon** — favicon.svg exists and is linked on /demo + /gate, not on
+   `/`. One line.
+3. **The between-matches posture** (decision 4, widened by the site analysis): the
+   stale-fixture whiplash covers the LANDING ("TONIGHT 21:00" ×3) and GATE ("GAME
+   STARTS AT 21:00") too, not just /live. Full-time state everywhere: "FULL TIME —
+   see how it wove → the programme", next match when known, fixtures retire after
+   the whistle.
+4. Sweep every fan-visible surface for prototype copy ("sample shown until wired",
+   "live wire · waiting", etc.) — real states or honest quiet copy.
+5. **Cabinet trust:** (a) verify with a FRESH device that a collect lands on the
+   SCARVES shelf immediately — the Jul-17 reviewer's Nº 027 (post-fix!) didn't →
+   suspect an album-refresh race after the mint resolves; (b) the "first match
+   awaits" empty-state contradiction while a card sits below.
+6. Cheer must give visible feedback everywhere it's offered — the signature action
+   can't be dead.
+7. Every Collect entry resolves: pending → success receipt or recoverable failure.
+   No silent stalls on any path.
 
 **T2 — trust + polish:**
-5. The ground: ONE coherent timeline — score, minute, my prediction, crowd average,
-   presence counts, cheers, minutes-watched must never contradict each other.
-6. Legibility pass at 390px: tiny wide-tracked caps, beige-on-beige metadata,
-   edge-clipped tabs, fixed chrome starving overlays. (Known: team-sheet panel
-   overflows at exactly 375px — pre-existing.)
-7. Kill the full-page black-wipe transitions on small taps (they read as crashes).
-8. Label the stadium hotspots (they look decorative; the cards behind them are the
-   product's best information design) + fix clipped card bottoms.
-9. Front door: one plain line that this is a **second screen** ("keep the broadcast
-   on — this is the crowd and programme beside it"). Loom: a small printed key
-   (bands = the market's read, knots = your calls, selvage = your side).
-10. The between-matches `/live` front (decision 4).
-11. The scarf share (decision 2).
+8. The ground: ONE coherent timeline — score, minute, my prediction, crowd average,
+   presence, cheers, minutes-watched must never contradict each other.
+9. Legibility/contrast pass at 390px: tiny tracked caps, gold-on-cream (the 9px
+   "TONIGHT" strip likely fails WCAG AA), edge clipping, fixed-chrome overlay
+   starvation, visible labels for the selected confidence pips. (Known: team-sheet
+   overflow at exactly 375px — pre-existing.)
+10. Kill the full-page black-wipe transitions on small taps (they read as crashes).
+11. Label the stadium hotspots + fix clipped card bottoms.
+12. **The three positioning lines** (copy, high leverage): the door says what it is
+    in one line (the demo already has it: "Follow the games live. Predict, cheer,
+    and collect." + second-screen framing); a **no-stakes line** near the market
+    numbers ("a reading, never a wager — no stakes here"); an **ownership line** at
+    collect ("minted to your passkey on Solana devnet — yours on any device with
+    your Face-ID"). Plus the small loom key (bands = the market's read, knots =
+    your calls, selvage = your side).
+13. Cold-start stands: replace "FROM 1 PREDICTION · 0 here" with honest
+    tournament-wide aggregates (real totals only — pooling/invites are the
+    roadmapped friend layer).
+14. The scarf share (decision 2) — share text in the voice: "I called ENG 1–2 —
+    scarf Nº 027."
+15. **Web basics batch** (cheap, mostly config): robots.txt + sitemap.xml; 301
+    www→apex (or canonical); compress og.png (912 KB → <300 KB); searchable title +
+    `SportsEvent` structured data; immutable caching for `/plate/*`; PWA manifest +
+    apple-touch-icon.
+16. Minimal trust footer → one about/contact/terms page in the programme voice
+    (table stakes for anything on-chain).
 
 **T3 — submission materials:**
-12. Refresh `docs/SUBMISSION-tech-doc.md` (still Jul 14): add the woven keepsake,
-    fan personalization (root + calls in the cloth), the on-chain capture mint, the
-    sealed replay architecture.
-13. The 60–90s video (Jul 18).
-14. Submission form: live link, repo, tech doc, night report + devnet explorer
+17. Refresh `docs/SUBMISSION-tech-doc.md` (still Jul 14): the woven keepsake, fan
+    personalization (root + calls in the cloth), the on-chain capture mint, the
+    sealed-replay architecture.
+18. The 60–90s video (Jul 18).
+19. Submission form: live link, repo, tech doc, night report + devnet explorer
     links, video.
+
+*Roadmap, not now (BACKLOG): reminders/push/.ics, desktop device-frame + side
+panel (sketch-gate if time appears), localization.*
 
 ## Pitfalls — learned the hard way, don't relearn
 
@@ -139,6 +195,8 @@ node -e 'global.window={};require("./apps/web/public/plate/demo-engarg.js");cons
 curl -s "https://rooot-stands.fly.dev/seat/album?pubkey=FkcC9Ai4Zbgg1nP1HEHrrffVaRrdNS69Nn8RWXCehtEn"
 ```
 
-Work T1 → T2 → T3 in order, check in with pixels, keep `main` green, and deploy as
+Start with the prod walk, then bring the owner your plan — your sequencing of
+T1/T2/T3, what you'd cut or add, and why each piece serves the programme. Agree it,
+then work in small verified steps, pixels at every check-in, `main` green, deploy as
 batches land. The product is already good — your job is to make the first ten
-minutes prove it.
+minutes prove it, without ever working ahead of the shared plan.
