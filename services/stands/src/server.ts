@@ -739,8 +739,59 @@ async function crystallizeSentiment(
     // covers them, same call for a replay/demo match (no TxLINE ingest ⇒ no
     // candidates ⇒ [] with zero I/O) as for a live one.
     const txlineRefs = await fetchProvenanceRefs(matchId);
+    // ── THE HARVEST (owner, 18 Jul: all recorded, all processed) — fold the
+    // per-fan server tallies into the crystal: the full scoreline histogram,
+    // the night's engagement totals + arrivals, and the earned points (the ONE
+    // formula — apps/web/public/fan-record.js `score`; weights kept in
+    // lockstep, formulaV bumps if they ever diverge). Serials only, never ids.
+    const preds = match.predictionsAll();
+    const stats = match.fanStatsAll();
+    const scoreMap = new Map<string, { h: number; a: number; n: number }>();
+    for (const pr of preds) {
+      const k = `${pr.home}-${pr.away}`;
+      const row = scoreMap.get(k) ?? { h: pr.home, a: pr.away, n: 0 };
+      row.n += 1; scoreMap.set(k, row);
+    }
+    const scorelines = Array.from(scoreMap.values()).sort((x, y) => y.n - x.n);
+    const firstArrival = stats.length ? Math.min(...stats.map((f) => f.firstSeenMs)) : 0;
+    const arrivalBuckets = new Map<number, number>();
+    for (const f of stats) {
+      const minute = Math.max(0, Math.floor((f.firstSeenMs - firstArrival) / 60000 / 5) * 5);
+      arrivalBuckets.set(minute, (arrivalBuckets.get(minute) ?? 0) + 1);
+    }
+    const engagement = {
+      fans: stats.length,
+      cheers: stats.reduce((n, f) => n + f.cheers, 0),
+      reacts: stats.reduce((n, f) => n + f.reacts, 0),
+      watchMinutes: Math.round(stats.reduce((n, f) => n + f.watchMs, 0) / 60000),
+      arrivals: Array.from(arrivalBuckets.entries()).map(([minute, n]) => ({ minute, n })).sort((x, y) => x.minute - y.minute),
+    };
+    const CONV_MULT = [1, 1, 1.25, 1.5, 2]; // lockstep with fan-record.js score()
+    const fh2 = finalScore?.home; const fa2 = finalScore?.away;
+    const byFan = new Map<string, number>();
+    for (const f of stats) {
+      let p = Math.min(f.cheers, 300) + f.reacts * 2 + Math.min(Math.floor(f.watchMs / 60000), 130);
+      byFan.set(f.anonId, p);
+    }
+    for (const pr of preds) {
+      let p = (byFan.get(pr.anonId) ?? 0) + 25;
+      if (fh2 !== undefined && fa2 !== undefined) {
+        const m = CONV_MULT[pr.conv ?? 0] ?? 1;
+        if (pr.home === fh2 && pr.away === fa2) p += Math.round(200 * m);
+        else if (Math.sign(pr.home - pr.away) === Math.sign(fh2 - fa2)) p += Math.round(75 * m);
+      }
+      byFan.set(pr.anonId, p);
+    }
+    const pointRows = Array.from(byFan.entries()).map(([anonId, points]) => ({ anonId, points }));
+    const points = {
+      formulaV: 1,
+      total: pointRows.reduce((n, r) => n + r.points, 0),
+      fans: pointRows.length,
+      top: pointRows.sort((x, y) => y.points - x.points).slice(0, 5)
+        .map((r) => ({ serial: registry.fanNoFor(r.anonId) ?? null, points: r.points })),
+    };
     const record = acc.crystallize(
-      { consensus: match.consensus(), rooted: match.counts() },
+      { consensus: match.consensus(), rooted: match.counts(), scorelines, engagement, points },
       { serial: 1, editionSize: null, caption: matchId },
       finalScore,
       txlineRefs,
@@ -1640,7 +1691,7 @@ function handleMomentReact(state: ConnState, msg: Extract<ClientMsg, { type: 'mo
 function handlePredict(state: ConnState, msg: Extract<ClientMsg, { type: 'predict' }>): void {
   if (!state.matchId || !state.anonId || state.matchId !== msg.matchId) return;
   const match = registry.getOrCreate(msg.matchId);
-  if (!match.predict(state.anonId, msg.home, msg.away, msg.atMs)) return; // locked/invalid
+  if (!match.predict(state.anonId, msg.home, msg.away, msg.atMs, Date.now(), (msg as { conv?: number }).conv)) return; // locked/invalid
   // predictions are sparse (pre-match) — broadcast the fresh consensus on change.
   broadcastToMatch(msg.matchId, match.consensus());
 }

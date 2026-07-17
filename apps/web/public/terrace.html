@@ -198,6 +198,12 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 
 .taphint{position:absolute;left:50%;bottom:52px;transform:translateX(-50%);z-index:5;font-weight:800;font-size:8px;letter-spacing:.16em;color:var(--fldink);opacity:.7;pointer-events:none;transition:opacity .3s}
 /* the reaction dock — six struck chips, always on hand; glows when a drama window is open */
+/* THE NIGHT — the harvest's own printed block under the plate (18 Jul) */
+.nightcard{margin:7px 14px 4px;background:#F1DEBF;border:1.5px solid var(--ink);box-shadow:3px 3px 0 rgba(26,24,21,.2);padding:9px 11px}
+.slrow{display:flex;flex-wrap:wrap;gap:5px;margin-top:3px}
+.slchip{font-weight:900;font-size:10px;letter-spacing:.04em;background:#F1DEBF;border:1.2px solid var(--ink);padding:3px 7px;color:var(--ink)}
+.slchip i{font-style:normal;font-weight:800;font-size:7.5px;color:var(--sub);margin-left:4px}
+.roarstrip{display:block;width:100%;height:24px;margin-top:3px;background:#F1DEBF;border:1.2px solid rgba(26,24,21,.35)}
 .rxdock{position:absolute;left:50%;bottom:74px;transform:translateX(-50%);z-index:6;text-align:center}
 .rxdock[hidden]{display:none}
 .rxlbl{font-weight:800;font-size:8.5px;letter-spacing:.14em;color:var(--card);margin-bottom:5px;opacity:0;transition:opacity .25s;height:11px;text-shadow:0 1px 6px rgba(0,0,0,.5)}
@@ -942,7 +948,7 @@ function wireLive(){
   if(window.__stands&&!wireLive.didStands){
     wireLive.didStands=true;
     if(PASS&&PASS.side!=='n')window.__stands.root(sideKey);
-    if(PASS&&PASS.call)window.__stands.predict(PASS.call.h,PASS.call.a);
+    if(PASS&&PASS.call)window.__stands.predict(PASS.call.h,PASS.call.a,(String(PASS.matchId)===String(MATCH_ID)&&PASS.conv)||undefined);
     window.__stands.onState(function(s){
       if(s.roar){
         var yRaw=s.roar[sideKey]||0, tRaw=s.roar[other]||0, y=liveRoarLevel(yRaw), t=liveRoarLevel(tRaw);
@@ -1194,7 +1200,7 @@ function fillSplit(slot,d,label){
 }
 function wireDemo(){ if(!window.__match||!window.__stands)return false;
   var mySide=(PASS&&PASS.side==='a')?'away':'home', other=mySide==='home'?'away':'home';
-  window.__stands.root(mySide); if(PASS&&PASS.call)window.__stands.predict(PASS.call.h,PASS.call.a);   // seat the fan + carry the door's call (so cheer() has a side)
+  window.__stands.root(mySide); if(PASS&&PASS.call)window.__stands.predict(PASS.call.h,PASS.call.a,(String(PASS.matchId)===String(MATCH_ID)&&PASS.conv)||undefined);   // seat the fan + carry the door's call (so cheer() has a side)
   var f=el('foot'); if(f)f.textContent='crowd is simulated (crowd-sim) · match replayed from a baked SUI–COL feed';
   function onMatch(m){ if(!m)return; M.score=[m.score.home,m.score.away]; el('scH').textContent=m.score.home; el('scA').textContent=m.score.away;
     if(m.clock&&m.clock.min)M.t=m.clock.min;
@@ -1315,7 +1321,40 @@ if(LIVE&&window.__matchday)window.__matchday.ready.then(function(md){
         var host=el('secCrowd'); if(!host||!lines.length)return;
         var h='<div class="plbl row" id="nightRow1"><span>'+lines[0]+'</span><span>'+(lines[1]||'')+'</span></div>';
         if(fsLine||lines[2])h+='<div class="plbl row" id="nightRow2"><span>'+(fsLine||'')+'</span><span>'+(lines[2]||'')+'</span></div>';
+        var nightH='';   // the harvest lives in its OWN printed block below the plate — the art field keeps its bounds
+        // ── THE HARVEST on the plate (2026-07-18) — every block guarded: an older
+        // record without these fields renders exactly as before. ──
+        // the crowd's board: every exact scoreline held up, as printed chips
+        if(rec.fans&&rec.fans.scorelines&&rec.fans.scorelines.length){
+          nightH+='<div class="plbl">THE CROWD’S BOARD</div><div class="slrow">'+
+            rec.fans.scorelines.slice(0,6).map(function(s){
+              return '<span class="slchip">'+s.h+'–'+s.a+(s.n>1?'<i>×'+s.n+'</i>':'')+'</span>';
+            }).join('')+'</div>';
+        }
+        // the roar's shape — the night's loudness, woven as two inks over one axis
+        var rs=rec.feel&&rec.feel.roarSeries;
+        if(rs&&rs.length>3){
+          var W2=100,H2=22,mx=0; rs.forEach(function(p){ mx=Math.max(mx,p.home||0,p.away||0); });
+          if(mx>0){
+            var step=W2/(rs.length-1);
+            function path(side){ return rs.map(function(p,i){ return (i?'L':'M')+(i*step).toFixed(1)+' '+(H2-(p[side]||0)/mx*(H2-2)).toFixed(1); }).join(' '); }
+            nightH+='<div class="plbl" style="margin-top:7px">THE ROAR, MINUTE BY MINUTE</div>'+
+               '<svg class="roarstrip" viewBox="0 0 '+W2+' '+H2+'" preserveAspectRatio="none">'+
+               '<line x1="0" y1="'+H2+'" x2="'+W2+'" y2="'+H2+'" stroke="#1A1815" stroke-width="0.6" opacity="0.4"/>'+
+               '<path d="'+path('home')+'" fill="none" stroke="var(--you)" stroke-width="1.4" opacity="0.9"/>'+
+               '<path d="'+path('away')+'" fill="none" stroke="var(--them)" stroke-width="1.4" opacity="0.9"/></svg>';
+          }
+        }
+        // the night's totals — earned and counted server-side, never client-asserted
+        var eng=rec.fans&&rec.fans.engagement, pts=rec.points;
+        if(eng||pts){
+          var t1=pts?(pts.total.toLocaleString()+' POINTS EARNED'):'';
+          var t2=eng?(eng.cheers.toLocaleString()+' CHEERS · '+eng.watchMinutes.toLocaleString()+' MIN WATCHED'):'';
+          nightH+='<div class="plbl row" id="nightRow3" style="margin-top:7px"><span>'+t1+'</span><span>'+t2+'</span></div>';
+        }
         host.insertAdjacentHTML('beforeend',h);
+        if(nightH){ var plate=f0_plate(); if(plate)plate.insertAdjacentHTML('afterend','<div class="nightcard" id="nightcard">'+nightH+'</div>'); }
+        function f0_plate(){ return document.querySelector('.crowdcall .plate'); }
       });
     })();
   })();

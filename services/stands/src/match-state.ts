@@ -181,7 +181,7 @@ export class MatchState {
   /** anonId -> side, for the once-per-fan rooted counter. */
   private readonly rooted = new Map<string, Side>();
   /** anonId -> prediction (docs/MECHANISMS.md §2). Editable until kickoff. */
-  private readonly predictions = new Map<string, { home: number; away: number; atMs: number }>();
+  private readonly predictions = new Map<string, { home: number; away: number; atMs: number; conv?: number }>();
   /** predictions lock at kickoff — a claim on the future locks when it starts. */
   private predictLocked = false;
   /** anonId -> this fan's resolved verdict, set once at FULL_TIME (docs/MECHANISMS.md
@@ -387,12 +387,15 @@ export class MatchState {
    * pre-existing field); `nowMs` is the server's own clock, used only to
    * touch this fan's card (FanStats.lastSeenMs) — kept separate so a fan's
    * card timeline is never driven by a client-supplied timestamp. */
-  predict(anonId: string, home: number, away: number, atMs: number, nowMs = Date.now()): boolean {
+  predict(anonId: string, home: number, away: number, atMs: number, nowMs = Date.now(), conv?: number): boolean {
     if (this.predictLocked) return false;
     if (!Number.isFinite(home) || !Number.isFinite(away)) return false;
     const h = Math.max(0, Math.min(19, Math.floor(home)));
     const a = Math.max(0, Math.min(19, Math.floor(away)));
-    this.predictions.set(anonId, { home: h, away: a, atMs });
+    // the gate's confidence dial (1..4) rides with the prediction — it scales the
+    // full-time points bonus (contracts/crowd.ts PredictMsg.conv, 2026-07-18)
+    const c = Number.isFinite(conv as number) && (conv as number) >= 1 && (conv as number) <= 4 ? Math.floor(conv as number) : undefined;
+    this.predictions.set(anonId, c !== undefined ? { home: h, away: a, atMs, conv: c } : { home: h, away: a, atMs });
     this.touchFanStats(anonId, nowMs);
     return true;
   }
@@ -400,8 +403,22 @@ export class MatchState {
   /** Snapshot restore only (services/stands/src/snapshot.ts): install a fan's
    * prior prediction directly, bypassing the lock check — the lock itself is
    * restored separately via lockPredictions() so restore order doesn't matter. */
-  restorePrediction(anonId: string, home: number, away: number, atMs: number): void {
-    this.predictions.set(anonId, { home, away, atMs });
+  restorePrediction(anonId: string, home: number, away: number, atMs: number, conv?: number): void {
+    this.predictions.set(anonId, conv !== undefined ? { home, away, atMs, conv } : { home, away, atMs });
+  }
+
+  /** All per-fan night tallies, typed copies (the harvest fold — 2026-07-18). */
+  fanStatsAll(nowMs = Date.now()): Array<{ anonId: string; cheers: number; reacts: number; watchMs: number; firstSeenMs: number; lastSeenMs: number }> {
+    this.foldOpenSessions(nowMs);   // open sessions count up to NOW — full time folds the room's live watchers in
+    return Array.from(this.fanStats.entries()).map(([anonId, f]) => ({
+      anonId, cheers: f.cheers, reacts: f.reacts, watchMs: f.watchMs, firstSeenMs: f.firstSeenMs, lastSeenMs: f.lastSeenMs,
+    }));
+  }
+
+  /** All predictions, typed copies (the harvest fold: scorelines histogram +
+   * the points crystallization — 2026-07-18). */
+  predictionsAll(): Array<{ anonId: string; home: number; away: number; atMs: number; conv?: number }> {
+    return Array.from(this.predictions.entries()).map(([anonId, p]) => ({ anonId, ...p }));
   }
 
   /** Lock predictions (call at kickoff — FIRST_HALF). Idempotent. */

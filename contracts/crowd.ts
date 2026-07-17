@@ -134,6 +134,10 @@ export interface PredictMsg {
   home: number;
   away: number;
   marketAtPredict?: { home: number; draw: number; away: number };
+  /** The gate's confidence dial, 1 (a hunch) .. 4 (certain) — scales what the
+   * prediction earns at full time (the points fold, contracts/sentiment.ts
+   * `points`). Additive 2026-07-18; absent = dial unset (multiplier 1). */
+  conv?: number;
   atMs: number;
 }
 

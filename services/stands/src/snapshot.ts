@@ -134,7 +134,7 @@ interface SnapshotMatch {
   rooted: Array<[string, Side]>;
   rooms: Array<{ roomId: string; members: SnapshotRoomMember[] }>;
   /** v2+. Absent on a v1 file — applySnapshot defaults to none, never fabricates. */
-  predictions?: Array<[string, { home: number; away: number; atMs: number }]>;
+  predictions?: Array<[string, { home: number; away: number; atMs: number; conv?: number }]>;
   predictLocked?: boolean;
   /** v2+. Present only for fans whose prediction was actually graded at FULL_TIME. */
   verdicts?: Array<[string, PredictVerdictMsg]>;
@@ -385,7 +385,7 @@ export function applySnapshot(
         room.join({ anonId: member.anonId, name: member.name, side: member.side, present: false, ws: null });
       }
     }
-    for (const [anonId, p] of sm.predictions ?? []) match.restorePrediction(anonId, p.home, p.away, p.atMs);
+    for (const [anonId, p] of sm.predictions ?? []) match.restorePrediction(anonId, p.home, p.away, p.atMs, (p as { conv?: number }).conv);
     if (sm.predictLocked) match.lockPredictions();
     for (const [anonId, v] of sm.verdicts ?? []) match.restoreVerdict(anonId, v);
     for (const [anonId, fs] of sm.fanStats ?? []) match.restoreFanStats(anonId, fs);

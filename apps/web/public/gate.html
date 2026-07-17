@@ -363,7 +363,7 @@ go.onclick=function(){
   }
   // your pass — persisted, then read by the terrace checkpoint + woven into the keepsakes
   try{ localStorage.setItem('rooot.pass', JSON.stringify({matchId:MATCH_ID, home:FX.home.tri, away:FX.away.tri, side:side, call:sco, conv:conv, ts:Date.now(), live:LIVE})); }catch(e){}
-  if((DEMO||LIVE)&&window.__stands){ if(side&&side!=='n')window.__stands.root(side==='h'?'home':'away'); window.__stands.predict(sco.h,sco.a); }   // your seat + call into the live crowd
+  if((DEMO||LIVE)&&window.__stands){ if(side&&side!=='n')window.__stands.root(side==='h'?'home':'away'); window.__stands.predict(sco.h,sco.a,conv); }   // your seat + call into the live crowd
   document.getElementById('stamp').classList.add('on');   // the turnstile presses your pass — ADMITTED
   go.innerHTML='SEE YOU INSIDE<small>◆ YOU CALLED '+FX.home.tri+' '+sco.h+'–'+sco.a+' '+FX.away.tri+'</small>';
   setTimeout(function(){ location.href='ground.html?from=gate'+MODE_Q; }, 1050);   // the tunnel — walk into the ground (carry prototype mode)

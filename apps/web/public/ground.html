@@ -269,7 +269,7 @@ function wireLive(){
   if(window.__stands&&!wireLive.didStands){
     wireLive.didStands=true;
     if(PASS&&PASS.side!=='n')window.__stands.root(sideKey);
-    if(PASS&&PASS.call)window.__stands.predict(PASS.call.h,PASS.call.a);
+    if(PASS&&PASS.call)window.__stands.predict(PASS.call.h,PASS.call.a,PASS.conv||undefined);
     window.__stands.onState(function(s){ if(!s)return;
       if(s.roar){
         var yRaw=s.roar[sideKey]||0, tRaw=s.roar[other]||0, y=liveRoarLevel(yRaw), t=liveRoarLevel(tRaw);

@@ -54,6 +54,11 @@ function computeFeelVolatility(moments: MomentFeeling[]): number {
 export interface CrowdInputs {
   consensus: ConsensusMsg | null;
   rooted: { home: number; away: number };
+  /** the harvest (2026-07-18) — computed by the caller from per-fan server
+   * tallies; pass-throughs into the record's fans/points fields. */
+  scorelines?: NonNullable<import('@contracts/sentiment').FanSentiment['scorelines']>;
+  engagement?: NonNullable<import('@contracts/sentiment').FanSentiment['engagement']>;
+  points?: SentimentRecord['points'];
 }
 
 /** One resolved, CALLED next-goal cycle (contracts/sentiment.ts
@@ -88,6 +93,10 @@ export class SentimentAccumulator {
   /** roar captured live off the 4 Hz stands tick — the record's loudness layer. */
   private roarTotal = { home: 0, away: 0 };
   private roarPeak: { minute: number | null; side: Side; value: number } | null = null;
+  /** the roar's shape — one sample per ~30s off the same 4 Hz tick (contracts/
+   * sentiment.ts roarSeries; the harvest, 2026-07-18). Capped defensively. */
+  private roarSeries: Array<{ minute: number | null; home: number; away: number }> = [];
+  private lastRoarSampleMs = 0;
   private lastRoarMs: number | null = null;
   private fromMs = Infinity;
   private toMs = 0;
@@ -121,6 +130,10 @@ export class SentimentAccumulator {
         this.roarTotal.away += msg.roar.away * dt;
         if (msg.roar.home > (this.roarPeak?.value ?? 0)) this.roarPeak = { minute: this.minute, side: 'home', value: msg.roar.home };
         if (msg.roar.away > (this.roarPeak?.value ?? 0)) this.roarPeak = { minute: this.minute, side: 'away', value: msg.roar.away };
+        if (msg.ts - this.lastRoarSampleMs >= 30_000 && this.roarSeries.length < 400) {
+          this.lastRoarSampleMs = msg.ts;   // the tick's own clock — same source dt integrates on
+          this.roarSeries.push({ minute: this.minute, home: +msg.roar.home.toFixed(3), away: +msg.roar.away.toFixed(3) });
+        }
         break;
       }
       case 'odds': {
@@ -183,6 +196,15 @@ export class SentimentAccumulator {
    * right after construction (boot time) — appends, does not dedupe. */
   restoreMoments(moments: MomentFeeling[]): void {
     this.moments.push(...moments);
+  }
+
+  /** Snapshot persistence: the roar samples so far (mirrors getMoments). */
+  getRoarSeries(): Array<{ minute: number | null; home: number; away: number }> {
+    return [...this.roarSeries];
+  }
+  /** Snapshot restore only: reinstate samples taken before a restart. */
+  restoreRoarSeries(rows: Array<{ minute: number | null; home: number; away: number }>): void {
+    this.roarSeries.push(...rows);
   }
 
   /** Append one resolved NEXT GOAL cycle — called by server.ts's
@@ -249,10 +271,13 @@ export class SentimentAccumulator {
       doubters,
       calls: { total: 0, proved: 0, failed: 0, bravestProved: null }, // call accounting: follow-up
       faith: { home: 0, away: 0 }, // faith accumulation: follow-up
+      ...(crowd.scorelines ? { scorelines: crowd.scorelines } : {}),
+      ...(crowd.engagement ? { engagement: crowd.engagement } : {}),
     };
     const feel = {
       moments: this.moments,
       roar: { peak: this.roarPeak, total: this.roarTotal },
+      ...(this.roarSeries.length ? { roarSeries: [...this.roarSeries] } : {}),
       volatility: computeFeelVolatility(this.moments),
     };
     return assembleSentimentRecord({
@@ -262,6 +287,7 @@ export class SentimentAccumulator {
       phasePath: this.phases,
       market, fans, feel, events: Array.from(this.eventsById.values()),
       nextGoal: [...this.nextGoalRows],
+      points: crowd.points,
       edition,
       capture: { fromMs: this.fromMs === Infinity ? this.toMs : this.fromMs, toMs: this.toMs },
       network: 'devnet',

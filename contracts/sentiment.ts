@@ -87,6 +87,20 @@ export interface FanSentiment {
   };
   /** cheering-while-behind aggregate per end (faith) */
   faith: { home: number; away: number };
+  /** every exact scoreline the crowd held up, with how many held it — the full
+   * histogram behind `consensus.modal` (additive 2026-07-18; the harvest). */
+  scorelines?: Array<{ h: number; a: number; n: number }>;
+  /** the night's raw engagement, totalled from per-fan server tallies (granted
+   * cheers only, distinct-moment reacts, connection-derived watch minutes) —
+   * real counts, never client-asserted. `arrivals` buckets first-seen times
+   * into 5-minute steps from the first arrival (additive 2026-07-18). */
+  engagement?: {
+    fans: number;
+    cheers: number;
+    reacts: number;
+    watchMinutes: number;
+    arrivals?: Array<{ minute: number; n: number }>;
+  };
 }
 
 /* ── FEEL — in-game sentiment (the nervous system's reflexive, lagging read) */
@@ -108,6 +122,12 @@ export interface InGameSentiment {
     peak: { minute: number | null; side: Side; value: number } | null;
     total: { home: number; away: number };
   };
+  /** the roar's shape over the match — one decayed-rate sample per side every
+   * ~30s off the live 4 Hz tick (additive 2026-07-18). The time series Faith
+   * Under Fire / Roar Elasticity / Aftershock Half-Life were named NOT
+   * COMPUTABLE without. May truncate across a mid-match restart (persisted
+   * with the snapshot, same discipline as `moments`). */
+  roarSeries?: Array<{ minute: number | null; home: number; away: number }>;
   /** how much the feeling swung across the match */
   volatility: number;
 }
@@ -190,6 +210,16 @@ export interface SentimentRecord {
   }>;
   /** the material events (goals w/ scorer+type, cards, VAR…) */
   events: LedgerEvent[];
+  /** the night's earned points (additive 2026-07-18): the ONE formula the
+   * surfaces score with (apps/web/public/fan-record.js `score` — keep the
+   * weights in lockstep), applied server-side over granted tallies + the
+   * dial-scaled prediction bonus. `top` names fans by serial only. */
+  points?: {
+    formulaV: number;
+    total: number;
+    fans: number;
+    top: Array<{ serial: number | null; points: number }>;
+  };
   divergence: Divergence;
   /** this match's contribution to each fanbase's running fingerprint */
   fingerprint: { home: FanbaseSentiment; away: FanbaseSentiment };

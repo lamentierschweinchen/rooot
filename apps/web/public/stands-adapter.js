@@ -109,9 +109,12 @@
     matchId: matchId,
     root: function (side) { mySide = side === 'away' ? 'away' : 'home'; hello(); publish(); },
     cheer: function () { if (!mySide) return; pendingCheer++; if (!cheerTimer) cheerTimer = setTimeout(flushCheer, 120); },
-    predict: function (home, away) {
+    predict: function (home, away, conv) {
+      // conv = the gate's confidence dial 1..4 — rides to the server so the record's
+      // points fold can scale the full-time bonus (contracts/crowd.ts, 2026-07-18)
       send({ type: 'predict', matchId: matchId, anonId: me, home: home, away: away,
-        marketAtPredict: lastTriple || undefined, atMs: Date.now() });
+        marketAtPredict: lastTriple || undefined,
+        conv: (conv >= 1 && conv <= 4) ? Math.floor(conv) : undefined, atMs: Date.now() });
     },
     momentReact: function (momentId, token) {
       if (!mySide) return;

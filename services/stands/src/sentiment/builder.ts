@@ -181,6 +181,9 @@ export interface AssembleInputs {
    * optional so callers predating the mechanism (the offline crystallizer)
    * keep working; absent defaults to an honest empty list. */
   nextGoal?: SentimentRecord['nextGoal'];
+  /** the night's earned points (contracts/sentiment.ts `points`; the harvest,
+   * 2026-07-18) — optional so every caller predating it keeps working. */
+  points?: SentimentRecord['points'];
   edition: SentimentRecord['edition'];
   capture: { fromMs: number; toMs: number };
   network: 'devnet' | 'mainnet-beta';
@@ -204,6 +207,7 @@ export function assembleSentimentRecord(inp: AssembleInputs): SentimentRecord {
     feel: inp.feel,
     nextGoal: inp.nextGoal ?? [],
     events: inp.events,
+    ...(inp.points ? { points: inp.points } : {}),
     divergence: div,
     fingerprint,
     edition: inp.edition,
