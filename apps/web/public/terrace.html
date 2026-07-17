@@ -213,6 +213,15 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .keepsake.on .scarf{transform:none}
 .scarf.kept{animation:keptPress .32s cubic-bezier(.2,1.4,.4,1)}
 @keyframes keptPress{0%{transform:scale(1)}35%{transform:scale(.965) rotate(-.5deg)}100%{transform:scale(1)}}
+/* fold the card away (it stays one tap away — the pit brings it back) */
+.sk-x{position:absolute;top:11px;right:11px;z-index:5;width:26px;height:26px;display:flex;align-items:center;justify-content:center;
+  background:var(--card);color:var(--ink);border:1.5px solid var(--ink);font-family:var(--disp);font-weight:900;font-size:14px;line-height:1;
+  cursor:pointer;box-shadow:2px 2px 0 rgba(26,24,21,.4);-webkit-tap-highlight-color:transparent}
+.sk-x:active{transform:translateY(1px)}
+/* three named goals must fit the card's width */
+#kGoalsRow b{font-size:8px;letter-spacing:.04em;white-space:normal;text-align:right;line-height:1.4}
+/* sealed room: the card reads alone first — the stand waits behind a near-solid sheet */
+.sealedstand .keepsake{background:rgba(26,24,21,.9)}
 /* THE CARD — the one you held up in the stands; your end's colours, your seat, your numbers.
    Print discipline: outer keyline 2.5 (the card), inner rules 1.25 (the sheet), uniform cream frame,
    benday over the face — press language, never aging. */
@@ -361,9 +370,11 @@ body.embed .backg,body.embed .foot,body.embed .matchbar{display:none}
   <!-- full-time: THE CARD — the one you held up, your numbers printed on it -->
   <div class="keepsake" id="keepsake">
     <div class="scarf">
+      <button class="sk-x" id="skX" type="button" aria-label="fold the card away">×</button>
       <div class="k-face"><div class="kt" id="skTifo"></div>
         <div class="k-seat"><b id="kEnd">—</b><span id="kSeat">—</span></div></div>
       <div class="krow kfinal"><span class="l">FULL TIME</span><b id="kScore">—</b></div>
+      <div class="krow" id="kGoalsRow" hidden><span class="l">GOALS</span><b id="kGoals">—</b></div>
       <div class="krow" id="kPredRow"><span class="l">YOU PREDICTED</span><b id="kPred">—</b></div>
       <div class="krow"><span class="l">CHEERS</span><b id="kCheers">0</b></div>
       <div class="kmoms" id="kMoms"></div>
@@ -379,6 +390,7 @@ body.embed .backg,body.embed .foot,body.embed .matchbar{display:none}
 
 <!-- demo engine — private prototype default: baked recording → serverless feed → window.__match + window.__stands -->
 <script>if(/[?&]demo=1/.test(location.search))document.write('<scr'+'ipt src="plate/demo-suicol.js"></scr'+'ipt><scr'+'ipt src="demo-feed.js"></scr'+'ipt><scr'+'ipt src="match-read.js"></scr'+'ipt><scr'+'ipt src="crowd-sim.js"></scr'+'ipt>');</script>
+<script src="matchday.js"></script>
 <script src="stands-adapter.js"></script>
 <script src="stats-adapter.js"></script>
 <!-- SEAT — walletless self-custody scarf mint (Face/Touch-ID passkey PRF -> ed25519, in-browser).
@@ -505,7 +517,8 @@ function liveRoarLevel(v){return v>0?Math.min(1,0.28+v*1.6):0;}   // one real ta
 function bumpEnd(node,list,k){ if(!node)return; node.classList.remove('surge'); void node.offsetWidth; node.classList.add('surge'); ripple(list,k||7); setTimeout(function(){node.classList.remove('surge');},520); }
 
 // your tap = roar (your end surges — the field, not a gauge)
-function tap(){ if((DEMO||LIVE)&&window.__stands){window.__stands.cheer(); M.cheerN++;} else {M.rY=Math.min(1,M.rY+0.16);} ripple(tilesYou,6);var e=el('youEnd');e.classList.remove('surge');void e.offsetWidth;e.classList.add('surge');
+function tap(){ if(M._ft){ el('keepsake').classList.add('on'); return; }   // the match is over — a tap brings your card back, not a cheer into an empty ground
+  if((DEMO||LIVE)&&window.__stands){window.__stands.cheer(); M.cheerN++;} else {M.rY=Math.min(1,M.rY+0.16);} ripple(tilesYou,6);var e=el('youEnd');e.classList.remove('surge');void e.offsetWidth;e.classList.add('surge');
   if(!tap.done){tap.done=true; el('taphint').classList.add('done');} }   // the hint retires after your first cheer — the burst does the talking
 setInterval(function(){ if(document.visibilityState==='visible'&&!M._ft)M.vSec+=10; },10000);   // minutes watched = visible time until FT
 el('youEnd').addEventListener('pointerdown',function(e){ if(e.target.closest('.pk')||e.target.closest('.sk-keep'))return; tap(); });
@@ -626,6 +639,14 @@ function showKeepsake(){
   el('kEnd').textContent=YOU_TEAM.name+' END';
   el('kSeat').textContent='ROW '+(Math.floor(YOU_IDX/22)+1)+' · SEAT '+(YOU_IDX%22+1<10?'0':'')+(YOU_IDX%22+1);
   el('kScore').textContent=HOME_TRI+' '+M.score[0]+'–'+M.score[1]+' '+AWAY_TRI;
+  // the goals, named — from the sealed finals digest (emit-finals.mjs, the real pipeline's
+  // settled truth). Absent file (a live match, an unsealed one) → the row stays hidden.
+  if(window.__FINALS&&window.__FINALS.stats){ var fs=window.__FINALS.stats, gl=[];
+    (fs.home&&fs.home.scorers||[]).forEach(function(g){ gl.push({t:HOME_TRI,n:g.name,m:g.minute}); });
+    (fs.away&&fs.away.scorers||[]).forEach(function(g){ gl.push({t:AWAY_TRI,n:g.name,m:g.minute}); });
+    if(gl.length){ gl.sort(function(a,b){return (a.m||0)-(b.m||0);});
+      el('kGoals').textContent=gl.map(function(g){ return String(g.n).split(',')[0]+' '+(g.m!=null?g.m+"'":''); }).join(' · ');
+      el('kGoalsRow').hidden=false; } }
   // accuracy 0–100 (owner formula): 50 for the right result + 25 per team's goals, −10 per goal off
   var accScore=function(p,f){ var r=Math.sign(p.home-p.away)===Math.sign(f.home-f.away)?50:0;
     var g=function(a,b){return Math.max(0,25-10*Math.abs(a-b));}; return r+g(p.home,f.home)+g(p.away,f.away); };
@@ -649,6 +670,9 @@ function showKeepsake(){
   el('kFx').textContent=HOME_TRI+'–'+AWAY_TRI+' · '+d.getDate()+' '+MON[d.getMonth()]+' '+d.getFullYear();
   setTimeout(function(){ el('keepsake').classList.add('on'); },900);
 }
+// the card folds away and stays one tap from coming back — never a trap (owner, 17 Jul)
+el('skX').onclick=function(e){ e.stopPropagation(); el('keepsake').classList.remove('on'); };
+document.addEventListener('keydown',function(e){ if(e.key==='Escape')el('keepsake').classList.remove('on'); });
 // BEAT 1 — the LOCAL keepsake (unchanged): the record writes (colours ride along so the cabinet can
 // print the card without this page) and the card presses. This always runs first, unblocked — the
 // stand IS the trophy, and it is kept the instant you tap, no biometric, no network in the way.
@@ -834,6 +858,7 @@ function applyFixture(sideKey){
   ['fpHe','mkHe','hvHt','mvHt','apHt'].forEach(function(id){var e=el(id);if(e)e.textContent=HOME_TRI;});
   ['fpAe','mkAe','hvAt','mvAt','apAt'].forEach(function(id){var e=el(id);if(e)e.textContent=AWAY_TRI;});
   var rp=document.querySelector('.matchbar .rp'); if(rp)rp.lastChild.textContent=LIVE?'LIVE':'REPLAY';
+  applyFixture.done=true;   // the sealed-stands module waits on this before writing chrome
 }
 function wireLive(){
   if(!LIVE)return true;
@@ -872,9 +897,9 @@ function wireLive(){
     if(window.__stands.onCheer)window.__stands.onCheer(function(e){
       ripple(e.side===sideKey?tilesYou:tilesThem,1);   // ONE seat flickers — someone, right now (never volume; roar carries that)
     });
-    if(window.__stands.onMoment)window.__stands.onMoment(openMoment);   // T6: live windows open on the terrace (premiere had 6 windows, 0 subscribers)
-    if(window.__stands.onMomentResult)window.__stands.onMomentResult(function(r){ revealFromWire(r,sideKey); });
-    ngInit();   // NEXT GOAL — the card slot, live only (§7 of the tonight handoff)
+    if(window.__stands.onMoment)window.__stands.onMoment(function(m){ if(!SEALED)openMoment(m); });   // T6: live windows open on the terrace (premiere had 6 windows, 0 subscribers) — never on a sealed room's join replay
+    if(window.__stands.onMomentResult)window.__stands.onMomentResult(function(r){ if(!SEALED)revealFromWire(r,sideKey); });
+    ngInit();   // NEXT GOAL — the card slot, live only (§7 of the tonight handoff); sealed rooms ngEnd() immediately
     var yi=youIdxNow();   // the adapter arrives async in live — re-seat once the real anonId exists
     if(yi!==YOU_IDX){ YOU_IDX=yi; mosaic(el('tilesYou'),396,96,YOU_IDX); }
   }
@@ -909,7 +934,7 @@ function ngTap(call){
   if(window.__stands&&window.__stands.nextGoal)window.__stands.nextGoal(call);
   ngCurId='ng'+(callSeq++);   // this window's mark — stamped now at the tap minute, hit resolved at the verdict
   stampCall({m:Math.max(0,Math.floor(M.t)), k:'nextgoal', sub:(ngFmtSide(call)||'NO MORE'), hit:null, id:ngCurId});
-  ngMode='gone'; try{sessionStorage.setItem('rooot.ng.called.'+MATCH_ID,'1');}catch(e){} el('pred').classList.remove('on');   // the tap IS the lock — the card leaves with it (persist so a page-return doesn't re-ask the window you already answered; cleared next cycle at ngReset)
+  ngMode='gone'; try{localStorage.setItem('rooot.ng.called.'+MATCH_ID,'1');}catch(e){} el('pred').classList.remove('on');   // the tap IS the lock — the card leaves with it (persist so a page-return doesn't re-ask the window you already answered; cleared next cycle at ngReset)
 }
 // the crowd's live split — counts with n, never a percentage; n:0 is honest silence, never zeros.
 // ALWAYS cached, even while the card is gone/verdict: state broadcasts fire on every accepted
@@ -948,7 +973,7 @@ function ngReset(){   // the 10s beat — the ONLY path that flips the card back
   clearTimeout(ngResetT); ngResetT=null;
   if(!ngInit._done||ngEnded||ngDismissed)return;
   ngMode='open';
-  try{sessionStorage.removeItem('rooot.ng.called.'+MATCH_ID);}catch(e){}   // a fresh window — the answered-state is obsolete, the card is askable again
+  try{localStorage.removeItem('rooot.ng.called.'+MATCH_ID);}catch(e){}   // a fresh window — the answered-state is obsolete, the card is askable again
   ngBuildCard();
 }
 function ngEnd(){   // FULL_TIME — the card is gone (fires with the page's existing FT beat, the keepsake)
@@ -983,7 +1008,7 @@ function ngInit(){
   el('predX').onclick=function(){ ngDismissed=true; try{sessionStorage.setItem(key,'1');}catch(e){} clearTimeout(ngResetT); el('pred').classList.remove('on'); };   // dismissed = stays away for the session, through any rebuild
   if(window.__stands.onNextGoal)window.__stands.onNextGoal(ngOnState);
   if(window.__stands.onNextGoalVerdict)window.__stands.onNextGoalVerdict(ngOnVerdict);
-  try{ if(sessionStorage.getItem('rooot.ng.called.'+MATCH_ID)==='1') ngMode='gone'; }catch(e){}   // you already answered this window — don't re-ask on a page return; the replayed verdict (or next cycle's ngReset) brings the card back
+  try{ if(localStorage.getItem('rooot.ng.called.'+MATCH_ID)==='1') ngMode='gone'; }catch(e){}   // you already answered this window — don't re-ask on a page return; the replayed verdict (or next cycle's ngReset) brings the card back
   ngBuildCard();
 }
 // ── the pulse, on the live moment schema — every kind opens a feeling window (T6) ──
@@ -1123,6 +1148,59 @@ if(LIVE){
     setTimeout(function(){ _fxGo(explicitTerr||null,explicitTerr?NEUTRAL_TERR_FX:null); },1500);
   }
 }
+
+// ── THE SEALED STANDS — between matches the stands hold the night's record ──
+// (owner-gated composition, 17 Jul: the card is the centerpiece, with the goals
+// named · the crowd plate carries the night's tallies · the market plate prints
+// the resolution and how it moved from kickoff · no live relics — no NEXT GOAL,
+// no moment pop-ups, no sample figures.) Every number is the durable record's
+// or the finals digest's — real, or absent.
+var SEALED=false;
+if(LIVE&&window.__matchday)window.__matchday.ready.then(function(md){
+  var sfx=md.get(MATCH_ID);
+  if(!(sfx&&sfx.sealed))return;
+  SEALED=true;
+  (function sealStands(){
+    if(!applyFixture.done){ setTimeout(sealStands,100); return; }   // chrome writes need the booted fixture
+    document.body.classList.add('sealedstand');
+    el('clock').textContent='FULL TIME';
+    if(sfx.finalScore){ M.score=[sfx.finalScore.home,sfx.finalScore.away];
+      el('scH').textContent=sfx.finalScore.home; el('scA').textContent=sfx.finalScore.away; }
+    var rp=document.querySelector('.matchbar .rp'); if(rp)rp.style.display='none';   // nothing is replaying here — this is the sealed room
+    el('ctThem').textContent='—'; el('ctYou').textContent='—';   // sample figures never show on a sealed room; the socket's real counts overwrite
+    var f1=el('faithYou'),f2=el('faithThem'); if(f1)f1.style.display='none'; if(f2)f2.style.display='none';
+    el('taphint').textContent='TAP FOR YOUR CARD';
+    el('foot').textContent='the sealed match · every number is from the night';
+    ngEnd();   // the NEXT GOAL window closed with the whistle
+    // the finals digest: the goals onto the card, the market's open→close onto the plate
+    fetch('plate/finals/'+MATCH_ID+'.json').then(function(r){return r.ok?r.json():null;}).then(function(fin){
+      if(!fin)return;
+      window.__FINALS=fin;
+      if(M._ft&&el('keepsake').classList.contains('on'))showKeepsake();   // re-print the open card with the goals row
+      if(fin.market&&fin.market.open&&fin.market.close){
+        M.mkt0={h:fin.market.open.home,d:fin.market.open.draw,a:fin.market.open.away};   // the pre-game baseline (setMove's short-key shape)
+        marketUpdate(fin.market.close);      // …and the whistle's read — the real painters draw bar + moves
+      }
+    }).catch(function(){});
+    // the night's tallies on the crowd plate — from the durable sentiment record
+    (function waitSent(){
+      if(!(window.__stands&&window.__stands.onSentiment)){ setTimeout(waitSent,160); return; }
+      window.__stands.onSentiment(function(rec){
+        if(!rec||rec.matchId!==MATCH_ID||el('nightRow1'))return;
+        var lines=[];
+        var rt=rec.fans&&rec.fans.rootedAtLock; if(rt&&(rt.home||rt.away))lines.push('ROOTED '+HOME_TRI+' '+(rt.home||0)+' · '+AWAY_TRI+' '+(rt.away||0));
+        var roar=rec.feel&&rec.feel.roar&&rec.feel.roar.total; if(roar&&(roar.home||roar.away))lines.push('THE ROAR '+HOME_TRI+' '+Math.round(roar.home||0)+' · '+AWAY_TRI+' '+Math.round(roar.away||0));
+        var calls=rec.fans&&rec.fans.calls; if(calls&&calls.total)lines.push('IN-GAME CALLS '+calls.total+' · '+calls.proved+' PROVED');
+        var fs2=rec.divergence&&rec.divergence.foresight&&rec.divergence.foresight.crowd;
+        var fsLine=fs2==='exact'?'THE CROWD CALLED IT EXACTLY':fs2==='outcome'?'THE CROWD CALLED THE WINNER':fs2==='wrong'?'THE CROWD CALLED IT WRONG':null;
+        var host=el('secCrowd'); if(!host||!lines.length)return;
+        var h='<div class="plbl row" id="nightRow1"><span>'+lines[0]+'</span><span>'+(lines[1]||'')+'</span></div>';
+        if(fsLine||lines[2])h+='<div class="plbl row" id="nightRow2"><span>'+(fsLine||'')+'</span><span>'+(lines[2]||'')+'</span></div>';
+        host.insertAdjacentHTML('beforeend',h);
+      });
+    })();
+  })();
+});
 
 // verification helpers: jump the replay clock, force a roar / prediction
 window.__jump=function(min){ M.t=min-0.1; for(var i=0;i<EVENTS.length;i++){ if(EVENTS[i].t<min-0.1)M.fired[i]=true; else M.fired[i]=false; } };

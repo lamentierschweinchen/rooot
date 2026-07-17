@@ -1,0 +1,356 @@
+{
+ "matchId": "18241006",
+ "finalScore": {
+  "home": 1,
+  "away": 2
+ },
+ "market": {
+  "open": {
+   "home": 0.352,
+   "draw": 0.3359,
+   "away": 0.3122
+  },
+  "close": {
+   "home": 0.0042,
+   "draw": 0.0312,
+   "away": 0.9643
+  },
+  "points": 3508
+ },
+ "stats": {
+  "minute": 101,
+  "home": {
+   "shots": {
+    "total": 4,
+    "onTarget": 2,
+    "offTarget": 1,
+    "blocked": 1,
+    "woodwork": 0
+   },
+   "corners": 1,
+   "freeKicks": 19,
+   "throwIns": 19,
+   "cards": {
+    "yellow": 1,
+    "red": 0,
+    "list": [
+     {
+      "player": "Anderson, Elliot",
+      "type": "Yellow",
+      "minute": 36
+     }
+    ]
+   },
+   "goals": 1,
+   "attacks": {
+    "danger": 55,
+    "highDanger": 0
+   },
+   "territory": 0.37881574108128,
+   "possessionPct": 44,
+   "fouls": 15,
+   "offsides": 3,
+   "subs": {
+    "count": 5,
+    "moves": [
+     {
+      "inName": "Konsa Ngoyo, Ezri",
+      "outName": "Gordon, Anthony",
+      "minute": 71
+     },
+     {
+      "inName": "O'Reilly, Nico",
+      "outName": "Rice, Declan",
+      "minute": 81
+     },
+     {
+      "inName": "Burn, Dan",
+      "outName": "James, Reece (1999)",
+      "minute": 81
+     },
+     {
+      "inName": "Rashford, Marcus",
+      "outName": "Stones, John",
+      "minute": 95
+     },
+     {
+      "inName": "Toney, Ivan",
+      "outName": "Spence, Djed",
+      "minute": 95
+     }
+    ]
+   },
+   "injuries": {
+    "count": 2,
+    "list": [
+     {
+      "player": "James, Reece (1999)",
+      "outcome": "OffPitch",
+      "minute": 80
+     },
+     {
+      "player": "Stones, John",
+      "outcome": "OffPitch",
+      "minute": 88
+     }
+    ]
+   },
+   "penalties": {
+    "scored": 0,
+    "missed": 0,
+    "retake": 0,
+    "list": []
+   },
+   "scorers": [
+    {
+     "name": "Gordon, Anthony",
+     "type": "Shot",
+     "minute": 54
+    }
+   ],
+   "varReviews": 0
+  },
+  "away": {
+   "shots": {
+    "total": 12,
+    "onTarget": 4,
+    "offTarget": 3,
+    "blocked": 3,
+    "woodwork": 2
+   },
+   "corners": 6,
+   "freeKicks": 13,
+   "throwIns": 20,
+   "cards": {
+    "yellow": 3,
+    "red": 0,
+    "list": [
+     {
+      "player": "Martinez, Lisandro",
+      "type": "Yellow",
+      "minute": 41
+     },
+     {
+      "player": "Romero, Cristian Gabriel",
+      "type": "Yellow",
+      "minute": 50
+     },
+     {
+      "player": "De Paul, Rodrigo",
+      "type": "Yellow",
+      "minute": 93
+     }
+    ]
+   },
+   "goals": 2,
+   "attacks": {
+    "danger": 106,
+    "highDanger": 0
+   },
+   "territory": 0.6211842589187201,
+   "possessionPct": 56,
+   "fouls": 11,
+   "offsides": 1,
+   "subs": {
+    "count": 5,
+    "moves": [
+     {
+      "inName": "Gonzalez, Nicolas Ivan",
+      "outName": "Paredes, Leandro",
+      "minute": 63
+     },
+     {
+      "inName": "De Paul, Rodrigo",
+      "outName": "Martinez, Lisandro",
+      "minute": 72
+     },
+     {
+      "inName": "Otamendi, Nicolas",
+      "outName": "Simeone, Giuliano",
+      "minute": 72
+     },
+     {
+      "inName": null,
+      "outName": null,
+      "minute": 72
+     },
+     {
+      "inName": "Martinez, Lautaro Javier",
+      "outName": "Tagliafico, Nicolas Alejandro",
+      "minute": 80
+     }
+    ]
+   },
+   "injuries": {
+    "count": 1,
+    "list": [
+     {
+      "player": null,
+      "outcome": null,
+      "minute": 22
+     }
+    ]
+   },
+   "penalties": {
+    "scored": 0,
+    "missed": 0,
+    "retake": 0,
+    "list": []
+   },
+   "scorers": [
+    {
+     "name": "Fernandez, Enzo",
+     "type": "Shot",
+     "minute": 84
+    },
+    {
+     "name": "Martinez, Lautaro Javier",
+     "type": "Head",
+     "minute": 91
+    }
+   ],
+   "varReviews": 0
+  },
+  "var": [],
+  "pending": [],
+  "lineups": {
+   "home": [
+    {
+     "name": "Anderson, Elliot",
+     "number": "8",
+     "positionId": 36,
+     "captain": false
+    },
+    {
+     "name": "Bellingham, Jude",
+     "number": "10",
+     "positionId": 36,
+     "captain": false
+    },
+    {
+     "name": "Gordon, Anthony",
+     "number": "18",
+     "positionId": 37,
+     "captain": false
+    },
+    {
+     "name": "Guehi, Marc",
+     "number": "6",
+     "positionId": 35,
+     "captain": false
+    },
+    {
+     "name": "James, Reece (1999)",
+     "number": "24",
+     "positionId": 35,
+     "captain": false
+    },
+    {
+     "name": "Kane, Harry",
+     "number": "9",
+     "positionId": 37,
+     "captain": false
+    },
+    {
+     "name": "Pickford, Jordan",
+     "number": "1",
+     "positionId": 34,
+     "captain": false
+    },
+    {
+     "name": "Rice, Declan",
+     "number": "4",
+     "positionId": 36,
+     "captain": false
+    },
+    {
+     "name": "Rogers, Morgan",
+     "number": "17",
+     "positionId": 36,
+     "captain": false
+    },
+    {
+     "name": "Spence, Djed",
+     "number": "25",
+     "positionId": 35,
+     "captain": false
+    },
+    {
+     "name": "Stones, John",
+     "number": "5",
+     "positionId": 35,
+     "captain": false
+    }
+   ],
+   "away": [
+    {
+     "name": "Alvarez, Julian",
+     "number": "9",
+     "positionId": 37,
+     "captain": false
+    },
+    {
+     "name": "Fernandez, Enzo",
+     "number": "24",
+     "positionId": 36,
+     "captain": false
+    },
+    {
+     "name": "Mac Allister, Alexis",
+     "number": "20",
+     "positionId": 36,
+     "captain": false
+    },
+    {
+     "name": "Martinez, Damian Emiliano",
+     "number": "23",
+     "positionId": 34,
+     "captain": false
+    },
+    {
+     "name": "Martinez, Lisandro",
+     "number": "6",
+     "positionId": 35,
+     "captain": false
+    },
+    {
+     "name": "Messi, Lionel",
+     "number": "10",
+     "positionId": 37,
+     "captain": false
+    },
+    {
+     "name": "Molina Lucero, Nahuel",
+     "number": "26",
+     "positionId": 35,
+     "captain": false
+    },
+    {
+     "name": "Paredes, Leandro",
+     "number": "5",
+     "positionId": 36,
+     "captain": false
+    },
+    {
+     "name": "Romero, Cristian Gabriel",
+     "number": "13",
+     "positionId": 35,
+     "captain": false
+    },
+    {
+     "name": "Simeone, Giuliano",
+     "number": "17",
+     "positionId": 37,
+     "captain": false
+    },
+    {
+     "name": "Tagliafico, Nicolas Alejandro",
+     "number": "3",
+     "positionId": 35,
+     "captain": false
+    }
+   ]
+  },
+  "__live": false
+ }
+}
