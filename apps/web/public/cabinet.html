@@ -244,11 +244,11 @@ function scarvesFromCloths(cloths,kepts){
 // tiles must never disagree); the local derive stays only as its no-module fallback
 function deriveFromKept(scarves,kepts){
   if(window.__myRecord){ var t=window.__myRecord.totals();
-    return {lived:t.lived,calls:t.predictions,nailed:t.exact,loudestNight:t.loudestNight}; }
+    return {lived:t.lived,calls:t.predictions,nailed:t.exact,points:t.points||0,loudestNight:t.loudestNight}; }
   var ids={}; scarves.forEach(function(s){ids[s.matchId]=1;}); kepts.forEach(function(k){ids[k.matchId]=1;});
   var lived=Object.keys(ids).length, preds=0, exact=0;
   kepts.forEach(function(k){ if(k.pred){ preds++; if(k.final&&k.pred.h===k.final.h&&k.pred.a===k.final.a)exact++; } });
-  return {lived:lived,calls:preds,nailed:exact,loudestNight:null};
+  return {lived:lived,calls:preds,nailed:exact,points:0,loudestNight:null};
 }
 
 // team tricode → scarf palette [fill, ink-on-fill]. Colours live here (design's); the mint carries only facts.
@@ -264,7 +264,7 @@ function deriveRecord(sc){ var n=0; for(var i=0;i<sc.length;i++)if(sc[i].result=
 // cloth on this phone, so their tap honestly says NOTHING KEPT. Rack hangs newest first.
 var SAMPLE={
   profile:{displayName:'you',sides:['SUI','ARG'],since:"'26"},
-  record:{lived:12,calls:34,nailed:21,loudestNight:'ARG'},
+  record:{lived:12,calls:34,nailed:21,points:2840,loudestNight:'ARG'},
   scarves:[
     {asset:'d2',matchId:'18202783',home:'SUI',away:'COL',score:'0–0',call:'SUI 2–1',result:'wrong',  comp:'WORLD CUP',date:"07 JUL '26",serial:'009',dur:96, share:[.55,.5,.48,.52,.5,.47,.5,.53,.49,.5,.52,.48,.5,.5], goals:[]},
     {asset:'d3',matchId:'18187298',home:'BRA',away:'NOR',score:'0–1',call:'the upset',result:'outcome',comp:'GROUP C', date:"05 JUL '26",serial:'003',dur:94, share:[.6,.58,.56,.52,.5,.48,.46,.5,.47,.43,.4,.38,.36,.34], goals:[[70,'a']]},
@@ -273,7 +273,7 @@ var SAMPLE={
   next:{home:'SPA',away:'BEL',kickoff:"SAT 20:00",side:'SPAIN'}
 };
 // live (or any non-demo) with no seat/album yet → an HONEST empty seat, never the fake sample (post-mortem: no sample on live)
-var EMPTY={real:true, profile:{displayName:'you',sides:[],since:''}, record:{lived:0,calls:0,nailed:0,loudestNight:null}, scarves:[], next:null};
+var EMPTY={real:true, profile:{displayName:'you',sides:[],since:''}, record:{lived:0,calls:0,nailed:0,points:0,loudestNight:null}, scarves:[], next:null};
 // read the live interface if present, folding in this device's own kept records; else the sample/empty.
 // THE CARDS are always the device's real kept records — even inside the walkthrough (a walker's keep is real).
 function resolve(){
@@ -343,9 +343,9 @@ function render(){
     ? 'ROOTED FOR&nbsp;'+sides.map(function(s){return flagTile(s);}).join('<span class="fsep">·</span>')+'<span class="fsep">·</span>SINCE '+fmtSince(d.profile.since)
     : 'YOUR SEAT IS OPEN · TAKE A SIDE AT THE GATE';
 
-  // record — the four tiles
+  // record — the four tiles (POINTS replaced the never-fed LOUDEST NIGHT — owner pick A2, 17 Jul)
   var R=d.record;
-  el('record').innerHTML=[['st',R.lived,'MATCHES LIVED'],['st',R.calls,'PREDICTIONS'],['st gold',R.nailed,'EXACT'],['st',R.loudestNight||'—','LOUDEST NIGHT']]
+  el('record').innerHTML=[['st',R.lived,'MATCHES LIVED'],['st',R.calls,'PREDICTIONS'],['st gold',R.nailed,'EXACT'],['st gold',R.points!=null?R.points:'—','POINTS']]
     .map(function(t){return '<div class="'+t[0]+'"><b>'+t[1]+'</b><span class="l">'+t[2]+'</span></div>';}).join('');
 
   // NEXT UP — the forward loop. The album's fixture first, else the schedule's next

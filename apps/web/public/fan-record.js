@@ -92,7 +92,12 @@
       if (fin2 && pp && pp.h === fin2.h && pp.a === fin2.a) exact++;
     }
 
-    return { lived: lived, predictions: Object.keys(predIds).length, exact: exact, loudestNight: null };
+    // points across every match this device touched — the same per-match formula, summed
+    var ptsIds = {}; for (var pid2 in ids) ptsIds[pid2] = 1;
+    if (pass && pass.matchId) ptsIds[String(pass.matchId)] = 1;
+    var points = 0; for (var pid3 in ptsIds) points += pointsFor(pid3);
+
+    return { lived: lived, predictions: Object.keys(predIds).length, exact: exact, points: points, loudestNight: null };
   }
 
   // ── points — ONE formula for every surface (owner, 17 Jul: interacting must earn).

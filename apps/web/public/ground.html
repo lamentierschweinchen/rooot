@@ -184,6 +184,7 @@ function lensSrc(name){
   return base+q;
 }
 var order=['loom','stands','stadium'], cur=1;   // THE STANDS is home
+window.__groundLens=function(name){ setLens(name); };   // the lenses may flip the dial (the stadium's stands-dot)
 function setLens(name){
   if(order.indexOf(name)<0)return;
   cur=order.indexOf(name);

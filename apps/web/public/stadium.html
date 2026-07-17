@@ -53,6 +53,16 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
 .hot::before{content:"";width:var(--d,8px);height:var(--d,8px);border-radius:50%;background:rgba(26,24,21,.9);
   box-shadow:0 0 0 3px rgba(237,230,214,.92),0 0 0 4.5px rgba(26,24,21,.5);animation:dotb 2.8s ease-in-out infinite}   /* ink-breath (owner pick, 14 Jul): dark dot, cream halo, quiet pulse — no gold glow */
 @keyframes dotb{0%,100%{opacity:.5}50%{opacity:.95}}
+/* the breath, made visible (owner, 17 Jul): a slow ink ring rippling out of every dot —
+   print language (a struck stamp), no glow. Staggered so the plate never pulses in unison. */
+.hot:not(.zone)::after{content:"";position:absolute;left:50%;top:50%;width:var(--d,8px);height:var(--d,8px);margin:calc(var(--d,8px)/-2) 0 0 calc(var(--d,8px)/-2);
+  border-radius:50%;border:1.5px solid rgba(26,24,21,.55);opacity:0;animation:dotring 3.2s ease-out infinite;pointer-events:none}
+.hot:nth-of-type(2n)::after{animation-delay:.9s}
+.hot:nth-of-type(3n)::after{animation-delay:1.7s}
+@keyframes dotring{0%{transform:scale(1);opacity:.6}70%{transform:scale(2.6);opacity:0}100%{transform:scale(2.6);opacity:0}}
+/* the stands' own dot — large, unmissable, twin rings: the way back to the crowd */
+.hot.big::before{box-shadow:0 0 0 4px rgba(237,230,214,.95),0 0 0 6px rgba(26,24,21,.55)}
+.hot.big::after{border-width:2px;animation-duration:2.6s}
 .hot.zone::before{width:100%;height:100%;background:rgba(26,24,21,.05);
   box-shadow:none;border-radius:inherit;border:1.5px solid rgba(26,24,21,.45)}
 /* the stands glow is pure decoration across the bowl (owner, 11 Jul) — the TAP is the bare seating itself */
@@ -216,6 +226,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
       <div class="hot" data-place="odds" style="left:57.4%;top:11.7%;--d:9.5px" aria-label="the market"><span class="cap">THE MARKET</span></div>
       <div class="hot zone" data-place="control" style="left:50.3%;top:50.5%;width:17%;height:12.2%;border-radius:50%" aria-label="control"><span class="cap">CONTROL</span></div>
       <div class="hot zone" data-place="book" style="left:28%;top:50.8%;width:9%;height:6.5%;border-radius:50%" aria-label="the book"><span class="cap">THE BOOK</span></div>
+      <div class="hot big" data-place="stands" style="left:50.2%;top:90.6%;--d:22px" aria-label="the stands"><span class="cap">THE STANDS</span></div>
       <div class="standsglow" aria-hidden="true"></div>
       <div class="pitchzone" aria-hidden="true"></div>
     </div>
@@ -686,7 +697,10 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     dots.innerHTML=CARDS.map(function(c){return '<i data-go="'+c[0]+'" title="'+c[1]+'"'+(c[0]===place?' class="on"':'')+'></i>';}).join('');
   }
   function open(place,origin){
-    if(place==='stands'){ location.href='terrace.html'+(DEMO?'?demo=1':'?live=1&match='+encodeURIComponent(mid))+(WS?'&ws='+encodeURIComponent(WS):''); return; }   // the stands lead INTO the stands — carrying the resolved fixture + wire
+    if(place==='stands'){
+      // inside the ground the stands are a LENS, not a page — flip the dial, don't navigate the frame
+      if(q.get('embed')&&window.parent!==window&&window.parent.__groundLens){ try{ window.parent.__groundLens('stands'); return; }catch(e){} }
+      location.href='terrace.html'+(DEMO?'?demo=1':'?live=1&match='+encodeURIComponent(mid))+(WS?'&ws='+encodeURIComponent(WS):''); return; }   // standalone: the stands lead INTO the stands — carrying the resolved fixture + wire
     var sh=el('sheet-'+place);
     if(!sh){ toast((SOON[place]||place.toUpperCase())+' · NEXT'); return; }
     if(openSheet && openSheet!==sh){ openSheet.style.transformOrigin='50% 50%'; openSheet.classList.remove('open'); }
