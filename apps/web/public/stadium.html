@@ -600,7 +600,10 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     var hp=(h.possessionPct!=null)?Math.round(h.possessionPct):50;
     var ap=100-hp;
     el('mHT').textContent=HOME.tri;el('mAT').textContent=AWAY.tri;
-    el('mSt').textContent=live?'LIVE':'REPLAY';el('bMin').textContent=(s.minute!=null?s.minute+'′':'');
+    // the board carries the honest mode: a fast-forwarding replay says so on the plate
+    // itself (the masthead is hidden in the embed), and rests at FULL TIME when done.
+    el('mSt').textContent=live?'LIVE':'REPLAY';
+    el('bMin').textContent=window.__ftDone?'FULL TIME':((live?'':'REPLAY · ')+(s.minute!=null?s.minute+'′':''));
     // possession paints the pitch itself (canvas recolour below); its numbers live in the CONTROL card
     // scoreboard
     el('bSc').textContent=hg+'–'+ag;
@@ -742,7 +745,9 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
   if((DEMO||REPLAY||LIVE) && window.__match){
     var onMatchS=function(m){ if(!m)return;
       el('bSc').textContent=m.score.home+'–'+m.score.away;
-      el('mSt').textContent=LIVE?'LIVE':'REPLAY'; el('bMin').textContent=(m.clock&&m.clock.min!=null?m.clock.min+'′':'');
+      window.__ftDone=!!m.done;   // the one done-flag both board writers read
+      el('mSt').textContent=LIVE?'LIVE':'REPLAY';
+      el('bMin').textContent=m.done?'FULL TIME':((LIVE?'':'REPLAY · ')+(m.clock&&m.clock.min!=null?m.clock.min+'′':''));
       if(m.teams&&m.teams.home&&m.teams.home.tri)el('mHT').textContent=m.teams.home.tri; if(m.teams&&m.teams.away&&m.teams.away.tri)el('mAT').textContent=m.teams.away.tri;
       drawOdds(m); };
     window.__match.on(onMatchS); onMatchS(window.__match);
