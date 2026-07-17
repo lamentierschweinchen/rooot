@@ -197,6 +197,21 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .pk.feel.on span{color:var(--ink)}
 
 .taphint{position:absolute;left:50%;bottom:52px;transform:translateX(-50%);z-index:5;font-weight:800;font-size:8px;letter-spacing:.16em;color:var(--fldink);opacity:.7;pointer-events:none;transition:opacity .3s}
+/* the reaction dock — six struck chips, always on hand; glows when a drama window is open */
+.rxdock{position:absolute;left:50%;bottom:74px;transform:translateX(-50%);z-index:6;text-align:center}
+.rxdock[hidden]{display:none}
+.rxlbl{font-weight:800;font-size:8.5px;letter-spacing:.14em;color:var(--card);margin-bottom:5px;opacity:0;transition:opacity .25s;height:11px;text-shadow:0 1px 6px rgba(0,0,0,.5)}
+.rxdock.hot .rxlbl{opacity:1;color:var(--gold)}
+.rxrow{display:flex;justify-content:center;gap:7px}
+.rx{width:40px;height:40px;flex:none;display:flex;align-items:center;justify-content:center;background:var(--card);border:1.5px solid var(--ink);
+  border-radius:4px;cursor:pointer;-webkit-tap-highlight-color:transparent;box-shadow:2px 2px 0 rgba(26,24,21,.34);padding:0;transition:transform .08s}
+.rx img{width:31px;height:31px;object-fit:contain;pointer-events:none}
+.rx:active{transform:translate(1px,1px);box-shadow:1px 1px 0 rgba(26,24,21,.34)}
+.rxdock.hot .rx{animation:rxhot 1.5s ease-in-out infinite;border-color:var(--gold)}
+@keyframes rxhot{0%,100%{box-shadow:2px 2px 0 rgba(26,24,21,.34)}50%{box-shadow:0 0 0 3px rgba(199,154,56,.6)}}
+.rxfly{position:absolute;bottom:120px;width:34px;height:34px;pointer-events:none;z-index:7;animation:rxflyA 1.05s ease-out forwards}
+.rxfly img{width:100%;height:100%;object-fit:contain}
+@keyframes rxflyA{0%{opacity:0;transform:translateY(8px) scale(.6)}18%{opacity:1;transform:translateY(-10px) scale(1.05)}100%{opacity:0;transform:translateY(-70px) scale(.95) rotate(-5deg)}}
 .taphint.done{opacity:0}
 /* pop-art (Lichtenstein) cheer/goal burst */
 .burst{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%) scale(.5);width:210px;opacity:0;pointer-events:none;z-index:8}
@@ -283,6 +298,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 body.embed .backg,body.embed .foot,body.embed .matchbar{display:none}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;scroll-behavior:auto !important}}
 </style>
+<script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
 <div class="wrap" id="wrap">
@@ -364,6 +380,14 @@ body.embed .backg,body.embed .foot,body.embed .matchbar{display:none}
         <path id="burstDots" d="" fill="url(#bday)"/>
         <text id="burstText" x="110" y="100" text-anchor="middle" font-family="'Anybody','Arial Black',sans-serif" font-weight="900" font-size="34" fill="#1A1815" transform="rotate(-6 110 90)">ROOOT!</text>
       </svg>
+    </div>
+    <!-- THE REACTION DOCK — the six emblems, always on hand (owner, 17 Jul: reactions have
+         never NOT been glitchy — no more windows-that-never-arrive, no modal tray).
+         A tap always counts to YOUR card + points and blooms on your end; when the wire
+         opens a drama window the dock glows and the same tap feeds the crowd's mood. -->
+    <div class="rxdock" id="rxdock" hidden>
+      <div class="rxlbl" id="rxlbl">HOW DOES IT FEEL?</div>
+      <div class="rxrow" id="rxrow"></div>
     </div>
     <div class="taphint" id="taphint">TAP ANYWHERE TO CHEER</div>
     <div class="picker" id="picker"></div>
@@ -527,6 +551,7 @@ function updateXP(final){
   var x=el('xp'); if(!x||!window.__myRecord)return;
   var mine=PASS&&String(PASS.matchId)===String(MATCH_ID);   // a pass from ANOTHER match earns nothing here
   var pred=mine&&PASS.call?{h:PASS.call.h,a:PASS.call.a}:null;
+  if(!final&&(M._ft||SEALED))final={h:M.score[0],a:M.score[1]};   // the match is over — the bonus never falls back off the counter
   x.textContent=window.__myRecord.score({pred:pred,cheers:M.cheerN,reacts:sumReacts(),mins:Math.floor(M.vSec/60),final:final||null,conv:mine?(PASS.conv||0):0});
 }
 updateXP();   // a stamped prediction earns from the moment you walk in
@@ -535,7 +560,7 @@ function tap(){ if(M._ft){ el('keepsake').classList.add('on'); return; }   // th
   updateXP();
   if(!tap.done){tap.done=true; el('taphint').classList.add('done');} }   // the hint retires after your first cheer — the burst does the talking
 setInterval(function(){ if(document.visibilityState==='visible'&&!M._ft){M.vSec+=10; updateXP();} },10000);   // minutes watched = visible time until FT; the points tick with it
-el('youEnd').addEventListener('pointerdown',function(e){ if(e.target.closest('.pk')||e.target.closest('.sk-keep'))return; tap(); });
+el('youEnd').addEventListener('pointerdown',function(e){ if(e.target.closest('.pk')||e.target.closest('.sk-keep')||e.target.closest('.rxdock'))return; tap(); });
 
 // picker
 function showPicker(verdictPair){
@@ -1061,6 +1086,35 @@ function ngInit(){
 var MOMENT_TITLE={goal:'GOAL',possible:'CHECKING…','var':'VAR CHECK',red:'RED CARD',penalty:'PENALTY','near-miss':'SO CLOSE',swing:"IT'S TURNING",'full-time':'FULL TIME'};
 var TOKEN_EMB={euphoria:'joy',pride:'muscle',anguish:'heartbreak',rage:'anger',fury:'anger',prayer:'hope',tension:'hope'};   // schema tokens → emblem names; vocabulary settles with the coordinator
 function embFor(tok){ var t=String(tok||'').toLowerCase(); if(TOKEN_EMB[t])return TOKEN_EMB[t]; return FEELIMG[t.toUpperCase()]?t:null; }
+// THE REACTION DOCK — the six emblems, always on hand. A tap always counts to YOUR card
+// and points and blooms over your end; during an open drama window the same tap feeds the
+// crowd's mood (momentReact). No modal tray on the live path, ever.
+(function(){
+  var dock=el('rxdock'); if(!dock||DEMO)return;   // the demo keeps its scripted tray-world untouched
+  dock.hidden=false;
+  var EMB6=['joy','muscle','heartbreak','relief','anger','hope'];
+  EMB6.forEach(function(tok){
+    var b=document.createElement('button'); b.type='button'; b.className='rx'; b.setAttribute('aria-label',tok);
+    b.innerHTML='<img src="plate/gens/reactions/'+tok+'.png" alt="'+tok+'">';
+    b.onclick=function(ev){ ev.stopPropagation(); dockReact(tok,b); };
+    el('rxrow').appendChild(b);
+  });
+})();
+function dockReact(tok,chip){
+  M.reacts[tok]=(M.reacts[tok]||0)+1; updateXP();
+  if(M.await&&M.await.momentId&&M.await.live&&window.__stands&&window.__stands.momentReact){
+    window.__stands.momentReact(M.await.momentId,tok); M.await.picked=true;   // the crowd's mood, fed straight from the dock
+  }
+  var fly=document.createElement('span'); fly.className='rxfly';
+  var r=chip.getBoundingClientRect(), pr=el('youEnd').getBoundingClientRect();
+  fly.style.left=(r.left-pr.left+r.width/2-17)+'px';
+  fly.innerHTML='<img src="plate/gens/reactions/'+tok+'.png" alt="">';
+  el('youEnd').appendChild(fly); setTimeout(function(){fly.remove();},1150);
+  ripple(tilesYou,3);
+}
+function dockHot(tri){ var d=el('rxdock'); if(!d||d.hidden)return;
+  el('rxlbl').textContent=(tri?tri+' — ':'')+'HOW DOES IT FEEL?'; d.classList.add('hot'); }
+function dockCool(){ var d=el('rxdock'); if(d)d.classList.remove('hot'); }
 function openMoment(w){ if(!w)return;
   if(Array.isArray(w.palette)){   // live schema: {momentId, kind, side|null, minute, opensAtMs, closesAtMs, palette[6]}
     el('crowdcall').style.opacity='0';
@@ -1069,7 +1123,7 @@ function openMoment(w){ if(!w)return;
     var tri=w.side?(w.side==='home'?HOME_TRI:AWAY_TRI):null;
     el('momentMin').textContent=(w.minute!=null?w.minute:Math.floor(M.t))+"'"+(tri?' · '+tri:'');
     M.await={momentId:w.momentId,kind:w.kind,tri:tri,live:true,picked:false};
-    showTokenTray(w.palette);
+    dockHot(tri);   // the dock glows — no modal tray on the live path (owner, 17 Jul)
     clearTimeout(M._momT);
     var ttl=(w.closesAtMs&&w.closesAtMs>Date.now())?Math.min(w.closesAtMs-Date.now(),90000):45000;
     M._momT=setTimeout(closeMoment,ttl);   // the window expires with its moment — never parks into full time
@@ -1085,7 +1139,7 @@ function openMoment(w){ if(!w)return;
   showPicker(pair);
   setTimeout(function(){ if(!el('split').classList.contains('on') && !(M.await&&!M.await.picked)){ mo2.classList.remove('on'); el('crowdcall').style.opacity='1'; } },4200);
 }
-function closeMoment(){ clearTimeout(M._momT); el('picker').classList.remove('on'); el('moment').classList.remove('on');
+function closeMoment(){ clearTimeout(M._momT); dockCool(); el('picker').classList.remove('on'); el('moment').classList.remove('on');
   el('crowdcall').style.opacity='1'; el('taphint').style.opacity=''; M.await=null; }
 function showTokenTray(tokens){
   var p=el('picker'); p.innerHTML='';
@@ -1119,7 +1173,7 @@ function revealFromWire(r,sideKey){
   if(!r)return;
   var b=r.byEnd||r;   // the wire nests the ends under byEnd (contracts/crowd.ts MomentResultMsg) — this read missed it, so the live reveal never fired
   if(!b.home||!b.away)return;
-  clearTimeout(M._momT);
+  clearTimeout(M._momT); dockCool();
   var my=sideKey||'home', other=my==='home'?'away':'home';
   fillSplit('H',b[my],'YOUR END'); fillSplit('A',b[other],'THEIR END');
   el('picker').classList.remove('on'); el('moment').classList.remove('on');
@@ -1228,7 +1282,11 @@ if(LIVE&&window.__matchday)window.__matchday.ready.then(function(md){
     var f1=el('faithYou'),f2=el('faithThem'); if(f1)f1.style.display='none'; if(f2)f2.style.display='none';
     el('taphint').textContent='TAP FOR YOUR CARD';
     el('foot').textContent='the sealed match · every number is from the night';
-    if(window.__myRecord){ var sx=el('xp'); if(sx)sx.textContent=window.__myRecord.pointsFor(MATCH_ID); }   // your crystallized score, not a dead 0
+    // a returning fan's session CONTINUES their kept record — counters seed from it, so new
+    // cheers/reactions add on top and a re-collect never wipes the night's history
+    (function(){ var k=null; try{k=JSON.parse(localStorage.getItem('rooot.kept.'+MATCH_ID)||'null');}catch(e){}
+      if(k&&M.cheerN===0&&sumReacts()===0){ M.cheerN=k.cheers||0; M.reacts=Object.assign({},k.reacts||{}); M.vSec=Math.max(M.vSec,(k.mins||0)*60); } })();
+    updateXP();
     ngEnd();   // the NEXT GOAL window closed with the whistle
     // the finals digest: the goals onto the card, the market's open→close onto the plate
     fetch('plate/finals/'+MATCH_ID+'.json').then(function(r){return r.ok?r.json():null;}).then(function(fin){
