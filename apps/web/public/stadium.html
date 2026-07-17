@@ -534,7 +534,8 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
       m.innerHTML='<span class="bn">+ '+(list.length-(MAX-1))+' MORE BOOKED</span>';
       page.appendChild(m); } }
   // THE TEAM SHEET — a side's starting XI (number · name, captain marked). null until the wire names them.
-  function fmtName(n){ if(!n)return '—'; var c=n.indexOf(','); if(c<0)return n; var sur=n.slice(0,c).trim(),fr=n.slice(c+1).trim(),full=(fr?fr+' ':'')+sur; return full.length<=17?full:(fr?fr.charAt(0)+'. ':'')+sur; }   // full name where it fits; else F. Surname (no ugly truncation)
+  function fmtName(n){ if(!n)return '—'; n=String(n).replace(/\s*\([^)]*\)\s*$/,'');   // the wire disambiguates duplicate names with a trailing (year) — roster data, not display copy
+    var c=n.indexOf(','); if(c<0)return n; var sur=n.slice(0,c).trim(),fr=n.slice(c+1).trim(),full=(fr?fr+' ':'')+sur; return full.length<=17?full:(fr?fr.charAt(0)+'. ':'')+sur; }   // full name where it fits; else F. Surname (no ugly truncation)
   function fillXI(ol,arr,cls){ if(!ol)return; ol.innerHTML='';
     if(!arr||!arr.length){ ol.innerHTML='<li class="xnone">TEAM SHEET NOT IN YET</li>'; return; }
     arr.forEach(function(p){ var li=document.createElement('li'); li.className='xrow';
@@ -554,7 +555,12 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
       if(inj){ var ir=document.createElement('div');ir.className='brow hurt';
         ir.innerHTML='<img src="plate/gens/stretcher.png" alt=""><span class="bx">INJURY · '+fmtName(m.outName)+'</span><span class="bmin">'+(inj.minute!=null?inj.minute+"′":'')+'</span>'; col.appendChild(ir); }
       var r=document.createElement('div');r.className='brow'+(inj?' fromInj':'');
-      r.innerHTML='<img src="plate/gens/subboard.png" alt=""><span class="bx"><span class="in">▲ '+fmtName(m.inName)+'</span><br><span class="out">▼ '+fmtName(m.outName)+'</span></span><span class="bmin">'+(m.minute!=null?m.minute+"′":'')+'</span>'; col.appendChild(r);
+      // a real sub the wire couldn't name (no roster ids on the event) prints plainly — never "null/null"
+      r.innerHTML='<img src="plate/gens/subboard.png" alt="">'+
+        ((m.inName||m.outName)
+          ? '<span class="bx"><span class="in">▲ '+fmtName(m.inName)+'</span><br><span class="out">▼ '+fmtName(m.outName)+'</span></span>'
+          : '<span class="bx"><span class="in">SUBSTITUTION</span></span>')+
+        '<span class="bmin">'+(m.minute!=null?m.minute+"′":'')+'</span>'; col.appendChild(r);
     });
     if(!subs.length)col.innerHTML='<div class="brow none">NONE YET</div>'; }
   // PENALTIES — place each attempt (both teams shoot at this one grid): scored = team ball, missed = team ring + X

@@ -381,6 +381,7 @@ body.embed .backg,body.embed .foot,body.embed .matchbar{display:none}
       <div class="krow"><span class="l">CHEERS</span><b id="kCheers">0</b></div>
       <div class="kmoms" id="kMoms"></div>
       <div class="krow"><span class="l">MINUTES WATCHED</span><b id="kMins">0</b></div>
+      <div class="krow"><span class="l">POINTS</span><b id="kPts">—</b></div>
       <div class="k-prov"><span id="kFx">—</span><span id="kNo">Nº —</span></div>
       <button class="sk-keep" id="skKeep">Collect</button>
       <div class="sk-chain" id="skChain" hidden></div>
@@ -393,6 +394,7 @@ body.embed .backg,body.embed .foot,body.embed .matchbar{display:none}
 <!-- demo engine — private prototype default: baked recording → serverless feed → window.__match + window.__stands -->
 <script>if(/[?&]demo=1/.test(location.search))document.write('<scr'+'ipt src="plate/demo-suicol.js"></scr'+'ipt><scr'+'ipt src="demo-feed.js"></scr'+'ipt><scr'+'ipt src="match-read.js"></scr'+'ipt><scr'+'ipt src="crowd-sim.js"></scr'+'ipt>');</script>
 <script src="matchday.js"></script>
+<script src="fan-record.js"></script>
 <script src="stands-adapter.js"></script>
 <script src="stats-adapter.js"></script>
 <!-- SEAT — walletless self-custody scarf mint (Face/Touch-ID passkey PRF -> ed25519, in-browser).
@@ -519,10 +521,19 @@ function liveRoarLevel(v){return v>0?Math.min(1,0.28+v*1.6):0;}   // one real ta
 function bumpEnd(node,list,k){ if(!node)return; node.classList.remove('surge'); void node.offsetWidth; node.classList.add('surge'); ripple(list,k||7); setTimeout(function(){node.classList.remove('surge');},520); }
 
 // your tap = roar (your end surges — the field, not a gauge)
+// points — the one formula (fan-record.js score); live while you watch, sealed by the kept record
+function sumReacts(){ var n=0; for(var t in M.reacts)n+=M.reacts[t]||0; return n; }
+function updateXP(final){
+  var x=el('xp'); if(!x||!window.__myRecord)return;
+  var pred=PASS&&PASS.call?{h:PASS.call.h,a:PASS.call.a}:null;
+  x.textContent=window.__myRecord.score({pred:pred,cheers:M.cheerN,reacts:sumReacts(),mins:Math.floor(M.vSec/60),final:final||null,conv:(PASS&&PASS.conv)||0});
+}
+updateXP();   // a stamped prediction earns from the moment you walk in
 function tap(){ if(M._ft){ el('keepsake').classList.add('on'); return; }   // the match is over — a tap brings your card back, not a cheer into an empty ground
   if((DEMO||LIVE)&&window.__stands){window.__stands.cheer(); M.cheerN++;} else {M.rY=Math.min(1,M.rY+0.16);} ripple(tilesYou,6);var e=el('youEnd');e.classList.remove('surge');void e.offsetWidth;e.classList.add('surge');
+  updateXP();
   if(!tap.done){tap.done=true; el('taphint').classList.add('done');} }   // the hint retires after your first cheer — the burst does the talking
-setInterval(function(){ if(document.visibilityState==='visible'&&!M._ft)M.vSec+=10; },10000);   // minutes watched = visible time until FT
+setInterval(function(){ if(document.visibilityState==='visible'&&!M._ft){M.vSec+=10; updateXP();} },10000);   // minutes watched = visible time until FT; the points tick with it
 el('youEnd').addEventListener('pointerdown',function(e){ if(e.target.closest('.pk')||e.target.closest('.sk-keep'))return; tap(); });
 
 // picker
@@ -552,7 +563,7 @@ function pick(label,isV){
   var p=el('picker');
   [].forEach.call(p.querySelectorAll('.pk'),function(c){c.classList.toggle('on',c.textContent===label);});
   M.await.picked=true;M.await.mine=label;
-  if(window.__stands&&window.__stands.momentReact&&M.await.momentId){window.__stands.momentReact(M.await.momentId,label); M.reacts[label]=(M.reacts[label]||0)+1;}   // always sent — never demo-gated
+  if(window.__stands&&window.__stands.momentReact&&M.await.momentId){window.__stands.momentReact(M.await.momentId,label); M.reacts[label]=(M.reacts[label]||0)+1; updateXP();}   // always sent — never demo-gated
   var ctx=M.await;
   setTimeout(function(){ p.classList.remove('on');
     if(isV){ el('moment').classList.remove('on'); el('crowdcall').style.opacity='1'; el('taphint').style.opacity=''; }   // no fabricated reveal — counts render only from the wire
@@ -668,6 +679,13 @@ function showKeepsake(){
   var fn=window.__stands&&window.__stands.fanNo;   // real serial when the wire assigns it (see HANDOFF-fan-serial) — never invented
   el('kNo').textContent=fn?('Nº '+String(fn).padStart(3,'0')):'Nº —';
   el('kMins').textContent=Math.floor(M.vSec/60);
+  // points on the card — the kept record's crystallized score when one exists (a returning
+  // fan's session counters are empty), else this session scored live, final bonus included
+  if(window.__myRecord){ var keptRec=null; try{keptRec=JSON.parse(localStorage.getItem('rooot.kept.'+MATCH_ID)||'null');}catch(e){}
+    var kpts=keptRec?window.__myRecord.pointsFor(MATCH_ID)
+      :window.__myRecord.score({pred:p?{h:p.home,a:p.away}:null,cheers:M.cheerN,reacts:sumReacts(),mins:Math.floor(M.vSec/60),final:f?{h:f.home,a:f.away}:null,conv:(PASS&&PASS.conv)||0});
+    el('kPts').textContent='+'+kpts;
+    var xEl=el('xp'); if(xEl)xEl.textContent=kpts; }   // the pit counter agrees with the card, always
   var MON=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'], d=new Date();
   el('kFx').textContent=HOME_TRI+'–'+AWAY_TRI+' · '+d.getDate()+' '+MON[d.getMonth()]+' '+d.getFullYear();
   setTimeout(function(){ el('keepsake').classList.add('on'); },900);
@@ -1072,7 +1090,7 @@ function pickToken(tok,chip){
   [].forEach.call(p.querySelectorAll('.pk'),function(c){c.classList.remove('on');}); chip.classList.add('on');
   if(M.await&&M.await.momentId&&window.__stands&&window.__stands.momentReact){
     window.__stands.momentReact(M.await.momentId,tok);   // always sent — last-write-wins until the window closes
-    M.reacts[tok]=(M.reacts[tok]||0)+1;                  // counted for the card
+    M.reacts[tok]=(M.reacts[tok]||0)+1; updateXP();   // counted for the card
   }
   if(M.await)M.await.picked=true;
   // no local reveal — the split renders only from the wire's momentResult
@@ -1179,6 +1197,7 @@ if(LIVE&&window.__matchday)window.__matchday.ready.then(function(md){
     var f1=el('faithYou'),f2=el('faithThem'); if(f1)f1.style.display='none'; if(f2)f2.style.display='none';
     el('taphint').textContent='TAP FOR YOUR CARD';
     el('foot').textContent='the sealed match · every number is from the night';
+    if(window.__myRecord){ var sx=el('xp'); if(sx)sx.textContent=window.__myRecord.pointsFor(MATCH_ID); }   // your crystallized score, not a dead 0
     ngEnd();   // the NEXT GOAL window closed with the whistle
     // the finals digest: the goals onto the card, the market's open→close onto the plate
     fetch('plate/finals/'+MATCH_ID+'.json').then(function(r){return r.ok?r.json():null;}).then(function(fin){

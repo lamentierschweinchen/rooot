@@ -104,7 +104,8 @@
       if (typeof demoSeconds === 'number' && demoSeconds > 0) feedSecs = demoSeconds;
       subs.push(onMsg); ensurePlaying(); return { stop: function () {} };
     },
-    // skip the shared playback to its end (the loom's SKIP control) — no-op before it starts
-    finish: function () { if (player) player.finish(); },
+    // skip the shared playback to its end (the loom's SKIP control) — no-op before it
+    // starts; returns whether there was a playback to drain (sealed-first polls on this)
+    finish: function () { if (!player) return false; player.finish(); return true; },
   };
 })(typeof window !== 'undefined' ? window : this);

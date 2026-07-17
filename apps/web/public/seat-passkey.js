@@ -120,15 +120,20 @@
           { type: 'public-key', alg: -7 }, // ES256
           { type: 'public-key', alg: -8 }  // EdDSA
         ],
-        authenticatorSelection: { residentKey: 'required', userVerification: 'required' },
-        extensions: { prf: {} }
+        // platform = the device's own Face/Touch ID -- the thing the button promises
+        // (a roaming security key would also be "a passkey", but not the product).
+        authenticatorSelection: { authenticatorAttachment: 'platform', residentKey: 'required', userVerification: 'required' },
+        // eval at create: platforms that return PRF results here (Chromium, newer WebKit)
+        // let the FIRST run derive with ONE biometric -- no second get() ceremony.
+        extensions: { prf: { eval: { first: APP_SALT } } }
       }
     }).then(function (credential) {
       if (!credential) throw new Error('prf-unsupported');
       var ext = credential.getClientExtensionResults();
       if (!ext || !ext.prf || ext.prf.enabled !== true) throw new Error('prf-unsupported');
       storeCredId(bytesToB64(new Uint8Array(credential.rawId)));
-      return credential;
+      var first = ext.prf.results && ext.prf.results.first;
+      return { credential: credential, prfFirst: first || null };
     });
   }
 
@@ -146,24 +151,41 @@
     });
   }
 
-  // passkeyClaim(anonId): create-once-then-get ceremony. Always returns a Promise -- the whole
-  // body runs inside a Promise.resolve().then(...) so even a synchronous throw (e.g. WebAuthn
-  // globals missing entirely) becomes a rejection instead of an uncaught exception.
+  // passkeyClaim(anonId): create-once-then-get ceremony. Always returns a Promise; the
+  // WebAuthn call is invoked SYNCHRONOUSLY in the caller's (click) stack -- Safari's
+  // transient-activation window must see it -- with a try/catch turning any synchronous
+  // throw (WebAuthn globals missing entirely) into a rejection, never an uncaught exception.
+  function deriveFromPrfBytes(first) {
+    var seed = new Uint8Array(first); // ArrayBuffer -> Uint8Array: tweetnacl throws TypeError otherwise
+    var derived = keyFromPrf(seed);
+    return { pubkey: derived.pubkey, method: 'passkey' };
+    // derived.secret is intentionally dropped here -- never returned, stored, or logged.
+  }
   function passkeyClaim(anonId) {
-    return Promise.resolve().then(function () {
-      if (!anonId) throw new Error('anonId required');
-      var ready = storedCredId() ? Promise.resolve(null) : createCredential(anonId);
-      return ready.then(getAssertion).then(function (assertion) {
-        if (!assertion) throw new Error('prf-unsupported');
-        var ext = assertion.getClientExtensionResults();
-        var first = ext && ext.prf && ext.prf.results && ext.prf.results.first;
-        if (!first) throw new Error('prf-unsupported');
-        var seed = new Uint8Array(first); // ArrayBuffer -> Uint8Array: tweetnacl throws TypeError otherwise
-        var derived = keyFromPrf(seed);
-        return { pubkey: derived.pubkey, method: 'passkey' };
-        // derived.secret is intentionally dropped here -- never returned, stored, or logged.
+    try {
+      if (!anonId) return Promise.reject(new Error('anonId required'));
+      if (storedCredId()) {
+        return getAssertion().then(function (assertion) {
+          if (!assertion) throw new Error('prf-unsupported');
+          var ext = assertion.getClientExtensionResults();
+          var first = ext && ext.prf && ext.prf.results && ext.prf.results.first;
+          if (!first) throw new Error('prf-unsupported');
+          return deriveFromPrfBytes(first);
+        });
+      }
+      return createCredential(anonId).then(function (made) {
+        if (made.prfFirst) return deriveFromPrfBytes(made.prfFirst);   // one ceremony was enough
+        return getAssertion().then(function (assertion) {              // platform evals PRF only on get -- second ceremony, unavoidable there
+          if (!assertion) throw new Error('prf-unsupported');
+          var ext = assertion.getClientExtensionResults();
+          var first = ext && ext.prf && ext.prf.results && ext.prf.results.first;
+          if (!first) throw new Error('prf-unsupported');
+          return deriveFromPrfBytes(first);
+        });
       });
-    });
+    } catch (err) {
+      return Promise.reject(err);
+    }
   }
 
   if (typeof window !== 'undefined') {

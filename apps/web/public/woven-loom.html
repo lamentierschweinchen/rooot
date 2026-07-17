@@ -90,8 +90,21 @@ html.lexport .loomv svg{animation:none;transform:none}
 </head>
 <body>
 <div class="wrap">
-  <div class="mast"><span class="sc"><b class="h" id="hT">ARG</b> <span id="sc">0–0</span> <b class="a" id="aT">CPV</b></span><span class="rp"><span class="dot" id="liveDot"></span><span id="rp">REPLAY · 0′</span><button class="skip" id="skipBtn" hidden type="button">SKIP →</button></span></div>
-  <script>document.getElementById('skipBtn').onclick=function(){ if(window.__demoFeed)window.__demoFeed.finish(); };</script>
+  <div class="mast"><span class="sc"><b class="h" id="hT">ARG</b> <span id="sc">0–0</span> <b class="a" id="aT">CPV</b></span><span class="rp"><span class="dot" id="liveDot"></span><span id="rp">REPLAY · 0′</span><button class="skip" id="skipBtn" hidden type="button">SKIP →</button><button class="skip" id="rewatchBtn" hidden type="button">REWATCH ↻</button></span></div>
+  <script>
+  document.getElementById('skipBtn').onclick=function(){ if(window.__demoFeed)window.__demoFeed.finish(); };
+  document.getElementById('rewatchBtn').onclick=function(){ var q=new URLSearchParams(location.search); q.set('rewatch','1'); location.search=q.toString(); };
+  // sealed-first (owner, 17 Jul): a bare /live opens on the FINISHED programme — the whole
+  // tape drains the moment it starts, so the cloth, the result, and Collect are just there.
+  // Rewatching is the deliberate act: ?rewatch=1 plays the fast-forward weave (with SKIP).
+  (function(){
+    var q=new URLSearchParams(location.search);
+    var replay=q.get('replay')==='1'||location.pathname==='/live'||location.pathname==='/loom';
+    if(!replay||q.get('rewatch')==='1')return;
+    var t=setInterval(function(){ if(window.__demoFeed&&window.__demoFeed.finish())clearInterval(t); },120);
+    setTimeout(function(){ clearInterval(t); },8000);   // no tape ever started (a live wire) — stop waiting
+  })();
+  </script>
   <div class="sub">THE LOOM · THE MATCH, WOVEN</div>
   <div class="loomwrap"><div class="loomv" id="loomv"></div><div class="gooool" id="gooool"><img src="assets/gooool-v2.png" alt="GOOOL"></div><div class="board" id="board"></div></div>
   <div class="collectbar" id="collectbar" hidden>
@@ -716,6 +729,10 @@ html.lexport .loomv svg{animation:none;transform:none}
     var _sk=document.getElementById('skipBtn');
     if(_sk){ var canSkip=!KEEP&&!SEALED&&!M.over&&M.src!=='live'&&!!window.__demoFeed;
       if(_sk.hidden===canSkip)_sk.hidden=!canSkip; }
+    // …and a finished one can always be rewatched — the deliberate act, never the ambush
+    var _rw=document.getElementById('rewatchBtn');
+    if(_rw){ var canRw=(M.over||SEALED)&&!KEEP&&M.src!=='live'&&!!window.__demoFeed;
+      if(_rw.hidden===canRw)_rw.hidden=!canRw; }
     if(dirty){ dirty=false; renderCloth(); }
     // export-ready: the sealed cloth is drawn and fully unrolled — the mint capture waits on this,
     // then screenshots #loomsvg. 'empty' tells it the record was missing so it never mints a blank.

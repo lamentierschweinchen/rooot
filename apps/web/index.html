@@ -7,15 +7,31 @@
   <meta name="description" content="ROOOT - live football woven from the wire, with a walkthrough of the full gate-to-cabinet demo." />
   <meta property="og:title" content="ROOOT — the live match, woven as it happens" />
   <meta property="og:description" content="Pick an end, call the score, keep the night. Real market, real crowd, woven live." />
-  <meta property="og:image" content="https://rooot.club/og.png" />
+  <meta property="og:image" content="https://rooot.club/og.jpg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:url" content="https://rooot.club/" />
   <meta property="og:type" content="website" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:image" content="https://rooot.club/og.png" />
-  <title>ROOOT - Matchday</title>
+  <meta name="twitter:image" content="https://rooot.club/og.jpg" />
+  <title>ROOOT — the live match, woven as it happens</title>
+  <link rel="canonical" href="https://rooot.club/" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SportsEvent",
+    "name": "France v England — third-place match",
+    "startDate": "2026-07-18T21:00:00Z",
+    "location": { "@type": "Place", "name": "the tournament" },
+    "competitor": [
+      { "@type": "SportsTeam", "name": "France" },
+      { "@type": "SportsTeam", "name": "England" }
+    ]
+  }
+  </script>
   <style>
     @font-face{font-family:'Anybody';src:url('/plate/fonts/anybody.woff2') format('woff2');font-weight:400 700;font-display:swap}
     @font-face{font-family:'Anybody';src:url('/plate/fonts/anybody900.woff2') format('woff2');font-weight:800 900;font-display:swap}
@@ -92,7 +108,7 @@
         <p class="line">The live match, woven as it happens.</p>
         <p class="sub">France v England kicks off Saturday; gates open 30 minutes before. Take a side, predict the score, and watch the match weave live. Until then, England 1–2 Argentina is up to rewatch.</p>
         <div class="actions">
-          <a class="enter" href="/live">REWATCH ENG 1–2 ARG</a>
+          <a class="enter" href="/live?rewatch=1">REWATCH ENG 1–2 ARG</a>
           <a class="walk" href="/demo">OPEN WALKTHROUGH</a>
         </div>
       </div>
@@ -117,7 +133,7 @@
     // so a local walk clicks through. Prod (no port) keeps the canonical routes.
     function devPath(href){
       if(!location.port)return href;
-      if(href.indexOf('/live')===0)return '/woven-loom.html?replay=1';
+      if(href.indexOf('/live')===0)return '/woven-loom.html?replay=1'+(href.indexOf('rewatch=1')>=0?'&rewatch=1':'');
       if(href.indexOf('/demo')===0)return '/showcase.html';
       return href.replace(/^\/gate(\?|$)/,'/gate.html$1');
     }
@@ -135,7 +151,7 @@
         set('.ticket .fx',hc+'<span>v</span>'+ac);
         set('.ticket .meta',(stage?stage+'<br>':'')+'KICKOFF '+kick+' · GATES '+gates);
         set('.sub',pair+' — kickoff '+kick+', gates open '+gates+'. Take a side, predict the score, and watch the match weave live.'+(sealedLine?' Until then, '+sealedLine+' is up to rewatch.':''));
-        if(enter&&sealedLine){ enter.textContent='REWATCH '+sealedLine; enter.setAttribute('href',devPath('/live')); }
+        if(enter&&sealedLine){ enter.textContent='REWATCH '+sealedLine; enter.setAttribute('href',devPath('/live?rewatch=1')); }
       } else if(fx.phase==='GATES_OPEN'){
         set('.status','GATES OPEN · '+kick.replace(/^\S+ /,'')+'<br>'+codes);
         set('.ticket .fx',hc+'<span>v</span>'+ac);
@@ -154,7 +170,7 @@
         set('.ticket .fx',hc+'<span>v</span>'+ac);
         set('.ticket .meta',(stage?stage+'<br>':'')+'FULL TIME'+(fx.sealed&&fx.finalScore?' '+fx.finalScore.home+'–'+fx.finalScore.away:''));
         set('.sub',pair+' is done'+(fx.sealed?' — the whole match is up to rewatch, start to whistle.':' — sealing the match now; the rewatch is up shortly.'));
-        if(enter&&fx.sealed){ enter.textContent='REWATCH '+ft; enter.setAttribute('href',devPath('/live')); }
+        if(enter&&fx.sealed){ enter.textContent='REWATCH '+ft; enter.setAttribute('href',devPath('/live?rewatch=1')); }
       }
       var liveStep=document.querySelectorAll('.route .step span')[1];
       if(liveStep)liveStep.textContent=(fx.phase==='LIVE')?(pair+' — weaving now'):'the match woven from the wire, as it happens';

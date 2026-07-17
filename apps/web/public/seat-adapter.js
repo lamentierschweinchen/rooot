@@ -148,7 +148,7 @@
         try { sock.close(); } catch (_) {}
         if (err) reject(err); else resolve(token);
       }
-      var timer = setTimeout(function () { finish(new Error('token-timeout')); }, 8000);
+      var timer = setTimeout(function () { finish(new Error('token-timeout')); }, 25000);   // a cold mobile TLS+WS handshake can exceed 8s -- don't burn a Face ID on it (Codex, 17 Jul)
       sock.onopen = function () {
         try {
           // hello adopts this anonId into the session (ws message order is preserved per
@@ -173,12 +173,19 @@
   // expiry. The POST body is { token, pubkey, method } ONLY -- the server derives the anonId +
   // matchId being claimed from the token, never from anything the page asserts (review fix,
   // risk 2: a bare POST can no longer harvest another fan's side/call/verdict/serial).
+  // one ceremony per session: the derived {pubkey, method} is public material, so a retry
+  // (token timeout, mint pending) or a second match's claim reuses it instead of asking for
+  // Face ID again (Codex, 17 Jul). The token stays fresh per attempt -- only the biometric is spared.
+  var mechCache = null;
   function claim(opts) {
     var matchId = opts && opts.matchId;
     var id = anonId();
     if (!matchId) return Promise.reject(new Error('match-required'));
     if (!id) return Promise.reject(new Error('anon-required'));
-    return resolveMechanism(window.seatPasskey, window.__seatPrivyClaim, id).then(function (res) {
+    var mech = (mechCache && mechCache.id === id)
+      ? Promise.resolve(mechCache.res)
+      : resolveMechanism(window.seatPasskey, window.__seatPrivyClaim, id).then(function (res) { mechCache = { id: id, res: res }; return res; });
+    return mech.then(function (res) {
       return requestSeatToken(matchId, id).then(function (token) {
         var payload = { token: token, pubkey: res.pubkey, method: res.method };
         return fetch(SEAT_API + '/seat/claim', {

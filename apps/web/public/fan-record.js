@@ -95,6 +95,31 @@
     return { lived: lived, predictions: Object.keys(predIds).length, exact: exact, loudestNight: null };
   }
 
+  // ── points — ONE formula for every surface (owner, 17 Jul: interacting must earn).
+  // Everything scores off recorded real taps; the confidence dial multiplies what the
+  // prediction wins at full time — how sure you were is finally worth something.
+  var CONV_MULT = [1, 1, 1.25, 1.5, 2]; // index by conv 1..4 (0 = no dial set)
+  function score(parts) {
+    var p = 0;
+    if (parts.pred) p += 25;                       // stamped a side and a score at the gate
+    p += Math.min(parts.cheers || 0, 300);         // every cheer (capped for sanity)
+    p += (parts.reacts || 0) * 2;                  // every reaction
+    p += Math.min(parts.mins || 0, 130);           // every minute watched
+    if (parts.pred && parts.final) {
+      var m = CONV_MULT[parts.conv] || 1;
+      if (parts.pred.h === parts.final.h && parts.pred.a === parts.final.a) p += Math.round(200 * m);
+      else if (Math.sign(parts.pred.h - parts.pred.a) === Math.sign(parts.final.h - parts.final.a)) p += Math.round(75 * m);
+    }
+    return Math.round(p);
+  }
+  function pointsFor(matchId) {
+    var r = forMatch(matchId), k = r.kept || {};
+    var pred = k.pred || passPred(r.pass);
+    var reacts = 0; if (k.reacts) for (var t in k.reacts) reacts += k.reacts[t] || 0;
+    var fin = k.final || sealedFinal(matchId);
+    return score({ pred: pred, cheers: k.cheers || 0, reacts: reacts, mins: k.mins || 0, final: fin, conv: (r.pass && r.pass.conv) || 0 });
+  }
+
   var subs = [];
   window.addEventListener('storage', function (e) {
     var k = (e && e.key) || '';
@@ -106,6 +131,8 @@
   window.__myRecord = {
     forMatch: forMatch,
     totals: totals,
+    score: score,
+    pointsFor: pointsFor,
     on: function (fn) { subs.push(fn); return function () { var i = subs.indexOf(fn); if (i >= 0) subs.splice(i, 1); }; }
   };
 })();
