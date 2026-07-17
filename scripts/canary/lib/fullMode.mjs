@@ -99,8 +99,13 @@ export async function runFull(report, { web, ws, match, headed }) {
     // rather than an unstructured crash. ──────────────────────────────────
     let anonIdA, anonIdB, sentA, sentB;
     try {
-      const gateUrl = `${web}/gate.html?${qs({ live: 1, match, ws })}`;
-      const groundUrl = `${web}/ground.html?${qs({ from: 'gate', live: 1, match, ws })}`;
+      // pin the page clock inside the gates-open window for this fixture: since 17 Jul the
+      // gate LOCKS until kickoff-30min (matchday.js), and a canary run before match night
+      // would otherwise stall on a correctly-locked turnstile. mdnow only bends the page's
+      // own clock — every downstream mechanic stays real.
+      const mdnow = process.env.CANARY_MDNOW || '';
+      const gateUrl = `${web}/gate.html?${qs({ live: 1, match, ws })}${mdnow ? `&mdnow=${encodeURIComponent(mdnow)}` : ''}`;
+      const groundUrl = `${web}/ground.html?${qs({ from: 'gate', live: 1, match, ws })}${mdnow ? `&mdnow=${encodeURIComponent(mdnow)}` : ''}`;
 
       // A and B are fully independent through this whole sequence -- run them
       // concurrently, not serially. This isn't just speed for its own sake:
