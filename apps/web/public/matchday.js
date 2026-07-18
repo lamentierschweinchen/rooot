@@ -145,7 +145,14 @@
       if (fx.phase === 'LIVE' && !live) live = fx;
       if (fx.phase === 'GATES_OPEN' && !gates) gates = fx;
       if (fx.phase === 'UPCOMING' && !upcoming) upcoming = fx; // manifest is kickoff-ordered
-      if (fx.sealed) sealed = fx;                              // last sealed wins
+      // lastSealed means "the last night you can actually REWATCH" — a match
+      // can be sealed (over, with a true final score in the manifest) without a
+      // baked replay, and every consumer of this field offers a rewatch: the
+      // landing's button, the ground/stadium/terrace fallback target. Pointing
+      // any of them at a programme that doesn't exist would print one match's
+      // score over another match's cloth. Sealed-without-replay still reads
+      // FULL TIME everywhere via its own fixture entry; it just isn't offered.
+      if (fx.sealed && fx.replay) sealed = fx;                 // last rewatchable sealed wins
     });
     md.next = upcoming;
     md.lastSealed = sealed;

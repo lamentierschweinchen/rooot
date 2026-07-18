@@ -252,6 +252,7 @@ function normalizeSentimentRecord(raw, sourcePath) {
       calls: raw.fans?.calls ?? null,
       faith: raw.fans?.faith ?? null,
       engagement: raw.fans?.engagement ?? null,   // the harvest (2026-07-18)
+      nerveDrift: raw.fans?.nerveDrift ?? null,   // changed minds before the lock (2026-07-18)
       scorelines: raw.fans?.scorelines ?? null,
     },
     points: raw.points ?? null,                    // the harvest (2026-07-18)
@@ -897,13 +898,15 @@ function renderMarkdown(model, computed) {
   const sl = model.fans?.scorelines;
   const pts = model.points;
   const rs = model.feel?.roarSeries;
-  if (eng || sl || pts || (rs && rs.length)) {
+  if (eng || sl || pts || (rs && rs.length) || model.fans?.nerveDrift) {
     out.push('## The harvest — the night, counted');
     out.push('');
     if (eng) out.push(`- **Engagement (server-tallied):** ${eng.fans} fans · ${eng.cheers} granted cheers · ${eng.reacts} reactions · ${eng.watchMinutes} watch-minutes${eng.arrivals?.length ? ` · arrivals across ${eng.arrivals.length} five-minute bucket(s)` : ''}.`);
     if (sl?.length) out.push(`- **The crowd's board:** ${sl.map((s) => `${s.h}–${s.a}${s.n > 1 ? ` ×${s.n}` : ''}`).join(' · ')}.`);
     if (pts) out.push(`- **Points earned (formula v${pts.formulaV}):** ${pts.total.toLocaleString()} across ${pts.fans} fan(s); top: ${pts.top.map((t) => `Nº ${t.serial ?? '—'} · ${t.points}`).join(', ')}.`);
     if (rs?.length) out.push(`- **Roar series:** ${rs.length} samples (~30s cadence) — the per-minute curve Faith Under Fire / Roar Elasticity / Aftershock Half-Life need; formulas land in a later dossier pass.`);
+    const nd = model.fans?.nerveDrift;
+    if (nd) out.push(`- **Nerve drift (changed minds before the lock):** ${nd.fansChanged} fan(s) changed their call, ${nd.totalEdits} edit(s) total${nd.paths?.length ? ` — ${nd.paths.length} trajectory/ies kept (serials only)` : ''}.`);
     out.push('');
   }
 

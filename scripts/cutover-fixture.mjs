@@ -38,7 +38,11 @@ const KICKOFFS = {
 // (bake-engarg gates enforce it). Extend/flip per matchday, then rerun cutover.
 const MATCHDAY = [
   { id: '18241006', stage: 'SEMIFINAL', status: 'sealed', finalScore: { home: 1, away: 2 }, replay: true },
-  { id: '18257865', stage: 'THIRD PLACE', status: 'upcoming' },
+  // sealed WITHOUT replay: the record is real and anchored, but no raw wire
+  // capture was recorded for this match, so there is no baked programme to
+  // rewatch. `replay` is the honest flag for that — matchday's lastSealed only
+  // offers rewatchable nights.
+  { id: '18257865', stage: 'THIRD PLACE', status: 'sealed', finalScore: { home: 4, away: 6 } },
   { id: '18257739', stage: 'THE FINAL', status: 'upcoming' },
 ];
 

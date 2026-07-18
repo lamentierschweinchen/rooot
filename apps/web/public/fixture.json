@@ -57,7 +57,7 @@
     {
       "matchId": "18257865",
       "stage": "THIRD PLACE",
-      "status": "upcoming",
+      "status": "sealed",
       "home": {
         "code": "FRA",
         "name": "France",
@@ -78,7 +78,11 @@
       },
       "kickoffUtc": "2026-07-18T21:00:00Z",
       "competition": "World Cup",
-      "dateISO": "2026-07-18"
+      "dateISO": "2026-07-18",
+      "finalScore": {
+        "home": 4,
+        "away": 6
+      }
     },
     {
       "matchId": "18257739",

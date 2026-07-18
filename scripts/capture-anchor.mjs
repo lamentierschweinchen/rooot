@@ -31,7 +31,11 @@ if (!body.result) {
   console.error(`getTransaction returned null — the tx is not (or no longer) visible on public devnet RPC. If the whistle was recent, retry in ~30s; if hours old, the pruning window may already have closed.`);
   process.exit(2);
 }
-const memo = JSON.stringify(body.result.meta?.logMessages ?? []).match(/Memo[^"]*"([^"]{8,})/)?.[1] ?? null;
+// the memo rides a log line shaped: Program log: Memo (len 126): "{\"v\":1,…}"
+// — the payload is JSON, so its quotes arrive escaped; match the whole quoted
+// run (allowing escapes) and unescape it, rather than stopping at the first ".
+const memoLine = (body.result.meta?.logMessages ?? []).find((l) => /Memo \(len \d+\)/.test(l));
+const memo = memoLine?.match(/Memo \(len \d+\): "((?:\\.|[^"\\])*)"/)?.[1]?.replace(/\\"/g, '"').replace(/\\\\/g, '\\') ?? null;
 const dir = path.join(ROOT, 'docs/pitch/evidence');
 mkdirSync(dir, { recursive: true });
 const stamp = new Date().toISOString().replace(/[:.]/g, '-');
