@@ -175,7 +175,14 @@ var wrap=el('wrap'), dial=el('dial');
 var panes={loom:el('pane-loom'),stands:el('pane-stands'),stadium:el('pane-stadium')};
 
 function boot(MATCH_ID,FX){
-var SEALED=FX.phase==='FULL_TIME'&&FX.replay;   // the sealed programme — baked data, not a dead wire
+// OVER = the match is finished (the chrome must say so, always).
+// SEALED = finished AND rewatchable, i.e. a baked programme exists to route the
+// lenses at. They are different questions: a night can be genuinely over with a
+// real final score and no replay recorded for it, and reading "LIVE CROWD +
+// MATCH WIRE · YOUR SEAT" over a finished match is the fake-LIVE this whole
+// clock exists to kill.
+var OVER=FX.phase==='FULL_TIME';
+var SEALED=OVER&&FX.replay;   // the sealed programme — baked data, not a dead wire
 function lensSrc(name){
   var base={loom:'woven-loom.html',stands:'terrace.html',stadium:'stadium.html'}[name];
   var q='?embed=1';
@@ -268,8 +275,8 @@ function wireLive(){
   document.documentElement.style.setProperty('--yousec2',you.sec2||you.sec||you.color); document.documentElement.style.setProperty('--themsec2',them.sec2||them.sec||them.color);
   el('hT').textContent=FX.home.tri; el('aT').textContent=FX.away.tri; el('hT').style.color=FX.home.color; el('aT').style.color=FX.away.color;
   el('themNm').textContent=them.tri+' · THEIR END'; el('youNm').textContent=you.tri+' · YOUR END';
-  el('spec').textContent=SEALED?'THE SEALED MATCH · REWATCH IT ANY TIME':'LIVE CROWD + MATCH WIRE · YOUR SEAT';
-  if(SEALED&&FX.finalScore){ el('sc').textContent=FX.finalScore.home+'–'+FX.finalScore.away; el('clk').textContent='· FULL TIME'; }
+  el('spec').textContent=SEALED?'THE SEALED MATCH · REWATCH IT ANY TIME':OVER?'THE MATCH IS OVER · THE NIGHT’S RECORD':'LIVE CROWD + MATCH WIRE · YOUR SEAT';
+  if(OVER&&FX.finalScore){ el('sc').textContent=FX.finalScore.home+'–'+FX.finalScore.away; el('clk').textContent='· FULL TIME'; }
   if(window.__stands&&!wireLive.didStands){
     wireLive.didStands=true;
     if(PASS&&PASS.side!=='n')window.__stands.root(sideKey);
@@ -294,7 +301,7 @@ function wireLive(){
   if(window.__statsAdapter&&!wireLive.didStats){
     wireLive.didStats=true;
     window.__statsAdapter.onStats(function(st){
-      if(!st||SEALED)return;   // sealed chrome is finalScore-authoritative — a stale wire snapshot never overwrites FULL TIME
+      if(!st||OVER)return;   // a finished match's chrome is finalScore-authoritative — a stale wire snapshot never overwrites FULL TIME
       el('sc').textContent=(st.home.goals||0)+'–'+(st.away.goals||0);
       if(typeof st.minute==='number')el('clk').textContent='· '+st.minute+"'";
     });
