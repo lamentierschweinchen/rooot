@@ -91,6 +91,17 @@
     } catch (e) { return {}; }
   }
   var doneIds = loadDone();
+  // ADD-only merge from storage — the propagation the comment above promises.
+  // The ground runs three iframe panes, each with its own module instance: the
+  // pane that sees the whistle writes the mark, and every other document (the
+  // parent, a second tab, the cabinet's live-pull bar) picks it up here on its
+  // next tick / on focus / on the storage event. Never REPLACES the in-memory
+  // map: a mark means "the wire whistled", so losing one (private-mode storage,
+  // a quota error) must not un-end a finished match. Expiry is applied at read.
+  function refreshDone() {
+    var stored = loadDone(), k;
+    for (k in stored) if (!doneIds[k]) doneIds[k] = stored[k];
+  }
   var evaluated = false;
   var lastSig = '';
   var manifest = null;
@@ -115,6 +126,7 @@
 
   function evaluate() {
     if (!manifest) return;
+    refreshDone();
     var now = nowMs();
     var list = manifest.fixtures && manifest.fixtures.length ? manifest.fixtures
       // legacy manifest (no fixtures[]) — one entry from the top-level pin, sealed unknown
@@ -151,6 +163,8 @@
 
   setInterval(evaluate, 30000);
   document.addEventListener('visibilitychange', function () { if (!document.hidden) evaluate(); });
+  // another document on this device wrote a done mark — flip with it, now
+  window.addEventListener('storage', function (e) { if (!e || e.key === DONE_KEY) evaluate(); });
 
   window.__matchday = md;
 })();

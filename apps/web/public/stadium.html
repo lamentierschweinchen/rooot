@@ -817,7 +817,14 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
       window.__ftDone=!!m.done;   // the one done-flag both board writers read
       // the wire's whistle tells the town (Codex finding 4): LIVE full time
       // flips the device-wide matchday clock — never from a replay's clock.
-      if(LIVE&&m.done&&window.__matchday){ try{ var mdid=q.get('match')||explicitMatch; if(mdid)window.__matchday.markDone(mdid); }catch(e){} }
+      // PHASE, never m.done (the terrace learned this first: match-read.js
+      // folds PENALTIES into `done`, so a shootout — very much a live match,
+      // and the loom's whole board mode — would otherwise tell every surface
+      // on the device the night was over mid-kick). The wire's own ladder is
+      // careful here: a drawn 90 emits break code 6 (no phase), and FULL_TIME
+      // arrives only when it is genuinely final (decided in 90/ET, or after
+      // the shootout's last kick).
+      if(LIVE&&m.clock&&m.clock.phase==='FULL_TIME'&&window.__matchday){ try{ var mdid=q.get('match')||explicitMatch; if(mdid)window.__matchday.markDone(mdid); }catch(e){} }
       el('mSt').textContent=LIVE?liveWord():'REPLAY';
       el('bMin').textContent=m.done?'FULL TIME':((LIVE?'':'REPLAY · ')+(m.clock&&m.clock.min!=null?m.clock.min+'′':''));
       if(m.teams&&m.teams.home&&m.teams.home.tri)el('mHT').textContent=m.teams.home.tri; if(m.teams&&m.teams.away&&m.teams.away.tri)el('mAT').textContent=m.teams.away.tri;
