@@ -473,6 +473,20 @@ if(!LIVE){
         var pfx=pp&&pp.call?md.get(pp.matchId):null;
         if(pfx&&pfx.phase==='FULL_TIME')fx=pfx;
       }
+      // PIN THE URL to the schedule's match (the same normalization the ground,
+      // the stadium and the terrace already do). The adapters resolve their room
+      // from the manifest's TOP-LEVEL matchId, which points at the SEALED
+      // programme between matches — so a bare /gate rendered tonight's fixture
+      // in its chrome while its socket sat in the finished semifinal's room, and
+      // a fan's root + prediction would have been sent there. Pinning makes every
+      // consumer on the page agree on one id. Guarded to the live door, and
+      // self-limiting: the replaced URL carries ?match, so explicitMatch is set
+      // on the next pass and this never loops.
+      if(fx&&!explicitMatch&&LIVE){
+        var qs=new URLSearchParams(location.search); qs.set('match',fx.matchId);
+        location.replace(location.pathname+'?'+qs.toString());
+        return;
+      }
       if(fx)finish(fx.matchId,fromSchedule(fx,md));
       else if(explicitMatch&&FIXTURES[explicitMatch])finish(explicitMatch,FIXTURES[explicitMatch]);
     });
