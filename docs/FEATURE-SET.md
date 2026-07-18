@@ -1,10 +1,76 @@
 # ROOOT — the full feature set
 
-*2026-07-18 · what the product actually does today, surface by surface: what
-each place is FOR, what it RECORDS, what it SHOWS, what a fan can DO. Marks:
+*2026-07-18 · what the product actually does today: the mechanisms first (the
+value — what each is and what data it produces), then the walkthrough surface
+by surface (what each place is FOR, RECORDS, SHOWS, and lets a fan DO). Marks:
 **LIVE** = on rooot.club right now, wired to real data · **ROADMAP** = designed
 or partially built, not judge-visible. Grounded in the code as deployed —
 nothing aspirational is marked live. The gaps audit is at the bottom.*
+
+---
+
+## The mechanisms — what ROOOT harvests, and why it's worth harvesting
+
+The thesis behind all of them: **BET vs BELIEVE vs HAPPEN.** The market's
+number, the crowd's declared belief, and the result are three different
+things — every mechanism below produces one more honest measurement of the
+gaps between them, stamped at the second it happened, resolved by reality.
+
+### The predictions — the belief harvest
+
+**Pre-match · LIVE:** entry is an opinion. The gate takes a side, a scoreline,
+and the conviction dial (1–4 — "how sure?", the confidence seal: non-financial
+by law, but it scales what a right call earns). Locks at kickoff. Produces the
+crowd's opening read: consensus with n, the full scoreline histogram, per-end
+optimism vs the market's opening line.
+
+**In-game · LIVE (v1) + ROADMAP (the family):** the bigger idea is calls
+placed *during* play — each stamped server-side with the market's live
+de-vigged read at the second of the call, aggregated into a crowd split, and
+resolved by the next real event. That turns one pre-match snapshot into a
+**moving BET/BELIEVE/HAPPEN trajectory** — the dataset's core value, and a
+thing no book harvests (they read the public only from slips, after the
+stake).
+- **Live today (v1): NEXT GOAL** — which end scores next, or no more goals;
+  market-stamped at call time, crowd split with n, per-fan verdicts, every
+  cycle in the sealed record. It's the example, not the feature.
+- **Roadmap (the vocabulary grows):** next scorer · next card · the score at
+  the next interval · will the lead hold · penalty outcome · prediction edit
+  history ("nerve drift" — changing 2–0 to 1–1 before kickoff is itself
+  data) · per-moment calls tied to the drama windows.
+
+### The emotions — how the night felt
+
+**LIVE:** six emblems (joy · muscle · heartbreak · relief · anger · hope),
+always one tap away; drama windows open on real triggers (goals, reds, VAR,
+near-misses, big market swings, the whistle) and each window's crowd split is
+revealed, then kept. Produces the record's feel layer: per-moment emotion
+histograms + the ~30s roar curve. **ROADMAP:** event-centered capture windows
+(60s before / 180s after) as their own persisted texture.
+
+### The roar and the presence — being there, counted
+
+**LIVE:** rooted counts per end (real fans, never padded), rate-honest
+cheering, watch minutes, arrival waves in 5-minute buckets. Produces
+attendance and attention data per fanbase — the "who showed up, when, and how
+loud" layer.
+
+### The points — interacting earns
+
+**LIVE:** one formula (v1) across every surface — the stamp, every cheer,
+every reaction, every minute, and the full-time bonus scaled by the dial.
+Produces the engagement economy: per-fan totals, the night's total, top five
+by serial in the record. **ROADMAP:** levels/season progression, a fan-facing
+leaderboard surface.
+
+### The keepsakes — what a night leaves a fan
+
+**LIVE:** the sealed cloth → the scarf (a real on-chain asset whose image is
+the fan's own woven night), match cards with three-state verdicts and
+accuracy, pins ranking off the real record. Produces retention and the
+"keep this moment" signal. **ROADMAP:** per-moment keeps (what fans choose to
+preserve is itself a memory statistic) · struck pins and sealed posters as
+further physical-grade relic families.
 
 ---
 
@@ -67,10 +133,11 @@ recorded.
 - **Records · LIVE:** cheers (server-granted, rate-limited honestly) ·
   **in-game emotions** — six emblems (joy · muscle · heartbreak · relief ·
   anger · hope), always available from the dock, counted into the immutable
-  record inside drama windows · watch minutes · NEXT GOAL calls with the
-  market's read stamped server-side at the second of the call · your
-  scoreline in the crowd consensus · your rooted side. All of it folds into
-  the match's crystal at full time.
+  record inside drama windows · watch minutes · **in-game predictions**
+  (v1: NEXT GOAL — or no more goals — with the market's read stamped
+  server-side at the second of the call; the growing call vocabulary is in
+  The mechanisms above) · your scoreline in the crowd consensus · your rooted
+  side. All of it folds into the match's crystal at full time.
 - **Shows · LIVE:** both ends as seat mosaics with real rooted counts · roar
   meters (decayed live loudness, never faked volume) · the crowd-vs-market
   plaque — the crowd's % beside the market's ODDS, visibly separate · drama
@@ -112,8 +179,9 @@ worthless to flip, priceless to the person who lived it.
   each carrying the real woven cloth as its image · match cards with
   three-state verdicts (✓ EXACT · ≈ RIGHT RESULT · ✗ WRONG) and the accuracy
   score · share.
-- **THE PINS · ROADMAP:** seven fan virtues (bronze → silver → gold). The
-  frames are live; the counters still show sample ranks — see the gaps audit.
+- **THE PINS · LIVE (5 of 7):** seven fan virtues, bronze → silver → gold,
+  earned not bought — five rank off the fan's real record; the two without an
+  honest counter yet (AGAINST THE TIDE, ONE OF THE FEW) stay still-to-earn.
 
 ## The showcase — `/demo`
 
@@ -141,8 +209,9 @@ full-time emotions are inside), hashed and anchored on Solana devnet:
   counts per end · the full scoreline histogram (every score anyone called).
 - **FEEL (the crowd, in-game):** the moments felt — each drama window's
   emblem split · the roar series (~30s loudness samples, restart-proof).
-- **THE CALLS:** every NEXT GOAL cycle — the crowd's split, the market at
-  call-time, the resolution.
+- **THE IN-GAME PREDICTIONS:** every call cycle (v1: NEXT GOAL) — the crowd's
+  split with n, the market's read at call-time, the resolution. The moving
+  BELIEVE curve, one cycle at a time.
 - **THE NIGHT'S PEOPLE:** engagement (fans · cheers · reactions · watch
   minutes · arrival waves) · points (one formula, v1) with the top five by
   serial — serials only, never identities.
@@ -172,12 +241,10 @@ everything except the full-time bonus.
 
 ## The gaps audit — live vs. wanted-live (Jul 18)
 
-1. **THE PINS show sample ranks** on any non-empty cabinet (`cabinet.html`
-   VIRTUES — hardcoded counters, honest only for empty seats). Four of seven
-   are computable today from the fan's real record (ROOT = matches rooted,
-   THE CALL = exact verdicts, THE TWELFTH = summed cheers, SEASON TICKET =
-   matches lived); the other three lack honest counters and should render
-   still-to-earn. **Recommend: fix before Sunday — small, judge-visible.**
+1. **THE PINS — closed (fixed + deployed Jul 18):** five of seven now rank
+   off the fan's real record (matches rooted, exact calls, summed cheers,
+   call reads, matches lived); the two without an honest counter render
+   still-to-earn. Verified real/empty/demo at runtime.
 2. **In-game emotions: LIVE and in the record** — the dock, the drama
    windows, and (since the Codex triage) the full-time window's reactions
    all land in the crystal. Nothing to close here.
@@ -188,6 +255,9 @@ everything except the full-time bonus.
 4. **Points leaderboard has no fan-facing surface** (the record carries the
    top five by serial; THE NIGHT card shows totals only). Optional pre-final
    touch — owner's call on whether a board fits the paper language.
-5. **Roadmap, stated as such everywhere:** per-call memo receipts ·
-   attendance root · server-authoritative personal totals · pins' real
-   counters · mainnet · socket multiplexing under the tri-pane.
+5. **Roadmap, stated as such everywhere:** the in-game prediction vocabulary
+   beyond NEXT GOAL (next scorer · next card · interval score · lead holds ·
+   penalty outcome · nerve drift) · per-call memo receipts · attendance root ·
+   server-authoritative personal totals · the two unearned pin counters ·
+   per-moment keeps · leaderboard surface · mainnet · socket multiplexing
+   under the tri-pane.
