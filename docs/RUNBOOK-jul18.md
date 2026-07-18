@@ -33,6 +33,15 @@ node -e 'import("node:fs").then(async({readFileSync})=>{const t=JSON.parse(readF
 1. **Verdict + record on the service** (should be automatic at FT):
    - fans got side-aware verdicts + Collect on the card
    - `flyctl logs … | grep -i "sentiment\|crystal"` → one SentimentRecord written + anchored
+   - TIMING (Codex triage, Jul 18): verdicts land AT the whistle, but the record
+     seals **~30s after** — `[sentiment] … seal pending (full-time)` first, then
+     `[sentiment] crystallized …` once the FT reaction window closes. Don't panic
+     in the gap. `seal attempt N failed` retries by itself (2s/10s/30s); a
+     `seal FAILED after …` line means restart the machine — restore-recovery
+     re-seals from the persisted final score (`flyctl machine restart …`).
+   - the site flips to FULL TIME by itself the moment any fan's page sees the
+     whistle (matchday done-marks) — the cutover deploy below is still what
+     makes it durable for fresh visitors.
 2. **Bake the replay** (10-minute job): copy the template and point it at tonight:
    `cp scripts/bake-engarg.ts scripts/bake-fraeng.ts` → edit the header block only:
    FIXTURE_ID `18257865`, input files `fixtures/live-fra-eng/*.jsonl`, output
