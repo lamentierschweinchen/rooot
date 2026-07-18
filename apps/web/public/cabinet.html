@@ -389,11 +389,17 @@ function render(){
   el('cardsWrap').style.display=cards.length?'':'none';
   if(cards.length)el('cardrack').innerHTML=cards.map(cardHTML).join('');
 
-  // THE PINS — the seven virtues have NO real per-fan counter yet (post-MVP). Honesty law 1: never
-  // show a fabricated count on a REAL seat — so a real fan sees every virtue still-to-earn until the
-  // counters are wired; only the DEMO sample walkthrough shows illustrative ranks. Wire real counts here.
+  // THE PINS — five of the seven rank off the fan's REAL record (fan-record totals + the
+  // kept relics + resolved calls on this device); the two without an honest counter yet
+  // (AGAINST THE TIDE needs market-at-call, ONE OF THE FEW needs crowd shares) stay
+  // still-to-earn. The demo walkthrough keeps its labeled illustrative ranks.
+  var realC=null;
+  if(d.real){ var _ch=0,_rd=0;
+    readLocal('rooot.kept.').forEach(function(k){ _ch+=k.cheers||0; });
+    readLocal('rooot.calls.').forEach(function(c){ (Array.isArray(c)?c:[]).forEach(function(x){ if(x&&x.hit===true)_rd++; }); });
+    realC={'THE ROOT':d.record.lived||0,'THE CALL':d.record.nailed||0,'THE TWELFTH':_ch,'READ THE GAME':_rd,'SEASON TICKET':d.record.lived||0}; }
   el('pins').innerHTML=VIRTUES.map(function(v){
-    var c=d.real?0:v.c, rk=rankOf(c,v.t), locked=rk==='locked';
+    var c=d.real?(realC[v.l]||0):v.c, rk=rankOf(c,v.t), locked=rk==='locked';
     var cnt=locked?'EARN IT AT A MATCH':(fmtC(c)+' '+v.unit);
     return '<div class="pin reveal '+rk+'"><div class="medal"><img src="plate/gens/trophies/'+v.img+'" alt="'+v.l+'" style="width:'+v.sz+'px;height:'+v.sz+'px"></div><div class="pl">'+v.l+'</div><div class="pc">'+cnt+'</div></div>';
   }).join('');
