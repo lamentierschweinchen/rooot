@@ -245,6 +245,11 @@ html.lexport .loomv svg{animation:none;transform:none}
   // ---------- THE PRESSING — one function, every source ----------
   function seal(){
     if(SEALED)return; SEALED=true; M.over=true; M.run=false;
+    // the wire's own whistle tells the town (Codex finding 4): a LIVE cloth
+    // reaching full time flips the device-wide matchday clock — every open
+    // page drops "IS LIVE" together, instead of holding it until the sealed
+    // manifest deploys. Replays/tapes never mark (M.src guard).
+    if(M.src==='live'){ try{ var mdid=clothId(); if(mdid&&window.__matchday)window.__matchday.markDone(mdid); }catch(e){} }
     if(M.dur-M.t>0.8)M.dur=Math.max(1,M.t);   // trim the un-woven warp to the whistle (live frames are cut long; the seed is already true)
     bindPersonal();   // final pull of the fan's side + resolved calls, so the sealed keepsake carries them
     dirty=true; writeCloth();

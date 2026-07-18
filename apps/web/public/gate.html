@@ -355,15 +355,23 @@ function paintScore(){ [].forEach.call(score.querySelectorAll('.scn'),function(n
   };
 });
 go.onclick=function(){
-  if(document.documentElement.classList.contains('gatelock'))return;   // gates not open — nothing submits
+  if(document.documentElement.classList.contains('gatelock')){
+    if(lockHref)location.href=lockHref;   // FULL TIME: the locked button is a doorway (back to your seat · rewatch), never a submit
+    return;   // gates not open — nothing submits
+  }
   if(!go.classList.contains('ready')){
     var need=ends;   // side is the only gate now — nudge the picker if they haven't chosen one
     need.classList.remove('nudge'); void need.offsetWidth; need.classList.add('nudge');
     return;
   }
+  // in-play arrival (Codex finding 4): the crowd's scoreline consensus locked at
+  // kickoff — a late fan still roots (counted live), still calls the finish for
+  // themselves, but the pass says so (`late`) and the call never pretends to be
+  // in the locked crowd data (no send, no full-time points bonus).
+  var late=FX.phase==='LIVE';
   // your pass — persisted, then read by the terrace checkpoint + woven into the keepsakes
-  try{ localStorage.setItem('rooot.pass', JSON.stringify({matchId:MATCH_ID, home:FX.home.tri, away:FX.away.tri, side:side, call:sco, conv:conv, ts:Date.now(), live:LIVE})); }catch(e){}
-  if((DEMO||LIVE)&&window.__stands){ if(side&&side!=='n')window.__stands.root(side==='h'?'home':'away'); window.__stands.predict(sco.h,sco.a,conv); }   // your seat + call into the live crowd
+  try{ localStorage.setItem('rooot.pass', JSON.stringify({matchId:MATCH_ID, home:FX.home.tri, away:FX.away.tri, side:side, call:sco, conv:conv, ts:Date.now(), live:LIVE, late:late||undefined})); }catch(e){}
+  if((DEMO||LIVE)&&window.__stands){ if(side&&side!=='n')window.__stands.root(side==='h'?'home':'away'); if(!late)window.__stands.predict(sco.h,sco.a,conv); }   // your seat + call into the live crowd
   document.getElementById('stamp').classList.add('on');   // the turnstile presses your pass — ADMITTED
   go.innerHTML='SEE YOU INSIDE<small>◆ YOU CALLED '+FX.home.tri+' '+sco.h+'–'+sco.a+' '+FX.away.tri+'</small>';
   setTimeout(function(){ location.href='ground.html?from=gate'+MODE_Q; }, 1050);   // the tunnel — walk into the ground (carry prototype mode)
@@ -390,13 +398,28 @@ go.onclick=function(){
 // "we can only interact once we can enter"). The lock lifts by itself the moment the
 // phase flips (matchday's 30s clock) — the gate opens in your hand.
 var GO_HOME=go.innerHTML;
+var lockHref=null;   // FULL TIME only — the locked button becomes a doorway, never a submit
 function applyLock(){
-  var locked=FX.phase==='UPCOMING';
+  var over=FX.phase==='FULL_TIME';
+  var locked=FX.phase==='UPCOMING'||over;   // Codex finding 4: post-whistle the turnstile is closed — no pass writes, no "ADMITTED" on a finished match
   document.documentElement.classList.toggle('gatelock',locked);
-  if(locked){
+  lockHref=null;
+  if(over){
+    var fs=FX.finalScore?FX.home.tri+' '+FX.finalScore.home+'–'+FX.finalScore.away+' '+FX.away.tri:null;
+    var pass=null; try{ pass=JSON.parse(localStorage.getItem('rooot.pass')||'null'); }catch(e){}
+    if(pass&&String(pass.matchId)===String(MATCH_ID)&&pass.call){
+      lockHref='ground.html?from=gate'+MODE_Q;
+      go.innerHTML='BACK TO YOUR SEAT<small>◆ FULL TIME'+(fs?' · '+fs:'')+' →</small>';
+    } else if(fs){
+      lockHref='woven-loom.html?match='+encodeURIComponent(MATCH_ID)+'&replay=1';
+      go.innerHTML='FULL TIME<small>◆ '+fs+' · REWATCH THE MATCH →</small>';
+    } else {
+      go.innerHTML='FULL TIME<small>SEALING THE NIGHT — BACK IN A MINUTE</small>';
+    }
+  } else if(locked){
     var day=(FX.kickLbl||'').split(' ')[0], time=(FX.kickLbl||'').split(' ').pop();
     go.innerHTML='GATES OPEN '+(day?day+' ':'')+(FX.gatesLbl||'')+'<small>KICKOFF '+time+'</small>';
-  } else if(go.innerHTML.indexOf('GATES OPEN')===0){ go.innerHTML=GO_HOME; }
+  } else if(go.innerHTML.indexOf('GATES OPEN')===0||go.innerHTML.indexOf('FULL TIME')===0){ go.innerHTML=GO_HOME; }
 }
 applyLock();
 if(window.__matchday){
@@ -431,6 +454,15 @@ if(!LIVE){
   if(window.__matchday){
     window.__matchday.ready.then(function(md){
       var fx=explicitMatch?md.get(explicitMatch):md.current;
+      // a fan holding tonight's pass keeps their door until the NEXT gates
+      // actually open — right after the whistle the param-less gate would
+      // otherwise pivot straight to tomorrow's fixture and orphan the
+      // walk-back-in ("BACK TO YOUR SEAT", applyLock's FULL_TIME posture).
+      if(!explicitMatch&&fx&&fx.phase==='UPCOMING'){
+        var pp=null; try{ pp=JSON.parse(localStorage.getItem('rooot.pass')||'null'); }catch(e){}
+        var pfx=pp&&pp.call?md.get(pp.matchId):null;
+        if(pfx&&pfx.phase==='FULL_TIME')fx=pfx;
+      }
       if(fx)finish(fx.matchId,fromSchedule(fx,md));
       else if(explicitMatch&&FIXTURES[explicitMatch])finish(explicitMatch,FIXTURES[explicitMatch]);
     });

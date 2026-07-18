@@ -678,19 +678,23 @@ async function scenarioDoubleAnchorGuardOnRestart(): Promise<void> {
     const gotFirstVerdict = await waitFor(() => cap1.verdicts.length >= 1, 5000);
     assert('boot1: fan receives their EXACT verdict once the fixture reaches FULL_TIME', gotFirstVerdict && cap1.verdicts[0]?.verdict === 'exact', `verdicts=${JSON.stringify(cap1.verdicts)}`);
 
-    await sleep(300); // let crystallizeSentiment's synchronous write (right before the log line) land
+    // THE SEAL (Codex pre-match review, findings 1+3): crystallize no longer
+    // fires in the FULL_TIME tick — it waits for the full-time reaction
+    // window (REACT_WINDOW_MS = 25s) to close so those reactions are IN the
+    // record, then writes. Wait for the record itself, not a fixed sleep.
+    const sealed1 = await waitFor(() => sentimentFileCount(dataDir) === 1, 40_000);
+    assert('boot1: the seal lands exactly ONE sentiment record on disk (after the FT reaction window)', sealed1 && sentimentFileCount(dataDir) === 1, `count=${sentimentFileCount(dataDir)}`);
     const out1SoFar = boot1.getOutput();
     const crystallizedLines1 = out1SoFar.split('\n').filter((l) => l.includes('[sentiment] crystallized') && l.includes(matchId));
     assert('boot1: exactly ONE "[sentiment] crystallized" log line', crystallizedLines1.length === 1, `lines=${JSON.stringify(crystallizedLines1)}`);
-    assert('boot1: exactly ONE sentiment record file on disk', sentimentFileCount(dataDir) === 1, `count=${sentimentFileCount(dataDir)}`);
 
     // THE STANDS CARD (fanStats): the IMMEDIATE post-FT snapshot (Fix 1's
     // registry.snapshotNow, fired synchronously inside the FULL_TIME branch)
     // must NATURALLY carry fanStats — same single write path as the periodic
     // timer, nothing reimplemented. Attribution: the file on disk right now
-    // must carry resolved:true, which no pre-FT write can (the next periodic
-    // write is ~0.6s away at this point; the FT snapshotNow already landed
-    // synchronously before the verdict even reached the ws client above).
+    // must carry resolved:true, which no pre-FT write can (the FT snapshotNow
+    // landed synchronously before the verdict even reached the ws client
+    // above; by now — after the seal wait — the post-seal snapshot has too).
     // The fan hello'd + predicted but never cheered — so cheers MUST be 0
     // (nothing invented), while their still-open presence session has been
     // folded into watchMs by the write itself.

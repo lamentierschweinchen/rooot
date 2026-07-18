@@ -395,8 +395,16 @@ export class MatchState {
     // the gate's confidence dial (1..4) rides with the prediction — it scales the
     // full-time points bonus (contracts/crowd.ts PredictMsg.conv, 2026-07-18)
     const c = Number.isFinite(conv as number) && (conv as number) >= 1 && (conv as number) <= 4 ? Math.floor(conv as number) : undefined;
-    this.predictions.set(anonId, c !== undefined ? { home: h, away: a, atMs, conv: c } : { home: h, away: a, atMs });
-    this.touchFanStats(anonId, nowMs);
+    // Codex pre-match review, finding 11: a re-predict that OMITS conv (the
+    // terrace's re-assert path sends none) must not erase a conviction the
+    // gate already banked — absent means "unstated", never "withdrawn".
+    const prev = this.predictions.get(anonId);
+    const nextConv = c !== undefined ? c : prev?.conv;
+    this.touchFanStats(anonId, nowMs); // the fan IS active even if the row below doesn't change
+    // identical re-send (adapter reconnects re-assert the same call) — report
+    // no change so the handler skips the redundant consensus broadcast.
+    if (prev && prev.home === h && prev.away === a && prev.conv === nextConv) return false;
+    this.predictions.set(anonId, nextConv !== undefined ? { home: h, away: a, atMs, conv: nextConv } : { home: h, away: a, atMs });
     return true;
   }
 

@@ -191,6 +191,14 @@ interface SnapshotMatch {
    * resolved match with no known score refuses to mint (SNAPSHOT_VERSION doc
    * comment above). */
   finalScore?: { home: number; away: number };
+  /** Additive (Codex pre-match review, finding 10 — no version bump: the read
+   * is presence-guarded like every v2+ field, so an older file simply restores
+   * none, and an older PROCESS reading a newer file ignores it). The
+   * accumulator's ~30s roar samples (the record's feel.roarSeries layer) —
+   * ride the snapshot for the same reason `moments` do: a full-time
+   * crystallization after a mid-match restart (a hotfix deploy during the
+   * half is a real event) must carry the whole curve, not a truncated one. */
+  roarSeries?: Array<{ minute: number | null; home: number; away: number }>;
 }
 
 /** v4+. THE FAN SERIAL (archive/design-docs-consumed/design/HANDOFF-2026-07-10-fan-serial.md) — a
@@ -251,6 +259,9 @@ export function writeSnapshot(
    * never resolved (the field is then omitted, never zero-filled). Same
    * optional-hook discipline as the rest. */
   getFinalScore?: (matchId: string) => { home: number; away: number } | null,
+  /** Additive — the accumulator's roar samples (Codex finding 10). Optional/
+   * undefined-tolerant, mirrors getMoments exactly. */
+  getRoarSeries?: (matchId: string) => Array<{ minute: number | null; home: number; away: number }>,
 ): void {
   const file: SnapshotFile = {
     version: SNAPSHOT_VERSION,
@@ -276,6 +287,7 @@ export function writeSnapshot(
         nextGoalResolvedIds: getNextGoalResolvedIds ? getNextGoalResolvedIds(m.matchId) : [],
         nextGoalRows: getNextGoalRows ? getNextGoalRows(m.matchId) : [],
         finalScore: getFinalScore ? getFinalScore(m.matchId) ?? undefined : undefined,
+        roarSeries: getRoarSeries ? getRoarSeries(m.matchId) : [],
       };
     }),
     fans: fanSerial,
@@ -375,6 +387,9 @@ export function applySnapshot(
    * persisted pair — an older file (or a never-resolved match) restores
    * nothing, and the mint path then refuses rather than fabricating 0–0. */
   restoreFinalScore?: (matchId: string, score: { home: number; away: number }) => void,
+  /** Additive — reinstate the accumulator's roar samples (Codex finding 10).
+   * Absent on an older file — a no-op, never fabricated. */
+  restoreRoarSeries?: (matchId: string, rows: Array<{ minute: number | null; home: number; away: number }>) => void,
 ): void {
   for (const sm of snap.matches) {
     const match = getOrCreate(sm.matchId);
@@ -398,6 +413,7 @@ export function applySnapshot(
     if (restoreOpenedTriggers && sm.openedTriggerIds && sm.openedTriggerIds.length > 0) restoreOpenedTriggers(sm.matchId, sm.openedTriggerIds);
     if (restoreNextGoalResolved && sm.nextGoalResolvedIds && sm.nextGoalResolvedIds.length > 0) restoreNextGoalResolved(sm.matchId, sm.nextGoalResolvedIds);
     if (restoreNextGoalRows && sm.nextGoalRows && sm.nextGoalRows.length > 0) restoreNextGoalRows(sm.matchId, sm.nextGoalRows);
+    if (restoreRoarSeries && sm.roarSeries && sm.roarSeries.length > 0) restoreRoarSeries(sm.matchId, sm.roarSeries);
     // finalScore BEFORE resolved (order matters, docs/DATA-ARCHITECTURE.md §4
     // item 2's provenance-fetch crash-window guard, server.ts's `resolved`
     // hook): that hook distinguishes "genuinely crashed mid-crystallize"

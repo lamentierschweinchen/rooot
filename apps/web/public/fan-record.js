@@ -110,7 +110,10 @@
     p += Math.min(parts.cheers || 0, 300);         // every cheer (capped for sanity)
     p += (parts.reacts || 0) * 2;                  // every reaction
     p += Math.min(parts.mins || 0, 130);           // every minute watched
-    if (parts.pred && parts.final) {
+    if (parts.pred && parts.final && !parts.late) {
+      // `late` (gate, in-play arrival): the crowd's call locked at kickoff —
+      // a call placed after it never earns the full-time bonus (the stamp,
+      // cheers, reactions and minutes all still count).
       var m = CONV_MULT[parts.conv] || 1;
       if (parts.pred.h === parts.final.h && parts.pred.a === parts.final.a) p += Math.round(200 * m);
       else if (Math.sign(parts.pred.h - parts.pred.a) === Math.sign(parts.final.h - parts.final.a)) p += Math.round(75 * m);
@@ -122,7 +125,8 @@
     var pred = k.pred || passPred(r.pass);
     var reacts = 0; if (k.reacts) for (var t in k.reacts) reacts += k.reacts[t] || 0;
     var fin = k.final || sealedFinal(matchId);
-    return score({ pred: pred, cheers: k.cheers || 0, reacts: reacts, mins: k.mins || 0, final: fin, conv: (r.pass && r.pass.conv) || 0 });
+    var late = (r.pass && r.pass.late) || (k.late === true);
+    return score({ pred: pred, cheers: k.cheers || 0, reacts: reacts, mins: k.mins || 0, final: fin, conv: (r.pass && r.pass.conv) || 0, late: late });
   }
 
   var subs = [];

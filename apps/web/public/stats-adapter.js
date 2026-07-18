@@ -321,7 +321,9 @@
   // flap escalates instead of hammering at 1s.
   function scheduleReconnect() {
     if (reconnectTimer || connecting) return;
-    reconnectTimer = setTimeout(function () { reconnectTimer = null; connect(); }, backoff);
+    // ±30% jitter (Codex finding 6) — see stands-adapter.js: several sockets
+    // per fan must not reconnect in lockstep after a flap.
+    reconnectTimer = setTimeout(function () { reconnectTimer = null; connect(); }, Math.round(backoff * (0.7 + Math.random() * 0.6)));
   }
   function connect() {
     if (connecting) return;

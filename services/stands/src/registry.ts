@@ -105,6 +105,18 @@ export interface NextGoalRowsPersistenceHooks {
   restore(matchId: string, rows: NextGoalRow[]): void;
 }
 
+/** Hooks into server.ts's sentiment accumulators for the ~30s roar samples
+ * (the SentimentRecord's feel.roarSeries layer, contracts/sentiment.ts) —
+ * mirrors NextGoalRowsPersistenceHooks/MomentsPersistenceHooks exactly and
+ * exists for the same reason (Codex pre-match review, finding 10): the
+ * samples live on the accumulator, and a full-time crystallization after a
+ * mid-match restart — a hotfix deploy during the half is a real event —
+ * must still carry the roar curve sampled before it, not a truncated one. */
+export interface RoarSeriesPersistenceHooks {
+  get(matchId: string): Array<{ minute: number | null; home: number; away: number }>;
+  restore(matchId: string, rows: Array<{ minute: number | null; home: number; away: number }>): void;
+}
+
 /** Hooks into server.ts's `finalScores` map (review merge-gate fix: the
  * resolved flag persisted but the RESOLUTION-TIME FINAL SCORE did not — it
  * lived only in the memory-only join-snapshot cache — so a fan's first
@@ -175,6 +187,9 @@ export class MatchRegistry {
      * fan also holds a room socket); the sweep prefers it, falling back to
      * presenceCount if unwired. */
     private readonly roomClientCount?: (matchId: string) => number,
+    /** The accumulator's ~30s roar samples (Codex finding 10) — mirrors the
+     * `moments` hooks above; optional/last for construction-site stability. */
+    private readonly roarSeries?: RoarSeriesPersistenceHooks,
   ) {}
 
   getOrCreate(matchId: string): MatchState {
@@ -240,6 +255,17 @@ export class MatchRegistry {
     return n;
   }
 
+  /** Read-only twin of fanNoFor — the serial this fan ALREADY holds, or null.
+   * NEVER mints (Codex pre-match review, finding 7): the mint boundary is the
+   * side-carrying hello (server.ts, the coordinator's amendment), and a
+   * harvest/leaderboard read must not quietly hand a serial to a side-less
+   * lurker — worse, a serial minted during the FULL_TIME fold might miss the
+   * snapshot and be REISSUED after a crash while the sealed record already
+   * names it. Readers render null honestly (contracts allow serial:null). */
+  existingFanNo(anonId: string): number | null {
+    return this.fanNumbers.get(anonId) ?? null;
+  }
+
   /** Snapshot restore only: reinstall a persisted anonId->fanNo map and
    * counter directly — never mints a NEW number here. Tolerant of a
    * `nextFanNo` that undercounts the restored entries (belt-and-braces,
@@ -291,6 +317,11 @@ export class MatchRegistry {
     const restoreFinalScore = this.finalScore
       ? (matchId: string, score: { home: number; away: number }) => this.finalScore!.restore(matchId, score)
       : undefined;
+    // same pre-arm again for the roar samples (Codex finding 10) — so a
+    // full-time seal after a mid-match restart carries the whole curve.
+    const restoreRoarSeries = this.roarSeries
+      ? (matchId: string, rows: Array<{ minute: number | null; home: number; away: number }>) => this.roarSeries!.restore(matchId, rows)
+      : undefined;
     applySnapshot(
       snap,
       (matchId) => this.getOrCreate(matchId),
@@ -301,6 +332,7 @@ export class MatchRegistry {
       restoreNextGoalResolved,
       restoreNextGoalRows,
       restoreFinalScore,
+      restoreRoarSeries,
     );
     console.log(`[stands:registry] restored ${snap.matches.length} match(es) from snapshot (v${snap.version ?? 1})`);
   }
@@ -397,7 +429,8 @@ export class MatchRegistry {
     const getNextGoalResolvedIds = this.nextGoalResolved ? (matchId: string) => this.nextGoalResolved!.get(matchId) : undefined;
     const getNextGoalRows = this.nextGoalRows ? (matchId: string) => this.nextGoalRows!.get(matchId) : undefined;
     const getFinalScore = this.finalScore ? (matchId: string) => this.finalScore!.get(matchId) : undefined;
-    writeSnapshot(this.matches, getMoments, isResolved, this.fanSerialSnapshot(), getOpenedTriggerIds, getNextGoalResolvedIds, getNextGoalRows, getFinalScore);
+    const getRoarSeries = this.roarSeries ? (matchId: string) => this.roarSeries!.get(matchId) : undefined;
+    writeSnapshot(this.matches, getMoments, isResolved, this.fanSerialSnapshot(), getOpenedTriggerIds, getNextGoalResolvedIds, getNextGoalRows, getFinalScore, getRoarSeries);
   }
 
   stop(): void {

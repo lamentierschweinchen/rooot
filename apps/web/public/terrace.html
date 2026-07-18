@@ -559,7 +559,7 @@ function updateXP(final){
   var mine=PASS&&String(PASS.matchId)===String(MATCH_ID);   // a pass from ANOTHER match earns nothing here
   var pred=mine&&PASS.call?{h:PASS.call.h,a:PASS.call.a}:null;
   if(!final&&(M._ft||SEALED))final={h:M.score[0],a:M.score[1]};   // the match is over — the bonus never falls back off the counter
-  x.textContent=window.__myRecord.score({pred:pred,cheers:M.cheerN,reacts:sumReacts(),mins:Math.floor(M.vSec/60),final:final||null,conv:mine?(PASS.conv||0):0});
+  x.textContent=window.__myRecord.score({pred:pred,cheers:M.cheerN,reacts:sumReacts(),mins:Math.floor(M.vSec/60),final:final||null,conv:mine?(PASS.conv||0):0,late:!!(mine&&PASS.late)});
 }
 updateXP();   // a stamped prediction earns from the moment you walk in
 function tap(){ if(M._ft){ el('keepsake').classList.add('on'); return; }   // the match is over — a tap brings your card back, not a cheer into an empty ground
@@ -698,7 +698,8 @@ function showKeepsake(){
     var g=function(a,b){return Math.max(0,25-10*Math.abs(a-b));}; return r+g(p.home,f.home)+g(p.away,f.away); };
   var p=vm&&vm.predicted?vm.predicted:(PASS&&PASS.call&&String(PASS.matchId)===String(MATCH_ID)?{home:PASS.call.h,away:PASS.call.a}:null);
   var f=vm&&vm.final?vm.final:{home:M.score[0],away:M.score[1]};
-  if(p){ el('kPred').textContent=HOME_TRI+' '+p.home+'–'+p.away+' '+AWAY_TRI+' · '+accScore(p,f)+'% ACCURACY'; }
+  var late=!!(PASS&&String(PASS.matchId)===String(MATCH_ID)&&PASS.late);   // in-play arrival — the call was yours, not the locked crowd's
+  if(p){ el('kPred').textContent=HOME_TRI+' '+p.home+'–'+p.away+' '+AWAY_TRI+' · '+(late?'CALLED IN-PLAY':accScore(p,f)+'% ACCURACY'); }
   else el('kPredRow').style.display='none';
   // a returning fan's card prints the KEPT record's numbers, not this session's zeros
   var keptNow=null; try{ keptNow=JSON.parse(localStorage.getItem('rooot.kept.'+MATCH_ID)||'null'); }catch(e){}
@@ -720,7 +721,7 @@ function showKeepsake(){
   // fan's session counters are empty), else this session scored live, final bonus included
   if(window.__myRecord){ var keptRec=null; try{keptRec=JSON.parse(localStorage.getItem('rooot.kept.'+MATCH_ID)||'null');}catch(e){}
     var kpts=keptRec?window.__myRecord.pointsFor(MATCH_ID)
-      :window.__myRecord.score({pred:p?{h:p.home,a:p.away}:null,cheers:M.cheerN,reacts:sumReacts(),mins:Math.floor(M.vSec/60),final:f?{h:f.home,a:f.away}:null,conv:(PASS&&String(PASS.matchId)===String(MATCH_ID)&&PASS.conv)||0});
+      :window.__myRecord.score({pred:p?{h:p.home,a:p.away}:null,cheers:M.cheerN,reacts:sumReacts(),mins:Math.floor(M.vSec/60),final:f?{h:f.home,a:f.away}:null,conv:(PASS&&String(PASS.matchId)===String(MATCH_ID)&&PASS.conv)||0,late:late});
     el('kPts').textContent='+'+kpts;
     var xEl=el('xp'); if(xEl)xEl.textContent=kpts; }   // the pit counter agrees with the card, always
   var MON=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'], d=new Date();
@@ -735,9 +736,19 @@ document.addEventListener('keydown',function(e){ if(e.key==='Escape')el('keepsak
 // stand IS the trophy, and it is kept the instant you tap, no biometric, no network in the way.
 function keepLocal(){
   var cs=getComputedStyle(document.documentElement);
+  // merge, never overwrite (Codex finding 11): a post-FT reload starts fresh
+  // session counters — a re-collect must keep the night's history, field by
+  // field (max is honest: within one night the counters only ever grew).
+  var prev=null; try{ prev=JSON.parse(localStorage.getItem('rooot.kept.'+MATCH_ID)||'null'); }catch(e){}
+  var reacts={}, t, pr=(prev&&prev.reacts)||{};
+  for(t in pr)reacts[t]=pr[t]||0;
+  for(t in M.reacts)reacts[t]=Math.max(reacts[t]||0,M.reacts[t]||0);
   try{ localStorage.setItem('rooot.kept.'+MATCH_ID, JSON.stringify({matchId:MATCH_ID,home:HOME_TRI,away:AWAY_TRI,
-    final:{h:M.score[0],a:M.score[1]}, pred:PASS&&PASS.call||null, cheers:M.cheerN, reacts:M.reacts,
-    mins:Math.floor(M.vSec/60), seat:YOU_IDX, fanNo:(window.__stands&&window.__stands.fanNo)||null,
+    final:{h:M.score[0],a:M.score[1]}, pred:(PASS&&PASS.call)||(prev&&prev.pred)||null,
+    late:((PASS&&PASS.late)||(prev&&prev.late))?true:undefined,
+    cheers:Math.max(M.cheerN,(prev&&prev.cheers)||0), reacts:reacts,
+    mins:Math.max(Math.floor(M.vSec/60),(prev&&prev.mins)||0), seat:YOU_IDX,
+    fanNo:(window.__stands&&window.__stands.fanNo)||(prev&&prev.fanNo)||null,
     colors:[(cs.getPropertyValue('--you')||'').trim(),(cs.getPropertyValue('--yousec')||'').trim(),(cs.getPropertyValue('--yousec2')||'').trim()],
     ts:Date.now()})); }catch(e){}
   var sc=document.querySelector('.keepsake .scarf'); if(sc){ sc.classList.remove('kept'); void sc.offsetWidth; sc.classList.add('kept'); }   // the press
@@ -942,6 +953,12 @@ function applyFixture(sideKey){
 }
 function wireLive(){
   if(!LIVE)return true;
+  // Codex finding 5: a stale pass from ANOTHER match must never root/predict
+  // into this one (a semifinal pass on a bookmarked terrace URL was being
+  // reinterpreted as tonight's side + score). MATCH_ID is final by here —
+  // resolution runs before startLive — so this is the one honest drop point;
+  // fan-record.forMatch applies the identical guard on the read side.
+  if(PASS&&String(PASS.matchId)!==String(MATCH_ID))PASS=null;
   var sideKey=PASS&&PASS.side==='a'?'away':'home', other=sideKey==='home'?'away':'home';
   applyFixture(sideKey);
   var f=el('foot'); if(f)f.textContent='live anonymous crowd · rooted counts, cheers, and predictions are real for this match';
@@ -961,7 +978,12 @@ function wireLive(){
     });
     window.__stands.onConsensus(ccUpdate);
     if(window.__stands.onMarket)window.__stands.onMarket(marketUpdate);
-    window.__stands.onVerdict(function(v){ M.verdictMsg=v; ngEnd(); if(!M._ft){M._ft=true; showKeepsake();} });   // FT: the card ends with the keepsake beat
+    // the wire's whistle tells the town (Codex finding 4): any live-wire FT
+    // signal — the full-time moment (everyone, at the whistle), the personal
+    // verdict, or the sealed record broadcast — flips the device-wide
+    // matchday clock so every open page drops "IS LIVE" together.
+    function mdDone(){ try{ if(window.__matchday)window.__matchday.markDone(MATCH_ID); }catch(e){} }
+    window.__stands.onVerdict(function(v){ M.verdictMsg=v; mdDone(); ngEnd(); if(!M._ft){M._ft=true; showKeepsake();} });   // FT: the card ends with the keepsake beat
     // THE SEAL (delta-review Bug A2): a fan joining AFTER full time (evicted match, cold
     // process, or just a late share-link open) gets no live 'predictVerdict' — but the server
     // replays the durable sentiment record on join regardless. Drive the SAME keepsake beat the
@@ -972,12 +994,12 @@ function wireLive(){
       if(!record||record.matchId!==MATCH_ID)return;
       if(M._ft)return;   // live FT already fired — this is additive data, never a re-trigger
       if(record.finalScore)M.verdictMsg={final:record.finalScore};   // showKeepsake() already reads vm.final; no personal call/verdict to add — never invented
-      ngEnd(); M._ft=true; showKeepsake();
+      mdDone(); ngEnd(); M._ft=true; showKeepsake();
     });
     if(window.__stands.onCheer)window.__stands.onCheer(function(e){
       ripple(e.side===sideKey?tilesYou:tilesThem,1);   // ONE seat flickers — someone, right now (never volume; roar carries that)
     });
-    if(window.__stands.onMoment)window.__stands.onMoment(function(m){ if(!SEALED)openMoment(m); });   // T6: live windows open on the terrace (premiere had 6 windows, 0 subscribers) — never on a sealed room's join replay
+    if(window.__stands.onMoment)window.__stands.onMoment(function(m){ if(m&&m.kind==='full-time')mdDone(); if(!SEALED)openMoment(m); });   // T6: live windows open on the terrace (premiere had 6 windows, 0 subscribers) — never on a sealed room's join replay
     if(window.__stands.onMomentResult)window.__stands.onMomentResult(function(r){ if(!SEALED)revealFromWire(r,sideKey); });
     ngInit();   // NEXT GOAL — the card slot, live only (§7 of the tonight handoff); sealed rooms ngEnd() immediately
     var yi=youIdxNow();   // the adapter arrives async in live — re-seat once the real anonId exists
@@ -1199,6 +1221,7 @@ function fillSplit(slot,d,label){
   if(im){ if(emb){im.src='plate/gens/reactions/'+emb+'.png';im.style.display='';} else im.style.display='none'; }
 }
 function wireDemo(){ if(!window.__match||!window.__stands)return false;
+  if(PASS&&String(PASS.matchId)!==String(MATCH_ID))PASS=null;   // Codex finding 5 — same drop as wireLive: a stale pass never roots/predicts here
   var mySide=(PASS&&PASS.side==='a')?'away':'home', other=mySide==='home'?'away':'home';
   window.__stands.root(mySide); if(PASS&&PASS.call)window.__stands.predict(PASS.call.h,PASS.call.a,(String(PASS.matchId)===String(MATCH_ID)&&PASS.conv)||undefined);   // seat the fan + carry the door's call (so cheer() has a side)
   var f=el('foot'); if(f)f.textContent='crowd is simulated (crowd-sim) · match replayed from a baked SUI–COL feed';

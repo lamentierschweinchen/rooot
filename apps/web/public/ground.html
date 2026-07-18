@@ -256,6 +256,10 @@ if(DEMO){
 }
 function wireLive(){
   if(!LIVE)return true;
+  // Codex finding 5: a stale pass from ANOTHER match must never root/predict
+  // into this one — MATCH_ID is final by here (boot receives it resolved).
+  // Same drop the terrace applies; fan-record.forMatch guards the read side.
+  if(PASS&&String(PASS.matchId)!==String(MATCH_ID))PASS=null;
   var sideKey=PASS&&PASS.side==='a'?'away':'home', other=sideKey==='home'?'away':'home';
   var you=sideKey==='home'?FX.home:FX.away, them=other==='home'?FX.home:FX.away;
   byq('.cabbtn').setAttribute('href','cabinet.html?live=1&match='+encodeURIComponent(MATCH_ID)+(WS?'&ws='+encodeURIComponent(WS):''));

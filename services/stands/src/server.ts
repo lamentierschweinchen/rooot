@@ -273,20 +273,102 @@ const resolvedMatches = new Set<string>();
  * entry here and no live-cached score now REFUSES to mint
  * (currentScoreSnapshot in the SEAT fence) rather than fabricating a score. */
 const finalScores = new Map<string, { home: number; away: number }>();
+
+/* ── THE SEAL (Codex pre-match review, findings 1+3) ──────────────────────
+ * The crystallize one-shot, decoupled from the FULL_TIME dispatch tick.
+ * predictLifecycle resolves verdicts synchronously at the whistle but only
+ * REGISTERS the seal here; the actual crystallize fires once every open
+ * reaction window has closed (the FULL_TIME moment opens in the SAME dispatch
+ * pass, after predictLifecycle — sealing immediately would lock its reactions
+ * out of the record forever), retries a failed crystallize with bounded
+ * backoff, and only forgets the match once the record provably exists on
+ * disk. Single-flight per match; timers unref'd so a pending seal never by
+ * itself holds the process open. */
+const pendingSeals = new Map<string, { final: { home: number; away: number }; attempts: number; deferrals: number }>();
+const SEAL_POLL_MS = 3_000; // re-check cadence while a reaction window is open
+const SEAL_MAX_DEFER_MS = 90_000; // ceiling on waiting for windows (defensive — REACT_WINDOW_MS is 25s)
+const SEAL_RETRY_MS = [2_000, 10_000, 30_000]; // crystallize-failure backoff
+
+function scheduleSeal(matchId: string, final: { home: number; away: number }, why: string): void {
+  if (pendingSeals.has(matchId)) return; // single-flight — one seal per match
+  if (sentimentRecordExistsOnDisk(matchId)) return; // already durably sealed
+  pendingSeals.set(matchId, { final, attempts: 0, deferrals: 0 });
+  console.log(`[sentiment] ${matchId} seal pending (${why}) — crystallize fires once reaction windows close`);
+  const tick = (): void => {
+    const pending = pendingSeals.get(matchId);
+    if (!pending) return;
+    const match = registry.getOrCreate(matchId);
+    // wait (bounded) for any OPEN reaction window — the full-time moment must
+    // be inside the record, and a stoppage-drama window deserves the same.
+    if (match.activeMomentId() && pending.deferrals * SEAL_POLL_MS < SEAL_MAX_DEFER_MS) {
+      pending.deferrals += 1;
+      const t = setTimeout(tick, SEAL_POLL_MS);
+      (t as { unref?: () => void }).unref?.();
+      return;
+    }
+    void (async () => {
+      const sealed = await crystallizeSentiment(matchId, match, pending.final);
+      if (sealed) {
+        pendingSeals.delete(matchId);
+        // restore-recovery path arrives here with the flag deliberately
+        // withheld — set it now that the record is real (Set.add is a no-op
+        // on the live path, which already added it at FULL_TIME), and
+        // persist promptly rather than waiting for the periodic timer.
+        resolvedMatches.add(matchId);
+        try {
+          registry.snapshotNow();
+        } catch (err) {
+          console.warn(`[stands] post-seal snapshot failed for ${matchId}: ${errDetail(err)}`);
+        }
+        return;
+      }
+      const backoff = SEAL_RETRY_MS[pending.attempts];
+      pending.attempts += 1;
+      if (backoff === undefined) {
+        pendingSeals.delete(matchId);
+        console.error(
+          `[sentiment] ${matchId} seal FAILED after ${pending.attempts} attempts — record NOT on disk. finalScore is persisted and the resolved flag will be withheld on restore, so restarting the process retries the seal (restore-recovery).`,
+        );
+        return;
+      }
+      console.warn(`[sentiment] ${matchId} seal attempt ${pending.attempts} failed — retrying in ${Math.round(backoff / 1000)}s`);
+      const t = setTimeout(tick, backoff);
+      (t as { unref?: () => void }).unref?.();
+    })();
+  };
+  const t = setTimeout(tick, SEAL_POLL_MS);
+  (t as { unref?: () => void }).unref?.();
+}
+
 function predictLifecycle(matchId: string, msg: ServerMsg | FeedMsg): void {
   if (msg.type !== 'status') return;
   const phase = msg.ev.phase;
-  const match = registry.get(matchId);
-  if (!match) return;
+  // getOrCreate, NOT get (Codex pre-match review, finding 9): the FULL_TIME
+  // seal is a property of the FEED — contracts/sentiment.ts requires a match
+  // with ZERO fans to still crystallize its (empty-crowd) record, and `.get()`
+  // here silently skipped the entire resolve+seal for a fan-less match. Same
+  // reasoning momentLifecycle already documents for its own getOrCreate.
+  const match = registry.getOrCreate(matchId);
   if (phase === 'FIRST_HALF' && !match.predictionsLocked()) {
     match.lockPredictions();
     broadcastToMatch(matchId, match.consensus()); // clients flip to the locked view
   }
   if (phase === 'FULL_TIME' && !resolvedMatches.has(matchId)) {
     const snap = joinSnapshots.get(matchId);
-    const fh = snap && snap.score ? snap.score.ev.home : undefined;
-    const fa = snap && snap.score ? snap.score.ev.away : undefined;
-    if (typeof fh === 'number' && typeof fa === 'number') {
+    let fh = snap && snap.score ? snap.score.ev.home : undefined;
+    let fa = snap && snap.score ? snap.score.ev.away : undefined;
+    if (typeof fh !== 'number' || typeof fa !== 'number') {
+      // Codex pre-match review, finding 2: normalize emits a 'score' message
+      // only on goal / penalty-outcome / correction actions — a genuine 0–0
+      // reaches FULL_TIME with NO cached score, and the old numeric guard
+      // silently dropped the ENTIRE seal (no verdicts, no record, scarves
+      // refusing to mint). The only honest reading of a wire that reached
+      // full time without a single score event is 0–0.
+      console.warn(`[predict] ${matchId} reached FULL_TIME with no cached score — settling 0–0 (goalless wire)`);
+      fh = 0;
+      fa = 0;
+    }
+    {
       resolvedMatches.add(matchId);
       // capture the SAME final score the verdicts below are graded with — it
       // rides the immediate post-FT snapshot (finalScore hooks) so a restarted
@@ -300,32 +382,27 @@ function predictLifecycle(matchId: string, msg: ServerMsg | FeedMsg): void {
       // pass the SAME known-good final score used above to resolve verdicts
       // (fh/fa, sourced from joinSnapshots' cached score — proven reliable,
       // it's what the resolved-verdict path already depends on) straight into
-      // crystallization, rather than trusting the accumulator's OWN
-      // independently-tracked `this.final` (fed by a separate 'score'
-      // case in accumulator.ts's onFeed). Folded fix: the crystallized
-      // record's finalScore came out empty despite the match reaching FT
-      // 2-1 on the wire — two parallel trackers of "the final score" can
-      // drift; this collapses onto the one already proven correct instead of
-      // trying to root-cause the second tracker's own gap.
-      // fire-and-forget (matches this file's existing anchorRecordHash
-      // convention) — crystallizeSentiment is now async (it awaits the
-      // provenance-refs fetch, docs/DATA-ARCHITECTURE.md §4 item 2, before
-      // hashing), and predictLifecycle itself must stay sync. Kept
-      // fire-and-forget rather than moving snapshotNow() to run after it:
-      // the immediate snapshot below is a TESTED invariant (verdict-replay-
-      // check.ts asserts a snapshot exists on disk synchronously, by the
-      // time this function returns — Fix 1, review I1) that must keep
-      // firing in the SAME tick as FULL_TIME, not after an await. The
-      // resulting gap — resolvedMatches persisted here before the async
-      // crystallize's write lands — is closed at RESTORE time instead (see
-      // the `resolved` snapshot hook below, MatchRegistry construction):
-      // a restored resolved=true is trusted only if a durable sentiment
-      // record actually exists on disk for the match; otherwise the flag is
-      // left unset so a redelivered FULL_TIME retries crystallize for real
-      // (resolvePredictions/sendToAnon are idempotent — match-state.ts's
-      // resolvePredictions simply recomputes+overwrites the same verdicts
-      // from the same predictions+final score, never accumulates).
-      void crystallizeSentiment(matchId, match, { home: fh, away: fa }); // the record — persist + emit (docs/SENTIMENT.md)
+      // the seal, rather than trusting the accumulator's OWN independently-
+      // tracked `this.final` (fed by a separate 'score' case in
+      // accumulator.ts's onFeed). Folded fix: the crystallized record's
+      // finalScore came out empty despite the match reaching FT 2-1 on the
+      // wire — two parallel trackers of "the final score" can drift; this
+      // collapses onto the one already proven correct.
+      //
+      // Codex pre-match review, findings 1+3: crystallize is NO LONGER fired
+      // here. Verdicts stay in this sync tick (personal, at the whistle), but
+      // the record itself seals via scheduleSeal — which waits for open
+      // reaction windows to close (the FULL_TIME moment opens ~this same
+      // dispatch pass, AFTER this function; sealing now would lock its
+      // reactions out of the record forever), retries a failed crystallize
+      // with backoff, and only forgets the match once the record provably
+      // exists on disk. The immediate snapshotNow below stays in this tick
+      // (TESTED invariant — verdict-replay-check.ts asserts a snapshot on
+      // disk by the time this function returns, Fix 1/review I1); the crash
+      // window between it and the delayed seal is closed by the persisted
+      // finalScore-without-record marker (the `resolved` restore hook below
+      // withholds the flag AND schedules a restore-recovery seal).
+      scheduleSeal(matchId, { home: fh, away: fa }, 'full-time'); // the record — persist + emit (docs/SENTIMENT.md)
       // Fix 1 (review I1): snapshot IMMEDIATELY instead of waiting up to 30s
       // for the periodic timer — a machine death in that window would restore
       // predictions with no verdicts/resolved flag, letting a re-delivered
@@ -711,9 +788,15 @@ async function crystallizeSentiment(
    * own optional 3rd param) fall back to the accumulator's live-tracked
    * total. */
   finalScore?: { home: number; away: number },
-): Promise<void> {
-  const acc = accumulators.get(matchId);
-  if (!acc || !match) return;
+): Promise<boolean> {
+  // getOrCreate, not a bare map read (Codex finding 1's restore-recovery
+  // path): after a crash-and-restore the accumulator may not have been
+  // recreated yet — it is rebuilt here from fixture identity exactly the way
+  // feedSentiment would. Null only for an UNKNOWN fixture (no team identity
+  // to record against) — that can never seal, and the caller's bounded
+  // retries surface it loudly instead of looping forever.
+  const acc = getOrCreateAccumulator(matchId);
+  if (!acc || !match) return false;
   // ── C1 idempotency backstop (review — the same dup mechanism as the
   // ARG-SUI double record): eviction clears the in-memory resolvedMatches
   // guard AND drops the match from the restart snapshot, so a post-eviction
@@ -730,7 +813,7 @@ async function crystallizeSentiment(
   // write provably skips the anchor.
   if (sentimentRecordExistsOnDisk(matchId)) {
     console.log(`[sentiment] ${matchId} already crystallized on disk — skipping re-crystallize + re-anchor (idempotent; the on-disk record is the durable dedup)`);
-    return;
+    return true; // sealed IS the outcome the caller cares about — the record exists
   }
   try {
     // Relic provenance refs (docs/DATA-ARCHITECTURE.md §4 item 2): never
@@ -788,7 +871,10 @@ async function crystallizeSentiment(
       total: pointRows.reduce((n, r) => n + r.points, 0),
       fans: pointRows.length,
       top: pointRows.sort((x, y) => y.points - x.points).slice(0, 5)
-        .map((r) => ({ serial: registry.fanNoFor(r.anonId) ?? null, points: r.points })),
+        // existingFanNo, NEVER fanNoFor (Codex finding 7): this is a read —
+        // a side-less lurker in the top five renders serial:null, honestly,
+        // rather than being minted a serial mid-harvest.
+        .map((r) => ({ serial: registry.existingFanNo(r.anonId), points: r.points })),
     };
     const record = acc.crystallize(
       { consensus: match.consensus(), rooted: match.counts(), scorelines, engagement, points },
@@ -827,9 +913,18 @@ async function crystallizeSentiment(
     // Tournament-long fold + its own on-chain commitment (docs/DATA-ARCHITECTURE.md
     // §4 adopt #5) — re-fold DATA_DIR/sentiment into fingerprints.json and anchor
     // it, at the same "match seal" moment as the per-match record just above.
-    refoldAndAnchorFingerprints();
+    // Own guard: the RECORD is already durably on disk by here — a refold
+    // fault must not read as a failed seal (the caller would retry, hit the
+    // disk-exists fast path, and log confusingly).
+    try {
+      refoldAndAnchorFingerprints();
+    } catch (err) {
+      console.warn(`[sentiment] fingerprints refold failed after sealing ${matchId}: ${errDetail(err)}`);
+    }
+    return true;
   } catch (err) {
     console.warn(`[sentiment] crystallize failed for ${matchId}: ${errDetail(err)}`);
+    return false;
   }
 }
 
@@ -1421,7 +1516,19 @@ const registry = new MatchRegistry(
       if (!finalScores.has(matchId) || sentimentRecordExistsOnDisk(matchId)) {
         resolvedMatches.add(matchId);
       } else {
-        console.warn(`[sentiment] ${matchId} restored as resolved with a known final score but no sentiment record on disk — treating as unresolved so a redelivered FULL_TIME retries crystallize (provenance-fetch crash window)`);
+        console.warn(`[sentiment] ${matchId} restored as resolved with a known final score but no sentiment record on disk — treating as unresolved so the seal retries (crystallize crash window)`);
+        // Codex finding 1 follow-through: don't WAIT for a redelivered
+        // FULL_TIME (TxLINE may never resend one) — the persisted
+        // finalScore-without-record IS the pending-seal marker. Re-seal
+        // shortly after boot; this hook runs during loadSnapshot, before
+        // ingest starts, and 10s clears the boot rush. scheduleSeal's own
+        // disk check re-verifies, and on success it sets resolvedMatches +
+        // snapshots, closing the loop.
+        const final = finalScores.get(matchId);
+        if (final) {
+          const t = setTimeout(() => scheduleSeal(matchId, final, 'restore-recovery'), 10_000);
+          (t as { unref?: () => void }).unref?.();
+        }
       }
     },
   },
@@ -1503,6 +1610,7 @@ const registry = new MatchRegistry(
     }
     resolvedMatches.delete(matchId);
     finalScores.delete(matchId);
+    pendingSeals.delete(matchId); // a pending seal's next tick sees no entry and stops (eviction is ≥15min post-FT — the seal is long done or long failed)
     settledScores.delete(matchId); // frees the per-match settled-scoreline reducer
     tripleWindow.delete(matchId);
     openedTriggerIds.delete(matchId);
@@ -1528,6 +1636,13 @@ const registry = new MatchRegistry(
     let n = 0;
     for (const state of conns.values()) if (state.matchId === matchId) n++;
     return n;
+  },
+  {
+    // Codex finding 10: the roar samples ride the snapshot the same way
+    // moments do — so a full-time seal after a mid-match restart (hotfix
+    // deploy during the half) carries the whole curve, not a truncated one.
+    get: (matchId) => accumulators.get(matchId)?.getRoarSeries() ?? [],
+    restore: (matchId, rows) => { getOrCreateAccumulator(matchId)?.restoreRoarSeries(rows); },
   },
 );
 
@@ -2048,9 +2163,18 @@ function handleMessage(ws: WebSocket, state: ConnState, raw: string): void {
  * IS asserting what a mint would carry. */
 export function currentScoreSnapshot(matchId: string): LiveScoreSnapshot {
   const ev = joinSnapshots.get(matchId)?.score?.ev;
+  // Resolution-time truth FIRST, independent of the resolved flag (Codex
+  // finding 1 rework): finalScores is set ONLY in the genuine FULL_TIME tick
+  // (and restored from the snapshot persisted in that same tick), so its
+  // presence alone proves full time was observed. The resolved flag is now
+  // deliberately WITHHELD at restore for a crashed-mid-seal match (so the
+  // seal re-fires) — but the score truth is unchanged, and a fan's claim
+  // during that short recovery window must mint with the true score, not
+  // refuse. The doctored resolved-without-score case still falls through to
+  // the same honest refusal as before.
+  const final = finalScores.get(matchId);
+  if (final) return { home: final.home, away: final.away, decided: true };
   if (resolvedMatches.has(matchId)) {
-    const final = finalScores.get(matchId);
-    if (final) return { home: final.home, away: final.away, decided: true };
     if (ev && typeof ev.home === 'number' && typeof ev.away === 'number') return { home: ev.home, away: ev.away, decided: true };
   }
   const disk = latestSentimentRecordOnDisk(matchId);

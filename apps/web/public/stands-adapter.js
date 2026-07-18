@@ -221,7 +221,10 @@
   // stayed open >=5s — a connect-die-connect flap keeps escalating instead of hammering.
   function scheduleReconnect() {
     if (reconnectTimer || connecting) return;
-    reconnectTimer = setTimeout(function () { reconnectTimer = null; connect(); }, backoff);
+    // ±30% jitter (Codex finding 6): the ground runs several sockets per fan —
+    // an unjittered shared backoff makes every one reconnect in lockstep after
+    // a flap, hammering the server with simultaneous join replays.
+    reconnectTimer = setTimeout(function () { reconnectTimer = null; connect(); }, Math.round(backoff * (0.7 + Math.random() * 0.6)));
   }
   function connect() {
     if (connecting) return;

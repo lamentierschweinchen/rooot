@@ -51,7 +51,11 @@
       for (var i = 0; i < md.fixtures.length; i++) if (md.fixtures[i].matchId === String(id)) return md.fixtures[i];
       return null;
     },
-    markDone: function (id) { doneIds[String(id)] = true; evaluate(); },
+    markDone: function (id) {
+      doneIds[String(id)] = Date.now();
+      try { localStorage.setItem(DONE_KEY, JSON.stringify(doneIds)); } catch (e) {}
+      evaluate();
+    },
     on: function (fn) { subs.push(fn); if (evaluated) fn(md); return function () { var i = subs.indexOf(fn); if (i >= 0) subs.splice(i, 1); }; },
     // one voice for kickoff copy everywhere: viewer's local clock, weekday when not today
     kickLabel: function (fx) {
@@ -70,7 +74,23 @@
   };
 
   var subs = [];
-  var doneIds = {};
+  // the feed is the truth for "over": a live surface that SEES full time on
+  // the wire calls markDone, and every open page on this device flips
+  // together — localStorage carries the mark, the storage event announces it
+  // to parent/sibling documents, and evaluate() re-reads it on its 30s tick.
+  // Marks are device-local, expire after 12h, and never apply before the
+  // fixture's own kickoff (phaseFor) — a stale or dev-pinned mark can't kill
+  // a future match. The sealed manifest remains the durable truth at cutover.
+  var DONE_KEY = 'rooot.md.done';
+  function loadDone() {
+    try {
+      var m = JSON.parse(localStorage.getItem(DONE_KEY) || '{}') || {};
+      var now = Date.now(), out = {}, k;
+      for (k in m) if (typeof m[k] === 'number' && now - m[k] < 12 * 3600000) out[k] = m[k];
+      return out;
+    } catch (e) { return {}; }
+  }
+  var doneIds = loadDone();
   var evaluated = false;
   var lastSig = '';
   var manifest = null;
@@ -84,9 +104,9 @@
 
   function phaseFor(fx, now) {
     if (fx.status === 'sealed') return 'FULL_TIME';
-    if (doneIds[fx.matchId]) return 'FULL_TIME';
     var kick = Date.parse(fx.kickoffUtc);
     if (!isFinite(kick)) return 'UPCOMING';
+    if (doneIds[fx.matchId] && now >= kick) return 'FULL_TIME'; // a done mark before kickoff is nonsense — ignored
     if (now < gatesMs(fx)) return 'UPCOMING';
     if (now < kick) return 'GATES_OPEN';
     if (now > kick + GRACE_MS) return 'FULL_TIME';
