@@ -228,7 +228,7 @@ async function main(): Promise<void> {
       `verdict=${JSON.stringify(vWrong)}`,
     );
 
-    const settledLine = () => server!.getOutput().includes('settling 0–0 (goalless wire)');
+    const settledLine = () => server!.getOutput().includes('settling 0–0 (goalless wire');
     assert('the FT branch logged the explicit goalless-wire settle line (honest fallback, never silent)', settledLine(), `present=${settledLine()}`);
 
     // THE SEAL defers past the full-time reaction window (25s) by design.

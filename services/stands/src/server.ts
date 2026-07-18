@@ -287,11 +287,21 @@ const finalScores = new Map<string, { home: number; away: number }>();
 const pendingSeals = new Map<string, { final: { home: number; away: number }; attempts: number; deferrals: number }>();
 const SEAL_POLL_MS = 3_000; // re-check cadence while a reaction window is open
 const SEAL_MAX_DEFER_MS = 90_000; // ceiling on waiting for windows (defensive — REACT_WINDOW_MS is 25s)
-const SEAL_RETRY_MS = [2_000, 10_000, 30_000]; // crystallize-failure backoff
+// crystallize-failure backoff (Codex audit, finding 2: the old three-step
+// ladder gave up after ~42s, so a minute of volume trouble ended the night
+// with no record and nobody awake to restart). Now it keeps trying across
+// ~9 minutes — comfortably inside the 15-minute post-full-time eviction
+// grace, and the restore-recovery seal on the next boot (the cutover deploy
+// restarts the process after every whistle) remains the backstop beyond that.
+const SEAL_RETRY_MS = [2_000, 10_000, 30_000, 60_000, 120_000, 300_000];
 
 function scheduleSeal(matchId: string, final: { home: number; away: number }, why: string): void {
   if (pendingSeals.has(matchId)) return; // single-flight — one seal per match
-  if (sentimentRecordExistsOnDisk(matchId)) return; // already durably sealed
+  // NOTE: no disk pre-check here on purpose. crystallizeSentiment owns the
+  // durable idempotency (its on-disk guard logs the skip and returns success),
+  // and short-circuiting ahead of it silently swallowed that line — which is
+  // the one an operator (and the eviction check) reads to tell "already sealed,
+  // correctly declined" apart from "never sealed at all". One owner, one log.
   pendingSeals.set(matchId, { final, attempts: 0, deferrals: 0 });
   console.log(`[sentiment] ${matchId} seal pending (${why}) — crystallize fires once reaction windows close`);
   const tick = (): void => {
@@ -340,6 +350,74 @@ function scheduleSeal(matchId: string, final: { home: number; away: number }, wh
   (t as { unref?: () => void }).unref?.();
 }
 
+/** The final score this process can HONESTLY name for a match at full time,
+ * or null when it genuinely does not know (Codex pre-match audit, finding 1).
+ * Order of truth: the live-cached score message (a real goal/penalty/
+ * correction on the wire) → else 0–0, but ONLY with the accumulator's positive
+ * evidence that we listened from kickoff (watchedFromKickoff), which is what
+ * makes silence mean "goalless" rather than "we weren't there". Null is the
+ * honest third answer, and callers must wait rather than invent. */
+function knownFinalScore(matchId: string): { home: number; away: number } | null {
+  const ev = joinSnapshots.get(matchId)?.score?.ev;
+  if (ev && typeof ev.home === 'number' && typeof ev.away === 'number') return { home: ev.home, away: ev.away };
+  // the match's OWN sealed record, if one is already on the volume: written at
+  // the real whistle by this service, it is authoritative — and it is exactly
+  // what an evicted-then-redelivered FULL_TIME has to work from (eviction
+  // clears the live cache and the accumulator, so without this the process
+  // would poll for a score it already wrote down). crystallizeSentiment's
+  // disk-exists guard then makes the re-entry a clean no-op.
+  const disk = latestSentimentRecordOnDisk(matchId);
+  if (disk && typeof disk.finalScore?.home === 'number' && typeof disk.finalScore?.away === 'number') {
+    return { home: disk.finalScore.home, away: disk.finalScore.away };
+  }
+  if (accumulators.get(matchId)?.watchedFromKickoff()) {
+    console.warn(`[predict] ${matchId} reached FULL_TIME with no score message all match — settling 0–0 (goalless wire, watched from kickoff)`);
+    return { home: 0, away: 0 };
+  }
+  return null;
+}
+
+/** Full time arrived but the score is genuinely unknown (a late-joined
+ * process — see knownFinalScore). Keep looking: a snapshot seed landing late,
+ * a correction, or a redelivered goal all populate the cache, and the moment
+ * one does we run the real resolution. Single-flight, unref'd, bounded at
+ * ~10 minutes — after which the match stays UNRESOLVED (no verdicts, no
+ * record) rather than carrying a fabricated score. That is the honest
+ * failure: a missing record is recoverable by an operator; an anchored lie
+ * is not. */
+const pendingScoreRechecks = new Set<string>();
+const SCORE_RECHECK_MS = 10_000;
+const SCORE_RECHECK_TRIES = 60;
+function scheduleScoreRecheck(matchId: string): void {
+  if (pendingScoreRechecks.has(matchId)) return;
+  pendingScoreRechecks.add(matchId);
+  console.error(
+    `[predict] ${matchId} FULL_TIME with NO usable final score (no score message cached, and this process did not watch from kickoff — likely a restart whose snapshot seeding missed) — REFUSING to fabricate 0–0; re-checking every ${SCORE_RECHECK_MS / 1000}s for the real score`,
+  );
+  let tries = 0;
+  const tick = (): void => {
+    if (!pendingScoreRechecks.has(matchId)) return;
+    if (resolvedMatches.has(matchId)) { pendingScoreRechecks.delete(matchId); return; } // a redelivered FULL_TIME got there first
+    const known = knownFinalScore(matchId);
+    if (known) {
+      pendingScoreRechecks.delete(matchId);
+      console.log(`[predict] ${matchId} the real final score arrived (${known.home}–${known.away}) — resolving + sealing now`);
+      finalizeFullTime(matchId, registry.getOrCreate(matchId), known.home, known.away);
+      return;
+    }
+    tries += 1;
+    if (tries >= SCORE_RECHECK_TRIES) {
+      pendingScoreRechecks.delete(matchId);
+      console.error(`[predict] ${matchId} still no final score after ${Math.round((SCORE_RECHECK_TRIES * SCORE_RECHECK_MS) / 60000)} min — leaving the match UNRESOLVED (operator action required). No verdicts, no record, and nothing invented.`);
+      return;
+    }
+    const t = setTimeout(tick, SCORE_RECHECK_MS);
+    (t as { unref?: () => void }).unref?.();
+  };
+  const t = setTimeout(tick, SCORE_RECHECK_MS);
+  (t as { unref?: () => void }).unref?.();
+}
+
 function predictLifecycle(matchId: string, msg: ServerMsg | FeedMsg): void {
   if (msg.type !== 'status') return;
   const phase = msg.ev.phase;
@@ -354,21 +432,33 @@ function predictLifecycle(matchId: string, msg: ServerMsg | FeedMsg): void {
     broadcastToMatch(matchId, match.consensus()); // clients flip to the locked view
   }
   if (phase === 'FULL_TIME' && !resolvedMatches.has(matchId)) {
-    const snap = joinSnapshots.get(matchId);
-    let fh = snap && snap.score ? snap.score.ev.home : undefined;
-    let fa = snap && snap.score ? snap.score.ev.away : undefined;
-    if (typeof fh !== 'number' || typeof fa !== 'number') {
-      // Codex pre-match review, finding 2: normalize emits a 'score' message
-      // only on goal / penalty-outcome / correction actions — a genuine 0–0
-      // reaches FULL_TIME with NO cached score, and the old numeric guard
-      // silently dropped the ENTIRE seal (no verdicts, no record, scarves
-      // refusing to mint). The only honest reading of a wire that reached
-      // full time without a single score event is 0–0.
-      console.warn(`[predict] ${matchId} reached FULL_TIME with no cached score — settling 0–0 (goalless wire)`);
-      fh = 0;
-      fa = 0;
+    const known = knownFinalScore(matchId);
+    if (!known) {
+      // Codex pre-match AUDIT, finding 1 — the honesty law, restated: an
+      // absent cached score is NOT evidence of 0–0. The score channel is
+      // edge-triggered, so silence means either "goalless, and we heard the
+      // whole match" or "we joined late and never heard the goals" (a restart
+      // whose snapshot seeding failed). Fabricating 0–0 in the second case
+      // would grade every prediction against a score that never happened and
+      // anchor that lie forever — strictly worse than waiting. So: refuse,
+      // and keep looking for the real score (a late seed, a correction, a
+      // redelivered goal all still land here). resolvedMatches is deliberately
+      // NOT set, so a redelivered FULL_TIME re-enters this path for free.
+      scheduleScoreRecheck(matchId);
+      return;
     }
-    {
+    finalizeFullTime(matchId, match, known.home, known.away);
+  }
+}
+
+/** The full-time resolution itself, once the final score is genuinely known:
+ * arm the resolved guard, capture the resolution-time score, deliver personal
+ * verdicts, register the seal, and persist immediately. Extracted from
+ * predictLifecycle (Codex audit, finding 1) so the score-recheck path can run
+ * the IDENTICAL resolution when a late score finally arrives — one code path,
+ * never a second half-copy that drifts. */
+function finalizeFullTime(matchId: string, match: ReturnType<MatchRegistry['getOrCreate']>, fh: number, fa: number): void {
+  {
       resolvedMatches.add(matchId);
       // capture the SAME final score the verdicts below are graded with — it
       // rides the immediate post-FT snapshot (finalScore hooks) so a restarted
@@ -415,7 +505,6 @@ function predictLifecycle(matchId: string, msg: ServerMsg | FeedMsg): void {
       } catch (err) {
         console.warn(`[stands] immediate post-FT snapshot failed for ${matchId}: ${errDetail(err)}`);
       }
-    }
   }
 }
 

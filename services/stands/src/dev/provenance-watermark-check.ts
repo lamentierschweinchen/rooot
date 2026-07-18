@@ -341,7 +341,10 @@ async function main(): Promise<void> {
     await sleep(80);
     stub.emitScores(fullTimeEnv(FIXTURE_SUCCESS, 18, anchorTs + 3000));
 
-    const gotRecordA = await waitFor(() => receivedA.some((m) => m.type === 'sentiment'), 6_000);
+    // THE SEAL is deferred past the full-time reaction window (25s) — Codex
+    // pre-match review, findings 1+3 — so the record broadcast arrives ~28s
+    // after full time, not within the old 6s budget.
+    const gotRecordA = await waitFor(() => receivedA.some((m) => m.type === 'sentiment'), 60_000);
     check('scenario A: crystallize fired and broadcast a sentiment record', gotRecordA, `received types=${receivedA.map((m) => m.type).join(',')}`);
     const recordA = receivedA.find((m) => m.type === 'sentiment')?.record as SentimentRecord | undefined;
 
@@ -402,7 +405,7 @@ async function main(): Promise<void> {
     await sleep(80);
     stub.emitScores(fullTimeEnv(FIXTURE_FAIL, 31, failAnchorTs + 32_000));
 
-    const gotRecordB = await waitFor(() => receivedB.some((m) => m.type === 'sentiment'), 6_000);
+    const gotRecordB = await waitFor(() => receivedB.some((m) => m.type === 'sentiment'), 60_000); // deferred seal — see scenario A
     check('scenario B: crystallize STILL completed despite the validation endpoint failing (never blocks crystallize)', gotRecordB, `received types=${receivedB.map((m) => m.type).join(',')}`);
     const recordB = receivedB.find((m) => m.type === 'sentiment')?.record as SentimentRecord | undefined;
     check('scenario B: txlineRefs stayed honestly empty (fetch-fail path -> [])', Array.isArray(recordB?.provenance.txlineRefs) && recordB.provenance.txlineRefs.length === 0, JSON.stringify(recordB?.provenance.txlineRefs));
@@ -447,9 +450,9 @@ async function main(): Promise<void> {
 }
 
 const watchdog = setTimeout(() => {
-  origWarn('[provenance-watermark-check] watchdog: hung for 45s, forcing exit');
+  origWarn('[provenance-watermark-check] watchdog: hung for 180s, forcing exit');
   process.exit(1);
-}, 45_000);
+}, 180_000); // two deferred seals (25s reaction window each) + anchors — the old 45s budget predates the deferred seal
 
 main()
   .then(() => {

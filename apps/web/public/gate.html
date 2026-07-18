@@ -260,11 +260,16 @@ function fromSchedule(fx,md){
     home:{tri:fx.home.code,name:String(fx.home.name).toUpperCase(),color:ink(fx.home.colors),flag:fx.home.flag||FLAG_EXC[fx.home.code]||fx.home.code},
     away:{tri:fx.away.code,name:String(fx.away.name).toUpperCase(),color:ink(fx.away.colors),flag:fx.away.flag||FLAG_EXC[fx.away.code]||fx.away.code},
     kick:kick,label:fx.stage||'MATCHDAY',phase:fx.phase,finalScore:fx.finalScore||null,
+    kickoffUtc:fx.kickoffUtc||null,   // the raw kickoff — submit-time lateness reads it (never a rendered label)
     kickLbl:md.kickLabel(fx),gatesLbl:md.gatesLabel(fx)
   };
 }
 
 function boot(MATCH_ID,FX){
+// kickoff in ms for submit-time checks, or null when this fixture came from a
+// path that carries no kickoff (a literal/fixtureInfo fallback) — callers then
+// fall back to the rendered phase alone.
+function FIX_KICK_MS(){ var k=FX&&FX.kickoffUtc?Date.parse(FX.kickoffUtc):NaN; return isFinite(k)?k:null; }
 var MODE_Q=(DEMO?'&demo=1':'&live=1&match='+encodeURIComponent(MATCH_ID))+(WS?'&ws='+encodeURIComponent(WS):'');   // carry match always; ws only when present
 var SIDECOL={h:FX.home.color,a:FX.away.color};
 
@@ -368,7 +373,12 @@ go.onclick=function(){
   // kickoff — a late fan still roots (counted live), still calls the finish for
   // themselves, but the pass says so (`late`) and the call never pretends to be
   // in the locked crowd data (no send, no full-time points bonus).
-  var late=FX.phase==='LIVE';
+  // Decided at SUBMIT time off the wall clock, not off the last render (Codex
+  // audit, finding 7): the phase only re-evaluates every 30s, so a tab sitting
+  // open across kickoff would otherwise stamp a post-kickoff call as pre-match
+  // and award it the full-time bonus. Either signal counts as late.
+  var kickMs=FIX_KICK_MS();
+  var late=FX.phase==='LIVE'||(kickMs!=null&&Date.now()>=kickMs);
   // your pass — persisted, then read by the terrace checkpoint + woven into the keepsakes
   try{ localStorage.setItem('rooot.pass', JSON.stringify({matchId:MATCH_ID, home:FX.home.tri, away:FX.away.tri, side:side, call:sco, conv:conv, ts:Date.now(), live:LIVE, late:late||undefined})); }catch(e){}
   if((DEMO||LIVE)&&window.__stands){ if(side&&side!=='n')window.__stands.root(side==='h'?'home':'away'); if(!late)window.__stands.predict(sco.h,sco.a,conv); }   // your seat + call into the live crowd

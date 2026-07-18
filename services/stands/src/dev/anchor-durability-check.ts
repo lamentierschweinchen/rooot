@@ -94,7 +94,12 @@ async function main(): Promise<void> {
     { type: 'status', ev: { tMs: now + 2, phase: 'FULL_TIME', minute: 90, source: 'replay' } }, // → crystallize
   ];
   for (const m of feed) broadcast(MATCH_A, m);
-  await sleep(120); // let crystallize's synchronous write + the async live-anchor .then settle
+  // THE SEAL is deferred (Codex pre-match review, findings 1+3): crystallize
+  // fires once the full-time reaction window (25s) closes. Wait for the record,
+  // then a beat more for the async live-anchor .then to settle.
+  const sealBy = Date.now() + 60_000;
+  while (recordFilesFor(MATCH_A).length === 0 && Date.now() < sealBy) await sleep(500);
+  await sleep(150);
 
   let filesA = recordFilesFor(MATCH_A);
   check('case1: crystallize wrote EXACTLY ONE sentiment record file', filesA.length === 1, `files=${JSON.stringify(filesA)}`);

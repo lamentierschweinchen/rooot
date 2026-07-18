@@ -126,7 +126,14 @@
     var reacts = 0; if (k.reacts) for (var t in k.reacts) reacts += k.reacts[t] || 0;
     var fin = k.final || sealedFinal(matchId);
     var late = (r.pass && r.pass.late) || (k.late === true);
-    return score({ pred: pred, cheers: k.cheers || 0, reacts: reacts, mins: k.mins || 0, final: fin, conv: (r.pass && r.pass.conv) || 0, late: late });
+    // conviction from THIS match's kept record first (Codex audit, finding 6):
+    // rooot.pass is a single global slot the next match's gate overwrites, so
+    // reading the dial only from the pass made a past night's points quietly
+    // shrink the moment you walked into the next fixture. The kept record is
+    // per-match and permanent; the pass is only the fallback for a night not
+    // yet collected.
+    var conv = (typeof k.conv === 'number' ? k.conv : (r.pass && r.pass.conv)) || 0;
+    return score({ pred: pred, cheers: k.cheers || 0, reacts: reacts, mins: k.mins || 0, final: fin, conv: conv, late: late });
   }
 
   var subs = [];

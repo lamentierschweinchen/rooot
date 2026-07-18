@@ -153,7 +153,11 @@ async function main(): Promise<void> {
       { type: 'status', ev: { tMs: now + 2, phase: 'FULL_TIME', minute: 90, source: 'replay' } },
     ];
     for (const m of feedA) broadcast(MATCH_A, m);
-    await sleep(150); // let crystallize's synchronous write land
+    // THE SEAL is deferred (Codex pre-match review, findings 1+3): crystallize
+    // fires once the full-time reaction window (25s) closes, so wait for the
+    // artifact rather than the old same-tick synchronous write.
+    const sealBy = Date.now() + 60_000;
+    while (recordFilesFor(MATCH_A).length === 0 && Date.now() < sealBy) await sleep(500);
 
     const filesA = recordFilesFor(MATCH_A);
     check('setup: FULL_TIME crystallized exactly one sentiment record on disk', filesA.length === 1, `files=${JSON.stringify(filesA)}`);

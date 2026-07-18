@@ -127,6 +127,20 @@ function scrub(rec: SentimentRecord): unknown {
   const fans = clone.fans as Record<string, unknown> | undefined;
   const consensus = fans?.consensus as Record<string, unknown> | undefined;
   if (consensus) delete consensus.ts;
+  // THE HARVEST (2026-07-18) is CROWD-derived, not feed-derived: the scoreline
+  // histogram, the night's engagement totals, nerve drift, and points are
+  // folded from per-fan server tallies at the whistle. The event store this
+  // re-projection replays holds the FEED only — no roots, no cheers, no
+  // predictions — so these fields cannot exist on a re-projected record by
+  // construction. Excluded for the same reason as the runtime fields above:
+  // their absence is correct, not a drift. The feed-derived record — market,
+  // moments, phases, the final score, the story — still has to match exactly.
+  if (fans) {
+    delete fans.scorelines;
+    delete fans.engagement;
+    delete fans.nerveDrift;
+  }
+  delete clone.points;
   return clone;
 }
 
@@ -184,10 +198,21 @@ async function driveRealServer(): Promise<SentimentRecord> {
       onDone: () => resolve(),
     });
   });
-  await sleep(300); // settle margin (the FULL_TIME write itself is synchronous — belt and braces, matching other checks' convention)
-
+  // THE SEAL is deferred (Codex pre-match review, findings 1+3): crystallize
+  // fires once the full-time reaction window (25s) closes, so the record lands
+  // ~28s after the replay's whistle rather than inside its dispatch tick.
   const dir = path.join(CHECK_DATA_DIR, 'sentiment');
   const prefix = `${FIXTURE_ID}-`;
+  const sealed = (): boolean => {
+    try {
+      return readdirSync(dir).some((f) => f.startsWith(prefix) && f.endsWith('.json'));
+    } catch {
+      return false;
+    }
+  };
+  const sealBy = Date.now() + 60_000;
+  while (!sealed() && Date.now() < sealBy) await sleep(500);
+  await sleep(200); // settle margin
   let files: string[];
   try {
     files = readdirSync(dir).filter((f) => f.startsWith(prefix) && f.endsWith('.json'));
@@ -242,7 +267,7 @@ async function main(): Promise<void> {
   const diffs: string[] = [];
   diff(scrub(recordA), scrub(recordB), '', diffs);
   check(
-    're-projected record MATCHES the live pipeline, modulo {provenance.capture, provenance.recordHash, edition} (legitimately-runtime — see file header)',
+    're-projected record MATCHES the live pipeline, modulo the runtime fields {provenance.capture, provenance.recordHash, edition} and the CROWD-derived harvest {fans.scorelines, fans.engagement, fans.nerveDrift, points} (see scrub()) — every feed-derived field must match exactly',
     diffs.length === 0,
     diffs.length ? `${diffs.length} diff(s), first 10:\n      ${diffs.slice(0, 10).join('\n      ')}` : 'exact match on every other field',
   );

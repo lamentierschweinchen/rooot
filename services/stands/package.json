@@ -34,7 +34,8 @@
     "check:provenance": "tsx src/dev/provenance-watermark-check.ts",
     "prove:claim-mint": "tsx src/dev/prove-claim-mint.ts",
     "prove:owned-mint": "tsx src/mint/scripts/proveOwnedMint.ts",
-    "check:zero-zero": "tsx src/dev/zero-zero-seal-check.ts"
+    "check:zero-zero": "tsx src/dev/zero-zero-seal-check.ts",
+    "check:unknown-score": "tsx src/dev/unknown-score-check.ts"
   },
   "dependencies": {
     "@metaplex-foundation/mpl-core": "1.10.0",

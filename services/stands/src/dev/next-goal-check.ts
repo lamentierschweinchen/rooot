@@ -521,9 +521,17 @@ async function scenarioSentimentRecordRows(ctx: InProcessCtx): Promise<void> {
     `verdicts=${JSON.stringify(capX.verdicts)}`,
   );
 
-  // the crystallized record on disk — the ONE artifact Important 3 is about
+  // the crystallized record on disk — the ONE artifact Important 3 is about.
+  // THE SEAL is deferred (Codex pre-match review, findings 1+3): crystallize
+  // now fires once the full-time reaction window closes (REACT_WINDOW_MS 25s),
+  // so the record lands ~28s after the whistle, not inside its dispatch tick.
+  // Wait for the artifact rather than assuming the old synchronous write.
   const sentimentDir = path.join(dataDir, 'sentiment');
-  const recordFiles = existsSync(sentimentDir) ? readdirSync(sentimentDir).filter((f) => f.startsWith(`${RECORD_FIXTURE_ID}-`) && f.endsWith('.json')) : [];
+  const listRecords = (): string[] =>
+    existsSync(sentimentDir) ? readdirSync(sentimentDir).filter((f) => f.startsWith(`${RECORD_FIXTURE_ID}-`) && f.endsWith('.json')) : [];
+  const sealDeadline = Date.now() + 60_000;
+  while (listRecords().length === 0 && Date.now() < sealDeadline) await sleep(500);
+  const recordFiles = listRecords();
   assert('record scenario: exactly ONE crystallized SentimentRecord file on disk', recordFiles.length === 1, `files=${JSON.stringify(recordFiles)}`);
   const record = recordFiles.length === 1 ? (JSON.parse(readFileSync(path.join(sentimentDir, recordFiles[0]!), 'utf8')) as SentimentRecord) : null;
   const rows = record?.nextGoal ?? [];

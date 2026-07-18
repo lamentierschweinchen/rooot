@@ -224,6 +224,24 @@ async function main(): Promise<void> {
     /* ═══ PART 1 — eviction clears ALL per-match state ═══════════════════ */
     console.log('\n── PART 1: three matches → FULL_TIME → evicted, every map cleared');
     for (const m of FT_MATCHES) driveToFullTime(broadcast, registry, m, 600);
+    // THE SEAL is deferred (Codex pre-match review, findings 1+3): crystallize
+    // fires once the full-time reaction window (25s) closes, so the records
+    // these later parts depend on (the disk fallback for an evicted match's
+    // score, and the idempotent-skip assertion) are not on disk in this tick.
+    // Wait for them BEFORE evicting, which is also the real production order:
+    // eviction needs 15 minutes of post-full-time quiet, long after the seal.
+    {
+      const sealDir = path.join(CHECK_DATA_DIR, 'sentiment');
+      const sealed = (m: string): boolean => {
+        try {
+          return readdirSync(sealDir).some((f) => f.startsWith(`${m}-`) && f.endsWith('.json'));
+        } catch {
+          return false;
+        }
+      };
+      const by = Date.now() + 60_000;
+      while (!FT_MATCHES.every(sealed) && Date.now() < by) await sleep(500);
+    }
     // all three resolved + populated
     for (const m of FT_MATCHES) {
       const fp = perMatchStateFootprint(m);
@@ -380,7 +398,13 @@ async function main(): Promise<void> {
       broadcast(dead2, { type: 'score', ev: { home: 2, away: 1, minute: 90 } });
       feedOdds(broadcast, dead2, 100); // seedSnapshot replays the belief curve too
       broadcast(dead2, { type: 'status', ev: { phase: 'FULL_TIME', minute: 90 } });
-      await sleep(80);
+      // THE SEAL is deferred (Codex pre-match review, findings 1+3): the
+      // re-dispatched full time re-opens a 25s reaction window (eviction
+      // cleared the moment-dedup set), and the seal politely waits for it
+      // before reaching crystallize's disk-idempotency guard. Wait for the
+      // verdict line itself rather than a fixed sleep.
+      const skipBy = Date.now() + 60_000;
+      while (!sentimentLogs.some((s) => s.includes('crystallized')) && Date.now() < skipBy) await sleep(500);
     } finally {
       console.log = origLog;
     }

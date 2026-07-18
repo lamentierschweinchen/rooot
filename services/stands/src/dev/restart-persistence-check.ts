@@ -684,8 +684,12 @@ async function scenarioDoubleAnchorGuardOnRestart(): Promise<void> {
     // record, then writes. Wait for the record itself, not a fixed sleep.
     const sealed1 = await waitFor(() => sentimentFileCount(dataDir) === 1, 40_000);
     assert('boot1: the seal lands exactly ONE sentiment record on disk (after the FT reaction window)', sealed1 && sentimentFileCount(dataDir) === 1, `count=${sentimentFileCount(dataDir)}`);
-    const out1SoFar = boot1.getOutput();
-    const crystallizedLines1 = out1SoFar.split('\n').filter((l) => l.includes('[sentiment] crystallized') && l.includes(matchId));
+    // the record file is written microseconds BEFORE the log line, and the
+    // child's stdout is piped asynchronously — so wait for the line itself
+    // rather than sampling the buffer the instant the file appears.
+    const crystalLine = (): string[] => boot1.getOutput().split('\n').filter((l) => l.includes('[sentiment] crystallized') && l.includes(matchId));
+    await waitFor(() => crystalLine().length >= 1, 10_000);
+    const crystallizedLines1 = crystalLine();
     assert('boot1: exactly ONE "[sentiment] crystallized" log line', crystallizedLines1.length === 1, `lines=${JSON.stringify(crystallizedLines1)}`);
 
     // THE STANDS CARD (fanStats): the IMMEDIATE post-FT snapshot (Fix 1's

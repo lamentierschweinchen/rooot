@@ -111,7 +111,21 @@ async function main(): Promise<void> {
     { type: 'status', ev: { tMs: t0 + 2, phase: 'FULL_TIME', minute: 90, source: 'replay' } },
   ];
   for (const m of feedA) broadcast(MATCH_A, m);
-  await sleep(150); // let crystallize's synchronous write + the fold + the async anchor .then settle
+  // THE SEAL is deferred (Codex pre-match review, findings 1+3): crystallize —
+  // and the fingerprints refold it triggers — fire once the full-time reaction
+  // window (25s) closes, so wait for the artifact rather than a fixed beat.
+  {
+    const by = Date.now() + 60_000;
+    const folded = (): boolean => {
+      try {
+        return readdirSync(SENTIMENT_DIR).includes('fingerprints.json');
+      } catch {
+        return false;
+      }
+    };
+    while (!folded() && Date.now() < by) await sleep(500);
+  }
+  await sleep(200); // let the async anchor .then settle
 
   check('case1: fingerprints.json exists on disk', readdirSync(SENTIMENT_DIR).includes('fingerprints.json'));
   let fp = readFp();
@@ -138,7 +152,20 @@ async function main(): Promise<void> {
     { type: 'status', ev: { tMs: t1 + 2, phase: 'FULL_TIME', minute: 90, source: 'replay' } },
   ];
   for (const m of feedB) broadcast(MATCH_B, m);
-  await sleep(150);
+  // deferred seal again (see case 1): match B's crystallize — and the refold it
+  // triggers — land once its own full-time reaction window closes.
+  {
+    const by = Date.now() + 60_000;
+    const grown = (): boolean => {
+      try {
+        return Object.keys(readFp().fanbases).length === 4;
+      } catch {
+        return false;
+      }
+    };
+    while (!grown() && Date.now() < by) await sleep(500);
+  }
+  await sleep(200); // let the async anchor .then settle
 
   fp = readFp();
   check('case2: the fold grew to 4 fanbases (ARG/CPV from match 1 + AUS/EGY from match 2)', Object.keys(fp.fanbases).length === 4, JSON.stringify(Object.keys(fp.fanbases)));

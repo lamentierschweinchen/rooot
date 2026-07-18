@@ -661,7 +661,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     // the board carries the honest mode: a fast-forwarding replay says so on the plate
     // itself (the masthead is hidden in the embed), and rests at FULL TIME when done.
     el('mSt').textContent=live?liveWord():'REPLAY';
-    el('bMin').textContent=window.__ftDone?'FULL TIME':((live?'':'REPLAY · ')+(s.minute!=null?s.minute+'′':''));
+    el('bMin').textContent=window.__ftDone?'FULL TIME':window.__pens?'PENALTIES':((live?'':'REPLAY · ')+(s.minute!=null?s.minute+'′':''));
     // possession paints the pitch itself (canvas recolour below); its numbers live in the CONTROL card
     // scoreboard
     el('bSc').textContent=hg+'–'+ag;
@@ -814,7 +814,12 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
   if((DEMO||REPLAY||LIVE) && window.__match){
     var onMatchS=function(m){ if(!m)return;
       el('bSc').textContent=m.score.home+'–'+m.score.away;
-      window.__ftDone=!!m.done;   // the one done-flag both board writers read
+      // the one done-flag both board writers read — PHASE, not m.done (Codex
+      // audit): match-read folds PENALTIES into `done`, and a board reading
+      // "FULL TIME" while kicks are still being taken is the site lying at
+      // the loudest moment of the night. The shootout says so itself below.
+      window.__ftDone=!!(m.clock&&m.clock.phase==='FULL_TIME');
+      window.__pens=!!(m.clock&&m.clock.phase==='PENALTIES');
       // the wire's whistle tells the town (Codex finding 4): LIVE full time
       // flips the device-wide matchday clock — never from a replay's clock.
       // PHASE, never m.done (the terrace learned this first: match-read.js
@@ -826,7 +831,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
       // the shootout's last kick).
       if(LIVE&&m.clock&&m.clock.phase==='FULL_TIME'&&window.__matchday){ try{ var mdid=q.get('match')||explicitMatch; if(mdid)window.__matchday.markDone(mdid); }catch(e){} }
       el('mSt').textContent=LIVE?liveWord():'REPLAY';
-      el('bMin').textContent=m.done?'FULL TIME':((LIVE?'':'REPLAY · ')+(m.clock&&m.clock.min!=null?m.clock.min+'′':''));
+      el('bMin').textContent=window.__ftDone?'FULL TIME':window.__pens?'PENALTIES':((LIVE?'':'REPLAY · ')+(m.clock&&m.clock.min!=null?m.clock.min+'′':''));
       if(m.teams&&m.teams.home&&m.teams.home.tri)el('mHT').textContent=m.teams.home.tri; if(m.teams&&m.teams.away&&m.teams.away.tri)el('mAT').textContent=m.teams.away.tri;
       drawOdds(m); };
     window.__match.on(onMatchS); onMatchS(window.__match);

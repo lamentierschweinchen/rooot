@@ -745,6 +745,10 @@ function keepLocal(){
   for(t in M.reacts)reacts[t]=Math.max(reacts[t]||0,M.reacts[t]||0);
   try{ localStorage.setItem('rooot.kept.'+MATCH_ID, JSON.stringify({matchId:MATCH_ID,home:HOME_TRI,away:AWAY_TRI,
     final:{h:M.score[0],a:M.score[1]}, pred:(PASS&&PASS.call)||(prev&&prev.pred)||null,
+    // the dial rides WITH the night (Codex audit, finding 6) — rooot.pass is a
+    // single slot the next match's gate overwrites, so a kept record that
+    // didn't carry its own conv lost the bonus multiplier retroactively
+    conv:(PASS&&PASS.conv)||(prev&&prev.conv)||undefined,
     late:((PASS&&PASS.late)||(prev&&prev.late))?true:undefined,
     cheers:Math.max(M.cheerN,(prev&&prev.cheers)||0), reacts:reacts,
     mins:Math.max(Math.floor(M.vSec/60),(prev&&prev.mins)||0), seat:YOU_IDX,

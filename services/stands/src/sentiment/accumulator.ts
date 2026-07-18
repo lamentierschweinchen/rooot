@@ -199,6 +199,19 @@ export class SentimentAccumulator {
     this.moments.push(...moments);
   }
 
+  /** Did THIS process watch the match from kickoff onward? (Codex pre-match
+   * audit, finding 1.) The score channel is edge-triggered: it speaks only
+   * when a goal/penalty/correction happens, so "no cached score at full time"
+   * is ambiguous — it means EITHER a genuinely goalless match we watched
+   * throughout, OR a match we joined late (a restart whose snapshot seeding
+   * failed) whose goals we simply never saw. Seeing FIRST_HALF is the
+   * positive evidence that separates them: we were listening when any goal
+   * would have been announced, so silence really does mean 0–0. Without it
+   * the server must refuse to name a final score rather than invent one. */
+  watchedFromKickoff(): boolean {
+    return this.phases.includes('FIRST_HALF');
+  }
+
   /** Snapshot persistence: the roar samples so far (mirrors getMoments). */
   getRoarSeries(): Array<{ minute: number | null; home: number; away: number }> {
     return [...this.roarSeries];
