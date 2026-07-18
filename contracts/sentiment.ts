@@ -101,6 +101,20 @@ export interface FanSentiment {
     watchMinutes: number;
     arrivals?: Array<{ minute: number; n: number }>;
   };
+  /** NERVE DRIFT (additive 2026-07-18, owner-canonical: "changing from 2-0 to
+   * 1-1 before kickoff is nerve drift, and that is fascinating") — the
+   * pre-lock EDIT history of the crowd's scoreline predictions. Only real
+   * edits count (an identical re-send is not a change); `paths` carries the
+   * full trajectory for fans who changed at least once, capped server-side,
+   * serials only (null for a fan never minted one) — never identities.
+   * Absent on records sealed before this shipped. */
+  nerveDrift?: {
+    /** fans who edited their call at least once before the lock */
+    fansChanged: number;
+    /** total edits beyond each fan's first call */
+    totalEdits: number;
+    paths?: Array<{ serial: number | null; path: Array<{ h: number; a: number; atMs: number }> }>;
+  };
 }
 
 /* ── FEEL — in-game sentiment (the nervous system's reflexive, lagging read) */

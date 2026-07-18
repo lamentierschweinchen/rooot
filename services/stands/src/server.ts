@@ -836,6 +836,16 @@ async function crystallizeSentiment(
       row.n += 1; scoreMap.set(k, row);
     }
     const scorelines = Array.from(scoreMap.values()).sort((x, y) => y.n - x.n);
+    // NERVE DRIFT (contracts/sentiment.ts fans.nerveDrift): the changed minds
+    // before the lock. Paths only for fans who actually changed, serials only
+    // (read-only — existingFanNo, same rule as the points top-5), capped at 25
+    // paths — plenty for a real crowd, bounded against a scripted one.
+    const drift = match.predictHistoryAll().filter((r) => r.path.length > 1);
+    const nerveDrift = {
+      fansChanged: drift.length,
+      totalEdits: drift.reduce((n, r) => n + (r.path.length - 1), 0),
+      ...(drift.length ? { paths: drift.slice(0, 25).map((r) => ({ serial: registry.existingFanNo(r.anonId), path: r.path })) } : {}),
+    };
     const firstArrival = stats.length ? Math.min(...stats.map((f) => f.firstSeenMs)) : 0;
     const arrivalBuckets = new Map<number, number>();
     for (const f of stats) {
@@ -877,7 +887,7 @@ async function crystallizeSentiment(
         .map((r) => ({ serial: registry.existingFanNo(r.anonId), points: r.points })),
     };
     const record = acc.crystallize(
-      { consensus: match.consensus(), rooted: match.counts(), scorelines, engagement, points },
+      { consensus: match.consensus(), rooted: match.counts(), scorelines, engagement, nerveDrift, points },
       { serial: 1, editionSize: null, caption: matchId },
       finalScore,
       txlineRefs,

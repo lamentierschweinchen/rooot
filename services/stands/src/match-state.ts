@@ -182,6 +182,12 @@ export class MatchState {
   private readonly rooted = new Map<string, Side>();
   /** anonId -> prediction (docs/MECHANISMS.md §2). Editable until kickoff. */
   private readonly predictions = new Map<string, { home: number; away: number; atMs: number; conv?: number }>();
+  /** NERVE DRIFT (contracts/sentiment.ts fans.nerveDrift, 2026-07-18) —
+   * anonId -> the fan's full pre-lock SCORELINE trajectory, first call
+   * included. Only a real scoreline change appends (a dial-only edit or an
+   * identical re-send never does); capped so a scripted client can't grow
+   * unbounded state. Persists via snapshot (predictHistory) like predictions. */
+  private readonly predictHistory = new Map<string, Array<{ h: number; a: number; atMs: number }>>();
   /** predictions lock at kickoff — a claim on the future locks when it starts. */
   private predictLocked = false;
   /** anonId -> this fan's resolved verdict, set once at FULL_TIME (docs/MECHANISMS.md
@@ -405,6 +411,15 @@ export class MatchState {
     // no change so the handler skips the redundant consensus broadcast.
     if (prev && prev.home === h && prev.away === a && prev.conv === nextConv) return false;
     this.predictions.set(anonId, nextConv !== undefined ? { home: h, away: a, atMs, conv: nextConv } : { home: h, away: a, atMs });
+    // NERVE DRIFT: record the scoreline trajectory — only when the SCORELINE
+    // moved (a dial-only edit reaches here but is not a changed mind about
+    // the score). Cap 10 per fan.
+    const hist = this.predictHistory.get(anonId) ?? [];
+    const lastH = hist[hist.length - 1];
+    if ((!lastH || lastH.h !== h || lastH.a !== a) && hist.length < 10) {
+      hist.push({ h, a, atMs });
+      this.predictHistory.set(anonId, hist);
+    }
     return true;
   }
 
@@ -413,6 +428,19 @@ export class MatchState {
    * restored separately via lockPredictions() so restore order doesn't matter. */
   restorePrediction(anonId: string, home: number, away: number, atMs: number, conv?: number): void {
     this.predictions.set(anonId, conv !== undefined ? { home, away, atMs, conv } : { home, away, atMs });
+  }
+
+  /** Snapshot restore only: reinstate a fan's pre-lock scoreline trajectory —
+   * mirrors restorePrediction (nerve drift, contracts/sentiment.ts). */
+  restorePredictHistory(anonId: string, path: Array<{ h: number; a: number; atMs: number }>): void {
+    if (Array.isArray(path) && path.length > 0) this.predictHistory.set(anonId, path.slice(0, 10));
+  }
+
+  /** All pre-lock scoreline trajectories, typed copies (the nerve-drift fold
+   * at crystallize + snapshot writing). First call included; a fan who never
+   * changed has a length-1 path. */
+  predictHistoryAll(): Array<{ anonId: string; path: Array<{ h: number; a: number; atMs: number }> }> {
+    return Array.from(this.predictHistory.entries()).map(([anonId, path]) => ({ anonId, path: [...path] }));
   }
 
   /** All per-fan night tallies, typed copies (the harvest fold — 2026-07-18). */
@@ -807,6 +835,7 @@ export class MatchState {
       connectedCount: this.connected.size,
       roomCount: this.rooms.size,
       predictions: Array.from(this.predictions.entries()),
+      predictHistory: Array.from(this.predictHistory.entries()),
       predictLocked: this.predictLocked,
       verdicts: Array.from(this.verdicts.entries()),
       fanStats: Array.from(this.fanStats.entries()),

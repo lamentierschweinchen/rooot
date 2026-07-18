@@ -199,6 +199,12 @@ interface SnapshotMatch {
    * crystallization after a mid-match restart (a hotfix deploy during the
    * half is a real event) must carry the whole curve, not a truncated one. */
   roarSeries?: Array<{ minute: number | null; home: number; away: number }>;
+  /** Additive (nerve drift, contracts/sentiment.ts fans.nerveDrift — no
+   * version bump, presence-guarded read like every v2+ field): each fan's
+   * pre-lock scoreline trajectory, first call included, capped at 10 —
+   * so a full-time crystallization after a mid-match restart still carries
+   * the changed minds from before it. */
+  predictHistory?: Array<[string, Array<{ h: number; a: number; atMs: number }>]>;
 }
 
 /** v4+. THE FAN SERIAL (archive/design-docs-consumed/design/HANDOFF-2026-07-10-fan-serial.md) — a
@@ -276,6 +282,7 @@ export function writeSnapshot(
           members: room.toWireMembers().map(({ anonId, name, side }) => ({ anonId, name, side })),
         })),
         predictions: snap.predictions,
+        predictHistory: snap.predictHistory,
         predictLocked: snap.predictLocked,
         verdicts: snap.verdicts,
         moments: getMoments ? getMoments(m.matchId) : [],
@@ -401,6 +408,7 @@ export function applySnapshot(
       }
     }
     for (const [anonId, p] of sm.predictions ?? []) match.restorePrediction(anonId, p.home, p.away, p.atMs, (p as { conv?: number }).conv);
+    for (const [anonId, path] of sm.predictHistory ?? []) match.restorePredictHistory(anonId, path);
     if (sm.predictLocked) match.lockPredictions();
     for (const [anonId, v] of sm.verdicts ?? []) match.restoreVerdict(anonId, v);
     for (const [anonId, fs] of sm.fanStats ?? []) match.restoreFanStats(anonId, fs);

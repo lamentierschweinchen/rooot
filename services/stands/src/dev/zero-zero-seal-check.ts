@@ -199,7 +199,12 @@ async function main(): Promise<void> {
     send(exactFan, { type: 'hello', matchId: FIXTURE_ID, anonId: 'zz-exact-fan', side: 'home' });
     send(wrongFan, { type: 'hello', matchId: FIXTURE_ID, anonId: 'zz-wrong-fan', side: 'away' });
     await sleep(150);
-    // both predict inside the ~2s pre-kickoff window
+    // both predict inside the ~2s pre-kickoff window; the exact fan CHANGES
+    // THEIR MIND first (1–1 → 0–0) so the sealed record must carry the nerve
+    // drift (contracts/sentiment.ts fans.nerveDrift) — one changed fan, one
+    // edit, the full trajectory
+    send(exactFan, { type: 'predict', matchId: FIXTURE_ID, anonId: 'zz-exact-fan', home: 1, away: 1, atMs: Date.now() });
+    await sleep(120);
     send(exactFan, { type: 'predict', matchId: FIXTURE_ID, anonId: 'zz-exact-fan', home: 0, away: 0, atMs: Date.now() });
     send(wrongFan, { type: 'predict', matchId: FIXTURE_ID, anonId: 'zz-wrong-fan', home: 2, away: 1, atMs: Date.now() });
 
@@ -233,6 +238,7 @@ async function main(): Promise<void> {
       const rec = JSON.parse(readFileSync(path.join(dataDir, 'sentiment', sentimentFiles(dataDir)[0]!), 'utf8')) as {
         finalScore?: { home: number; away: number } | null;
         provenance?: { recordHash?: string };
+        fans?: { nerveDrift?: { fansChanged: number; totalEdits: number; paths?: Array<{ serial: number | null; path: Array<{ h: number; a: number }> }> } };
       };
       assert(
         'the record carries finalScore {home:0, away:0} — a real result, never absent/fabricated',
@@ -240,6 +246,14 @@ async function main(): Promise<void> {
         `finalScore=${JSON.stringify(rec.finalScore)}`,
       );
       assert('the record is hashed (provenance present)', typeof rec.provenance?.recordHash === 'string' && rec.provenance.recordHash.length > 0, `hash=${rec.provenance?.recordHash?.slice(0, 12)}`);
+      const nd = rec.fans?.nerveDrift;
+      assert(
+        'NERVE DRIFT: one changed fan, one edit — the 1–1 → 0–0 trajectory is in the record (and the never-changed fan is not)',
+        nd?.fansChanged === 1 && nd.totalEdits === 1 && nd.paths?.length === 1 &&
+          nd.paths[0]!.path.length === 2 && nd.paths[0]!.path[0]!.h === 1 && nd.paths[0]!.path[0]!.a === 1 &&
+          nd.paths[0]!.path[1]!.h === 0 && nd.paths[0]!.path[1]!.a === 0,
+        `nerveDrift=${JSON.stringify(nd)}`,
+      );
     }
   } finally {
     if (server) await killHard(server.proc);

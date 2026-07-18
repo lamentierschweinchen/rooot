@@ -58,6 +58,7 @@ export interface CrowdInputs {
    * tallies; pass-throughs into the record's fans/points fields. */
   scorelines?: NonNullable<import('@contracts/sentiment').FanSentiment['scorelines']>;
   engagement?: NonNullable<import('@contracts/sentiment').FanSentiment['engagement']>;
+  nerveDrift?: NonNullable<import('@contracts/sentiment').FanSentiment['nerveDrift']>;
   points?: SentimentRecord['points'];
 }
 
@@ -273,6 +274,7 @@ export class SentimentAccumulator {
       faith: { home: 0, away: 0 }, // faith accumulation: follow-up
       ...(crowd.scorelines ? { scorelines: crowd.scorelines } : {}),
       ...(crowd.engagement ? { engagement: crowd.engagement } : {}),
+      ...(crowd.nerveDrift ? { nerveDrift: crowd.nerveDrift } : {}),
     };
     const feel = {
       moments: this.moments,

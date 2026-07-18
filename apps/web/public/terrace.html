@@ -1375,6 +1375,18 @@ if(LIVE&&window.__matchday)window.__matchday.ready.then(function(md){
           var t2=eng?(eng.cheers.toLocaleString()+' CHEERS · '+eng.watchMinutes.toLocaleString()+' MIN WATCHED'):'';
           nightH+='<div class="plbl row" id="nightRow3" style="margin-top:7px"><span>'+t1+'</span><span>'+t2+'</span></div>';
         }
+        // the night's top five — straight from the sealed record, serials only
+        // (a side-less fan prints Nº — · their points still counted)
+        if(pts&&pts.top&&pts.top.length){
+          nightH+='<div class="plbl" style="margin-top:7px">TOP OF THE NIGHT</div><div class="slrow">'+
+            pts.top.map(function(r){ return '<span class="slchip">'+(r.serial!=null?'Nº '+String(r.serial).padStart(3,'0'):'Nº —')+'<i>'+r.points+'</i></span>'; }).join('')+'</div>';
+        }
+        // the changed minds — nerve drift, printed plainly (additive field;
+        // records sealed before it simply don't print the line)
+        var nd=rec.fans&&rec.fans.nerveDrift;
+        if(nd&&nd.fansChanged){
+          nightH+='<div class="plbl row" style="margin-top:7px"><span>CHANGED THEIR CALL '+nd.fansChanged+'</span><span>'+nd.totalEdits+' EDIT'+(nd.totalEdits===1?'':'S')+' BEFORE KICKOFF</span></div>';
+        }
         host.insertAdjacentHTML('beforeend',h);
         if(nightH){ var plate=f0_plate(); if(plate)plate.insertAdjacentHTML('afterend','<div class="nightcard" id="nightcard">'+nightH+'</div>'); }
         function f0_plate(){ return document.querySelector('.crowdcall .plate'); }
