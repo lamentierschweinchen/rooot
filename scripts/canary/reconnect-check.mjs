@@ -113,9 +113,20 @@ a REPLAY_FILE-fed instance for --check responsive).
 // than opens on a perfectly healthy run; asserting equality there would be
 // testing a false assumption, not a real property.
 const STORM_PAGES = [
-  { name: 'ground.html (stands-adapter + stats-adapter)', path: 'ground.html', expected: 2, logsEqualOpens: true },
+  // Tri-pane era (18 Jul): ground.html keeps THREE living panes (loom/stands/stadium)
+  // loaded at once, so its steady-state socket count rose — the page's own
+  // stands+stats plus each pane's adapters. Pane consoles also bubble into the
+  // parent, so logs > top-page opens on a perfectly healthy run: logsEqualOpens
+  // is structurally false now (same reasoning stadium always had). The STABILITY
+  // assertion (count never grows across force-kill rounds) is unchanged — that
+  // is the storm signature this check exists for. Baselines re-measured 18 Jul:
+  // ground observed 10 stable opens, stadium 3 (stands+stats+match-read).
+  // (the ws tap instruments the TOP page only — panes carry their own sockets the
+  //  tap can't see; the top page itself still runs stands+stats = 2. Pane console
+  //  logs DO bubble up, hence logsEqualOpens false.)
+  { name: 'ground.html (page + three living panes)', path: 'ground.html', expected: 2, logsEqualOpens: false, panesBubbleLogs: true },
   { name: 'woven-loom.html (loom-adapter)', path: 'woven-loom.html?site=1&loomfeed=1', expected: 1, logsEqualOpens: true },
-  { name: 'stadium.html (stats-adapter + match-read, match-read never logs)', path: 'stadium.html', expected: 2, logsEqualOpens: false },
+  { name: 'stadium.html (stats-adapter + stands + match-read, match-read never logs)', path: 'stadium.html', expected: 3, logsEqualOpens: false },
 ];
 
 const ROUNDS = 4; // backoff escalates 1s->2s->4s->8s per round -- enough to prove both the
@@ -215,7 +226,12 @@ async function stormPage(report, { browser, wsHost, web, wsUrl, match, pageDef }
     // cycle". Pages with a silent adapter (match-read.js) can only be held to logs<=opens
     // (a real, still-meaningful bound: logs can never exceed total real opens) plus a basic
     // liveness floor -- see the STORM_PAGES comment for why equality doesn't apply there.
-    const logsOk = pageDef.logsEqualOpens ? liveWireLogs === opens : (liveWireLogs >= 1 && liveWireLogs <= opens);
+    // panesBubbleLogs (tri-pane ground, 18 Jul): child panes' adapters log "live wire"
+    // into the PARENT console while their opens are invisible to the top-page tap —
+    // logs > opens on a perfectly healthy run, so the log-accounting bound is
+    // meaningless there. Socket-count stability above remains the storm assertion.
+    const logsOk = pageDef.panesBubbleLogs ? liveWireLogs >= 1
+      : pageDef.logsEqualOpens ? liveWireLogs === opens : (liveWireLogs >= 1 && liveWireLogs <= opens);
     if (!logsOk) {
       report.add(stepName, STATUS.FAIL,
         `"live wire" console logs (${liveWireLogs}) inconsistent with native open events (${opens}) for ${wsHost} (page expects ${pageDef.logsEqualOpens ? 'logs == opens' : '1 <= logs <= opens'}) -- a stale/duplicate handler may be logging more than once per real open -- ${concurrencyEvidence}; ${roundEvidence.join(' | ')}${errEvidence}`);
