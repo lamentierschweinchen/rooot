@@ -1,5 +1,9 @@
 # ROOOT — the full feature set
 
+*Designed rendering (paper-and-cloth, open in any browser):
+[`docs/FEATURE-SET.html`](FEATURE-SET.html). This file is the plain-text
+source of truth; the page is its printed form.*
+
 *2026-07-18 · what the product actually does today: the mechanisms first (the
 value — what each is and what data it produces), then the walkthrough surface
 by surface (what each place is FOR, RECORDS, SHOWS, and lets a fan DO). Marks:

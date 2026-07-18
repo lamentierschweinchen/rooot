@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ROOOT — the programme of features</title>
+<style>
+  @font-face{font-family:'Anybody';src:url('https://rooot.club/plate/fonts/anybody.woff2') format('woff2');font-weight:400 700;font-display:swap}
+  @font-face{font-family:'Anybody';src:url('https://rooot.club/plate/fonts/anybody900.woff2') format('woff2');font-weight:800 900;font-display:swap}
+  :root{
+    --paper:#E6DBC2;--card:#F3ECDB;--ink:#1A1815;--sub:#6F674D;
+    --gold:#C79A38;--verde:#2E6A4E;--red:#D52B1E;--amber:#E8B10A;
+    --disp:'Anybody',-apple-system,'Helvetica Neue',Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--disp);-webkit-font-smoothing:antialiased}
+  body{padding-bottom:44px}
+  .bar{height:8px;display:flex}.bar i{flex:1}.bar .v{background:var(--verde)}.bar .r{background:var(--red)}.bar .a{background:var(--amber)}.bar .g{background:var(--gold)}
+  .page{width:min(760px,100%);margin:0 auto;padding:0 clamp(16px,4.5vw,40px)}
+
+  /* masthead */
+  .mast{padding:26px 0 6px;display:flex;justify-content:space-between;align-items:flex-start;gap:14px}
+  .mast h1{margin:0;font-size:clamp(34px,9vw,52px);font-weight:900;letter-spacing:.015em;line-height:.9}
+  .mast .tag{font-weight:800;font-size:8.5px;letter-spacing:.17em;text-align:right;background:var(--card);border:1.5px solid var(--ink);padding:7px 9px 6px;box-shadow:3px 3px 0 rgba(26,24,21,.32);margin-top:6px}
+  .kicker{font-weight:800;font-size:9.5px;letter-spacing:.2em;color:var(--sub);margin:2px 0 0}
+  .lede{font-weight:600;font-size:12.5px;line-height:1.5;margin:14px 0 0;max-width:56ch}
+  .lede b{font-weight:900}
+
+  /* section heads */
+  .sec{display:flex;align-items:baseline;gap:10px;margin:34px 0 14px;border-bottom:2.5px solid var(--ink);padding-bottom:7px}
+  .sec .n{font-weight:900;font-size:11px;letter-spacing:.08em;background:var(--ink);color:var(--card);padding:3px 7px 2px}
+  .sec h2{margin:0;font-size:15px;font-weight:900;letter-spacing:.14em}
+  .sec .r{margin-left:auto;font-weight:800;font-size:8px;letter-spacing:.16em;color:var(--sub)}
+
+  /* thesis strip */
+  .thesis{background:var(--ink);color:var(--card);padding:16px 16px 14px;box-shadow:5px 5px 0 rgba(26,24,21,.28);margin-top:20px}
+  .thesis .row{display:flex;gap:0;border:1.5px solid var(--card)}
+  .thesis .cell{flex:1;padding:10px 10px 9px;border-left:1.5px solid var(--card)}
+  .thesis .cell:first-child{border-left:0}
+  .thesis .w{font-weight:900;font-size:13px;letter-spacing:.12em}
+  .thesis .d{font-weight:600;font-size:9px;letter-spacing:.05em;line-height:1.45;margin-top:4px;color:#CFC7AE}
+  .thesis .foot{font-weight:800;font-size:9px;letter-spacing:.14em;margin-top:11px;color:var(--amber)}
+
+  /* mechanism plates */
+  .plate{background:var(--card);border:1.5px solid var(--ink);box-shadow:4px 4px 0 rgba(26,24,21,.30);padding:15px 15px 13px;margin:0 0 16px}
+  .plate .head{display:flex;align-items:baseline;gap:10px}
+  .plate .num{font-weight:900;font-size:26px;letter-spacing:0;color:var(--paper);-webkit-text-stroke:1.6px var(--ink)}
+  .plate h3{margin:0;font-size:14.5px;font-weight:900;letter-spacing:.1em}
+  .plate .what{font-weight:600;font-size:12px;line-height:1.52;margin:9px 0 0}
+  .plate .what b{font-weight:900}
+  .data{display:flex;gap:8px;align-items:flex-start;margin-top:10px;border-top:1.5px dashed var(--sub);padding-top:9px}
+  .data .l{font-weight:900;font-size:8px;letter-spacing:.16em;color:var(--sub);white-space:nowrap;padding-top:2px}
+  .data .t{font-weight:700;font-size:10.5px;line-height:1.5}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
+  .chip{font-weight:900;font-size:8.5px;letter-spacing:.11em;padding:5px 8px 4px;border:1.5px solid var(--ink)}
+  .chip.live{background:var(--ink);color:var(--card)}
+  .chip.road{border-style:dashed;color:var(--sub);border-color:var(--sub)}
+  .chip.gold{background:var(--gold);color:var(--ink);border-color:var(--ink)}
+  .legend{display:flex;gap:12px;margin:2px 0 14px;font-weight:800;font-size:8px;letter-spacing:.14em;color:var(--sub);align-items:center}
+  .legend .chip{transform:scale(.92);transform-origin:left center}
+
+  /* surface tickets */
+  .tik{display:flex;background:var(--card);border:1.5px solid var(--ink);box-shadow:4px 4px 0 rgba(26,24,21,.30);margin-bottom:14px}
+  .tik .stub{width:86px;flex:none;background:var(--ink);color:var(--card);padding:12px 9px;display:flex;flex-direction:column;justify-content:space-between;gap:8px}
+  .tik .stub .nm{font-weight:900;font-size:11.5px;letter-spacing:.08em;line-height:1.15}
+  .tik .stub .rt{font-weight:800;font-size:7.5px;letter-spacing:.07em;color:#CFC7AE;white-space:nowrap}
+  .tik .bd{flex:1;padding:11px 13px 11px;min-width:0}
+  .tik .for{font-weight:800;font-size:11px;line-height:1.45}
+  .tik dl{margin:9px 0 0;display:grid;grid-template-columns:auto 1fr;gap:5px 9px}
+  .tik dt{font-weight:900;font-size:7.5px;letter-spacing:.14em;color:var(--sub);padding-top:2px;white-space:nowrap}
+  .tik dd{margin:0;font-weight:600;font-size:10.5px;line-height:1.5}
+  .tik dd b{font-weight:900}
+
+  /* record rows */
+  .rec{background:var(--card);border:1.5px solid var(--ink);box-shadow:4px 4px 0 rgba(26,24,21,.30)}
+  .rec .row{display:flex;gap:11px;padding:10px 13px 9px;border-top:1.5px solid rgba(26,24,21,.22);align-items:flex-start}
+  .rec .row:first-child{border-top:0}
+  .rec .k{font-weight:900;font-size:8.5px;letter-spacing:.13em;width:96px;flex:none;padding-top:2px}
+  .rec .k s{display:block;font-size:7px;color:var(--sub);letter-spacing:.14em;text-decoration:none;margin-top:2px;font-weight:800}
+  .rec .v{font-weight:600;font-size:10.5px;line-height:1.5}
+  .rec .seal{display:flex;justify-content:space-between;align-items:center;background:var(--ink);color:var(--card);padding:9px 13px 8px;font-weight:800;font-size:8.5px;letter-spacing:.15em}
+  .rec .seal em{font-style:normal;color:var(--amber)}
+
+  /* points strip */
+  .pts{background:var(--card);border:1.5px solid var(--ink);box-shadow:4px 4px 0 rgba(26,24,21,.30);padding:13px 14px 12px}
+  .pts .eq{display:flex;flex-wrap:wrap;gap:6px 7px;align-items:stretch}
+  .pt{border:1.5px solid var(--ink);padding:6px 8px 5px;text-align:center;min-width:64px}
+  .pt .a{display:block;font-weight:900;font-size:14px}
+  .pt .b{display:block;font-weight:800;font-size:7px;letter-spacing:.12em;color:var(--sub);margin-top:2px}
+  .pt.x{background:var(--ink);color:var(--card)}
+  .pt.x .b{color:#CFC7AE}
+  .pts .note{font-weight:700;font-size:9.5px;line-height:1.5;color:var(--sub);margin-top:9px}
+
+  /* gaps / audit */
+  .audit{background:var(--card);border:1.5px solid var(--ink);box-shadow:4px 4px 0 rgba(26,24,21,.30);padding:38px 14px 12px;position:relative}
+  .audit .stamp{position:absolute;top:10px;right:12px;font-weight:900;font-size:8px;letter-spacing:.15em;color:var(--red);border:2px solid var(--red);padding:4px 7px 3px;transform:rotate(3deg)}
+  .audit ol{margin:0;padding-left:18px}
+  .audit li{font-weight:600;font-size:11px;line-height:1.55;margin-bottom:8px}
+  .audit li b{font-weight:900}
+  .audit li:last-child{margin-bottom:0}
+  .ok{color:var(--verde);font-weight:900}
+
+  .footer{margin-top:34px;text-align:center;font-weight:800;font-size:8.5px;letter-spacing:.16em;color:var(--sub)}
+  @media (max-width:430px){
+    .tik .stub{width:74px}
+    .thesis .row{flex-direction:column}
+    .thesis .cell{border-left:0;border-top:1.5px solid var(--card)}
+    .thesis .cell:first-child{border-top:0}
+  }
+</style>
+</head>
+<body>
+<div class="bar"><i class="v"></i><i class="r"></i><i class="a"></i><i class="g"></i></div>
+<div class="page">
+
+  <div class="mast">
+    <div>
+      <h1>ROOOT</h1>
+      <div class="kicker">THE PROGRAMME OF FEATURES</div>
+    </div>
+    <div class="tag">LIVE v ROADMAP<br>JUL 18 · '26</div>
+  </div>
+  <p class="lede">A free, live companion for a World Cup match — and a belief-data
+  instrument underneath. <b>LIVE</b> marks what runs on rooot.club right now, wired
+  to real data; <b>ROADMAP</b> marks what is designed but not judge-visible.
+  Nothing aspirational is marked live.</p>
+
+  <div class="thesis">
+    <div class="row">
+      <div class="cell"><div class="w">BET</div><div class="d">the market's number — TxLINE's live de-vigged probabilities</div></div>
+      <div class="cell"><div class="w">BELIEVE</div><div class="d">the crowd's declared read — real fans, really counted</div></div>
+      <div class="cell"><div class="w">HAPPEN</div><div class="d">what the wire settles — goals, cards, the whistle</div></div>
+    </div>
+    <div class="foot">THREE DIFFERENT THINGS · THE GAPS BETWEEN THEM ARE THE PRODUCT</div>
+  </div>
+
+  <div class="sec"><span class="n">I</span><h2>THE MECHANISMS</h2><span class="r">WHAT IS HARVESTED, AND WHY</span></div>
+  <div class="legend"><span class="chip live">LIVE</span><span>on rooot.club now</span><span class="chip road">ROADMAP</span><span>designed, not shipped</span></div>
+
+  <div class="plate">
+    <div class="head"><span class="num">01</span><h3>THE PREDICTIONS — THE BELIEF HARVEST</h3></div>
+    <p class="what"><b>Pre-match:</b> entry is an opinion. The gate takes a side, a
+    scoreline, and the conviction dial ("how sure?" — non-financial by law, it
+    scales what a right call earns). Locks at kickoff.<br>
+    <b>In-game:</b> the bigger idea — calls placed <b>during</b> play, each stamped
+    server-side with the market's live read at the second of the call, resolved by
+    the next real event. One pre-match snapshot becomes a <b>moving
+    BET / BELIEVE / HAPPEN trajectory</b> — the thing no book harvests (they read
+    the public only from slips, after the stake). NEXT GOAL is the live v1:
+    the example, not the feature.</p>
+    <div class="data"><span class="l">THE DATA</span><span class="t">consensus with n · the full scoreline histogram · per-end optimism vs the opening line · every in-game call cycle: crowd split, market at call-time, resolution</span></div>
+    <div class="chips">
+      <span class="chip live">SIDE + SCORELINE</span><span class="chip live">CONVICTION DIAL</span><span class="chip live">NEXT GOAL · OR NO MORE</span>
+      <span class="chip road">NEXT SCORER</span><span class="chip road">NEXT CARD</span><span class="chip road">SCORE AT NEXT INTERVAL</span><span class="chip road">WILL THE LEAD HOLD</span><span class="chip road">PENALTY OUTCOME</span><span class="chip road">NERVE DRIFT · EDIT HISTORY</span>
+    </div>
+  </div>
+
+  <div class="plate">
+    <div class="head"><span class="num">02</span><h3>THE EMOTIONS — HOW THE NIGHT FELT</h3></div>
+    <p class="what">Six emblems — joy · muscle · heartbreak · relief · anger ·
+    hope — always one tap away from the dock. Drama windows open on real triggers
+    (goals, reds, VAR, near-misses, big market swings, the whistle); each window's
+    crowd split is revealed, then kept. The symbols speak for themselves.</p>
+    <div class="data"><span class="l">THE DATA</span><span class="t">per-moment emotion histograms · the night's roar curve (~30s samples) — the feel layer of the record</span></div>
+    <div class="chips"><span class="chip live">THE DOCK</span><span class="chip live">DRAMA WINDOWS</span><span class="chip live">FULL-TIME WINDOW IN THE RECORD</span><span class="chip road">EVENT-CENTERED CAPTURE · −60s/+180s</span></div>
+  </div>
+
+  <div class="plate">
+    <div class="head"><span class="num">03</span><h3>THE ROAR &amp; THE PRESENCE — BEING THERE, COUNTED</h3></div>
+    <p class="what">Rooted counts per end — real fans, never padded, never a
+    percentage. Cheering is rate-honest (a tap is a tap, volume is decayed
+    loudness). Watch minutes and arrival waves land in the record.</p>
+    <div class="data"><span class="l">THE DATA</span><span class="t">attendance per fanbase · cheers granted · watch minutes · arrival waves in 5-minute buckets — who showed up, when, how loud</span></div>
+    <div class="chips"><span class="chip live">ROOTED COUNTS</span><span class="chip live">CHEER + ROAR</span><span class="chip live">WATCH MINUTES</span><span class="chip live">ARRIVAL WAVES</span></div>
+  </div>
+
+  <div class="plate">
+    <div class="head"><span class="num">04</span><h3>THE POINTS — INTERACTING EARNS</h3></div>
+    <p class="what">One formula on every surface: the stamp, every cheer, every
+    reaction, every minute watched — and at the whistle the exact-score or
+    right-result bonus, scaled by how sure you said you were. In-play arrivals
+    earn everything except the full-time bonus.</p>
+    <div class="data"><span class="l">THE DATA</span><span class="t">per-fan totals · the night's total · top five by serial in the sealed record — serials only, never identities</span></div>
+    <div class="chips"><span class="chip live">FORMULA v1</span><span class="chip live">IN THE RECORD</span><span class="chip road">LEADERBOARD SURFACE</span><span class="chip road">SEASON PROGRESSION</span></div>
+  </div>
+
+  <div class="plate">
+    <div class="head"><span class="num">05</span><h3>THE KEEPSAKES — WHAT A NIGHT LEAVES A FAN</h3></div>
+    <p class="what">At the whistle the woven cloth seals — collecting it is one
+    tap, local, instant; saving it to an account (Face&nbsp;ID passkey, no seed
+    phrase) mints a real on-chain scarf whose image <b>is</b> the fan's own woven
+    night. Match cards carry three-state verdicts; pins rank fan virtues off the
+    real record — earned, not bought.</p>
+    <div class="data"><span class="l">THE DATA</span><span class="t">retention · the "keep this moment" signal — what fans choose to preserve is itself a memory statistic</span></div>
+    <div class="chips"><span class="chip live">THE SCARF · ON-CHAIN</span><span class="chip live">MATCH CARDS</span><span class="chip live">PINS · 5 OF 7</span><span class="chip road">PER-MOMENT KEEPS</span><span class="chip road">STRUCK PINS · SEALED POSTERS</span></div>
+  </div>
+
+  <div class="sec"><span class="n">II</span><h2>THE PLACES</h2><span class="r">WHERE EACH MECHANISM LIVES</span></div>
+
+  <div class="tik"><div class="stub"><span class="nm">THE GATE</span><span class="rt">/gate</span></div><div class="bd">
+    <div class="for">Entry is an opinion — no watch-only door. The ticket is your side, your scoreline, your dial.</div>
+    <dl>
+      <dt>RECORDS</dt><dd>the pass — side · call · conviction · in-play arrivals marked <b>late</b>, never blended into the locked crowd</dd>
+      <dt>SHOWS</dt><dd>the fixture as a printed ticket · the phase in plain words · THE MARKET READS strip</dd>
+      <dt>DO</dt><dd>pick · set · dial · walk in — prefilled forever after; post-whistle it locks into BACK TO YOUR SEAT / REWATCH / SEALING</dd>
+    </dl>
+  </div></div>
+
+  <div class="tik"><div class="stub"><span class="nm">THE GROUND</span><span class="rt">/ground</span></div><div class="bd">
+    <div class="for">Being at the match — one page, three lenses on the same night.</div>
+    <dl>
+      <dt>SHOWS</dt><dd>score + clock from the wire · your end's cheer meter · rooted counts · the lens dial</dd>
+      <dt>DO</dt><dd>swipe loom ↔ stands ↔ stadium — persistent panes, state preserved, nothing re-asks · the live-pull bar on every other page walks you in</dd>
+    </dl>
+  </div></div>
+
+  <div class="tik"><div class="stub"><span class="nm">THE WOVEN LOOM</span><span class="rt">/live</span></div><div class="bd">
+    <div class="for">The match as a made object — the market's belief is the warp, events knot into it, and the finished weave is the collectible.</div>
+    <dl>
+      <dt>RECORDS</dt><dd>the sealed cloth — the whole night, your root on the selvage, your calls knotted down it</dd>
+      <dt>SHOWS</dt><dd>the belief curve woven tick by tick · GOOOL bands · pressure bands · the honest source word (LIVE only when it's the wire) · the shootout board the moment pens begin</dd>
+      <dt>DO</dt><dd>watch it weave · SKIP → a replay · REWATCH ↻ a sealed night · collect the scarf at the seal</dd>
+    </dl>
+  </div></div>
+
+  <div class="tik"><div class="stub"><span class="nm">THE STANDS</span><span class="rt">IN /GROUND</span></div><div class="bd">
+    <div class="for">The crowd made visible — where the night is felt, and where most of the harvest is recorded.</div>
+    <dl>
+      <dt>RECORDS</dt><dd>cheers · the six-emblem reactions · watch minutes · <b>in-game predictions</b> (v1: NEXT GOAL, market-stamped at call-time) · your scoreline in the consensus · your rooted side</dd>
+      <dt>SHOWS</dt><dd>both ends as seat mosaics with real counts · roar meters · the crowd-vs-market plaque (crowd % beside ODDS, visibly separate) · drama windows · THE NIGHT card at full time · your keepsake card</dd>
+      <dt>DO</dt><dd>tap to cheer · react any moment · call the next goal · collect in one tap, optional Face&nbsp;ID save</dd>
+    </dl>
+  </div></div>
+
+  <div class="tik"><div class="stub"><span class="nm">THE STADIUM</span><span class="rt">IN /GROUND</span></div><div class="bd">
+    <div class="for">The broadsheet — the whole ground at a glance, every stat family in its place.</div>
+    <dl>
+      <dt>SHOWS</dt><dd>the signed board (never a fake LIVE) · full team sheets — XI, bench, subs, real names · the night's events, named · possession / shots / corners / danger / the BOOK · the odds curve in team colors · pulsing hotspots into each place</dd>
+      <dt>DO</dt><dd>roam and read · tap a hotspot to move lenses · replays drain to the settled truth</dd>
+    </dl>
+  </div></div>
+
+  <div class="tik"><div class="stub"><span class="nm">THE CABINET</span><span class="rt">/cabinet</span></div><div class="bd">
+    <div class="for">What you keep — the fan's own record, on their device and on-chain. Worthless to flip, priceless to the one who lived it.</div>
+    <dl>
+      <dt>SHOWS</dt><dd>crest + permanent fan serial · POINTS · matches lived / predictions / exact · NEXT UP · the scarf rack pulled from chain · match cards with verdicts + accuracy · THE PINS, five of seven off the real record</dd>
+      <dt>DO</dt><dd>share · finish a save · walk to the next match</dd>
+    </dl>
+  </div></div>
+
+  <div class="tik"><div class="stub"><span class="nm">THE SHOWCASE</span><span class="rt">/demo</span></div><div class="bd">
+    <div class="for">The guided walkthrough — the full loop on a baked real match with a simulated crowd, labeled as exactly that. No account, no server needed.</div>
+  </div></div>
+
+  <div class="sec"><span class="n">III</span><h2>THE RECORD</h2><span class="r">WHAT A MATCH LEAVES BEHIND — ALL LIVE</span></div>
+  <div class="rec">
+    <div class="row"><span class="k">BET<s>THE MARKET</s></span><span class="v">open / close / per-phase belief · every swing with its trigger minute · volatility · conviction · suspensions · favored minutes · lead changes</span></div>
+    <div class="row"><span class="k">BELIEVE<s>PRE-MATCH</s></span><span class="v">consensus scoreline with n · rooted counts per end · the full histogram of every score anyone called</span></div>
+    <div class="row"><span class="k">FEEL<s>IN-GAME</s></span><span class="v">every drama window's emblem split · the roar curve in ~30s samples, restart-proof</span></div>
+    <div class="row"><span class="k">THE CALLS<s>IN-GAME PREDICTION</s></span><span class="v">every cycle (v1: NEXT GOAL) — crowd split, the market at call-time, the resolution. The moving BELIEVE curve, one cycle at a time</span></div>
+    <div class="row"><span class="k">THE PEOPLE<s>ENGAGEMENT</s></span><span class="v">fans · cheers · reactions · watch minutes · arrival waves · points with the top five by serial — serials only, never identities</span></div>
+    <div class="seal"><span>HASHED · ANCHORED ON SOLANA DEVNET AT EVERY WHISTLE</span><em>SEALED ~30s AFTER FT — THE FULL-TIME EMOTIONS ARE INSIDE</em></div>
+  </div>
+
+  <div class="sec"><span class="n">IV</span><h2>THE POINTS</h2><span class="r">FORMULA v1</span></div>
+  <div class="pts">
+    <div class="eq">
+      <span class="pt"><span class="a">+25</span><span class="b">THE STAMP</span></span>
+      <span class="pt"><span class="a">+1</span><span class="b">EVERY CHEER · CAP 300</span></span>
+      <span class="pt"><span class="a">+2</span><span class="b">EVERY REACTION</span></span>
+      <span class="pt"><span class="a">+1</span><span class="b">EVERY MINUTE · CAP 130</span></span>
+      <span class="pt x"><span class="a">+200</span><span class="b">EXACT SCORE</span></span>
+      <span class="pt x"><span class="a">+75</span><span class="b">RIGHT RESULT</span></span>
+      <span class="pt x"><span class="a">×2</span><span class="b">MAX · THE DIAL</span></span>
+    </div>
+    <div class="note">Earned on your device as you live it; folded server-side into the sealed
+    record (the stricter count — granted cheers, distinct moments). The record is the authority.</div>
+  </div>
+
+  <div class="sec"><span class="n">V</span><h2>ON-CHAIN</h2><span class="r">DEVNET · NO TOKEN, NO WAGER</span></div>
+  <div class="plate" style="margin-bottom:0">
+    <p class="what" style="margin-top:0">The chain does three jobs — provenance (it really happened),
+    commitment (a claim stamped before the future arrives), settlement (the record resolves and is
+    yours). Cheers and reactions stay app-layer on purpose: a tap is not a transaction.</p>
+    <div class="chips">
+      <span class="chip live">RECORD ANCHOR AT EVERY WHISTLE</span><span class="chip live">TOURNAMENT FINGERPRINTS FOLD</span><span class="chip live">PASSKEY WALLET · NO SEED PHRASE</span><span class="chip live">THE SCARF · METAPLEX CORE, IMAGE = YOUR CLOTH</span>
+      <span class="chip road">PER-CALL RECEIPTS</span><span class="chip road">ATTENDANCE ROOT</span><span class="chip road">MAINNET PERMANENCE</span>
+    </div>
+  </div>
+
+  <div class="sec"><span class="n">VI</span><h2>THE GAPS AUDIT</h2><span class="r">LIVE v WANTED-LIVE</span></div>
+  <div class="audit">
+    <div class="stamp">AUDIT · JUL 18</div>
+    <ol>
+      <li><b>THE PINS — <span class="ok">closed.</span></b> Five of seven rank off the fan's real record; the two without an honest counter stay still-to-earn. Fixed, verified, deployed.</li>
+      <li><b>In-game emotions — <span class="ok">live and in the record.</span></b> The dock, the drama windows, and the full-time window all land in the crystal.</li>
+      <li><b>Tonight's record closes five stats by itself.</b> Roar series, moment splits and arrival waves now persist — Faith Under Fire, Roar Elasticity, Aftershock Half-Life, Mood Divergence, Attendance Gravity become computable.</li>
+      <li><b>Leaderboard</b> — the record carries a top five; no surface shows it yet. Owner's call.</li>
+      <li><b>Roadmap, stated as such everywhere:</b> the in-game call vocabulary beyond NEXT GOAL · per-call receipts · attendance root · server-authoritative totals · two pin counters · per-moment keeps · mainnet.</li>
+    </ol>
+  </div>
+
+  <div class="footer">ROOOT · '26 · REAL COUNTS, REAL ODDS, NO STAKES · ROOOT.CLUB</div>
+</div>
+</body>
+</html>
