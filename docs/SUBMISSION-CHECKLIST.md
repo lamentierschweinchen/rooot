@@ -21,18 +21,36 @@ succeeding — the sealed semifinal carries the front page if one fails.*
 - [x] Repo history clean (no secrets, no fixtures) — verified by the pitch lane
 - [x] Compliance: hackathon-new, team ≤ 3, no FIFA marks, no wagering
 
-## Tonight — Sat Jul 18 · FRA–ENG · kickoff 21:00 UTC (23:00 local)
+## NOW — arm the wire for BOTH matches (owner away at match time)
 
-- [ ] **OWNER · T−45 (~22:15 local):** arm the wire — the `flyctl secrets set TXLINE_ENABLE=… TXLINE_FIXTURES=…` line from `docs/RUNBOOK-jul18.md` (the one step the product lane cannot run)
+The token is verified valid to **Aug 2** and authenticates live (checked Jul 18
+morning), so arming early is safe — the ingest idles on heartbeats behind its
+own watchdog. One paste, one restart, covers tonight AND the final:
+
+- [ ] **OWNER · run now, from the repo root** (reads the local token file; one
+  secrets import so the machine restarts once):
+  ```
+  JWT=$(python3 -c "import json;print(json.load(open('.secrets/txline-token.json'))['jwt'])")
+  APITOKEN=$(python3 -c "import json;print(json.load(open('.secrets/txline-token.json'))['apiToken'])")
+  printf 'TXLINE_JWT=%s\nTXLINE_APITOKEN=%s\nTXLINE_ENABLE=1\nTXLINE_FIXTURES=18257865,18257739\n' "$JWT" "$APITOKEN" | flyctl secrets import --config services/stands/fly.toml
+  ```
+- [ ] Product lane verifies right after: `TXLINE ingest enabled for fixtures: 18257865, 18257739` in Fly logs, feedState healthy, snapshot restored
+
+## Tonight — Sat Jul 18 · FRA–ENG · kickoff 21:00 UTC (23:00 local) — owner away; ops run unattended
+
 - [ ] T−48 (22:12 local): pre-flight fires (cron armed) — recorders on, wire check, gate walk
-- [ ] **OWNER · during the match:** screen-record real live footage on your phone — gate → stands → a cheer → the loom weaving. *The only footage that can never be re-made; the video's opening beat.*
 - [ ] Full time (~22:50 UTC): verdicts at the whistle; `[sentiment] crystallized` in Fly logs ~30s later — the seal protocol runs: bake `demo-fraeng` → finals digest → cutover (`18257865` sealed + finalScore) → deploy → collect/scarf verify → night report
 - [ ] Within the hour of the whistle: fresh-anchor capture — `node scripts/capture-anchor.mjs <sig> 18257865` + explorer screenshot into `docs/pitch/evidence/`
 - [ ] Confirm the sealed FRA–ENG programme front-page + ENG–ARG on the shelf, phone width, logged-out
+- [ ] Morning report to the owner: the night's numbers, the sealed programme, anything held for a taste call
 
 ## Sunday morning–afternoon — Jul 19 (all times UTC)
 
-- [ ] **OWNER · morning:** record the demo video against `VIDEO-SCRIPT.md` — ≤ 5:00, the brief's three beats: problem → live walkthrough → how TxLINE powers the backend. Footage: tonight's live captures, the sealed rewatch (`/live` → REWATCH), `/demo` for interaction shots
+- [ ] **OWNER · morning — the demo video, built on /demo** (owner call, Jul 18:
+  demo mode is the video's stage; record it once fully happy with what's live).
+  ≤ 5:00, the brief's three beats: problem → walkthrough (`/demo` + the sealed
+  rewatch — real pipeline, works forever) → how TxLINE powers the backend.
+  `docs/FEATURE-SET.md` is the beat inventory; `VIDEO-SCRIPT.md` the script
 - [ ] **OWNER:** upload (Loom or YouTube) → verify playback **logged-out in a private window** → paste the URL into `SUBMISSION-COPY.md`
 - [ ] Morning: fresh canary smoke vs prod; full logged-out phone-width sweep; stands `/health` green; both sealed programmes + shelf reachable
 - [ ] **OWNER · ~15:30: flip the repo public** (GitHub → Settings → visibility). Then verify logged-out: repo loads · `docs/SUBMISSION-tech-doc.md` renders · the /about page's repo link resolves
@@ -50,7 +68,7 @@ succeeding — the sealed semifinal carries the front page if one fails.*
 
 ## Sunday night — the final · ESP–ARG · kickoff 19:00 UTC
 
-- [ ] **OWNER · T−45 (~18:15):** arm the wire for `18257739` (same secrets line, Sunday values)
+- [ ] Wire already armed for `18257739` (the NOW block above) — nothing to run
 - [ ] 18:30: gates open by themselves — watch, don't touch
 - [ ] Full time (~21:00): the same seal protocol → sealed final live on rooot.club by ~22:00
 - [ ] Evidence sweep, 15 minutes: anchor `getTransaction` JSON + explorer screenshot into `docs/pitch/evidence/` (devnet prunes within days) · commit the final's night report
