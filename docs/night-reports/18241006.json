@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-15T21:55:51.224Z",
+  "generatedAt": "2026-07-18T02:46:22.043Z",
   "generator": "scripts/night-report.mjs",
   "sourceFile": "services/stands/captures/engarg-sentiment-18241006.json",
   "shape": "SentimentRecord",
@@ -307,7 +307,9 @@
     "faith": {
       "home": 0,
       "away": 0
-    }
+    },
+    "engagement": null,
+    "scorelines": null
   },
   "events": [
     {

@@ -1,6 +1,19 @@
 # ROOOT — Technical Submission
 
-*TxODDS World Cup Hackathon on Solana · Consumer & Fan Experiences · live at [rooot.club](https://rooot.club) · updated 2026-07-17*
+*TxODDS World Cup Hackathon on Solana · Consumer & Fan Experiences · live at [rooot.club](https://rooot.club) · updated 2026-07-18*
+
+> **For judges, in one breath:** live product (no account needed): [rooot.club](https://rooot.club) ·
+> guided path: [rooot.club/demo](https://rooot.club/demo). Against your criteria —
+> **Fan Accessibility & UX:** free, walletless, phone-first; a passkey only at the
+> moment of keeping. **Real-Time Responsiveness:** woven live from TxLINE SSE;
+> operated on real live match nights during this tournament, postmortems in-repo.
+> **Originality:** we don't repackage the feed — we measure fan belief against it,
+> second by second (the SentimentRecord). **Commercial path:** §"The data product"
+> below — belief before the slip, per fanbase. **Completeness:** the full loop
+> ships — gate → live match → collect → cabinet, with the World Cup final sealed
+> inside.
+
+*The thesis, in seven articles: [The Missing Feed](pitch/MANIFESTO.md).*
 
 ## What ROOOT is
 
@@ -8,7 +21,7 @@ ROOOT is a free live companion for a World Cup match: pick an end, predict the s
 
 ## The thesis, with the real numbers: BET vs BELIEVE vs HAPPEN
 
-The market's number (BET), the crowd's belief (BELIEVE), and the result (HAPPEN) are three different things, and the gaps between them are the product (`docs/SENTIMENT.md`): the optimism gap (BELIEVE − BET), foresight (BELIEVE − HAPPEN), and the upset (BET − HAPPEN). ROOOT has now measured these on two real matches with real fans.
+The market's number (BET), the crowd's belief (BELIEVE), and the result (HAPPEN) are three different things, and the gaps between them are the product (`docs/SENTIMENT.md`): the optimism gap (BELIEVE − BET), foresight (BELIEVE − HAPPEN), and the upset (BET − HAPPEN). ROOOT has now measured these on three real matches with real fans — including the England–Argentina semifinal.
 
 **July 9 — France 2–0 Morocco (fixture 18209181), the premiere.** Five fans entered, rooted, and locked score predictions before kickoff. The market opened France 61.7% / draw 24.1% / Morocco 14.3%. The crowd gave Morocco a 60% outcome share — a **+45.7 percentage-point heart-versus-market gap** on the Morocco side (`docs/POSTMORTEM-fra-mar-2026-07-09.md`). Per end: France rooters were +38.3pt more optimistic than the market, Morocco rooters +85.7pt (`docs/night-reports/18209181.md` §1). The market was right and the crowd was wrong — which is exactly the point: the gap is a real, measurable signal either way, and five fans were enough to produce it.
 
@@ -64,15 +77,38 @@ surfaces  static HTML on Vercel (rooot.club): the gate · the ground · the wove
 
 **Verification is runtime, not build-green.** The release gate is an automated two-browser Playwright canary (`scripts/canary/`, seven flow steps: opposite-end entry, distinct predictions, cross-end cheer, presence across lens switches, goal-replay suppression on late join, side-aware full-time verdicts, live market render). Its production smoke mode is write-proof by construction — every outgoing WebSocket frame is intercepted, anything beyond a side-less hello is blocked before the network, and each run proves its own blocker by attempting a forbidden write and asserting it was stopped (`scripts/canary/README.md`). Full mode structurally refuses non-local hosts (an allowlist, not a blocklist). Alongside it, fourteen per-feature dev checks boot the real server in-process and assert against the real wire (`services/stands/src/dev/*-check.ts` — presence/cheer, restart persistence, verdict replay, fan serial, pulse fix, full replay, SSE idle, self-probe, NEXT GOAL, the Collect claim/mint, anchor durability, memory eviction, seal-on-join, starting-XI seed recovery). The reconnect storm that hung a real fan's page during Spain–Belgium was diagnosed from console evidence, fixed with a single-flight connect guard plus backoff discipline (`apps/web/public/*-adapter.js`), and got its own regression check (`scripts/canary/reconnect-check.mjs`).
 
+### The specific TxLINE endpoints ROOOT uses
+
+| Endpoint | Role in ROOOT |
+|---|---|
+| `POST /auth/guest/start` → on-chain `subscribe` → `POST /api/token/activate` | auth: guest JWT, Solana-signed activation, bearer + `X-Api-Token` on every call |
+| `GET /api/fixtures/snapshot?competitionId=72&startEpochDay=…` | the schedule — every remaining fixture's kickoff feeds the site's one matchday clock |
+| `GET /api/odds/snapshot/{fixtureId}` · `GET /api/odds/stream` (SSE) | the market: 1X2 StablePrice vectors, de-vigged in `contracts/normalize.ts` |
+| `GET /api/scores/snapshot/{fixtureId}` · `GET /api/scores/stream` (SSE) | the match: goals (confirm ladder), status (13-rung StatusId), lineups + scorer names, cards, VAR, possession-danger spells |
+| `GET /api/odds/validation` | Merkle provenance: two-level proof (subTreeProof + mainTreeProof) exercised against a live goal tick — specimen committed at `fixtures/provenance/messi-goal-tick-proof.json` |
+
+Recorded live streams replay through the exact same parser
+(`services/stands/src/ingest/replay.ts`) — replay is first-class, which is why
+every surface still runs after the tournament ends.
+
 ## The data product: twelve stats, honestly reported
 
 The owner's canonical list of proprietary stats (`docs/BACKLOG-full-version-and-deferred-ideas.md` §1): Optimism Gap, Doubter Index, Foresight Alpha, Courage-Adjusted Calls, Faith Under Fire, Roar Elasticity, Aftershock Half-Life, Held Breath Index, Pressure Without Reward, Match Uncertainty / Chaos Score, Mood Divergence, Attendance Gravity. All are BET vs BELIEVE vs HAPPEN made explicit; none require data ROOOT does not honestly have.
 
-The night-report generator (`scripts/night-report.mjs`) computes them from a recorded match file and writes a dossier per match (`docs/night-reports/<matchId>.md` + a raw `.json` sidecar). It reads two real shapes — a crystallized SentimentRecord or a raw websocket capture — using the same formulas the server uses (`services/stands/src/sentiment/builder.ts`), so the two matches' numbers are genuinely comparable. Both captures are committed (`services/stands/captures/`), so a judge can regenerate every number:
+The commercial shape of this data, stated plainly: every in-play price fuses a
+probability with a bias premium — the shading for the public's heart — and
+de-vigging removes the bookmaker's margin, not that premium. Books read the
+public only from their own slips, after the stake lands; a pre-bet,
+declared-allegiance, in-play belief series is the decomposition instrument
+both sides of the counter lack, and it is only sellable because every claim
+is provably pre-outcome (the anchor's actual job).
+
+The night-report generator (`scripts/night-report.mjs`) computes them from a recorded match file and writes a dossier per match (`docs/night-reports/<matchId>.md` + a raw `.json` sidecar). It reads two real shapes — a crystallized SentimentRecord or a raw websocket capture — using the same formulas the server uses (`services/stands/src/sentiment/builder.ts`), so every match's numbers are genuinely comparable. All three captures are committed (`services/stands/captures/`), so a judge can regenerate every number:
 
 ```
 node scripts/night-report.mjs services/stands/captures/premiere-fra-mar-18209181-919c9af.json
 node scripts/night-report.mjs services/stands/captures/espbel-sentiment-18218149.json
+node scripts/night-report.mjs services/stands/captures/engarg-sentiment-18241006.json
 ```
 
 **Five of the twelve compute today** on at least one real match: Optimism Gap, Doubter Index, and Foresight Alpha on both matches; Pressure Without Reward (France held 30.8% danger-share of its spells and scored twice; Morocco 18.2% and did not) and the Match Uncertainty components (volatility, swings, lead changes, conviction, Upset Index) from the tick data. **The other seven print NOT COMPUTABLE with the specific missing field named** — the roar time series is deliberately short-lived so Faith Under Fire / Roar Elasticity / Aftershock Half-Life lack a per-minute curve; no react moments were felt live so Mood Divergence is empty; join timestamps are not persisted so Attendance Gravity has no series; the calls mechanism (NEXT GOAL) wasn't live yet when either match was captured, so Courage-Adjusted Calls is a zeroed stub in both — it has since shipped to production (below) and will feed the next crystallized record. Nothing is interpolated; a stat that cannot be computed says so and why.
@@ -91,6 +127,16 @@ No token, no wager. The chain does three jobs: provenance (the data really happe
 | **Market provenance** — TxLINE's own Merkle anchors referenced from ROOOT records, so the odds survive the feed | **Validation path exercised** against the live API: a two-level branch (subTreeProof + mainTreeProof) to the on-chain root for a real tick | specimen `fixtures/provenance/messi-goal-tick-proof.json` (`docs/DATA.md` §TxLINE) |
 | **Attendance root** — Merkle root of attendee anonIds per match ("I'm in the crowd photo") | **Designed, not live** | shape in `contracts/relic.ts` (`attendeeRoot`) |
 
+**A note on verifying the anchors:** public devnet RPC retains recent
+transaction history only — we watched a three-day-old anchor age out of
+`getTransaction` during submission week. Fresh anchors (the final weekend's)
+resolve on any devnet explorer; for older matches the proof is regenerability:
+the committed capture + `node scripts/night-report.mjs <capture>` reproduce the
+exact record hash the memo carried, and each night report prints its anchor
+signature. Account-based artifacts don't age out: the scarf assets (e.g. the
+owner's Nº 025, `DHEAuF3CSrXnXn9vta5V6SMsYSUKf4BfVfmLE2JdRog8`, whose on-chain
+image is the fan's actual woven cloth) remain queryable via DAS indefinitely.
+
 Cheers and reactions stay app-layer on purpose: a tap is not a transaction, and pretending otherwise would break the honesty law before it broke the fee budget.
 
 ## Honest limitations
@@ -106,4 +152,4 @@ Cheers and reactions stay app-layer on purpose: a tap is not a transaction, and 
 
 ## Built with
 
-ROOOT is built by a small pipeline of Claude agents under a human owner who steers by verdicts on rendered frames. The repo's operating law (`AGENTS.md`) gives each lane one directory and one writer, with the wire contracts (`contracts/`) frozen and coordinator-only; work runs spec → implementer → spec-and-quality review → whole-branch review (specs and plans under `docs/superpowers/`), and the whole-branch reviews have caught what per-task reviews missed, including two honesty violations that died before merge. Verification is required at runtime, not at compile: the canary suite, the in-process dev checks, and screenshot evidence gate every merge, and the two live match nights ran with a dedicated ops instance on a written runbook, producing the postmortem and night notes cited throughout this document.
+ROOOT is built by a small pipeline of Claude agents under a human owner who steers by verdicts on rendered frames. The repo's operating law (`AGENTS.md`) gives each lane one directory and one writer, with the wire contracts (`contracts/`) frozen and coordinator-only; work runs spec → implementer → spec-and-quality review → whole-branch review (specs and plans under `docs/superpowers/`), and the whole-branch reviews have caught what per-task reviews missed, including two honesty violations that died before merge. Verification is required at runtime, not at compile: the canary suite, the in-process dev checks, and screenshot evidence gate every merge, and the three live match nights ran with a dedicated ops instance on a written runbook, producing the postmortem and night notes cited throughout this document.

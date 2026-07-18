@@ -35,12 +35,13 @@ REPLAY_FILE=../../apps/web/public/replay/arg-cpv-20260703.jsonl \
 REPLAY_FIXTURE=18175918 REPLAY_SPEED=60 npm run dev
 ```
 
-Reproduce the proprietary stats from the two real live matches — both captures are
+Reproduce the proprietary stats from the three real live matches — every capture is
 committed; every number in the reports traces to a field in them:
 
 ```
 node scripts/night-report.mjs services/stands/captures/premiere-fra-mar-18209181-919c9af.json
 node scripts/night-report.mjs services/stands/captures/espbel-sentiment-18218149.json
+node scripts/night-report.mjs services/stands/captures/engarg-sentiment-18241006.json
 ```
 
 Run the release gate — a two-browser acceptance canary (opposite ends, distinct
