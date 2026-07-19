@@ -90,6 +90,14 @@
   .night .stat{font-weight:900;font-size:clamp(26px,3.6vw,42px);line-height:1;margin-top:16px;color:var(--blue)}
   .night .what{font-weight:650;font-size:clamp(12.5px,1.45vw,15px);line-height:1.5;margin-top:10px;color:#2A2721}
 
+  /* ── definitions ────────────────────────────────────────── */
+  .defs{display:grid;grid-template-columns:repeat(auto-fit,minmax(258px,1fr));gap:clamp(14px,2vw,24px);margin-top:clamp(30px,4.6vh,56px)}
+  .def{background:var(--card);border:2px solid var(--ink);padding:clamp(17px,2.1vw,25px);box-shadow:5px 5px 0 rgba(26,24,21,.2)}
+  .def h4{font-weight:900;font-size:clamp(12px,1.5vw,15px);letter-spacing:.14em}
+  .def p{font-weight:600;font-size:clamp(13px,1.5vw,16px);line-height:1.55;margin-top:11px;color:#2A2721}
+  .def p b{font-weight:900}
+  .fine{font-weight:650;font-size:clamp(13px,1.5vw,16px);line-height:1.6;margin-top:clamp(24px,3.4vh,40px);max-width:60ch;color:var(--sub)}
+
   /* ── record ─────────────────────────────────────────────── */
   .keep{background:var(--ink);color:var(--card)}
   .keep h2{color:var(--card)}
@@ -163,7 +171,7 @@
   <div class="wrap">
     <div class="eyebrow rv">THE MECHANISMS</div>
     <h2 class="rv d1">Every tap is a<br>measurement.</h2>
-    <p class="lede wide rv d2">The market has a number. The crowd has a belief. The wire has the result. They are three different things, and the distance between them — measured second by second, before anyone knows the ending — is what this records.</p>
+    <p class="lede wide rv d2">The market has a number. The crowd has a belief. The wire has the result. Each is recorded on its own clock, in its own units, and never mixed — so the distance between them can be measured at any second of the match.</p>
 
     <!-- 01 -->
     <div class="mech">
@@ -174,10 +182,10 @@
         <p class="prod rv d2"><b>What it produces:</b> an aggregate scoreline forecast per fanbase, not just win-draw-lose — and a moving version of it as the game runs. A bookmaker prices correct-score too; the difference here is who is answering: self-declared supporters of one side, for free, with nothing staked, timestamped before the outcome.</p>
       </div>
       <div class="sample rv d1">
-        <div class="tag">FROM THE ARCHIVE · SPAIN–BELGIUM</div>
-        <div class="big">2–1</div>
-        <div class="say2">The crowd's most-called scoreline was 2–1. The match finished 2–1. Every one of those calls was locked before kickoff, by people who had already said which end they were standing in.</div>
-        <div class="src">NIGHT REPORT 18218149</div>
+        <div class="tag">WHAT IS STORED</div>
+        <div class="big">side · score · dial</div>
+        <div class="say2">Per fan: the end they chose, the scoreline they called, how sure they said they were (1–4), and the second it was locked. Aggregated per match into a scoreline histogram, a consensus with its n, and the rooted count at each end.<br><br>Per in-play call: the call, the market's three prices at that instant, the minute, and how it resolved.</div>
+        <div class="src">contracts/sentiment.ts · fans</div>
       </div>
     </div>
 
@@ -190,10 +198,10 @@
         <p class="prod rv d2"><b>What it produces:</b> the two readings side by side while the result is still unknown — where a fanbase sat above or below the price at kickoff, and how far apart they stayed as the game moved. The closing price is just the scoreline; the interesting part is everything before it.</p>
       </div>
       <div class="sample rv d1">
-        <div class="tag">FROM THE ARCHIVE · ENGLAND–ARGENTINA</div>
-        <div class="big">35 · 34 · 31</div>
-        <div class="say2">At kickoff the money could barely separate them — home, draw, away within four points of each other. The room could: every fan in it had rooted for England. Argentina won.</div>
-        <div class="src">NIGHT REPORT 18241006</div>
+        <div class="tag">WHAT IS STORED</div>
+        <div class="big">every tick</div>
+        <div class="say2">The de-vigged home/draw/away triple on each update — three to four thousand of them across a match. Kept as the opening and closing read, a value per phase, every swing with the minute it happened, the lead changes, the volatility, and how far from an undecided line the price sat.</div>
+        <div class="src">contracts/sentiment.ts · market</div>
       </div>
     </div>
 
@@ -206,10 +214,10 @@
         <p class="prod rv d2"><b>What it produces:</b> attendance and attention per fanbase, a per-minute loudness curve, and arrival waves — the shape of a crowd assembling around a game.</p>
       </div>
       <div class="sample rv d1">
-        <div class="tag">FROM THE ARCHIVE · FRANCE–MOROCCO</div>
-        <div class="big">+85.7pt</div>
-        <div class="say2">Morocco's end backed Morocco 85.7 points harder than the market did; France's end ran +38.3 on France. One match, one second, two ends reading it completely differently.</div>
-        <div class="src">NIGHT REPORT 18209181</div>
+        <div class="tag">WHAT IS STORED</div>
+        <div class="big">who · when · how loud</div>
+        <div class="say2">Rooted count per end. Cheers that the rate limiter actually granted, never the taps attempted. Minutes of open presence per fan. First-seen time bucketed into five-minute arrival waves. A loudness sample for each end roughly every thirty seconds, all match.</div>
+        <div class="src">contracts/sentiment.ts · fans.engagement · feel.roarSeries</div>
       </div>
     </div>
 
@@ -238,28 +246,34 @@
         <p class="prod rv d2"><b>What it produces:</b> a durable record of what fans chose to preserve — which is its own signal about which moments mattered.</p>
       </div>
       <div class="sample rv d1">
-        <div class="tag">ON THE COLLECTIBLE</div>
-        <div class="big">Yours</div>
-        <div class="say2">The picture on it is the cloth your night actually wove — your rooted side, your calls, that match's goals. There is no token and nothing to flip. It is worth exactly what it meant to you.</div>
+        <div class="tag">WHAT IS STORED</div>
+        <div class="big">the cloth</div>
+        <div class="say2">The woven record of that match with your side and your resolved calls in it, kept on the device the moment you tap. If you save it to a key of your own, the same cloth becomes the image of an on-chain asset you hold. No token, nothing to trade.</div>
         <div class="src">METAPLEX CORE · SOLANA DEVNET</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ── EVIDENCE ─────────────────────────────────────────── -->
+<!-- ── HOW THE NUMBERS ARE MADE ─────────────────────────── -->
 <section>
   <div class="wrap">
-    <div class="eyebrow rv">MEASURED ON REAL MATCHES</div>
-    <h2 class="rv d1">Four live nights,<br>with real fans.</h2>
-    <p class="lede wide rv d2">Every number below was produced by the running system on a real World Cup night and can be regenerated from the recordings kept in the open repository. Sample sizes are small and labelled as such — the claim is a working instrument, not a survey.</p>
+    <div class="eyebrow rv">HOW THE NUMBERS ARE MADE</div>
+    <h2 class="rv d1">Nothing here is<br>an estimate.</h2>
+    <p class="lede wide rv d2">Every quantity in a match record has a definition you can check against the code that produced it. These are the ones worth naming.</p>
 
-    <div class="nights">
-      <div class="night rv"><div class="fx">FRA 2–0 MAR</div><div class="dt">THE PREMIERE</div><div class="stat">n=5</div><div class="what">Five fans, on the first live night, produced a legible split between what each end believed and what the price said. Small and labelled as such.</div></div>
-      <div class="night rv d1"><div class="fx">ESP 2–1 BEL</div><div class="dt">GROUP NIGHT</div><div class="stat">Exact</div><div class="what">The crowd's most-called scoreline was the final scoreline, with a doubter on the losing end who turned out to be right.</div></div>
-      <div class="night rv d2"><div class="fx">ENG 1–2 ARG</div><div class="dt">SEMIFINAL</div><div class="stat">4–0</div><div class="what">Everyone in the ground rooted for England, in a match the market called a coin toss at kickoff. Argentina won it.</div></div>
-      <div class="night rv d3"><div class="fx">FRA 4–6 ENG</div><div class="dt">THIRD PLACE</div><div class="stat">11</div><div class="what">Lead changes in a single match — ten goals, a belief line that never settled, and a 33-point lurch at 86′.</div></div>
+    <div class="defs">
+      <div class="def rv"><h4>VOLATILITY</h4><p>The sum, across every price update in the match, of how far all three legs moved from the update before. A market that churns all night scores high; one that settles early scores low.</p></div>
+      <div class="def rv d1"><h4>A SWING</h4><p>Any moment a leg has moved <b>six points or more</b> away from the last price the match kept as its reference. Compared across a rolling 75-second window, so it measures real movement rather than feed chatter.</p></div>
+      <div class="def rv d2"><h4>CONVICTION</h4><p>How far the price sits from a completely undecided 33/33/33 line, measured on its widest leg — kept as both the average across the match and the peak.</p></div>
+      <div class="def rv d3"><h4>LEAD CHANGES</h4><p>How many times the favoured outcome changed hands over the match, counted on the price, not on the scoreline.</p></div>
+      <div class="def rv"><h4>OPTIMISM GAP</h4><p>Per end: the share of that end's own calls that have their side winning, minus the market's probability of that side winning at the moment predictions locked. Positive means the stand believed harder than the money did.</p></div>
+      <div class="def rv d1"><h4>DOUBTER INDEX</h4><p>Per end: how many people who chose that side did <b>not</b> call their own side to win — and, at full time, whether the doubters were right.</p></div>
+      <div class="def rv d2"><h4>FORESIGHT WEIGHT</h4><p>One minus the market's probability, at lock, of the result that actually happened. It scores a correct call by how unlikely the money thought it was.</p></div>
+      <div class="def rv d3"><h4>POINTS</h4><p>25 for a locked call, one per granted cheer to a cap of 300, two per reaction, one per minute present to a cap of 130, and at full time 200 for the exact score or 75 for the right result — multiplied by the conviction dial, up to double.</p></div>
     </div>
+
+    <p class="fine rv">Counts are counts. A cheer only scores if the rate limiter granted it; a reaction counts once per moment however many times it is re-picked; minutes are open presence, not claimed attention. The crowd's numbers are never blended into the market's, and neither is ever shown as the other.</p>
   </div>
 </section>
 
