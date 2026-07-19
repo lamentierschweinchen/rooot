@@ -23,6 +23,12 @@ body{background:var(--paper);font-family:var(--disp);color:var(--ink);-webkit-fo
   font-weight:800;font-size:8px;letter-spacing:.16em;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .mast .skip:active{transform:translateY(1px)}
 .mast .skip[hidden]{display:none}
+.mast .navout{font-weight:800;font-size:7.5px;letter-spacing:.1em;color:var(--sub);text-decoration:none;white-space:nowrap;
+  padding:4px 5px;border:1.5px solid var(--sub);-webkit-tap-highlight-color:transparent;flex:none}
+.mast .navout:active{background:var(--ink);color:var(--card);border-color:var(--ink)}
+.mast .navout.cab{margin-left:6px}
+@media(max-width:430px){.mast .navout{font-size:7px;padding:3px 4px}.mast .sc{font-size:19px}}
+body.embed .mast .navout{display:none}   /* inside the ground the dial is the navigation */
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
 .sub{font-weight:600;font-size:8.5px;letter-spacing:.13em;color:var(--sub);margin-bottom:10px}
 /* embed mode — framed inside the composite: shed the chrome, the cloth fills */
@@ -91,8 +97,17 @@ html.lexport .loomv svg{animation:none;transform:none}
 </head>
 <body>
 <div class="wrap">
-  <div class="mast"><span class="sc"><b class="h" id="hT">ARG</b> <span id="sc">0–0</span> <b class="a" id="aT">CPV</b></span><span class="rp"><span class="dot" id="liveDot"></span><span id="rp">REPLAY · 0′</span><button class="skip" id="skipBtn" hidden type="button">SKIP →</button><button class="skip" id="rewatchBtn" hidden type="button">REWATCH ↻</button></span></div>
+  <div class="mast"><a class="navout" id="navGround" href="ground.html" title="the ground">‹ GROUND</a><span class="sc"><b class="h" id="hT">ARG</b> <span id="sc">0–0</span> <b class="a" id="aT">CPV</b></span><span class="rp"><span class="dot" id="liveDot"></span><span id="rp">REPLAY · 0′</span><button class="skip" id="skipBtn" hidden type="button">SKIP →</button><button class="skip" id="rewatchBtn" hidden type="button">REWATCH ↻</button><a class="navout cab" id="navCab" href="cabinet.html" title="your cabinet">CABINET ›</a></span></div>
   <script>
+  (function(){   // the exits carry the mode: a demo loom goes back to the demo ground
+    var q=new URLSearchParams(location.search), keep='';
+    if(q.get('demo')==='1')keep='?demo=1';
+    else if(q.get('match'))keep='?live=1&match='+encodeURIComponent(q.get('match'));
+    var g=document.getElementById('navGround'), c=document.getElementById('navCab');
+    if(g)g.setAttribute('href','ground.html'+keep);
+    if(c)c.setAttribute('href','cabinet.html'+keep);
+    if(/[?&]embed=1/.test(location.search))document.body.classList.add('embed');
+  })();
   document.getElementById('skipBtn').onclick=function(){ if(window.__demoFeed)window.__demoFeed.finish(); };
   document.getElementById('rewatchBtn').onclick=function(){ var q=new URLSearchParams(location.search); q.set('rewatch','1'); location.search=q.toString(); };
   // sealed-first (owner, 17 Jul): a bare /live opens on the FINISHED programme — the whole
@@ -340,7 +355,11 @@ html.lexport .loomv svg{animation:none;transform:none}
   var loomEl=document.getElementById('loomv');
   var GOALOPT=Q.get('goalopt')||'b';   // goals read as goals (owner): weft + king, no score tab. a = +score tabs · c = king alone
   var MARKS=Q.get('marks')||'chip';    // chip = printed backing tags · cloth = stitched straight into the bands (L11 feasibility)
-  var EVSET=Q.get('events')||'none';   // PURE ODDS by default (owner): just the woven colour + calls, no event marks. none · goals · core · all
+  // The match's own events belong ON the live cloth — a replay that only shows
+  // the odds moving is not a record of the match (owner, 19 Jul). The KEPT
+  // scarf simplifies to goals below; the live/replay loom weaves the shipped
+  // alphabet. none · goals · core · all
+  var EVSET=Q.get('events')||'core';
   // THE SCARF (owner, 17 Jul): the loom stays the loom, but what you COLLECT carries the
   // match — the kept/captured cloth weaves its goals (gold wefts + medallions) by default.
   if((KEEP||Q.get('export')==='1')&&!Q.get('events'))EVSET='goals';
