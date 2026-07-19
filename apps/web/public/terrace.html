@@ -1287,8 +1287,20 @@ if(LIVE){
     }
     window.__fixtureReady=window.__fixtureReady||fetch('/fixture.json').then(function(r){return r.ok?r.json():null;}).catch(function(){return null;});
     window.__fixtureReady.then(function(mf){
-      if(mf&&mf.matchId&&mf.home&&mf.away&&(!explicitTerr||explicitTerr===mf.matchId))_fxGo(mf.matchId,FIXTURES[mf.matchId]||fxFromManifest(mf));
-      else if(!explicitTerr)_fxGo(null);   // a manifest for a DIFFERENT match tells us nothing about this one — wait for fixtureInfo/timeout instead
+      if(mf&&mf.matchId&&mf.home&&mf.away&&(!explicitTerr||explicitTerr===mf.matchId)){_fxGo(mf.matchId,FIXTURES[mf.matchId]||fxFromManifest(mf)); return;}
+      // The FEATURED match isn't the one we're showing — but the manifest's schedule carries
+      // every fixture's {code,name,colors}, so an explicit ?match= still resolves here, from the
+      // SAME-ORIGIN (and cached) manifest, instead of racing fixtureInfo against the 1500ms
+      // NEUTRAL_TERR_FX timeout below. That race was a coin flip, and _fxGo latches `_fxDone`,
+      // so a lost race left BOTH ends painted #8C8467 for the whole match — seen live on the
+      // ESP–ARG final, 19 Jul, 3'. Same fix as stadium.html's fixtures[] lookup.
+      if(mf&&explicitTerr&&mf.fixtures&&mf.fixtures.length){
+        for(var i=0;i<mf.fixtures.length;i++){
+          var e=mf.fixtures[i];
+          if(e&&e.matchId===explicitTerr&&e.home&&e.away){ _fxGo(explicitTerr,FIXTURES[explicitTerr]||fxFromManifest(e)); return; }
+        }
+      }
+      if(!explicitTerr)_fxGo(null);   // a manifest that doesn't know this match tells us nothing — wait for fixtureInfo/timeout instead
     },function(){ if(!explicitTerr)_fxGo(null); });
     setTimeout(function(){ _fxGo(explicitTerr||null,explicitTerr?NEUTRAL_TERR_FX:null); },1500);
   }
