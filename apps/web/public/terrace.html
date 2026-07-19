@@ -995,7 +995,13 @@ function wireLive(){
     if(window.__stands.onSentiment)window.__stands.onSentiment(function(record){
       if(!record||record.matchId!==MATCH_ID)return;
       if(M._ft)return;   // live FT already fired — this is additive data, never a re-trigger
-      if(record.finalScore)M.verdictMsg={final:record.finalScore};   // showKeepsake() already reads vm.final; no personal call/verdict to add — never invented
+      // the manifest's sealed finalScore wins over the record's (owner/coordinator
+      // truth): the final's first record was sealed at the 90' whistle and says
+      // 0–0; the corrected, anchored record says 1–0. The schedule carries the
+      // corrected score, so the card must never print the superseded one.
+      var sfin=(SEALED&&window.__matchday&&(window.__matchday.get(MATCH_ID)||{}).finalScore)||null;
+      if(sfin)M.verdictMsg={final:{home:sfin.home,away:sfin.away}};
+      else if(record.finalScore)M.verdictMsg={final:record.finalScore};
       mdDone(); ngEnd(); M._ft=true; showKeepsake();
     });
     if(window.__stands.onCheer)window.__stands.onCheer(function(e){

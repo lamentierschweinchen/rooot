@@ -1,13 +1,13 @@
 {
-  "matchId": "18241006",
+  "matchId": "18257739",
   "home": {
-    "code": "ENG",
-    "name": "England",
+    "code": "ESP",
+    "name": "Spain",
     "colors": [
-      "#FFFFFF",
-      "#CF081F"
+      "#AA151B",
+      "#F1BF00"
     ],
-    "flag": "ENG"
+    "flag": "SPA"
   },
   "away": {
     "code": "ARG",
@@ -18,9 +18,9 @@
     ],
     "flag": "ARG"
   },
-  "kickoffUtc": "2026-07-15T19:00:00Z",
+  "kickoffUtc": "2026-07-19T19:00:00Z",
   "competition": "World Cup",
-  "dateISO": "2026-07-15",
+  "dateISO": "2026-07-19",
   "gatesOpenMinutes": 30,
   "fixtures": [
     {
@@ -87,7 +87,7 @@
     {
       "matchId": "18257739",
       "stage": "THE FINAL",
-      "status": "upcoming",
+      "status": "sealed",
       "home": {
         "code": "ESP",
         "name": "Spain",
@@ -108,7 +108,12 @@
       },
       "kickoffUtc": "2026-07-19T19:00:00Z",
       "competition": "World Cup",
-      "dateISO": "2026-07-19"
+      "dateISO": "2026-07-19",
+      "finalScore": {
+        "home": 1,
+        "away": 0
+      },
+      "replay": true
     }
   ]
 }

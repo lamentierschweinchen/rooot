@@ -172,9 +172,9 @@
         sock.onerror = function () { try { sock.close(); } catch (_) {} };
       }
       connect();
-    } else if (REPLAY && root.__demoFeed && root.__DEMO_ENGARG) {
+    } else if (REPLAY && root.__demoFeed && (root.__REPLAY_BAKE ? root[root.__REPLAY_BAKE.global] : (root.__DEMO_ESPARG || root.__DEMO_ENGARG))) {
       // sealed ENG-ARG replay: fold the baked feed so THE MARKET prints the real odds curve to full time
-      root.__demoFeed.startFeed(root.__DEMO_ENGARG, onMsg, REPLAY_SECONDS);
+      root.__demoFeed.startFeed(root.__REPLAY_BAKE ? root[root.__REPLAY_BAKE.global] : (root.__DEMO_ESPARG || root.__DEMO_ENGARG), onMsg, REPLAY_SECONDS);
     } else if (DEMO && root.__demoFeed) {
       root.__demoFeed.start(onMsg);
     }

@@ -534,9 +534,10 @@
     // REPLAY before DEMO: /live (and ?replay=1) win over a stray ?demo=1 so the feed source
     // and the boot id below can never disagree (a mixed ?replay=1&demo=1 URL used to load the
     // ENG-ARG baked script but boot the SUI-COL demo path, and stall). One mode, one feed.
-    if (REPLAY && !q.get('ws') && window.__demoFeed && window.__DEMO_ENGARG) {
+    var BAKED = window.__REPLAY_BAKE ? window[window.__REPLAY_BAKE.global] : (window.__DEMO_ESPARG || window.__DEMO_ENGARG);
+    if (REPLAY && !q.get('ws') && window.__demoFeed && BAKED) {
       // /live: fast-forward-weave the real finished ENG-ARG match to full time, then seal into the keepsake
-      window.__demoFeed.startFeed(window.__DEMO_ENGARG, function (msg) { try { onFeed(msg); } catch (err) { console.warn('[loom-adapter] translate error', err); } }, REPLAY_SECONDS);
+      window.__demoFeed.startFeed(BAKED, function (msg) { try { onFeed(msg); } catch (err) { console.warn('[loom-adapter] translate error', err); } }, REPLAY_SECONDS);
     } else if (DEMO && !q.get('ws') && window.__demoFeed) {
       window.__demoFeed.start(function (msg) { try { onFeed(msg); } catch (err) { console.warn('[loom-adapter] translate error', err); } });
     } else {
@@ -547,7 +548,10 @@
   // REPLAY is HARD-BOUND to the baked fixture (18241006): the only baked replay feed is ENG-ARG,
   // so ?match= must NOT rebind it — otherwise the real ENG-ARG odds would weave under another
   // team's colours and mint under the wrong match id (Codex review). ?demo/live keep ?match.
-  if (REPLAY) { boot('18241006'); }
+  // the sealed programme's identity comes from the bake the page actually loaded —
+  // a hard-coded id wove one match's odds under another team's colours when the
+  // final's bake shipped (19 Jul).
+  if (REPLAY) { boot((window.__REPLAY_BAKE && window.__REPLAY_BAKE.match) || '18257739'); }
   else if (DEMO) { boot(explicitMatch || '18209181'); }
   else { resolveMatchId(explicitMatch, boot); }
 })();

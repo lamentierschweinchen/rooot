@@ -788,7 +788,8 @@ html.lexport .loomv svg{animation:none;transform:none}
     '18213979':['NOR','NORWAY','#BA0C2F','ENG','ENGLAND','#CF081F'],
     '18222446':['ARG','ARGENTINA','#75AADB','SUI','SWITZERLAND','#D52B1E'],
     '18237038':['FRA','FRANCE','#0055A4','ESP','SPAIN','#AA151B'],
-    '18241006':['ENG','ENGLAND','#CF081F','ARG','ARGENTINA','#75AADB'] };
+    '18241006':['ENG','ENGLAND','#CF081F','ARG','ARGENTINA','#75AADB'],
+    '18257739':['ESP','SPAIN','#C60B1E','ARG','ARGENTINA','#75AADB'] };
     // only re-theme when a match is EXPLICITLY requested (live/coordinator); otherwise keep the
     // replay data's own teams so the standalone loom stays coherent (data ↔ teams matched).
     // adopt-#1 (docs/DATA-ARCHITECTURE.md §4): __themedLocally marks THIS in-page FX table as
@@ -804,7 +805,10 @@ html.lexport .loomv svg{animation:none;transform:none}
     // so data ↔ teams stay locked together (Codex review). This supersedes the old /live→manifest
     // theming: /live now serves the baked replay, not a live socket, so its teams are fixed.
     var REPLAY=Q.get('replay')==='1'||location.pathname==='/live'||location.pathname==='/loom';
-    if(REPLAY){ theme('18241006'); return; }
+    // theme to the programme the page actually loaded — the loader declares it
+    // (window.__REPLAY_BAKE). A hard-coded id wove the final's odds under
+    // England's colours the night the final's bake shipped.
+    if(REPLAY){ theme((window.__REPLAY_BAKE&&window.__REPLAY_BAKE.match)||'18257739'); return; }
     var qMatch=Q.get('match');
     if(qMatch){ theme(qMatch); return; }   // ?match= wins for non-replay (live/coordinator) — instant, synchronous, never touches the manifest
   })();
@@ -907,7 +911,12 @@ html.lexport .loomv svg{animation:none;transform:none}
 <script>
 (function(){ var q=new URLSearchParams(location.search);
   var replay = q.get('replay')==='1' || location.pathname==='/live' || location.pathname==='/loom';   // /live + /loom both rewrite to woven-loom — the replay signal rides the PATHNAME (the rewrite's query never reaches the client)
-  var b = replay ? 'plate/demo-engarg.js' : (q.get('demo')==='1' ? 'plate/demo-suicol.js' : null);
+  // the baked programme follows the match, and announces itself so the adapters
+  // bind to THIS programme rather than a hard-coded one
+  var BAKES={'18257739':{f:'plate/demo-esparg.js',g:'__DEMO_ESPARG'},'18241006':{f:'plate/demo-engarg.js',g:'__DEMO_ENGARG'}};
+  var pick = BAKES[q.get('match')] || BAKES['18257739'];   // /live carries no query — the current sealed programme is the default (repointed at cutover)
+  window.__REPLAY_BAKE = replay ? {match:(q.get('match')||'18257739'), global:pick.g} : null;
+  var b = replay ? pick.f : (q.get('demo')==='1' ? 'plate/demo-suicol.js' : null);
   if (b) document.write('<scr'+'ipt src="'+b+'"></scr'+'ipt>');
 })();
 </script>

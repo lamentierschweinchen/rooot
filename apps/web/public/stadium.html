@@ -372,7 +372,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
   var demo=q.get('demo')==='1';
   var replay=q.get('replay')==='1'||pn==='/live'||pn==='/loom';
   var srcs = demo   ? ['plate/demo-suicol.js','demo-feed.js','match-read.js','crowd-sim.js']
-           : replay ? ['plate/demo-engarg.js','demo-feed.js','match-read.js']
+           : replay ? [(function(){var B={'18257739':{f:'plate/demo-esparg.js',g:'__DEMO_ESPARG'},'18241006':{f:'plate/demo-engarg.js',g:'__DEMO_ENGARG'}};var p=B[q.get('match')]||B['18257739'];window.__REPLAY_BAKE={match:(q.get('match')||'18257739'),global:p.g};return p.f;})(),'demo-feed.js','match-read.js']
            :          ['match-read.js'];
   for(var i=0;i<srcs.length;i++) document.write('<scr'+'ipt src="'+srcs[i]+'"></scr'+'ipt>');
 })();

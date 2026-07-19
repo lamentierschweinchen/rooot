@@ -43,7 +43,10 @@ const MATCHDAY = [
   // rewatch. `replay` is the honest flag for that — matchday's lastSealed only
   // offers rewatchable nights.
   { id: '18257865', stage: 'THIRD PLACE', status: 'sealed', finalScore: { home: 4, away: 6 } },
-  { id: '18257739', stage: 'THE FINAL', status: 'upcoming' },
+  // sealed with the CORRECTED score: the first record was written at the 90'
+  // whistle and says 0-0; Spain won it 1-0 in extra time and the corrected,
+  // anchored record says so (docs/INCIDENT-jul19-premature-seal.md).
+  { id: '18257739', stage: 'THE FINAL', status: 'sealed', finalScore: { home: 1, away: 0 }, replay: true },
 ];
 
 // flag art filenames that differ from the team code (apps/web/public/plate/gens/flags/)
