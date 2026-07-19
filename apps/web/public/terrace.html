@@ -765,7 +765,6 @@ function showCab(){   // the walk-home stays reachable in EVERY branch (preserve
   var a=document.createElement('a'); a.className='cab'; a.href=cabHref(); a.textContent='→ in your cabinet';
   c.appendChild(a); c.hidden=false;
 }
-function assetUrl(asset){ return 'https://explorer.solana.com/address/'+encodeURIComponent(asset)+'?cluster=devnet'; }
 
 // COLLECT — instant and local (owner, 17 Jul: the account must never interrupt the
 // experience). One tap seals the keepsake on this device — no biometric, no network.
@@ -785,9 +784,8 @@ function offerMint(){
       skMint.dataset.busy=''; skMint.classList.remove('collecting');
       if(res && res.mint){
         skMint.dataset.done='1'; skMint.classList.add('done'); skMint.textContent='SAVED ✓';
-        var url=res.mint.asset?assetUrl(res.mint.asset):res.mint.txUrl;
-        chainMsg('<span class="live" style="animation:none"></span>yours on any device<br>'+
-          '<a href="'+url+'" target="_blank" rel="noopener">details ↗</a>',''); showCab();
+        // the cabinet is the destination, not a block explorer (owner, 19 Jul)
+        chainMsg('<span class="live" style="animation:none"></span>saved — yours on any device',''); showCab();
       } else {
         skMint.textContent='SAVE TO YOUR ACCOUNT · FACE ID';
         chainMsg('your seat is saved — your scarf is ready at full time.',''); showCab();
@@ -965,7 +963,7 @@ function wireLive(){
   if(PASS&&String(PASS.matchId)!==String(MATCH_ID))PASS=null;
   var sideKey=PASS&&PASS.side==='a'?'away':'home', other=sideKey==='home'?'away':'home';
   applyFixture(sideKey);
-  var f=el('foot'); if(f)f.textContent='live anonymous crowd · rooted counts, cheers, and predictions are real for this match';
+  var f=el('foot'); if(f)f.textContent='live crowd · counted as it happens';
   if(window.__stands&&!wireLive.didStands){
     wireLive.didStands=true;
     if(PASS&&PASS.side!=='n')window.__stands.root(sideKey);
@@ -1317,7 +1315,7 @@ if(LIVE&&window.__matchday)window.__matchday.ready.then(function(md){
     el('ctThem').textContent='—'; el('ctYou').textContent='—';   // sample figures never show on a sealed room; the socket's real counts overwrite
     var f1=el('faithYou'),f2=el('faithThem'); if(f1)f1.style.display='none'; if(f2)f2.style.display='none';
     el('taphint').textContent='TAP FOR YOUR CARD';
-    el('foot').textContent='the sealed match · every number is from the night';
+    el('foot').textContent='the sealed match · the night’s own numbers';
     // a returning fan's session CONTINUES their kept record — counters seed from it, so new
     // cheers/reactions add on top and a re-collect never wipes the night's history
     (function(){ var k=null; try{k=JSON.parse(localStorage.getItem('rooot.kept.'+MATCH_ID)||'null');}catch(e){}
