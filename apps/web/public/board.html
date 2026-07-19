@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ROOOT &mdash; the belief board</title>
+<meta name="description" content="What the crowd believed, against what the money believed. Four live World Cup match nights, measured: fan claims stamped against the live market price and resolved at the whistle.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#E6DBC2">
+<meta property="og:title" content="ROOOT &mdash; the belief board">
+<meta property="og:description" content="Every match produces two convictions. One is measured to the tick and sold. The other disappears at the whistle.">
+<meta property="og:image" content="https://rooot.club/og.jpg">
+<style>
+  @font-face{font-family:'Anybody';src:url('/plate/fonts/anybody.woff2') format('woff2');font-weight:400 700;font-display:swap}
+  @font-face{font-family:'Anybody';src:url('/plate/fonts/anybody900.woff2') format('woff2');font-weight:800 900;font-display:swap}
+  :root{
+    --paper:#E6DBC2;--card:#F3ECDB;--ink:#1A1815;--sub:#6F674D;--rule:#C9BFA4;
+    --gold:#C79A38;--verde:#2E6A4E;--red:#D52B1E;--amber:#E8B10A;--blue:#2049AA;
+    --disp:'Anybody',-apple-system,'Helvetica Neue',Arial,sans-serif;
+    --pad:clamp(20px,5vw,72px);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--paper);color:var(--ink);font-family:var(--disp);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  .num{font-variant-numeric:tabular-nums}
+  .bar{position:fixed;top:0;left:0;right:0;height:7px;display:flex;z-index:50}
+  .bar i{flex:1}.bar .v{background:var(--verde)}.bar .r{background:var(--red)}
+  .bar .a{background:var(--amber)}.bar .g{background:var(--gold)}
+  section{padding:clamp(54px,9vh,120px) var(--pad)}
+  .wrap{width:min(1120px,100%);margin:0 auto}
+  .rv{opacity:0;transform:translateY(26px);transition:opacity .75s cubic-bezier(.2,.6,.2,1),transform .75s cubic-bezier(.2,.6,.2,1)}
+  .rv.in{opacity:1;transform:none}
+  .rv.d1{transition-delay:.09s}.rv.d2{transition-delay:.18s}.rv.d3{transition-delay:.27s}
+  @media (prefers-reduced-motion:reduce){.rv{opacity:1;transform:none;transition:none}html{scroll-behavior:auto}}
+
+  .hero{position:relative;min-height:100svh;display:flex;flex-direction:column;justify-content:flex-end;
+    padding:0 var(--pad) clamp(38px,7vh,84px);background:#4A4536 url('/plate/gens/stadium-hero.jpg') center/cover no-repeat;overflow:hidden}
+  .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(26,24,21,.32) 0%,rgba(26,24,21,.10) 20%,rgba(26,24,21,.58) 52%,rgba(26,24,21,.90) 100%)}
+  .hero .wrap{position:relative;z-index:2;color:var(--card)}
+  .kick{font-weight:800;font-size:clamp(9px,1.1vw,11px);letter-spacing:.24em;color:var(--amber)}
+  h1{font-weight:900;font-size:clamp(34px,6.6vw,78px);line-height:.94;letter-spacing:.005em;margin-top:16px}
+  .dek{font-weight:700;font-size:clamp(14px,1.7vw,19px);line-height:1.55;margin-top:20px;max-width:60ch}
+  .cta{display:flex;gap:11px;flex-wrap:wrap;margin-top:26px}
+  .cta a{text-decoration:none;font-weight:900;font-size:clamp(10px,1.15vw,12px);letter-spacing:.14em;
+    padding:13px 18px;background:var(--card);color:var(--ink);border:2px solid var(--card)}
+  .cta a.o{background:transparent;color:var(--card)}
+
+  .eyebrow{font-weight:800;font-size:10px;letter-spacing:.22em;color:var(--sub)}
+  h2{font-weight:900;font-size:clamp(23px,3.5vw,42px);line-height:1.06;margin-top:12px;max-width:22ch}
+  .lede{font-weight:700;font-size:clamp(14px,1.6vw,18px);line-height:1.6;margin-top:16px;max-width:66ch;color:var(--sub)}
+  .rule{height:2.5px;background:var(--ink);margin-top:26px}
+
+  .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:26px}
+  .card{background:var(--card);border:2px solid var(--ink);box-shadow:6px 6px 0 rgba(26,24,21,.18);padding:20px 21px}
+  .card h3{font-weight:900;font-size:12px;letter-spacing:.15em;color:var(--gold)}
+  .card p{font-weight:700;font-size:14px;line-height:1.62;margin-top:11px}
+  .card p i{font-style:italic}
+  .fact{margin-top:14px;padding-top:13px;border-top:1.5px dashed var(--rule);font-weight:700;font-size:13.5px;line-height:1.6}
+  .fact b{font-weight:900}
+
+  .strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:0;margin-top:26px;
+    border:2px solid var(--ink);background:var(--card);box-shadow:6px 6px 0 rgba(26,24,21,.18)}
+  .strip div{padding:18px 19px;border-left:1.5px solid var(--rule)}
+  .strip div:first-child{border-left:0}
+  .strip .n{font-weight:900;font-size:clamp(26px,3.4vw,38px);line-height:1}
+  .strip .l{font-weight:800;font-size:9px;letter-spacing:.14em;color:var(--sub);margin-top:8px;line-height:1.5}
+
+  .panel{background:var(--card);border:2px solid var(--ink);box-shadow:6px 6px 0 rgba(26,24,21,.18);padding:22px 23px}
+  .panel h3{font-weight:900;font-size:14px;letter-spacing:.12em}
+  .panel .sub{font-weight:700;font-size:12px;color:var(--sub);margin-top:7px;line-height:1.55;max-width:60ch}
+  .panel svg{display:block;width:100%;height:auto;margin-top:16px;overflow:visible}
+  .two{display:grid;grid-template-columns:1.32fr 1fr;gap:16px;margin-top:26px}
+  .two.flip{grid-template-columns:1fr 1.32fr}
+  @media(max-width:880px){.two,.two.flip{grid-template-columns:1fr}}
+  .tag{display:inline-block;font-weight:900;font-size:8.5px;letter-spacing:.15em;padding:4px 8px;
+    border:1.5px solid var(--sub);color:var(--sub);margin-left:10px;vertical-align:middle}
+  .tag.e{border-style:dashed;border-color:var(--gold);color:#8a6a1e}
+  .ex{border-style:dashed}
+  .rows{margin-top:14px}
+  .row{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-top:1.5px solid var(--rule);font-weight:700;font-size:13px}
+  .row:first-child{border-top:0}
+  .row .k{color:var(--sub);font-weight:800;font-size:10px;letter-spacing:.11em;padding-top:3px}
+  .row .v{font-weight:900;text-align:right}
+  .links{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;margin-top:26px}
+  .links a{background:var(--card);border:2px solid var(--ink);box-shadow:6px 6px 0 rgba(26,24,21,.18);
+    padding:19px 20px;text-decoration:none;color:var(--ink);display:block;transition:transform .18s,box-shadow .18s}
+  .links a:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 rgba(26,24,21,.22)}
+  .links .t{font-weight:900;font-size:14px}
+  .links .d{font-weight:700;font-size:11.5px;color:var(--sub);margin-top:7px;line-height:1.55}
+  footer{padding:34px var(--pad) 46px;border-top:2.5px solid var(--ink);display:flex;justify-content:space-between;
+    gap:16px;flex-wrap:wrap;font-weight:800;font-size:9.5px;letter-spacing:.15em;color:var(--sub)}
+  a:focus-visible,.links a:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+</style>
+</head>
+<body>
+<div class="bar"><i class="v"></i><i class="r"></i><i class="a"></i><i class="g"></i></div>
+
+<div class="hero">
+  <div class="wrap">
+    <p class="kick rv">ROOOT &middot; THE BELIEF BOARD</p>
+    <h1 class="rv d1">What the crowd believed,<br>against what the money believed.</h1>
+    <p class="dek rv d2">ROOOT is a free live match companion. Pick an end, call the score, cheer, predict in
+      play. Every call is stamped with the live de-vigged market price at that second and resolved at the
+      whistle. It ran live through the 2026 World Cup.</p>
+    <div class="cta rv d3">
+      <a href="/">OPEN THE LIVE PRODUCT</a>
+      <a class="o" href="/demo">WALKTHROUGH</a>
+      <a class="o" href="/features">WHAT IT COLLECTS</a>
+    </div>
+  </div>
+</div>
+
+<section>
+  <div class="wrap">
+    <div class="cols">
+      <div class="card rv"><h3>WHAT IT IS</h3><p>A live match companion on your phone. Free, no account,
+        no wallet, no download. The stands, from your couch.</p></div>
+      <div class="card rv d1"><h3>WHAT IT DOES</h3><p>Turns fan opinion into measurement: side, scoreline,
+        conviction and in-play calls, each stamped against the market price and settled by the wire.</p></div>
+      <div class="card rv d2"><h3>WHO IT IS FOR</h3><p>Fans, free and forever. Then broadcasters, sponsors and
+        sports-data companies, who own the market half of that ledger and can buy the fan half nowhere.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="eyebrow rv">01 &middot; THE ASYMMETRY</p>
+    <h2 class="rv">Every match produces two convictions. One is sold. The other disappears.</h2>
+    <p class="lede rv d1">The money's belief is measured to the tick and licensed by a $2.13bn industry.
+      The crowd's is gone at the whistle.</p>
+    <div class="rule rv d1"></div>
+    <div class="cols">
+      <div class="card rv"><h3>THE MEASURED HALF</h3>
+        <p>Sportradar took &euro;1.29bn in FY2025, Genius Sports $669.5m. Every tick of the market's opinion is
+        captured, archived and licensed to sportsbooks, leagues and broadcasters.</p>
+        <div class="fact">Sportradar spent <b>&euro;404.3m</b> on sport rights last year &mdash; more than its
+        entire payroll. Genius carries <b>$1.51bn</b> in contracted future rights, 2.26&times; annual revenue.</div></div>
+      <div class="card rv d1"><h3>THE MISSING HALF</h3>
+        <p>What stands in for crowd belief today is scraped social noise, pre-match polls that stop at kickoff,
+        and betting flow &mdash; which only sees people who staked, only after they staked, and only at one book.</p>
+        <div class="fact">Nobody can say what a crowd believed at the <b>89th minute</b>.</div></div>
+      <div class="card rv d2"><h3>WHY NOBODY HAS IT</h3>
+        <p>The apps holding fan predictions can't sell them. Sofascore: <i>"due to agreements with our data
+        providers, we are unable to share the data sources."</i> Sportradar's media addendum bars customers from
+        creating <i>"any new or derivative data points, whatsoever."</i></p>
+        <div class="fact">And a business that converts opinion into a wager can't sell that opinion as an
+        independent measurement.</div></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="eyebrow rv">02 &middot; FOUR LIVE NIGHTS, MEASURED</p>
+    <h2 class="rv">Real matches, real fans, real odds.</h2>
+    <p class="lede rv d1">Every figure below regenerates from a committed capture with one command.</p>
+    <div class="strip rv d1">
+      <div><div class="n num">10,891</div><div class="l">MARKET TICKS DE-VIGGED &amp; STAMPED</div></div>
+      <div><div class="n num">34</div><div class="l">SWINGS OF 6PT OR MORE</div></div>
+      <div><div class="n num">19</div><div class="l">GOALS RESOLVED AGAINST CLAIMS</div></div>
+      <div><div class="n num">+57.0<span style="font-size:62%">pt</span></div><div class="l">MEAN GAP: FANS ABOVE THE MARKET ON THEIR OWN SIDE</div></div>
+      <div><div class="n num">3</div><div class="l">RECORDS SEALED ON-CHAIN AT THE WHISTLE</div></div>
+    </div>
+
+    <div class="two">
+      <div class="panel rv">
+        <h3>THE MARKET MOVES. THE CROWD IS LOCKED.</h3>
+        <div class="sub">England&ndash;Argentina, the semifinal. Argentina's de-vigged price through the match,
+          against the crowd's call, fixed at kickoff.</div>
+        <svg viewBox="0 0 920 320" role="img" aria-label="Argentina's market price against the crowd's locked call">
+          <line x1="46" y1="282.0" x2="902" y2="282.0" stroke="#C9BFA4" stroke-width="1"/><text x="38" y="286.0" fill="#6F674D" font-size="11" font-weight="800" text-anchor="end">0</text><line x1="46" y1="220.0" x2="902" y2="220.0" stroke="#C9BFA4" stroke-width="1"/><text x="38" y="224.0" fill="#6F674D" font-size="11" font-weight="800" text-anchor="end">25</text><line x1="46" y1="158.0" x2="902" y2="158.0" stroke="#C9BFA4" stroke-width="1"/><text x="38" y="162.0" fill="#6F674D" font-size="11" font-weight="800" text-anchor="end">50</text><line x1="46" y1="96.0" x2="902" y2="96.0" stroke="#C9BFA4" stroke-width="1"/><text x="38" y="100.0" fill="#6F674D" font-size="11" font-weight="800" text-anchor="end">75</text><line x1="46" y1="34.0" x2="902" y2="34.0" stroke="#C9BFA4" stroke-width="1"/><text x="38" y="38.0" fill="#6F674D" font-size="11" font-weight="800" text-anchor="end">100</text><line x1="503.7" y1="34" x2="503.7" y2="282" stroke="#C9BFA4" stroke-width="1" stroke-dasharray="3 4"/><circle cx="503.7" cy="265.1" r="5" fill="#C79A38" stroke="#1A1815" stroke-width="1.6"/><text x="503.7" y="298" fill="#6F674D" font-size="10.5" font-weight="800" text-anchor="middle">54&#8242; ENG</text><line x1="757.9" y1="34" x2="757.9" y2="282" stroke="#C9BFA4" stroke-width="1" stroke-dasharray="3 4"/><circle cx="757.9" cy="245.0" r="5" fill="#C79A38" stroke="#1A1815" stroke-width="1.6"/><text x="757.9" y="298" fill="#6F674D" font-size="10.5" font-weight="800" text-anchor="middle">84&#8242; ARG</text><line x1="817.2" y1="34" x2="817.2" y2="282" stroke="#C9BFA4" stroke-width="1" stroke-dasharray="3 4"/><circle cx="817.2" cy="65.7" r="5" fill="#C79A38" stroke="#1A1815" stroke-width="1.6"/><text x="817.2" y="298" fill="#6F674D" font-size="10.5" font-weight="800" text-anchor="middle">91&#8242; ARG</text>
+          <path d="M 46.0 34.0 L 902.0 34.0" stroke="#D52B1E" stroke-width="2.6" fill="none" stroke-dasharray="8 5"/>
+          <text x="54.475247524752476" y="23.0" fill="#D52B1E" font-size="11.5" font-weight="900">THE CROWD &mdash; ENGLAND 100%, n=1</text>
+          <path d="M 46.0 204.9 L 359.6 216.8 L 478.2 220.5 L 503.7 265.1 L 546.0 258.9 L 757.9 267.6 L 757.9 231.4 L 757.9 245.0 L 817.2 249.8 L 817.2 65.7 L 876.6 49.6 L 902.0 42.9" stroke="#2049AA" stroke-width="3.2" fill="none" stroke-linejoin="round"/>
+          <text x="520.6138613861386" y="252.13599999999997" fill="#2049AA" font-size="11.5" font-weight="900">THE MARKET &mdash; ARGENTINA</text>
+          <text x="38" y="21" fill="#6F674D" font-size="10" font-weight="800" text-anchor="end">%</text>
+          <text x="902" y="298" fill="#6F674D" font-size="10.5" font-weight="800" text-anchor="end">MINUTE</text>
+        </svg>
+        <div class="fact">Argentina opened at <b>31.1%</b> and closed at <b>96.4%</b>, through <b>28 lead
+          changes</b> and a <b>+74.2pt</b> jump on the 91&#8242; winner.</div>
+      </div>
+      <div class="panel rv d1">
+        <h3>FANS BACK THEIR OWN SIDE</h3>
+        <div class="sub">Each end's own-win share minus the market's price for that side at kickoff.</div>
+        <svg viewBox="0 0 560 260" role="img" aria-label="Optimism gap by fanbase"><text x="154" y="29" fill="#1A1815" font-size="15.5" font-weight="900" text-anchor="end">MOROCCO</text><text x="154" y="44" fill="#8C8467" font-size="11" font-weight="800" text-anchor="end">n=3</text><rect x="168.0" y="14" width="222.8" height="28" fill="#D52B1E"/><text x="400.8" y="34" fill="#1A1815" font-size="15.5" font-weight="900" text-anchor="start">+85.7pt</text><text x="154" y="81" fill="#1A1815" font-size="15.5" font-weight="900" text-anchor="end">ENGLAND</text><text x="154" y="96" fill="#8C8467" font-size="11" font-weight="800" text-anchor="end">n=1</text><rect x="168.0" y="66" width="168.0" height="28" fill="#2049AA"/><text x="346.0" y="86" fill="#1A1815" font-size="15.5" font-weight="900" text-anchor="start">+64.6pt</text><text x="154" y="133" fill="#1A1815" font-size="15.5" font-weight="900" text-anchor="end">SPAIN</text><text x="154" y="148" fill="#8C8467" font-size="11" font-weight="800" text-anchor="end">n=3</text><rect x="168.0" y="118" width="102.4" height="28" fill="#C79A38"/><text x="280.4" y="138" fill="#1A1815" font-size="15.5" font-weight="900" text-anchor="start">+39.4pt</text><text x="154" y="185" fill="#1A1815" font-size="15.5" font-weight="900" text-anchor="end">FRANCE</text><text x="154" y="200" fill="#8C8467" font-size="11" font-weight="800" text-anchor="end">n=2</text><rect x="168.0" y="170" width="99.6" height="28" fill="#2E6A4E"/><text x="277.6" y="190" fill="#1A1815" font-size="15.5" font-weight="900" text-anchor="start">+38.3pt</text><text x="116" y="237" fill="#1A1815" font-size="15.5" font-weight="900" text-anchor="end">BELGIUM</text><text x="116" y="252" fill="#8C8467" font-size="11" font-weight="800" text-anchor="end">n=1</text><rect x="126.1" y="222" width="41.9" height="28" fill="#8C8467"/><text x="178.0" y="242" fill="#1A1815" font-size="15.5" font-weight="900" text-anchor="start">-16.1pt</text><line x1="168" y1="0" x2="168" y2="260" stroke="#1A1815" stroke-width="2"/></svg>
+        <div class="fact">Four fanbases called their own side higher than the market did, by <b>+57.0pt</b> on
+          average. Belgium's end called a draw &mdash; and Belgium lost.</div>
+      </div>
+    </div>
+
+    <div class="two flip">
+      <div class="panel rv">
+        <h3>ONE NIGHT'S COLLECTION</h3>
+        <div class="sub">France&ndash;England, 18 July.</div>
+        <div class="rows">
+          <div class="row"><span class="k">FANS PRESENT</span><span class="v num">7</span></div>
+          <div class="row"><span class="k">CHEERS GRANTED</span><span class="v num">9</span></div>
+          <div class="row"><span class="k">WATCH-MINUTES</span><span class="v num">10</span></div>
+          <div class="row"><span class="k">ARRIVAL WAVES</span><span class="v num">5</span></div>
+          <div class="row"><span class="k">ROAR SAMPLES</span><span class="v num">27</span></div>
+        </div>
+        <div class="fact">The <b>27 roar samples</b> are the per-minute curve three further statistics need.</div>
+      </div>
+      <div class="panel rv d1">
+        <h3>HOW WILD THE NIGHT WAS</h3>
+        <div class="sub">Total tick-to-tick movement across the whole belief curve.</div>
+        <svg viewBox="0 0 780 208" role="img" aria-label="Volatility by match"><text x="0" y="19" fill="#1A1815" font-size="13.5" font-weight="900">FRA 2&ndash;0 MAR</text><rect x="0" y="26" width="89.6" height="16" fill="#C79A38" stroke="#1A1815" stroke-width="1"/><text x="100.6" y="39" fill="#1A1815" font-size="13" font-weight="900">2.66</text><text x="780" y="19" fill="#6F674D" font-size="10.5" font-weight="800" text-anchor="end">0 lead changes &middot; 401 ticks</text><text x="0" y="71" fill="#1A1815" font-size="13.5" font-weight="900">ESP 2&ndash;1 BEL</text><rect x="0" y="78" width="288.1" height="16" fill="#C79A38" stroke="#1A1815" stroke-width="1"/><text x="299.1" y="91" fill="#1A1815" font-size="13" font-weight="900">8.55</text><text x="780" y="71" fill="#6F674D" font-size="10.5" font-weight="800" text-anchor="end">10 lead changes &middot; 3,678 ticks</text><text x="0" y="123" fill="#1A1815" font-size="13.5" font-weight="900">FRA 4&ndash;6 ENG</text><rect x="0" y="130" width="311.0" height="16" fill="#C79A38" stroke="#1A1815" stroke-width="1"/><text x="322.0" y="143" fill="#1A1815" font-size="13" font-weight="900">9.23</text><text x="780" y="123" fill="#6F674D" font-size="10.5" font-weight="800" text-anchor="end">11 lead changes &middot; 3,292 ticks</text><text x="0" y="175" fill="#1A1815" font-size="13.5" font-weight="900">ENG 1&ndash;2 ARG</text><rect x="0" y="182" width="340.0" height="16" fill="#C79A38" stroke="#1A1815" stroke-width="1"/><text x="351.0" y="195" fill="#1A1815" font-size="13" font-weight="900">10.09</text><text x="780" y="175" fill="#6F674D" font-size="10.5" font-weight="800" text-anchor="end">28 lead changes &middot; 3,520 ticks</text></svg>
+        <div class="fact">The semifinal churned <b>four times</b> harder than the premiere and changed
+          favourite <b>28 times</b>.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="eyebrow rv">03 &middot; WHO PAYS, AND FOR WHAT</p>
+    <h2 class="rv">Measurement sells first. The trading test comes next.</h2>
+    <div class="rule rv d1"></div>
+    <div class="cols">
+      <div class="card rv"><h3>BROADCASTERS &amp; SPONSORS</h3>
+        <p>In-play graphics run on odds alone today. The gap is a story: the market gives Argentina 96%, and
+        Argentina's end still isn't sure. For sponsors it is consented audience measurement of the fans who
+        never bet.</p>
+        <div class="fact">Sold as a content and audience licence. No gambling adjacency.</div></div>
+      <div class="card rv d1"><h3>SPORTS-DATA COMPANIES</h3>
+        <p>A new product line with no rights fee, down a pipe that already reaches every trading floor. Rights
+        are the industry's biggest cost; this data is generated by its own users, so there is no league to
+        outbid and no exclusivity to renew.</p>
+        <div class="fact">The barrier to copying it is building a consumer product fans love first.</div></div>
+      <div class="card rv d2"><h3>TRADING DESKS<span class="tag">NEXT</span></h3>
+        <p>Bet flow only sees people who staked. The fans who never bet are invisible to it, and they are the
+        majority of any crowd. Whether that cohort's belief carries information on top of the de-vigged price
+        is the question we are set up to answer.</p>
+        <div class="fact">The test: one fixture at <b>n&ge;5,000</b>, a point-in-time claim file, out-of-sample
+        Brier score with the crowd term lagged.</div></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="eyebrow rv">04 &middot; WHAT MORE CROWD PRODUCES</p>
+    <h2 class="rv">These need volume, not new features.</h2>
+    <p class="lede rv d1">Drawn here as examples.</p>
+    <div class="two flip">
+      <div class="panel ex rv">
+        <h3>FANBASE FINGERPRINT<span class="tag e">EXAMPLE</span></h3>
+        <div class="sub">A season of nights gives each fanbase a signature that accrues instead of resetting.</div>
+        <svg viewBox="0 0 300 220" role="img" aria-label="Example fanbase fingerprint">
+          <g fill="none" stroke="#C9BFA4" stroke-width="1.5"><polygon points="150,28 262,93 219,198 81,198 38,93"/>
+            <polygon points="150,66 206,98 184,151 116,151 94,98"/></g>
+          <polygon points="150,40 240,88 196,186 104,174 66,100" fill="#2049AA" fill-opacity=".26" stroke="#2049AA" stroke-width="2.4"/>
+          <polygon points="150,80 196,100 176,158 122,163 104,104" fill="#D52B1E" fill-opacity=".24" stroke="#D52B1E" stroke-width="2.4"/>
+          <g fill="#6F674D" font-size="9.5" font-weight="800" text-anchor="middle">
+            <text x="150" y="17">OPTIMISM</text><text x="276" y="94">FORESIGHT</text><text x="226" y="214">LOYALTY</text>
+            <text x="72" y="214">VOLATILITY</text><text x="24" y="94">DOUBT</text></g></svg>
+        <div class="fact">One fanbase runs hot and wrong, another cold and sharp. That comparison is the
+          sellable unit.</div>
+      </div>
+      <div class="panel ex rv d1">
+        <h3>DIVERGENCE BY MINUTE<span class="tag e">EXAMPLE</span></h3>
+        <div class="sub">With thousands of fans per end, the gap becomes a live series instead of one number
+          per match.</div>
+        <svg viewBox="0 0 660 170" role="img" aria-label="Example divergence heatmap"><g><rect x="86" y="0" width="61" height="45" fill="#2E6A4E" fill-opacity="0.16" stroke="#E6DBC2" stroke-width="1"/><rect x="150" y="0" width="61" height="45" fill="#D52B1E" fill-opacity="0.61" stroke="#E6DBC2" stroke-width="1"/><rect x="214" y="0" width="61" height="45" fill="#C79A38" fill-opacity="0.25" stroke="#E6DBC2" stroke-width="1"/><rect x="278" y="0" width="61" height="45" fill="#2049AA" fill-opacity="0.71" stroke="#E6DBC2" stroke-width="1"/><rect x="342" y="0" width="61" height="45" fill="#2E6A4E" fill-opacity="0.34" stroke="#E6DBC2" stroke-width="1"/><rect x="406" y="0" width="61" height="45" fill="#D52B1E" fill-opacity="0.80" stroke="#E6DBC2" stroke-width="1"/><rect x="470" y="0" width="61" height="45" fill="#C79A38" fill-opacity="0.43" stroke="#E6DBC2" stroke-width="1"/><rect x="534" y="0" width="61" height="45" fill="#2049AA" fill-opacity="0.89" stroke="#E6DBC2" stroke-width="1"/><rect x="598" y="0" width="61" height="45" fill="#2E6A4E" fill-opacity="0.52" stroke="#E6DBC2" stroke-width="1"/><rect x="86" y="48" width="61" height="45" fill="#D52B1E" fill-opacity="0.80" stroke="#E6DBC2" stroke-width="1"/><rect x="150" y="48" width="61" height="45" fill="#C79A38" fill-opacity="0.43" stroke="#E6DBC2" stroke-width="1"/><rect x="214" y="48" width="61" height="45" fill="#2049AA" fill-opacity="0.89" stroke="#E6DBC2" stroke-width="1"/><rect x="278" y="48" width="61" height="45" fill="#2E6A4E" fill-opacity="0.52" stroke="#E6DBC2" stroke-width="1"/><rect x="342" y="48" width="61" height="45" fill="#D52B1E" fill-opacity="0.16" stroke="#E6DBC2" stroke-width="1"/><rect x="406" y="48" width="61" height="45" fill="#C79A38" fill-opacity="0.61" stroke="#E6DBC2" stroke-width="1"/><rect x="470" y="48" width="61" height="45" fill="#2049AA" fill-opacity="0.25" stroke="#E6DBC2" stroke-width="1"/><rect x="534" y="48" width="61" height="45" fill="#2E6A4E" fill-opacity="0.71" stroke="#E6DBC2" stroke-width="1"/><rect x="598" y="48" width="61" height="45" fill="#D52B1E" fill-opacity="0.34" stroke="#E6DBC2" stroke-width="1"/><rect x="86" y="96" width="61" height="45" fill="#C79A38" fill-opacity="0.61" stroke="#E6DBC2" stroke-width="1"/><rect x="150" y="96" width="61" height="45" fill="#2049AA" fill-opacity="0.25" stroke="#E6DBC2" stroke-width="1"/><rect x="214" y="96" width="61" height="45" fill="#2E6A4E" fill-opacity="0.71" stroke="#E6DBC2" stroke-width="1"/><rect x="278" y="96" width="61" height="45" fill="#D52B1E" fill-opacity="0.34" stroke="#E6DBC2" stroke-width="1"/><rect x="342" y="96" width="61" height="45" fill="#C79A38" fill-opacity="0.80" stroke="#E6DBC2" stroke-width="1"/><rect x="406" y="96" width="61" height="45" fill="#2049AA" fill-opacity="0.43" stroke="#E6DBC2" stroke-width="1"/><rect x="470" y="96" width="61" height="45" fill="#2E6A4E" fill-opacity="0.89" stroke="#E6DBC2" stroke-width="1"/><rect x="534" y="96" width="61" height="45" fill="#D52B1E" fill-opacity="0.52" stroke="#E6DBC2" stroke-width="1"/><rect x="598" y="96" width="61" height="45" fill="#C79A38" fill-opacity="0.16" stroke="#E6DBC2" stroke-width="1"/></g>
+          <g fill="#1A1815" font-size="11" font-weight="900"><text x="0" y="30">HOME</text><text x="0" y="78">AWAY</text><text x="0" y="126">NEUTRAL</text></g>
+          <g fill="#6F674D" font-size="9.5" font-weight="800" text-anchor="middle"><text x="116" y="160">0&#8242;</text><text x="180" y="160">10&#8242;</text><text x="244" y="160">20&#8242;</text><text x="308" y="160">30&#8242;</text><text x="372" y="160">40&#8242;</text><text x="436" y="160">50&#8242;</text><text x="500" y="160">60&#8242;</text><text x="564" y="160">70&#8242;</text><text x="628" y="160">80&#8242;</text></g></svg>
+        <div class="fact">A broadcaster can cut to it live: the Argentina end stopped believing at 63&#8242;,
+          eleven minutes before the price did.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="eyebrow rv">05 &middot; THE RECEIPTS</p>
+    <h2 class="rv">Each match seals into one record, written before the result is known.</h2>
+    <div class="rule rv d1"></div>
+    <div class="two">
+      <div class="panel rv"><h3>THE SEALS</h3>
+        <div class="rows">
+          <div class="row"><span class="k">FRA 4&ndash;6 ENG &middot; 18 JUL</span><span class="v num" style="color:var(--verde)">8a1cac7d&hellip; LIVE ON DEVNET</span></div>
+          <div class="row"><span class="k">ENG 1&ndash;2 ARG &middot; 15 JUL</span><span class="v num">de9c9ea4&hellip;</span></div>
+          <div class="row"><span class="k">ESP 2&ndash;1 BEL &middot; 10 JUL</span><span class="v num">1a3e5763&hellip;</span></div>
+        </div>
+        <div class="fact">Every hash regenerates from its capture:
+          <span class="num">node scripts/night-report.mjs &lt;capture&gt;</span>.
+          <a href="https://explorer.solana.com/tx/44KB7EXGB17uo6L1X1FyJCAt7eopkooprwjaZwzP1YJBDREEXJxr9De9H6kYzas8pjohvy1FSSYKspTJncPh8tYz?cluster=devnet" style="color:#8a6a1e">Open the live one &rarr;</a></div></div>
+      <div class="panel rv d1"><h3>WHAT RUNS</h3>
+        <div class="rows">
+          <div class="row"><span class="k">SURFACES</span><span class="v">Seven, live on rooot.club</span></div>
+          <div class="row"><span class="k">INGEST</span><span class="v">One service, TxLINE odds + scores</span></div>
+          <div class="row"><span class="k">RELEASE GATE</span><span class="v">Two-browser canary, 14 checks</span></div>
+          <div class="row"><span class="k">REPLAY</span><span class="v">Recorded matches, live parser</span></div>
+          <div class="row"><span class="k">CHAIN</span><span class="v">Solana devnet. No token, no wager</span></div>
+          <div class="row"><span class="k">BUILT BY</span><span class="v">One person and a fleet of agents</span></div>
+        </div>
+        <div class="fact">Four live match nights operated end to end &mdash; capture, stamp, resolve, seal.</div></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="eyebrow rv">06 &middot; SEE FOR YOURSELF</p>
+    <h2 class="rv">Open it.</h2>
+    <div class="links">
+      <a class="rv" href="/"><div class="t">The live product &rarr;</div><div class="d">Free, no account. Opens on the last sealed match.</div></a>
+      <a class="rv d1" href="/demo"><div class="t">The walkthrough &rarr;</div><div class="d">Every room, on a recorded real match. No server, no sign-up.</div></a>
+      <a class="rv d2" href="/features"><div class="t">What it collects &rarr;</div><div class="d">Every mechanism, what it produces, what is stored.</div></a>
+      <a class="rv" href="https://github.com/lamentierschweinchen/rooot"><div class="t">The repository &rarr;</div><div class="d">Seven surfaces, one ingest service, the release canary.</div></a>
+      <a class="rv d1" href="https://github.com/lamentierschweinchen/rooot/tree/main/docs/night-reports"><div class="t">The night reports &rarr;</div><div class="d">One per live match, with the numbers on this page.</div></a>
+      <a class="rv d2" href="https://explorer.solana.com/tx/44KB7EXGB17uo6L1X1FyJCAt7eopkooprwjaZwzP1YJBDREEXJxr9De9H6kYzas8pjohvy1FSSYKspTJncPh8tYz?cluster=devnet"><div class="t">The seal, on-chain &rarr;</div><div class="d">A match record's hash in a devnet memo, written at the whistle.</div></a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span>ROOOT &middot; &rsquo;26</span>
+  <span>DASHED PANELS ARE EXAMPLES &middot; EVERYTHING ELSE IS MEASURED</span>
+  <span>BUILT ON TXLINE &middot; SOLANA DEVNET</span>
+</footer>
+
+<script>
+(function(){
+  var io=new IntersectionObserver(function(es){
+    es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+  },{rootMargin:'0px 0px -8% 0px',threshold:.08});
+  document.querySelectorAll('.rv').forEach(function(el){io.observe(el);});
+})();
+</script>
+</body>
+</html>

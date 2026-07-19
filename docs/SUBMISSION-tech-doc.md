@@ -1,155 +1,239 @@
-# ROOOT — Technical Submission
+# ROOOT — Technical Documentation
 
-*TxODDS World Cup Hackathon on Solana · Consumer & Fan Experiences · live at [rooot.club](https://rooot.club) · updated 2026-07-18*
+*TxODDS World Cup Hackathon · Consumer & Fan Experiences · 2026-07-19*
 
-> **For judges, in one breath:** live product (no account needed): [rooot.club](https://rooot.club) ·
-> guided path: [rooot.club/demo](https://rooot.club/demo). Against your criteria —
-> **Fan Accessibility & UX:** free, walletless, phone-first; a passkey only at the
-> moment of keeping. **Real-Time Responsiveness:** woven live from TxLINE SSE;
-> operated on real live match nights during this tournament, postmortems in-repo.
-> **Originality:** we don't repackage the feed — we measure fan belief against it,
-> second by second (the SentimentRecord). **Commercial path:** §"The data product"
-> below — belief before the slip, per fanbase. **Completeness:** the full loop
-> ships — gate → live match → collect → cabinet, with the World Cup final sealed
-> inside.
+| | |
+|---|---|
+| Live product | [rooot.club](https://rooot.club) — free, no account, no wallet |
+| The case in one page | [rooot.club/board](https://rooot.club/board) |
+| Guided walkthrough (no server) | [rooot.club/demo](https://rooot.club/demo) |
+| What it collects, per mechanism | [rooot.club/features](https://rooot.club/features) |
+| Data source | TxLINE (odds + scores SSE), Solana devnet |
 
-*The thesis, in seven articles: [The Missing Feed](pitch/MANIFESTO.md).*
+## 1 · Overview
 
-## What ROOOT is
+ROOOT is a live match companion. A fan picks an end, calls a scoreline with a
+conviction level, cheers, and predicts in play ("which end scores next"). Each
+claim is stamped server-side with TxLINE's de-vigged market price at the moment
+it is made, resolved against the wire at full time, and written into one
+per-match record whose hash is anchored on Solana devnet.
 
-ROOOT is a free live companion for a World Cup match: pick an end, predict the score, cheer with your end, and keep what you lived — with the betting market's live belief rendered honestly beside the crowd's. It runs on TxLINE's real-time odds and scores (de-vigged win probabilities, Merkle-anchored by TxODDS on Solana) and produces a dataset nobody else has: what real fans believed, stamped against what the market believed at that second, resolved by what actually happened. There is no token and no wager; the chain is used for provenance, commitment, and settlement of the fan's record, on devnet throughout.
+The output is a dataset: per fanbase, what was believed, against the market price
+at that second, resolved by result. No token, no wager, no stake.
 
-## The thesis, with the real numbers: BET vs BELIEVE vs HAPPEN
+## 2 · Architecture
 
-The market's number (BET), the crowd's belief (BELIEVE), and the result (HAPPEN) are three different things, and the gaps between them are the product (`docs/SENTIMENT.md`): the optimism gap (BELIEVE − BET), foresight (BELIEVE − HAPPEN), and the upset (BET − HAPPEN). ROOOT has now measured these on three real matches with real fans — including the England–Argentina semifinal.
-
-**July 9 — France 2–0 Morocco (fixture 18209181), the premiere.** Five fans entered, rooted, and locked score predictions before kickoff. The market opened France 61.7% / draw 24.1% / Morocco 14.3%. The crowd gave Morocco a 60% outcome share — a **+45.7 percentage-point heart-versus-market gap** on the Morocco side (`docs/POSTMORTEM-fra-mar-2026-07-09.md`). Per end: France rooters were +38.3pt more optimistic than the market, Morocco rooters +85.7pt (`docs/night-reports/18209181.md` §1). The market was right and the crowd was wrong — which is exactly the point: the gap is a real, measurable signal either way, and five fans were enough to produce it.
-
-**July 10 — Spain 2–1 Belgium (fixture 18218149).** Eleven fans picked an end at lock (6 ESP / 5 BEL); four also locked a scoreline. The market opened Spain 60.6%. The Spain end ran a **+39.4pt optimism gap**; the crowd's modal prediction was **2–1 — the exact final score**, against a market that priced Spain at 60.6% at kickoff, for a market-improbability-weighted Foresight Alpha of 0.394 (`docs/night-reports/18218149.md` §1, §3). The single Belgium-end fan predicted a draw for their own side — a doubter, and the doubt was vindicated (§2). The belief curve itself was wild: 10 lead changes, 9 swings past 6pt, and a +65.9pt swing at the 87th-minute winner (§10). At the final whistle the service crystallized the match's SentimentRecord and anchored its hash on Solana devnet (transaction in §"What's on-chain" below).
-
-**July 15 — England 1–2 Argentina (fixture 18241006), the semifinal.** The third live capture, now the sealed programme the site opens on between matches: full recovered team sheets and named events (Gordon 54' · Fernández 84' · Martínez 91'), the market's journey printed plainly (ARG 31.2% at kickoff → 96.4% at the whistle; ENG −35pt · DRAW −30pt · ARG +65pt since kickoff), the night's crowd record on the plates (rooted 4–0, roar 149.6–0, the crowd called it wrong), and its SentimentRecord crystallized and anchored (`docs/night-reports/18241006.md`).
-
-Both early samples are tiny and every report labels them so ("n=5 — an anecdote, honestly labeled, not a dataset"). The claim is not statistical significance; it is that the full pipeline — capture, stamp against the market, resolve against the wire, persist, anchor — works on real matches with real people, three times, and produced a legible proprietary signal each time. **Two fixtures remain, and both run live:** the third-place match (FRA–ENG, Jul 18 21:00 UTC) and the final (ESP–ARG, Jul 19 19:00 UTC) — the final ends roughly three hours before this hackathon's deadline, so the submitted site carries the actual World Cup final, sealed.
-
-## Architecture
-
-One server, two buses. The market and the crowd travel as separate message families end to end, and meet only on screen, visibly distinct.
+One service, two message buses. Market data and crowd data are separate
+contracts end to end and are never converted into each other.
 
 ```
-TxLINE SSE  /api/odds/stream + /api/scores/stream          (or fixtures/*.jsonl replay,
-     │                                                      same parser, first-class)
-     │  contracts/normalize.ts — de-vig, participant-order truth latch,
-     │  the full 13-rung StatusId ladder, spells, ledger events
+TxLINE SSE  /api/odds/stream + /api/scores/stream        (or fixtures/*.jsonl replay,
+     │                                                    same parser)
+     │  contracts/normalize.ts — de-vig · participant-order latch ·
+     │  13-rung StatusId ladder · pressure spells · ledger events
      ▼
-services/stands — one Node process on Fly.io (app rooot-stands)
-     ├── FEED BUS   contracts/feed.ts   market ticks · score · status · pressure spells · ledger
-     ├── CROWD BUS  contracts/crowd.ts  root · predict · cheer (rate-decayed counts) · moments ·
-     │                                  side-aware verdicts · fan serials · presence (refcounted)
-     ├── /data volume — 30s atomic snapshot (predictions, roots, verdicts, serials) +
-     │                  one SentimentRecord crystallized per match at full time
-     ├── relayer (src/relay.ts) — devnet memo writes: record anchors, receipts
-     └── mint/ · seat/ — walletless passkey seat → Metaplex Core scarf mint (Umi + Irys),
-                          service-paid (the Collect flow)
+services/stands — one Node process, Fly.io (app rooot-stands)
+     ├── FEED BUS   contracts/feed.ts    market ticks · score · status · spells · ledger
+     ├── CROWD BUS  contracts/crowd.ts   root · predict · cheer · next-goal calls ·
+     │                                   moments · verdicts · serials · presence
+     ├── /data volume — 30s atomic snapshot; one SentimentRecord per match at FT
+     ├── relay.ts — devnet memo writes (record anchors, call receipts)
+     └── seat/ + mint/ — passkey seat → Metaplex Core mint (Umi + Irys), service-paid
      │
-     │  one WebSocket per tab; both buses on it, never blended
+     │  one WebSocket per tab, both buses multiplexed
      ▼
 adapters  apps/web/public/*-adapter.js → window.__stands / __match / __loom / __stats / __seat
-     +    matchday.js — ONE clock for the whole site: the schedule (wire-pulled kickoffs for
-     |    every remaining fixture) derives each match's phase (UPCOMING → GATES_OPEN at
-     |    kickoff−30min → LIVE → FULL_TIME); every surface's chrome and routing follow it
-     +    fan-record.js — ONE reader for the fan's own record (pass · calls · kept · cloth)
-     |    and ONE scoring formula (points) — every surface counts the same things the same way
+     +    matchday.js  — one clock: wire-pulled kickoffs derive each fixture's phase
+     |                   (UPCOMING → GATES_OPEN at KO−30m → LIVE → FULL_TIME)
+     +    fan-record.js — one reader for the fan's record, one scoring formula
      ▼
-surfaces  static HTML on Vercel (rooot.club): the gate · the ground · the woven-loom (/live) ·
-          the stadium · the terrace · the cabinet · the showcase (/demo) — all read the same
-          adapters, all follow one fixture manifest (apps/web/public/fixture.json)
+surfaces  static HTML on Vercel: gate · ground · woven-loom (/live) · stadium ·
+          terrace · cabinet · showcase (/demo) · features · board
 ```
 
-**The sealed programme.** Between matches nothing pretends to be live: the site opens on the last sealed match riding its own baked recording through the exact live parser — /live lands on the finished cloth (rewatch and skip are deliberate acts), the ground reads FULL TIME with the stands holding the night's record (real tallies from the crystallized SentimentRecord) and the market plate printing the resolution and its movement since kickoff, and the stadium's every card rests at the settled truth. A finals digest per sealed match (`scripts/canary/emit-finals.mjs` — a headless run of the real replay pipeline, never a re-derivation) carries the named scorers and the market's open→close for the surfaces that need them without loading the full feed. When the next match's gates open (kickoff−30), the same clock unlocks the turnstile by itself.
-
-**Interacting earns.** One deterministic formula over recorded real taps (`fan-record.js`): a stamped prediction, every cheer, every reaction, every minute watched — and the full-time bonus is multiplied by the confidence dial set at the gate (exact score ×2 for "certain", down to ×1 for "a hunch"). The same number prints in the stands' pit counter, on the full-time card, and in the cabinet; a pass from another match earns nothing.
-
-**The honesty seams are architecture, not style.** The laws in `AGENTS.md` are enforced by the shape of the system: market data and crowd data ride separate contracts (`contracts/feed.ts` vs `contracts/crowd.ts`) and are never converted into each other — the market has the number (a de-vigged probability), the crowd has counts (real taps, rate-decayed and clamped per fan, never dressed as a percentage). Nothing renders that did not happen: no fake players, no synthetic events, and replay mode runs recorded real matches through the exact live parser (`services/stands/src/ingest/replay.ts`) rather than simulating anything. When crowd sections are empty they are shipped as n=0, not synthesized (`contracts/sentiment.ts`). Every surface defaults to this live feed off the fixture manifest; the scripted specimen data now requires an explicit `?demo=1` and is otherwise unreachable (`apps/web/public/match-read.js`, `apps/web/public/gate.html`) — a judge opening any surface cold sees the real product, not a canned demo.
-
-**Durability.** The service snapshots match state (who rooted, who predicted what, verdicts already delivered, each fan's serial) to a mounted Fly volume every 30 seconds with atomic writes (`services/stands/src/snapshot.ts`, `services/stands/fly.toml` `[mounts]`), and crystallizes exactly one SentimentRecord per match at full time. Verified live after Spain–Belgium: exactly one sentiment file written at the full-time whistle, still exactly one when re-checked 17 hours later, with the rolling snapshot still actively persisting the next day (`docs/NOTES-esp-bel-2026-07-10.md` §"Full-time protocol closeout"). Restart continuity itself is exercised by a dedicated dev check that boots two real processes against the same data dir (`npm run check:restart-persistence` in `services/stands`). Roar deliberately resets to silence on restart — stale decay state is not resurrected. A late joiner arriving after full time now receives the sealed record instead of a live tide, disk-driven so it survives eviction (`services/stands/src/server.ts` "THE SEAL", `npm run check:seal-on-join`); the pre-kickoff starting-XI lineup — a one-shot ~45-minute envelope on the scores wire — now re-seeds from the scores snapshot on boot so a restart never loses the team sheet (`services/stands/src/ingest/txline.ts` `seedSnapshot`, `npm run check:xi-seed-recovery`).
-
-**The OOM incident — found, root-caused, fixed, verified.** Three nights running, the service ran out of memory mid-match: it never evicted a finished match, so state piled up until the kernel killed the process. The fix evicts finished/idle matches from every in-memory cache and makes settlement idempotent on disk, so eviction can never trigger a duplicate on-chain anchor — verified against the live service, not just a green build: a 3-match soak held the heap flat (58→61→58 MB, back to baseline) and a real production boot re-dispatched a finished match's full-time path yet wrote zero new records. Full report, timeline, and verification table: `docs/incidents/2026-07-oom.html`.
-
-**Verification is runtime, not build-green.** The release gate is an automated two-browser Playwright canary (`scripts/canary/`, seven flow steps: opposite-end entry, distinct predictions, cross-end cheer, presence across lens switches, goal-replay suppression on late join, side-aware full-time verdicts, live market render). Its production smoke mode is write-proof by construction — every outgoing WebSocket frame is intercepted, anything beyond a side-less hello is blocked before the network, and each run proves its own blocker by attempting a forbidden write and asserting it was stopped (`scripts/canary/README.md`). Full mode structurally refuses non-local hosts (an allowlist, not a blocklist). Alongside it, fourteen per-feature dev checks boot the real server in-process and assert against the real wire (`services/stands/src/dev/*-check.ts` — presence/cheer, restart persistence, verdict replay, fan serial, pulse fix, full replay, SSE idle, self-probe, NEXT GOAL, the Collect claim/mint, anchor durability, memory eviction, seal-on-join, starting-XI seed recovery). The reconnect storm that hung a real fan's page during Spain–Belgium was diagnosed from console evidence, fixed with a single-flight connect guard plus backoff discipline (`apps/web/public/*-adapter.js`), and got its own regression check (`scripts/canary/reconnect-check.mjs`).
-
-### The specific TxLINE endpoints ROOOT uses
-
-| Endpoint | Role in ROOOT |
+| Component | Stack |
 |---|---|
-| `POST /auth/guest/start` → on-chain `subscribe` → `POST /api/token/activate` | auth: guest JWT, Solana-signed activation, bearer + `X-Api-Token` on every call |
-| `GET /api/fixtures/snapshot?competitionId=72&startEpochDay=…` | the schedule — every remaining fixture's kickoff feeds the site's one matchday clock |
-| `GET /api/odds/snapshot/{fixtureId}` · `GET /api/odds/stream` (SSE) | the market: 1X2 StablePrice vectors, de-vigged in `contracts/normalize.ts` |
-| `GET /api/scores/snapshot/{fixtureId}` · `GET /api/scores/stream` (SSE) | the match: goals (confirm ladder), status (13-rung StatusId), lineups + scorer names, cards, VAR, possession-danger spells |
-| `GET /api/odds/validation` | Merkle provenance: two-level proof (subTreeProof + mainTreeProof) exercised against a live goal tick — specimen committed at `fixtures/provenance/messi-goal-tick-proof.json` |
+| Ingest + aggregation | Node 20, TypeScript, native SSE parsing |
+| Transport to client | one WebSocket per tab, both buses multiplexed |
+| Surfaces | static HTML/CSS/vanilla JS, no framework, phone-first |
+| Persistence | Fly volume, atomic snapshot every 30s |
+| Chain | Solana devnet — SPL Memo (anchors), Metaplex Core + Umi + Irys (mints) |
+| Identity | WebAuthn PRF → ed25519 keypair, no seed phrase, no custody |
+| Hosting | Vercel (surfaces), Fly.io (service) |
 
-Recorded live streams replay through the exact same parser
-(`services/stands/src/ingest/replay.ts`) — replay is first-class, which is why
-every surface still runs after the tournament ends.
+## 3 · TxLINE integration
 
-## The data product: twelve stats, honestly reported
+| Endpoint | Use |
+|---|---|
+| `POST /auth/guest/start` → on-chain `subscribe` → `POST /api/token/activate` | guest JWT, Solana-signed activation; bearer + `X-Api-Token` on every call |
+| `GET /api/fixtures/snapshot?competitionId=72&startEpochDay=…` | schedule; kickoffs feed the site's matchday clock |
+| `GET /api/odds/snapshot/{fixtureId}` · `GET /api/odds/stream` (SSE) | 1X2 StablePrice vectors → de-vigged in `contracts/normalize.ts` |
+| `GET /api/scores/snapshot/{fixtureId}` · `GET /api/scores/stream` (SSE) | goals (confirmation ladder), status, lineups, scorer names, cards, VAR, possession-danger spells |
+| `GET /api/odds/validation` | Merkle proof (subTreeProof + mainTreeProof) to the on-chain root; specimen at `fixtures/provenance/messi-goal-tick-proof.json` |
 
-The owner's canonical list of proprietary stats (`docs/BACKLOG-full-version-and-deferred-ideas.md` §1): Optimism Gap, Doubter Index, Foresight Alpha, Courage-Adjusted Calls, Faith Under Fire, Roar Elasticity, Aftershock Half-Life, Held Breath Index, Pressure Without Reward, Match Uncertainty / Chaos Score, Mood Divergence, Attendance Gravity. All are BET vs BELIEVE vs HAPPEN made explicit; none require data ROOOT does not honestly have.
+**Parsing notes.** 42 distinct `Action` types observed live. The full 13-rung
+`StatusId` ladder is implemented (1 PRE · 2 H1 · 3 HT · 4 H2 · 5 FT-in-90 · 6
+end-of-90 · 7 ET1 · 8 ET-break · 9 ET2 · 10 FT-in-ET · 11 end-of-ET · 12
+penalties · 13 final seal); `GameState` is stale relative to `StatusId` and is
+ignored. The odds envelope carries no home/away field — `PriceNames` is
+participant order — so a participant-order truth latch is derived from the
+scores wire and threaded through every source (`sniffParticipant1IsHome`).
+Goals arrive as a re-emission ladder (unconfirmed → confirmed → +GoalType
++PlayerId) keyed on a stable event `Id`.
 
-The commercial shape of this data, stated plainly: every in-play price fuses a
-probability with a bias premium — the shading for the public's heart — and
-de-vigging removes the bookmaker's margin, not that premium. Books read the
-public only from their own slips, after the stake lands; a pre-bet,
-declared-allegiance, in-play belief series is the decomposition instrument
-both sides of the counter lack, and it is only sellable because every claim
-is provably pre-outcome (the anchor's actual job).
+**Replay.** Recorded streams replay through the same parser
+(`services/stands/src/ingest/replay.ts`), so every surface runs after the feed
+ends. Replay is a first-class mode, not a mock.
 
-The night-report generator (`scripts/night-report.mjs`) computes them from a recorded match file and writes a dossier per match (`docs/night-reports/<matchId>.md` + a raw `.json` sidecar). It reads two real shapes — a crystallized SentimentRecord or a raw websocket capture — using the same formulas the server uses (`services/stands/src/sentiment/builder.ts`), so every match's numbers are genuinely comparable. All three captures are committed (`services/stands/captures/`), so a judge can regenerate every number:
+## 4 · Data model
+
+**Crowd messages** (`contracts/crowd.ts`): `root {anonId, matchId, side, atMs}` ·
+`predict {anonId, matchId, home, away, marketAtPredict:{h,d,a}, conviction, atMs}` ·
+`cheer {anonId, side, n, atMs}` (rate-limited server-side; granted ≠ attempted) ·
+`nextGoal {anonId, end|none, marketAtCall, crowdAtCall, atMs}` · `react
+{anonId, momentId, emoji, side}`.
+
+**SentimentRecord** (`contracts/sentiment.ts`), one per match, crystallized at
+full time:
+
+| Block | Contents |
+|---|---|
+| `market` | open/close triples, per-phase values, every swing ≥6pt with minute, lead changes, volatility, conviction mean/max, tick count |
+| `fans` | rooted counts per end, scoreline histogram, consensus with n, optimism gap per end, doubters, next-goal calls with market + crowd at call time and resolution |
+| `feel` | per-moment emotion histograms, roar series (~30s samples) |
+| `engagement` | fans, granted cheers, watch-minutes, arrivals in 5-minute buckets, points by serial |
+| `provenance` | record hash, network, anchor tx signature, capture window, TxLINE Merkle refs |
+
+Identity in the record is a per-match serial, never a name.
+
+## 5 · Derived statistics
+
+Twelve specified (`docs/BACKLOG-full-version-and-deferred-ideas.md` §1). Five
+compute today on live data: Optimism Gap, Doubter Index, Foresight Alpha,
+Pressure Without Reward, Match Uncertainty (volatility, swings, lead changes,
+conviction, Upset Index). Seven are blocked on a named field and print
+`NOT COMPUTABLE` with that field — nothing is interpolated. The roar series
+landed on 18 July, which unblocks Faith Under Fire, Roar Elasticity and
+Aftershock Half-Life for the next crystallized record.
+
+Formulas live in `services/stands/src/sentiment/builder.ts`; the night-report
+generator reads either a crystallized record or a raw capture using the same
+formulas, so matches are comparable. All four captures are committed:
 
 ```
 node scripts/night-report.mjs services/stands/captures/premiere-fra-mar-18209181-919c9af.json
 node scripts/night-report.mjs services/stands/captures/espbel-sentiment-18218149.json
 node scripts/night-report.mjs services/stands/captures/engarg-sentiment-18241006.json
+node scripts/night-report.mjs services/stands/captures/fraeng-sentiment-18257865.json
 ```
 
-**Five of the twelve compute today** on at least one real match: Optimism Gap, Doubter Index, and Foresight Alpha on both matches; Pressure Without Reward (France held 30.8% danger-share of its spells and scored twice; Morocco 18.2% and did not) and the Match Uncertainty components (volatility, swings, lead changes, conviction, Upset Index) from the tick data. **The other seven print NOT COMPUTABLE with the specific missing field named** — the roar time series is deliberately short-lived so Faith Under Fire / Roar Elasticity / Aftershock Half-Life lack a per-minute curve; no react moments were felt live so Mood Divergence is empty; join timestamps are not persisted so Attendance Gravity has no series; the calls mechanism (NEXT GOAL) wasn't live yet when either match was captured, so Courage-Adjusted Calls is a zeroed stub in both — it has since shipped to production (below) and will feed the next crystallized record. Nothing is interpolated; a stat that cannot be computed says so and why.
+**Points** (`fan-record.js`, `docs/POINTS-SYSTEM.md`): stamped prediction 25 ·
+granted cheer 1 (cap 300) · reaction 2 · presence minute 1 (cap 130) · full time
+exact score 200 or correct result 75, multiplied by the conviction dial (max ×2).
+The client tally and the server fold use the same formula on deliberately
+different inputs; the sealed record is authoritative.
 
-**NEXT GOAL closes the biggest gap — live in production.** During live play a fan calls which end scores next (or "no more goals"); the server — not the client — stamps the live de-vigged market at the moment of the call; the call resolves on the next real goal or at full time, and both the crowd split (always with n) and per-fan verdicts persist into the SentimentRecord. This is the feeder for Courage-Adjusted Calls and a moving (not just pre-match) BELIEVE curve. Shipped and live on the terrace since July 11 (`apps/web/public/terrace.html`; server mechanism in `services/stands/src/server.ts`), restart-durable, and dev-verified with its own in-process check suite (`services/stands/src/dev/next-goal-check.ts`, `npm run check:next-goal`).
+## 6 · Live match results
 
-## What's on-chain, and why
+| Match | Fixture | Market open → close | Ticks | Swings ≥6pt | Lead changes | Room | Measured |
+|---|---|---|---|---|---|---|---|
+| FRA 2–0 MAR · 9 Jul | 18209181 | FRA 61.7% → 98.0% | 401 | 4 | 0 | n=5 (2/3) | MAR end +85.7pt, FRA end +38.3pt optimism gap |
+| ESP 2–1 BEL · 10 Jul | 18218149 | ESP 60.6% → 96.8% | 3,678 | 9 | 10 | 11 rooted, n=4 | modal call 2–1 = exact result; Foresight Alpha 0.394 |
+| ENG 1–2 ARG · 15 Jul | 18241006 | ARG 31.1% → 96.4% | 3,520 | 10 | 28 | 4 rooted, n=1 | ENG end +64.6pt; +74.2pt swing at 91′ |
+| FRA 4–6 ENG · 18 Jul | 18257865 | ENG 21.9% → 93.5% | 3,292 | 11 | 11 | 7 fans | full engagement harvest: 9 cheers, 10 watch-min, 5 arrival buckets, 27 roar samples |
 
-No token, no wager. The chain does three jobs: provenance (the data really happened), commitment (a claim on the future is stamped before the future arrives), settlement (the record resolves and is yours). Devnet throughout. Three write paths are real and independently proven: the sentiment anchor, the scarf mint, and the call relayer.
+## 7 · On-chain
 
-| Write | Status today | Evidence |
+Devnet throughout. Three jobs: provenance, pre-outcome commitment, settlement of
+the fan's record.
+
+| Write path | Status | Reference |
 |---|---|---|
-| **SentimentRecord anchor** — SHA-256 of the crystallized match record in a memo tx at full time | **Live in production, and now durable.** Spain–Belgium's record (hash `1a3e5763…49bf6b`) anchored at the whistle; a Jul 13 fix heals any lost sig write-back with a disk-driven backfill (boot sweep + every 60s) — every record on the volume carries a real sig as of that boot | devnet tx `3YMn98FgPpB7CBFC9ViVoVxw2tcg7A5CMpcJvYALjdAYTHtYF46sGjRC9QqmX2rsBhgQyX7p7UVPfcvie1RBzBW9` (`docs/night-reports/18218149.md`); mechanism `services/stands/src/relay.ts` `anchorRecordHash`; backfill `services/stands/src/server.ts` `backfillAnchors`/`writeAnchorSig`, armed by `services/stands/fly.toml` (`STANDS_ANCHOR_BACKFILL=1`), dev-verified in `services/stands/src/dev/anchor-durability-check.ts` |
-| **The scarf (Collect)** — passkey wallet (WebAuthn-PRF → ed25519, no seed phrase) and a Metaplex Core relic minted to the fan's own key while the service pays (Umi + Irys) — **whose on-chain image is the fan's real woven cloth** (a 788×2034 capture of the sealed loom, with the fan's own root and calls in the weave) | **Live in production.** Collect is instant and local (no biometric, no network — the keepsake seals on the device); saving to an account is a separate optional tap, one ceremony per session, retry-safe, with three honest end states and a real explorer link. Owner's proof scarf: Nº 025, its cover the actual cloth | `apps/web/public/terrace.html` / `woven-loom.html`; `services/stands/src/seat/claim.ts`, `services/stands/src/mint/mint.ts`; dev-verified `npm run check:seat` |
-| **Conviction receipts** — a fan's rare call relayer-signed into a devnet memo (claim + minute + the market's triple at that second), walletless | **Relayer built and proven on devnet; no shipped surface triggers a per-call memo.** NEXT GOAL (above) is the shipped v1 of in-game calls, and persists into the anchored SentimentRecord instead of a separate memo per call | `services/stands/src/relay.ts` `relayCall` |
-| **Market provenance** — TxLINE's own Merkle anchors referenced from ROOOT records, so the odds survive the feed | **Validation path exercised** against the live API: a two-level branch (subTreeProof + mainTreeProof) to the on-chain root for a real tick | specimen `fixtures/provenance/messi-goal-tick-proof.json` (`docs/DATA.md` §TxLINE) |
-| **Attendance root** — Merkle root of attendee anonIds per match ("I'm in the crowd photo") | **Designed, not live** | shape in `contracts/relic.ts` (`attendeeRoot`) |
+| **SentimentRecord anchor** — SHA-256 of the record in an SPL Memo at full time | Live. Disk-driven backfill (boot sweep + 60s) heals any lost signature write-back | `relay.ts:anchorRecordHash`; `server.ts:backfillAnchors`; check: `anchor-durability-check.ts` |
+| **Scarf mint** — Metaplex Core asset to the fan's passkey-derived key, service-paid, image is the fan's own 788×2034 woven cloth | Live. Idempotent per (pubkey, matchId) | `seat/claim.ts`, `mint/mint.ts`; check: `npm run check:seat` |
+| **Call receipts** — relayer-signed memo per call | Relayer proven on devnet; shipped in-game calls persist into the record instead | `relay.ts:relayCall` |
+| **Market provenance** — TxLINE Merkle refs carried in ROOOT records | Validation path exercised against the live API | `fixtures/provenance/messi-goal-tick-proof.json` |
+| **Attendance root** — Merkle root of attendee anonIds | Designed, shape only | `contracts/relic.ts` |
 
-**A note on verifying the anchors:** public devnet RPC retains recent
-transaction history only — we watched a three-day-old anchor age out of
-`getTransaction` during submission week. Fresh anchors (the final weekend's)
-resolve on any devnet explorer; for older matches the proof is regenerability:
-the committed capture + `node scripts/night-report.mjs <capture>` reproduce the
-exact record hash the memo carried, and each night report prints its anchor
-signature. Account-based artifacts don't age out: the scarf assets (e.g. the
-owner's Nº 025, `DHEAuF3CSrXnXn9vta5V6SMsYSUKf4BfVfmLE2JdRog8`, whose on-chain
-image is the fan's actual woven cloth) remain queryable via DAS indefinitely.
+**Anchors.** 18 Jul: record `8a1cac7d…b516ce9`, tx
+`44KB7EXGB17uo6L1X1FyJCAt7eopkooprwjaZwzP1YJBDREEXJxr9De9H6kYzas8pjohvy1FSSYKspTJncPh8tYz`.
+15 Jul: `de9c9ea4…90a41a`. 10 Jul: `1a3e5763…49bf6b`. Public devnet RPC retains
+recent history only; each record hash regenerates from its committed capture with
+the command in §5. Account-based artifacts persist — e.g. scarf Nº 025,
+`DHEAuF3CSrXnXn9vta5V6SMsYSUKf4BfVfmLE2JdRog8`, queryable via DAS.
 
-Cheers and reactions stay app-layer on purpose: a tap is not a transaction, and pretending otherwise would break the honesty law before it broke the fee budget.
+**Identity.** WebAuthn PRF output derives an ed25519 keypair on-device. No seed
+phrase, no key custody, no wallet install. Collect is local and instant; saving
+to an account is a separate opt-in ceremony.
 
-## Honest limitations
+## 8 · Persistence
 
-- **The samples are anecdotes.** A handful of real fans per match across the three live nights. Every surface and report labels n; the claim is a working mechanism, not a dataset.
-- **Devnet only**, by rule (`AGENTS.md` law 3/5). Nothing here moves value.
-- **The points formula is v1** (shipped 2026-07-17): the weights are a product choice, not a calibration; expect retuning after the final two live matches. The counter a fan watches during the night is their device's own tally (visible-tab minutes, every tap); the sealed record's points are the server's stricter fold (granted cheers, distinct-moment reactions, presence minutes) — same formula, deliberately different inputs, so the two can differ slightly and the record is the authority.
-- **The Pulse (react moments) has failed to reach fans twice.** The server detects drama windows, but at the premiere the live surfaces never subscribed, and at Spain–Belgium no moment message reached the room — the same shape both nights, documented rather than patched over (`docs/POSTMORTEM-fra-mar-2026-07-09.md`; `docs/NOTES-esp-bel-2026-07-10.md` §Pulse). Mood Divergence stays NOT COMPUTABLE until this is fixed honestly.
-- **Seven of the twelve stats do not compute yet** (named reasons in each night report — mostly missing time series the service deliberately does not fake).
-- **The premiere was operationally rough.** Fixture identity, cheer legibility, and post-match resolution all failed or were partial on July 9; the postmortem is in the repo verbatim, and the fixes it demanded — one fixture manifest, refcounted presence, durable volume persistence, three-state side-aware verdicts, the canary — are what shipped before July 10.
-- **A product question is open, not hidden:** every fan so far predicted in line with their allegiance. "Choose your end, then predict" harvests passion but no contrarian belief; the Doubter Index has one honest data point.
-- **The TxLINE free tier ends with the hackathon** (July 19, 23:59 UTC), which is why every relic and record carries its own provenance (Merkle refs + captured windows) rather than a live-feed dependency.
+Match state (roots, predictions, delivered verdicts, serials, next-goal calls)
+snapshots to a mounted Fly volume every 30s with atomic writes
+(`snapshot.ts`). Exactly one SentimentRecord is crystallized per match at full
+time; settlement is idempotent on disk, so re-dispatch cannot duplicate an
+anchor. A late joiner after full time is served the sealed record from disk
+(`server.ts` "THE SEAL"). The pre-kickoff starting XI — a one-shot ~45-minute
+envelope on the scores wire — re-seeds from the scores snapshot on boot
+(`ingest/txline.ts:seedSnapshot`). Roar decay state deliberately resets on
+restart rather than resuming stale.
 
-## Built with
+## 9 · Verification
 
-ROOOT is built by a small pipeline of Claude agents under a human owner who steers by verdicts on rendered frames. The repo's operating law (`AGENTS.md`) gives each lane one directory and one writer, with the wire contracts (`contracts/`) frozen and coordinator-only; work runs spec → implementer → spec-and-quality review → whole-branch review (specs and plans under `docs/superpowers/`), and the whole-branch reviews have caught what per-task reviews missed, including two honesty violations that died before merge. Verification is required at runtime, not at compile: the canary suite, the in-process dev checks, and screenshot evidence gate every merge, and the three live match nights ran with a dedicated ops instance on a written runbook, producing the postmortem and night notes cited throughout this document.
+Runtime, not build-green.
+
+- **Release canary** (`scripts/canary/`) — two real browsers, seven flow steps:
+  opposite-end entry, distinct predictions, cross-end cheer, presence across lens
+  switches, goal-replay suppression on late join, side-aware full-time verdicts,
+  live market render. Production smoke mode intercepts every outgoing WebSocket
+  frame and blocks anything beyond a side-less hello, then proves its own blocker
+  each run. Full mode refuses non-local hosts by allowlist.
+- **Fourteen in-process dev checks** (`services/stands/src/dev/*-check.ts`) boot
+  the real server against the real wire: presence/cheer, restart persistence,
+  verdict replay, fan serial, pulse, full replay, SSE idle, self-probe, NEXT
+  GOAL, Collect claim/mint, anchor durability, memory eviction, seal-on-join,
+  starting-XI seed recovery.
+- `npm run typecheck` across the monorepo.
+
+## 10 · Engineering notes
+
+- **Memory growth across match nights.** Finished matches were never evicted
+  from in-memory caches. Fixed with eviction on finish/idle plus idempotent
+  on-disk settlement so eviction cannot trigger a duplicate anchor. A 3-match
+  soak held the heap flat (58→61→58 MB); a production boot re-dispatched a
+  finished match's full-time path and wrote zero new records.
+  (`docs/incidents/2026-07-oom.html`)
+- **Reconnect storm.** Concurrent adapter reconnects hung a live page. Fixed with
+  a single-flight connect guard and backoff discipline across the adapters;
+  regression test in `scripts/canary/reconnect-check.mjs`.
+- **Participant-order inversion.** The odds wire's leg order follows participant
+  index, not home/away. A truth latch derived from the scores wire is threaded
+  through live ingest, replay and recording.
+- **Starting-XI loss on restart.** The lineup envelope is one-shot; a boot
+  re-seed from the scores snapshot recovers it.
+- **Feed idle detection.** A per-attempt watchdog aborts a silent stream and
+  forces reconnect; heartbeats count as liveness.
+
+## 11 · Constraints
+
+- Solana devnet throughout.
+- Points weights are v1; retuning expected as crowds grow.
+- Seven of twelve statistics await named fields (§5).
+- TxLINE free tier ends 19 July 23:59 UTC; records and relics carry their own
+  provenance, so nothing depends on a live feed afterwards.
+
+## 12 · Repository
+
+| Path | Contents |
+|---|---|
+| `apps/web/public/` | the shipped surfaces + adapters |
+| `services/stands/` | ingest, aggregation, persistence, relayer, mint |
+| `contracts/` | frozen wire shapes (feed, crowd, relic, sentiment, normalize) |
+| `scripts/` | TxLINE auth, stream recording, canary, night reports |
+| `docs/night-reports/` | one dossier per live match, with raw JSON sidecars |
+| `services/stands/captures/` | the four committed match captures |
+
+Built by one person directing a pipeline of Claude agents under a written
+operating law (`AGENTS.md`): one directory per lane, frozen contracts, and
+spec → implement → review → whole-branch review, with runtime verification and
+screenshot evidence gating merges.
