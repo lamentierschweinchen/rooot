@@ -28,12 +28,11 @@ node -e 'import("node:fs").then(async({readFileSync})=>{const t=JSON.parse(readF
 - Keep an eye on: `flyctl logs …` for ingest errors; the ground's plates moving; NEXT GOAL windows resolving.
 - If the wire drops: the honest degrade is automatic (no fake continuity). Restart recorders if needed. Never fake anything after the fact.
 
-## BEFORE KICKOFF — start the recorders (learned the hard way, 18 Jul)
+## Before kickoff — start the recorders
 
-FRA–ENG sealed with a real, anchored record and **no replay**: nobody started
-the stream recorders, so there was no raw capture to bake a programme from. The
-record survives; the rewatch does not exist. Start both recorders at T−50 and
-confirm the files grow — the seal protocol below depends on them at step 2.
+The raw capture is the bake's only source material: the seal protocol's step 2
+reads these files to build the rewatchable programme. Start both at T−50 and
+confirm they grow.
 
 ```
 mkdir -p fixtures/live-<slug>
@@ -41,9 +40,9 @@ npx tsx scripts/record.ts --url https://txline-dev.txodds.com/api/scores/stream 
 npx tsx scripts/record.ts --url https://txline-dev.txodds.com/api/odds/stream  --token-file .secrets/txline-token.json --out fixtures/live-<slug>/odds-<slug>.jsonl
 ```
 
-A match with no capture should be cut over **sealed without `replay`** — the
-manifest then tells the truth and `matchday.lastSealed` keeps offering the last
-genuinely rewatchable night instead of pointing a rewatch button at nothing.
+A match cut over without a capture goes in **sealed, no `replay`** — the
+manifest then reflects what exists, and `matchday.lastSealed` keeps offering
+the last genuinely rewatchable night.
 
 ## Full time — the seal (in order)
 

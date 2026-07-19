@@ -68,11 +68,10 @@ own watchdog. One paste, one restart, covers tonight AND the final:
 
 ## Sunday night — the final · ESP–ARG · kickoff 19:00 UTC
 
-- [ ] **T−50 (18:10 UTC): START THE STREAM RECORDERS.** The one step missed on
-  Saturday: no raw capture was recorded for FRA–ENG, so that match sealed as a
-  record but has **no baked replay** — it is not rewatchable. The final must be,
-  since "the World Cup final sealed inside" is the flagship claim. Two
-  background recorders, token via `--token-file` only (never argv):
+- [ ] **T−50 (18:10 UTC): START THE STREAM RECORDERS** — the bake's raw
+  material, and what makes the final rewatchable ("the World Cup final sealed
+  inside" is the flagship claim). Two background recorders, token via
+  `--token-file` only (never argv):
   ```
   mkdir -p fixtures/live-esp-arg
   npx tsx scripts/record.ts --url https://txline-dev.txodds.com/api/scores/stream --token-file .secrets/txline-token.json --out fixtures/live-esp-arg/scores-esparg.jsonl
