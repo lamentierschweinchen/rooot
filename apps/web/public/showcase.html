@@ -76,6 +76,7 @@ body{min-height:100vh;
 .foot{margin-top:34px;padding-top:16px;border-top:1.5px solid var(--ink);display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:baseline}
 .foot .honest{font-weight:700;font-size:9px;letter-spacing:.05em;color:var(--sub);line-height:1.6;max-width:640px}
 .foot .honest b{color:var(--ink)}
+.foot .honest a{color:var(--ink);font-weight:800;white-space:nowrap}
 .foot .sig{font-weight:800;font-size:8px;letter-spacing:.16em;color:var(--sub);white-space:nowrap}
 @media(max-width:900px){ .stage{gap:26px} .device{width:min(398px,calc(80vh * 398 / 812),100%)} .guide{max-width:none} }
 @media(max-width:430px){ .page{padding-left:16px;padding-right:16px} }
@@ -161,8 +162,8 @@ body{min-height:100vh;
   </div>
 
   <footer class="foot">
-    <div class="honest">This walkthrough plays a <b>baked SUI–COL replay</b> with a <b>simulated crowd</b>, serverless — so every surface reads from one match with no wire attached. In production the same pixels read the live TxLINE feed and real crowd counts. No fake players, no fake ball, no synthetic events in the honest layers. Team names + flags only.</div>
-    <div class="sig">ROOOT · FOR THE TOURNAMENT · ON SOLANA</div>
+    <div class="honest">This walkthrough plays a <b>baked SUI–COL replay</b> with a <b>simulated crowd</b>, serverless — every surface reads one match with no wire attached. In production the same pixels read the live TxLINE feed and real crowd counts. <a href="/features">What it does, and the data it makes ›</a></div>
+    <div class="sig">ROOOT · '26 · ALPHA</div>
   </footer>
 </div>
 <script>
