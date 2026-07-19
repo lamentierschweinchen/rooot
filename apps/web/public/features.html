@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ROOOT — what it does</title>
+<meta name="description" content="A free, live companion for a World Cup match — and the belief data it creates: what the crowd believed, stamped against the market, resolved by what happened.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#E6DBC2">
+<meta property="og:title" content="ROOOT — what it does">
+<meta property="og:description" content="Root once, cheer constantly. The market's number beside the crowd's roar — and the night is yours to keep.">
+<meta property="og:image" content="https://rooot.club/og.jpg">
+<style>
+  @font-face{font-family:'Anybody';src:url('/plate/fonts/anybody.woff2') format('woff2');font-weight:400 700;font-display:swap}
+  @font-face{font-family:'Anybody';src:url('/plate/fonts/anybody900.woff2') format('woff2');font-weight:800 900;font-display:swap}
+  :root{
+    --paper:#E6DBC2;--card:#F3ECDB;--ink:#1A1815;--sub:#6F674D;
+    --gold:#C79A38;--verde:#2E6A4E;--red:#D52B1E;--amber:#E8B10A;--blue:#2049AA;
+    --disp:'Anybody',-apple-system,'Helvetica Neue',Arial,sans-serif;
+    --pad:clamp(20px,5vw,72px);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--paper);color:var(--ink);font-family:var(--disp);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  .bar{position:fixed;top:0;left:0;right:0;height:7px;display:flex;z-index:50}
+  .bar i{flex:1}.bar .v{background:var(--verde)}.bar .r{background:var(--red)}.bar .a{background:var(--amber)}.bar .g{background:var(--gold)}
+  section{padding:clamp(60px,11vh,140px) var(--pad)}
+  .wrap{width:min(1080px,100%);margin:0 auto}
+
+  /* ── reveal ─────────────────────────────────────────────── */
+  .rv{opacity:0;transform:translateY(26px);transition:opacity .75s cubic-bezier(.2,.6,.2,1),transform .75s cubic-bezier(.2,.6,.2,1)}
+  .rv.in{opacity:1;transform:none}
+  .rv.d1{transition-delay:.09s}.rv.d2{transition-delay:.18s}.rv.d3{transition-delay:.27s}.rv.d4{transition-delay:.36s}
+  @media (prefers-reduced-motion:reduce){.rv{opacity:1;transform:none;transition:none}html{scroll-behavior:auto}}
+
+  /* ── hero ───────────────────────────────────────────────── */
+  .hero{position:relative;min-height:100svh;display:flex;flex-direction:column;justify-content:flex-end;
+    padding:0 var(--pad) clamp(36px,7vh,80px);background:#4A4536 url('/plate/gens/stadium-hero.jpg') center/cover no-repeat;overflow:hidden}
+  .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(26,24,21,.30) 0%,rgba(26,24,21,.06) 38%,rgba(26,24,21,.72) 100%)}
+  .hero .wrap{position:relative;z-index:2;color:var(--card)}
+  .kick{font-weight:800;font-size:clamp(10px,1.5vw,13px);letter-spacing:.24em;opacity:.9}
+  h1{font-weight:900;font-size:clamp(46px,13vw,136px);line-height:.86;letter-spacing:-.01em;margin:14px 0 0;text-shadow:0 4px 30px rgba(0,0,0,.45)}
+  .hero p{font-weight:700;font-size:clamp(16px,2.5vw,27px);line-height:1.32;margin-top:clamp(16px,2.4vh,26px);max-width:19ch;text-shadow:0 2px 16px rgba(0,0,0,.5)}
+  .hero p b{color:var(--amber)}
+  .cta{display:flex;flex-wrap:wrap;gap:11px;margin-top:clamp(22px,3.4vh,38px)}
+  .cta a{display:inline-flex;align-items:center;min-height:52px;padding:0 24px;border:2px solid var(--card);text-decoration:none;
+    font-weight:900;font-size:clamp(12px,1.6vw,15px);letter-spacing:.13em;color:var(--card);transition:transform .18s,background .18s,color .18s}
+  .cta a.solid{background:var(--card);color:var(--ink);box-shadow:6px 6px 0 rgba(26,24,21,.45)}
+  .cta a:hover{transform:translate(-2px,-2px)}
+  .cta a.solid:hover{box-shadow:9px 9px 0 rgba(26,24,21,.45)}
+
+  /* ── shared type ────────────────────────────────────────── */
+  .eyebrow{font-weight:800;font-size:clamp(10px,1.4vw,12px);letter-spacing:.24em;color:var(--sub)}
+  h2{font-weight:900;font-size:clamp(30px,7.2vw,74px);line-height:.94;letter-spacing:-.01em;margin:12px 0 0}
+  .lede{font-weight:700;font-size:clamp(16px,2.1vw,23px);line-height:1.45;margin-top:22px;max-width:34ch}
+  .lede.wide{max-width:46ch}
+
+  /* ── fan benefits ───────────────────────────────────────── */
+  .bene{display:grid;grid-template-columns:repeat(auto-fit,minmax(258px,1fr));gap:clamp(16px,2.4vw,30px);margin-top:clamp(34px,5vh,62px)}
+  .ben{background:var(--card);border:2px solid var(--ink);box-shadow:7px 7px 0 rgba(26,24,21,.22);padding:clamp(20px,2.6vw,30px);display:flex;flex-direction:column}
+  .ben h3{font-weight:900;font-size:clamp(19px,2.4vw,27px);line-height:1.06;letter-spacing:-.005em}
+  .ben p{font-weight:600;font-size:clamp(14px,1.6vw,17px);line-height:1.5;margin-top:12px;color:#2A2721}
+  .ben .art{margin-top:auto;padding-top:22px;display:flex;align-items:flex-end;justify-content:center;gap:9px}
+  .ben .art img{max-width:100%;max-height:clamp(150px,20vw,210px);width:auto;height:auto;display:block}
+  .emb{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  .ben .art.emb img{width:clamp(34px,4.6vw,50px);height:auto;max-height:none}
+
+  /* ── mechanisms ─────────────────────────────────────────── */
+  .mech{border-top:3px solid var(--ink);padding-top:clamp(26px,3.6vh,44px);margin-top:clamp(40px,6vh,76px);
+    display:grid;grid-template-columns:1fr;gap:clamp(18px,2.6vw,34px)}
+  @media(min-width:860px){.mech{grid-template-columns:1.05fr .95fr;align-items:start}}
+  .mech .no{font-weight:900;font-size:clamp(40px,6vw,74px);line-height:.8;color:var(--paper);-webkit-text-stroke:2.2px var(--ink)}
+  .mech h3{font-weight:900;font-size:clamp(25px,3.6vw,42px);line-height:1.02;letter-spacing:-.01em;margin-top:10px}
+  .mech .say{font-weight:700;font-size:clamp(15px,1.85vw,20px);line-height:1.5;margin-top:16px}
+  .mech .prod{font-weight:600;font-size:clamp(13px,1.5vw,16px);line-height:1.55;margin-top:16px;color:#2A2721;
+    border-left:3px solid var(--gold);padding-left:14px}
+  .mech .prod b{font-weight:900}
+  .sample{background:var(--ink);color:var(--card);padding:clamp(19px,2.4vw,28px);box-shadow:7px 7px 0 rgba(26,24,21,.24)}
+  .sample .tag{font-weight:800;font-size:10px;letter-spacing:.2em;color:var(--amber)}
+  .sample .big{font-weight:900;font-size:clamp(30px,5vw,54px);line-height:.98;margin-top:12px;letter-spacing:-.01em}
+  .sample .say2{font-weight:650;font-size:clamp(13px,1.5vw,16.5px);line-height:1.5;margin-top:14px;color:#DCD4BD}
+  .sample .src{font-weight:800;font-size:10px;letter-spacing:.15em;color:#968E76;margin-top:16px}
+
+  /* ── evidence ───────────────────────────────────────────── */
+  .nights{display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:clamp(14px,2vw,22px);margin-top:clamp(30px,4.6vh,56px)}
+  .night{background:var(--card);border:2px solid var(--ink);padding:clamp(16px,2vw,23px);box-shadow:5px 5px 0 rgba(26,24,21,.2)}
+  .night .fx{font-weight:900;font-size:clamp(17px,2.1vw,23px);letter-spacing:-.005em}
+  .night .dt{font-weight:800;font-size:10px;letter-spacing:.16em;color:var(--sub);margin-top:5px}
+  .night .stat{font-weight:900;font-size:clamp(26px,3.6vw,42px);line-height:1;margin-top:16px;color:var(--blue)}
+  .night .what{font-weight:650;font-size:clamp(12.5px,1.45vw,15px);line-height:1.5;margin-top:10px;color:#2A2721}
+
+  /* ── record ─────────────────────────────────────────────── */
+  .keep{background:var(--ink);color:var(--card)}
+  .keep h2{color:var(--card)}
+  .keep .lede{color:#DCD4BD}
+  .rec{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:clamp(13px,1.8vw,20px);margin-top:clamp(30px,4.6vh,54px)}
+  .rec div{border:1.5px solid rgba(243,236,219,.45);padding:clamp(15px,1.9vw,21px)}
+  .rec h4{font-weight:900;font-size:clamp(13px,1.6vw,16px);letter-spacing:.1em;color:var(--amber)}
+  .rec p{font-weight:600;font-size:clamp(12.5px,1.4vw,15px);line-height:1.5;margin-top:9px;color:#DCD4BD}
+  .chain{margin-top:clamp(26px,3.6vh,44px);border-top:1.5px solid rgba(243,236,219,.35);padding-top:22px;
+    font-weight:700;font-size:clamp(12px,1.4vw,15px);line-height:1.6;color:#DCD4BD}
+  .chain code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.86em;color:var(--amber);word-break:break-all}
+  .scarfrow{display:flex;gap:clamp(10px,1.6vw,18px);margin-top:clamp(24px,3.4vh,40px);flex-wrap:wrap}
+  .scarfrow img{width:clamp(88px,15vw,150px);height:auto;border:1.5px solid rgba(243,236,219,.5);display:block}
+
+  /* ── close ──────────────────────────────────────────────── */
+  .close{text-align:center}
+  .close h2{margin-bottom:26px}
+  .close .cta{justify-content:center}
+  .close .cta a{border-color:var(--ink);color:var(--ink)}
+  .close .cta a.solid{background:var(--ink);color:var(--card);box-shadow:6px 6px 0 rgba(26,24,21,.3)}
+  footer{padding:34px var(--pad) 46px;text-align:center;font-weight:800;font-size:10px;letter-spacing:.17em;color:var(--sub)}
+</style>
+</head>
+<body>
+<div class="bar"><i class="v"></i><i class="r"></i><i class="a"></i><i class="g"></i></div>
+
+<!-- ── HERO ─────────────────────────────────────────────── -->
+<header class="hero">
+  <div class="wrap">
+    <div class="kick rv">FREE · NO ACCOUNT · WORKS ON YOUR PHONE</div>
+    <h1 class="rv d1">ROOOT</h1>
+    <p class="rv d2">Pick an end. Call the score. The match weaves itself around you — and <b>the night is yours to keep.</b></p>
+    <div class="cta rv d3">
+      <a class="solid" href="/">ENTER THE GROUND</a>
+      <a href="/demo">TAKE THE WALKTHROUGH</a>
+    </div>
+  </div>
+</header>
+
+<!-- ── WHAT A FAN GETS ──────────────────────────────────── -->
+<section>
+  <div class="wrap">
+    <div class="eyebrow rv">FOR THE FAN</div>
+    <h2 class="rv d1">A match is better<br>with somewhere to stand.</h2>
+    <p class="lede rv d2">Everything here is free, needs no wallet and no sign-up, and rides alongside the game instead of competing with it.</p>
+
+    <div class="bene">
+      <div class="ben rv">
+        <h3>Take a side, call the score</h3>
+        <p>One tap picks your end, one sets your scoreline, and a dial says how sure you are. That is your ticket — and it locks at kickoff, so it always means something.</p>
+        <div class="art"><img src="/plate/gens/flags/ARG.png" alt="" style="width:66px"><img src="/plate/gens/flags/SPA.png" alt="" style="width:66px"></div>
+      </div>
+      <div class="ben rv d1">
+        <h3>Cheer, and be counted</h3>
+        <p>Your end fills with real people, really counted — never padded. Cheer and the stand answers. When the game turns, say how it felt: six symbols, no words needed.</p>
+        <div class="art emb">
+          <img src="/plate/gens/reactions/joy.png" alt=""><img src="/plate/gens/reactions/heartbreak.png" alt=""><img src="/plate/gens/reactions/hope.png" alt=""><img src="/plate/gens/reactions/anger.png" alt="">
+        </div>
+      </div>
+      <div class="ben rv d2">
+        <h3>Keep the night</h3>
+        <p>At the whistle the match you watched is a woven cloth carrying your side and your calls. One tap keeps it. Its picture is your actual night — not a template.</p>
+        <div class="art"><img src="/plate/scarves/18175918.jpg" alt="A woven scarf of a match"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── THE MECHANISMS ───────────────────────────────────── -->
+<section style="background:var(--card)">
+  <div class="wrap">
+    <div class="eyebrow rv">THE MECHANISMS</div>
+    <h2 class="rv d1">Every tap is a<br>measurement.</h2>
+    <p class="lede wide rv d2">The market has a number. The crowd has a belief. The wire has the result. They are three different things, and the distance between them is what nobody else is recording.</p>
+
+    <!-- 01 -->
+    <div class="mech">
+      <div>
+        <div class="no rv">01</div>
+        <h3 class="rv">Predictions, before and during</h3>
+        <p class="say rv d1">Call the final score before kickoff, then keep calling while it plays — who scores next, or nobody. Every in-play call is stamped with the market's live price at that exact second, and settled by the next real event.</p>
+        <p class="prod rv d2"><b>What it produces:</b> a moving belief curve per fanbase — the crowd's read against the money's read, minute by minute, all of it declared before the outcome is known.</p>
+      </div>
+      <div class="sample rv d1">
+        <div class="tag">FROM THE ARCHIVE · SPAIN–BELGIUM</div>
+        <div class="big">2–1</div>
+        <div class="say2">The crowd's most-called scoreline was 2–1. The match finished 2–1 — against a market that gave Spain 60.6% at kickoff and never named a scoreline at all.</div>
+        <div class="src">NIGHT REPORT 18218149</div>
+      </div>
+    </div>
+
+    <!-- 02 -->
+    <div class="mech">
+      <div>
+        <div class="no rv">02</div>
+        <h3 class="rv">The market, in plain words</h3>
+        <p class="say rv d1">Live de-vigged win probabilities sit beside the crowd's number — visibly separate, never blended, never dressed up as each other. You can read the money's mind without ever placing a bet.</p>
+        <p class="prod rv d2"><b>What it produces:</b> the full belief curve of a match — every swing with its minute, the volatility, the lead changes, how surprised the closing price was by the result.</p>
+      </div>
+      <div class="sample rv d1">
+        <div class="tag">FROM THE ARCHIVE · FRANCE–ENGLAND</div>
+        <div class="big">55% → 0.4%</div>
+        <div class="say2">France opened the favourite and finished at almost nothing, in a ten-goal match. The sharpest lurch came at 86′ — a 33-point swing in a single window, with eleven lead changes across the night.</div>
+        <div class="src">NIGHT REPORT 18257865</div>
+      </div>
+    </div>
+
+    <!-- 03 -->
+    <div class="mech">
+      <div>
+        <div class="no rv">03</div>
+        <h3 class="rv">The roar, and who showed up</h3>
+        <p class="say rv d1">Cheers are rate-honest — a tap is a tap, and loudness decays like real noise. Presence is counted, not estimated: who rooted for which end, when they arrived, how long they stayed.</p>
+        <p class="prod rv d2"><b>What it produces:</b> attendance and attention per fanbase, a per-minute loudness curve, and arrival waves — the shape of a crowd assembling around a game.</p>
+      </div>
+      <div class="sample rv d1">
+        <div class="tag">FROM THE ARCHIVE · ENGLAND–ARGENTINA</div>
+        <div class="big">4–0</div>
+        <div class="say2">Every fan in the ground had rooted for England that night. Argentina won. Presence is counted per end — who showed up, when they arrived, and which side they stood with.</div>
+        <div class="src">NIGHT REPORT 18241006</div>
+      </div>
+    </div>
+
+    <!-- 04 -->
+    <div class="mech">
+      <div>
+        <div class="no rv">04</div>
+        <h3 class="rv">Being there earns something</h3>
+        <p class="say rv d1">The stamp, every cheer, every reaction, every minute watched — and at full time, the bonus for calling it right, multiplied by how sure you said you were. Turning up is worth more than lurking.</p>
+        <p class="prod rv d2"><b>What it produces:</b> an engagement economy tied to real actions, with the night's totals and its top five sealed into the permanent record by serial — never by name.</p>
+      </div>
+      <div class="sample rv d1">
+        <div class="tag">THE FORMULA</div>
+        <div class="big">+200 ×2</div>
+        <div class="say2">An exact scoreline pays 200, the right result 75 — doubled at the top of the conviction dial. Cheers, reactions and minutes accrue underneath, all of it counted server-side.</div>
+        <div class="src">POINTS v1</div>
+      </div>
+    </div>
+
+    <!-- 05 -->
+    <div class="mech">
+      <div>
+        <div class="no rv">05</div>
+        <h3 class="rv">A night you can hold</h3>
+        <p class="say rv d1">The finished match is a woven cloth — the market's belief is the warp, the goals knot into it, your side frames the edge. Keeping it takes one tap and no account; saving it to a key of your own takes a face scan and no seed phrase.</p>
+        <p class="prod rv d2"><b>What it produces:</b> a durable record of what fans chose to preserve — which is its own signal about which moments mattered.</p>
+      </div>
+      <div class="sample rv d1">
+        <div class="tag">ON THE COLLECTIBLE</div>
+        <div class="big">Yours</div>
+        <div class="say2">The picture on it is the cloth your night actually wove — your rooted side, your calls, that match's goals. There is no token and nothing to flip. It is worth exactly what it meant to you.</div>
+        <div class="src">METAPLEX CORE · SOLANA DEVNET</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── EVIDENCE ─────────────────────────────────────────── -->
+<section>
+  <div class="wrap">
+    <div class="eyebrow rv">MEASURED ON REAL MATCHES</div>
+    <h2 class="rv d1">Four live nights,<br>with real fans.</h2>
+    <p class="lede wide rv d2">Every number below was produced by the running system on a real World Cup night and can be regenerated from the recordings kept in the open repository. Sample sizes are small and labelled as such — the claim is a working instrument, not a survey.</p>
+
+    <div class="nights">
+      <div class="night rv"><div class="fx">FRA 2–0 MAR</div><div class="dt">THE PREMIERE</div><div class="stat">+85.7pt</div><div class="what">Morocco's end backed Morocco that much harder than the market did. The market was right — the gap was real and measurable either way.</div></div>
+      <div class="night rv d1"><div class="fx">ESP 2–1 BEL</div><div class="dt">GROUP NIGHT</div><div class="stat">Exact</div><div class="what">The crowd's most-called scoreline was the final scoreline, with a doubter on the losing end who turned out to be right.</div></div>
+      <div class="night rv d2"><div class="fx">ENG 1–2 ARG</div><div class="dt">SEMIFINAL</div><div class="stat">31% → 96%</div><div class="what">Argentina's price at kickoff, and at the whistle. By the end the closing money was barely surprised at all.</div></div>
+      <div class="night rv d3"><div class="fx">FRA 4–6 ENG</div><div class="dt">THIRD PLACE</div><div class="stat">11</div><div class="what">Lead changes in a single match — ten goals, a belief line that never settled, and a 33-point lurch at 86′.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── THE RECORD ───────────────────────────────────────── -->
+<section class="keep">
+  <div class="wrap">
+    <div class="eyebrow rv" style="color:#968E76">WHAT A NIGHT LEAVES BEHIND</div>
+    <h2 class="rv d1">One record,<br>sealed at the whistle.</h2>
+    <p class="lede rv d2">Every match crystallises into a single record and is hashed onto Solana within the minute. Nothing in it is estimated.</p>
+
+    <div class="rec">
+      <div class="rv"><h4>THE MARKET</h4><p>Opening, closing and per-phase belief, every swing with its trigger minute, volatility, conviction, the moments the price held its breath.</p></div>
+      <div class="rv d1"><h4>THE CROWD</h4><p>Consensus scoreline with its n, rooted counts per end, and the full histogram of every score anyone called.</p></div>
+      <div class="rv d2"><h4>THE FEELING</h4><p>What each end felt at each turning point, and the night's loudness curve sampled throughout.</p></div>
+      <div class="rv d3"><h4>THE PEOPLE</h4><p>Fans, cheers, reactions, minutes watched, arrival waves and points — by serial number, never by identity.</p></div>
+    </div>
+
+    <p class="chain rv">No token. No wager. The chain does three jobs: proving the data existed, stamping a claim before the outcome arrived, and settling the record into something that is yours.<br><br>
+    Third place, sealed 19 July: record hash <code>8a1cac7d13fe…</code> · anchored on devnet <code>44KB7EXGB17u…</code></p>
+
+    <div class="scarfrow rv d1">
+      <img src="/plate/scarves/18175918.jpg" alt="woven match scarf">
+      <img src="/plate/scarves/18202783.jpg" alt="woven match scarf">
+      <img src="/plate/scarves/18187298.jpg" alt="woven match scarf">
+    </div>
+  </div>
+</section>
+
+<!-- ── CLOSE ────────────────────────────────────────────── -->
+<section class="close">
+  <div class="wrap">
+    <div class="eyebrow rv">THE NEXT MATCH IS THE POINT</div>
+    <h2 class="rv d1">Pick an end.</h2>
+    <div class="cta rv d2">
+      <a class="solid" href="/">GO TO THE GROUND</a>
+      <a href="/demo">WALKTHROUGH</a>
+      <a href="/live">REWATCH A SEALED MATCH</a>
+    </div>
+  </div>
+</section>
+
+<footer>ROOOT · '26 · REAL COUNTS, REAL ODDS, NO STAKES</footer>
+
+<script>
+  (function () {
+    var els = [].slice.call(document.querySelectorAll('.rv'));
+    if (!('IntersectionObserver' in window)) { els.forEach(function (e) { e.classList.add('in'); }); return; }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); } });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+    els.forEach(function (e) { io.observe(e); });
+  })();
+</script>
+</body>
+</html>
