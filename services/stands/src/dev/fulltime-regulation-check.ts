@@ -72,7 +72,7 @@ const i10 = seen.findIndex((s) => s.statusId === 10);
 if (!(i5 < i7 && i7 < i10)) fail('expected the real order 5 -> 7 -> 10');
 else pass('real order holds: 5 (90 min) -> 7 (ET) -> 10 (true end)');
 
-const gapMs = WIRE[1].receivedAtMs - WIRE[0].receivedAtMs;
+const gapMs = (WIRE[1]?.receivedAtMs ?? 0) - (WIRE[0]?.receivedAtMs ?? 0);
 console.log('\n  the 5 -> ET gap that night: ' + Math.round(gapMs / 1000) + 's (the grace window must exceed this)');
 
 console.log(failures === 0 ? '\nfulltime-regulation-check: PASS' : '\nfulltime-regulation-check: ' + failures + ' FAILURE(S)');

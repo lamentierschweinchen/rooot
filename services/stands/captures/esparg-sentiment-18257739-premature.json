@@ -1,0 +1,6021 @@
+{
+ "version": 1,
+ "matchId": "18257739",
+ "fixture": {
+  "home": {
+   "code": "ESP",
+   "name": "Spain",
+   "colors": [
+    "#AA151B",
+    "#F1BF00"
+   ]
+  },
+  "away": {
+   "code": "ARG",
+   "name": "Argentina",
+   "colors": [
+    "#75AADB",
+    "#F6B40E"
+   ]
+  },
+  "competition": "World Cup",
+  "dateISO": "2026-07-19"
+ },
+ "finalScore": {
+  "home": 0,
+  "away": 0
+ },
+ "phasePath": [
+  "FIRST_HALF",
+  "HALF_TIME",
+  "SECOND_HALF",
+  "FULL_TIME"
+ ],
+ "decidedIn": "90",
+ "market": {
+  "open": {
+   "home": 0.42229999999999995,
+   "draw": 0.31536000000000003,
+   "away": 0.26239999999999997
+  },
+  "close": {
+   "home": 0.05747,
+   "draw": 0.93721,
+   "away": 0.005560000000000001
+  },
+  "etClose": null,
+  "perPhase": [
+   {
+    "phase": "FIRST_HALF",
+    "belief": {
+     "home": 0.42753,
+     "draw": 0.31586,
+     "away": 0.25661
+    }
+   },
+   {
+    "phase": "HALF_TIME",
+    "belief": {
+     "home": 0.39573,
+     "draw": 0.38911,
+     "away": 0.21515
+    }
+   },
+   {
+    "phase": "SECOND_HALF",
+    "belief": {
+     "home": 0.39047,
+     "draw": 0.39338999999999996,
+     "away": 0.21608
+    }
+   },
+   {
+    "phase": "FULL_TIME",
+    "belief": {
+     "home": 0.05747,
+     "draw": 0.93721,
+     "away": 0.005560000000000001
+    }
+   }
+  ],
+  "biggestSwing": {
+   "minute": 90,
+   "from": {
+    "home": 0.18829,
+    "draw": 0.74074,
+    "away": 0.07092
+   },
+   "to": {
+    "home": 0.1061,
+    "draw": 0.85179,
+    "away": 0.04237
+   },
+   "deltaMax": 0.1110500000000001,
+   "toward": "draw"
+  },
+  "swings": [
+   {
+    "minute": 43,
+    "from": {
+     "home": 0.42229999999999995,
+     "draw": 0.31536000000000003,
+     "away": 0.26239999999999997
+    },
+    "to": {
+     "home": 0.40601,
+     "draw": 0.37552,
+     "away": 0.21863
+    },
+    "deltaMax": 0.06015999999999999,
+    "toward": "home"
+   },
+   {
+    "minute": 53,
+    "from": {
+     "home": 0.40601,
+     "draw": 0.37552,
+     "away": 0.21863
+    },
+    "to": {
+     "home": 0.35511000000000004,
+     "draw": 0.4384,
+     "away": 0.20657
+    },
+    "deltaMax": 0.06287999999999999,
+    "toward": "draw"
+   },
+   {
+    "minute": 65,
+    "from": {
+     "home": 0.35511000000000004,
+     "draw": 0.4384,
+     "away": 0.20657
+    },
+    "to": {
+     "home": 0.34868000000000005,
+     "draw": 0.499,
+     "away": 0.15228
+    },
+    "deltaMax": 0.06059999999999999,
+    "toward": "draw"
+   },
+   {
+    "minute": 76,
+    "from": {
+     "home": 0.34868000000000005,
+     "draw": 0.499,
+     "away": 0.15228
+    },
+    "to": {
+     "home": 0.31299,
+     "draw": 0.5596,
+     "away": 0.12737
+    },
+    "deltaMax": 0.06059999999999999,
+    "toward": "draw"
+   },
+   {
+    "minute": 82,
+    "from": {
+     "home": 0.31299,
+     "draw": 0.5596,
+     "away": 0.12737
+    },
+    "to": {
+     "home": 0.28098,
+     "draw": 0.6199600000000001,
+     "away": 0.09901
+    },
+    "deltaMax": 0.06036000000000008,
+    "toward": "draw"
+   },
+   {
+    "minute": 86,
+    "from": {
+     "home": 0.28098,
+     "draw": 0.6199600000000001,
+     "away": 0.09901
+    },
+    "to": {
+     "home": 0.23154,
+     "draw": 0.68027,
+     "away": 0.0885
+    },
+    "deltaMax": 0.060309999999999975,
+    "toward": "draw"
+   },
+   {
+    "minute": 88,
+    "from": {
+     "home": 0.23154,
+     "draw": 0.68027,
+     "away": 0.0885
+    },
+    "to": {
+     "home": 0.18829,
+     "draw": 0.74074,
+     "away": 0.07092
+    },
+    "deltaMax": 0.06046999999999991,
+    "toward": "draw"
+   },
+   {
+    "minute": 90,
+    "from": {
+     "home": 0.18829,
+     "draw": 0.74074,
+     "away": 0.07092
+    },
+    "to": {
+     "home": 0.1061,
+     "draw": 0.85179,
+     "away": 0.04237
+    },
+    "deltaMax": 0.1110500000000001,
+    "toward": "draw"
+   },
+   {
+    "minute": 92,
+    "from": {
+     "home": 0.1061,
+     "draw": 0.85179,
+     "away": 0.04237
+    },
+    "to": {
+     "home": 0.05,
+     "draw": 0.93545,
+     "away": 0.01471
+    },
+    "deltaMax": 0.08365999999999996,
+    "toward": "draw"
+   }
+  ],
+  "suspensions": 0,
+  "favoredMinutes": {
+   "home": 2655,
+   "draw": 1837,
+   "away": 0
+  },
+  "leadChanges": 11,
+  "volatility": 7.160680000000002,
+  "conviction": {
+   "mean": 0.15016062333036517,
+   "max": 0.6100666666666668
+  },
+  "ticks": 4492
+ },
+ "fans": {
+  "rootedAtLock": {
+   "home": 7,
+   "away": 4
+  },
+  "consensus": {
+   "type": "consensus",
+   "matchId": "18257739",
+   "ts": 1784495775114,
+   "locked": true,
+   "all": {
+    "n": 3,
+    "mean": {
+     "home": 1.6666666666666667,
+     "away": 1
+    },
+    "outcome": {
+     "homeWin": 0.6666666666666666,
+     "draw": 0,
+     "awayWin": 0.3333333333333333
+    },
+    "modal": {
+     "home": 2,
+     "away": 0,
+     "pct": 0.3333333333333333
+    }
+   },
+   "byRoot": {
+    "home": {
+     "n": 2,
+     "mean": {
+      "home": 1.5,
+      "away": 0
+     },
+     "outcome": {
+      "homeWin": 1,
+      "draw": 0,
+      "awayWin": 0
+     },
+     "modal": {
+      "home": 2,
+      "away": 0,
+      "pct": 0.5
+     }
+    },
+    "away": {
+     "n": 1,
+     "mean": {
+      "home": 2,
+      "away": 3
+     },
+     "outcome": {
+      "homeWin": 0,
+      "draw": 0,
+      "awayWin": 1
+     },
+     "modal": {
+      "home": 2,
+      "away": 3,
+      "pct": 1
+     }
+    },
+    "neutral": {
+     "n": 0,
+     "mean": {
+      "home": 0,
+      "away": 0
+     },
+     "outcome": {
+      "homeWin": 0,
+      "draw": 0,
+      "awayWin": 0
+     },
+     "modal": {
+      "home": 0,
+      "away": 0,
+      "pct": 0
+     }
+    }
+   }
+  },
+  "optimismGap": {
+   "home": 0.5777000000000001,
+   "away": 0.7376
+  },
+  "doubters": {
+   "home": 0,
+   "away": 0
+  },
+  "calls": {
+   "total": 0,
+   "proved": 0,
+   "failed": 0,
+   "bravestProved": null
+  },
+  "faith": {
+   "home": 0,
+   "away": 0
+  },
+  "scorelines": [
+   {
+    "h": 2,
+    "a": 0,
+    "n": 1
+   },
+   {
+    "h": 2,
+    "a": 3,
+    "n": 1
+   },
+   {
+    "h": 1,
+    "a": 0,
+    "n": 1
+   }
+  ],
+  "engagement": {
+   "fans": 21,
+   "cheers": 89,
+   "reacts": 0,
+   "watchMinutes": 465,
+   "arrivals": [
+    {
+     "minute": 0,
+     "n": 1
+    },
+    {
+     "minute": 640,
+     "n": 1
+    },
+    {
+     "minute": 660,
+     "n": 2
+    },
+    {
+     "minute": 690,
+     "n": 1
+    },
+    {
+     "minute": 740,
+     "n": 1
+    },
+    {
+     "minute": 1110,
+     "n": 1
+    },
+    {
+     "minute": 1170,
+     "n": 1
+    },
+    {
+     "minute": 1180,
+     "n": 3
+    },
+    {
+     "minute": 1185,
+     "n": 2
+    },
+    {
+     "minute": 1190,
+     "n": 3
+    },
+    {
+     "minute": 1195,
+     "n": 1
+    },
+    {
+     "minute": 1200,
+     "n": 2
+    },
+    {
+     "minute": 1215,
+     "n": 1
+    },
+    {
+     "minute": 1225,
+     "n": 1
+    }
+   ]
+  },
+  "nerveDrift": {
+   "fansChanged": 0,
+   "totalEdits": 0
+  }
+ },
+ "feel": {
+  "moments": [],
+  "roar": {
+   "peak": {
+    "minute": 11,
+    "side": "home",
+    "value": 4.333333333333333
+   },
+   "total": {
+    "home": 104.19933333333326,
+    "away": 0
+   }
+  },
+  "roarSeries": [
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": null,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 0,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 1,
+    "home": 1,
+    "away": 0
+   },
+   {
+    "minute": 1,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 1,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 3,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 3,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 4,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 4,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 4,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 5,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 5,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 6,
+    "home": 1,
+    "away": 0
+   },
+   {
+    "minute": 6,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 7,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 8,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 8,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 8,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 9,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 10,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 10,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 11,
+    "home": 1.333,
+    "away": 0
+   },
+   {
+    "minute": 11,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 12,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 12,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 12,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 12,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 13,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 13,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 13,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 15,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 16,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 16,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 17,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 17,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 17,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 18,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 19,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 19,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 20,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 20,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 21,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 21,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 22,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 22,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 23,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 23,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 23,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 23,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 23,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 23,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 23,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 23,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 23,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 27,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 27,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 28,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 28,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 29,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 30,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 30,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 30,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 31,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 31,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 32,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 32,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 33,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 34,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 34,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 35,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 35,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 35,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 36,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 37,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 37,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 37,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 38,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 38,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 39,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 40,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 40,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 40,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 41,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 41,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 42,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 43,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 43,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 43,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 44,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 45,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 45,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 46,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 46,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 45,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 45,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 45,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 45,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 46,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 47,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 48,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 49,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 50,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 50,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 51,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 54,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 55,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 55,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 55,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 56,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 57,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 57,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 57,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 57,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 59,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 59,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 59,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 60,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 61,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 61,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 62,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 62,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 63,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 63,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 64,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 64,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 64,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 65,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 66,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 66,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 66,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 66,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 66,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 66,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 66,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 69,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 69,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 69,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 71,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 71,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 72,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 72,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 72,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 73,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 73,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 74,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 75,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 75,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 76,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 76,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 86,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 87,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 88,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 88,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 88,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 89,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 90,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 90,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 90,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 91,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 92,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 92,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 92,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 93,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 93,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 93,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 93,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 95,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 95,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 95,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 98,
+    "home": 0,
+    "away": 0
+   },
+   {
+    "minute": 98,
+    "home": 0,
+    "away": 0
+   }
+  ],
+  "volatility": 0
+ },
+ "nextGoal": [
+  {
+   "cycle": 1,
+   "openedAtMs": 1784488065617,
+   "resolvedAtMs": 1784495747826,
+   "happened": "none",
+   "confirmedGoalId": null,
+   "crowd": {
+    "n": 3,
+    "home": 2,
+    "away": 1,
+    "none": 0
+   },
+   "marketAtResolution": {
+    "home": 0.05747,
+    "draw": 0.93721,
+    "away": 0.005560000000000001
+   }
+  }
+ ],
+ "events": [
+  {
+   "id": "18257739:57",
+   "kind": "shot",
+   "major": false,
+   "minute": 4,
+   "tMs": 1784488219627,
+   "side": "home",
+   "headline": "Shot",
+   "raw": {
+    "FixtureId": 18257739,
+    "GameState": "scheduled",
+    "StartTime": 1784487900000,
+    "IsTeam": true,
+    "FixtureGroupId": 10115676,
+    "CompetitionId": 72,
+    "CountryId": 466,
+    "SportId": 1,
+    "Participant1IsHome": true,
+    "Participant2Id": 1489,
+    "Participant1Id": 3021,
+    "CoverageSecondaryData": true,
+    "CoverageType": "TV/Stream",
+    "Action": "shot",
+    "Id": 57,
+    "Ts": 1784488219500,
+    "ConnectionId": 1180,
+    "Seq": 54,
+    "StatusId": 2,
+    "Type": "Soccer",
+    "Confirmed": true,
+    "Clock": {
+     "Running": true,
+     "Seconds": 257
+    },
+    "Data": {
+     "Outcome": "OnTarget"
+    },
+    "Stats": {},
+    "Participant": 1
+   },
+   "detail": "OnTarget"
+  },
+  {
+   "id": "18257739:139",
+   "kind": "corner",
+   "major": false,
+   "minute": 11,
+   "tMs": 1784488650565,
+   "side": "home",
+   "headline": "Corner",
+   "raw": {
+    "FixtureId": 18257739,
+    "GameState": "scheduled",
+    "StartTime": 1784487900000,
+    "IsTeam": true,
+    "FixtureGroupId": 10115676,
+    "CompetitionId": 72,
+    "CountryId": 466,
+    "SportId": 1,
+    "Participant1IsHome": true,
+    "Participant2Id": 1489,
+    "Participant1Id": 3021,
+    "CoverageSecondaryData": true,
+    "CoverageType": "TV/Stream",
+    "Action": "corner",
+    "Id": 139,
+    "Ts": 1784488650446,
+    "ConnectionId": 1180,
+    "Seq": 144,
+    "StatusId": 2,
+    "Type": "Soccer",
+    "Confirmed": true,
+    "Clock": {
+     "Running": true,
+     "Seconds": 682
+    },
+    "Score": {
+     "Participant1": {
+      "H1": {
+       "Corners": 1
+      },
+      "HT": {
+       "Corners": 1
+      },
+      "Total": {
+       "Corners": 1
+      }
+     }
+    },
+    "Stats": {
+     "1": 0,
+     "2": 0,
+     "3": 0,
+     "4": 0,
+     "5": 0,
+     "6": 0,
+     "7": 1,
+     "8": 0,
+     "1001": 0,
+     "1002": 0,
+     "1003": 0,
+     "1004": 0,
+     "1005": 0,
+     "1006": 0,
+     "1007": 1,
+     "1008": 0,
+     "2001": 0,
+     "2002": 0,
+     "2003": 0,
+     "2004": 0,
+     "2005": 0,
+     "2006": 0,
+     "2007": 1,
+     "2008": 0,
+     "3001": 0,
+     "3002": 0,
+     "3003": 0,
+     "3004": 0,
+     "3005": 0,
+     "3006": 0,
+     "3007": 0,
+     "3008": 0,
+     "4001": 0,
+     "4002": 0,
+     "4003": 0,
+     "4004": 0,
+     "4005": 0,
+     "4006": 0,
+     "4007": 0,
+     "4008": 0,
+     "5001": 0,
+     "5002": 0,
+     "5003": 0,
+     "5004": 0,
+     "5005": 0,
+     "5006": 0,
+     "5007": 0,
+     "5008": 0,
+     "6001": 0,
+     "6002": 0,
+     "6003": 0,
+     "6004": 0,
+     "6005": 0,
+     "6006": 0,
+     "6007": 0,
+     "6008": 0,
+     "7001": 0,
+     "7002": 0,
+     "7003": 0,
+     "7004": 0,
+     "7005": 0,
+     "7006": 0,
+     "7007": 0,
+     "7008": 0
+    },
+    "Participant": 1,
+    "Possession": 1,
+    "Parti1State": {},
+    "Parti2State": {}
+   }
+  },
+  {
+   "id": "18257739:228",
+   "kind": "corner",
+   "major": false,
+   "minute": 22,
+   "tMs": 1784489337156,
+   "side": "home",
+   "headline": "Corner",
+   "raw": {
+    "FixtureId": 18257739,
+    "GameState": "scheduled",
+    "StartTime": 1784487900000,
+    "IsTeam": true,
+    "FixtureGroupId": 10115676,
+    "CompetitionId": 72,
+    "CountryId": 466,
+    "SportId": 1,
+    "Participant1IsHome": true,
+    "Participant2Id": 1489,
+    "Participant1Id": 3021,
+    "CoverageSecondaryData": true,
+    "CoverageType": "TV/Stream",
+    "Action": "corner",
+    "Id": 228,
+    "Ts": 1784489337039,
+    "ConnectionId": 1180,
+    "Seq": 244,
+    "StatusId": 2,
+    "Type": "Soccer",
+    "Confirmed": true,
+    "Clock": {
+     "Running": true,
+     "Seconds": 1367
+    },
+    "Score": {
+     "Participant1": {
+      "H1": {
+       "Corners": 2
+      },
+      "HT": {
+       "Corners": 2
+      },
+      "Total": {
+       "Corners": 2
+      }
+     }
+    },
+    "Stats": {
+     "1": 0,
+     "2": 0,
+     "3": 0,
+     "4": 0,
+     "5": 0,
+     "6": 0,
+     "7": 2,
+     "8": 0,
+     "1001": 0,
+     "1002": 0,
+     "1003": 0,
+     "1004": 0,
+     "1005": 0,
+     "1006": 0,
+     "1007": 2,
+     "1008": 0,
+     "2001": 0,
+     "2002": 0,
+     "2003": 0,
+     "2004": 0,
+     "2005": 0,
+     "2006": 0,
+     "2007": 2,
+     "2008": 0,
+     "3001": 0,
+     "3002": 0,
+     "3003": 0,
+     "3004": 0,
+     "3005": 0,
+     "3006": 0,
+     "3007": 0,
+     "3008": 0,
+     "4001": 0,
+     "4002": 0,
+     "4003": 0,
+     "4004": 0,
+     "4005": 0,
+     "4006": 0,
+     "4007": 0,
+     "4008": 0,
+     "5001": 0,
+     "5002": 0,
+     "5003": 0,
+     "5004": 0,
+     "5005": 0,
+     "5006": 0,
+     "5007": 0,
+     "5008": 0,
+     "6001": 0,
+     "6002": 0,
+     "6003": 0,
+     "6004": 0,
+     "6005": 0,
+     "6006": 0,
+     "6007": 0,
+     "6008": 0,
+     "7001": 0,
+     "7002": 0,
+     "7003": 0,
+     "7004": 0,
+     "7005": 0,
+     "7006": 0,
+     "7007": 0,
+     "7008": 0
+    },
+    "Participant": 1,
+    "Possession": 1,
+    "Parti1State": {},
+    "Parti2State": {}
+   }
+  },
+  {
+   "id": "18257739:331",
+   "kind": "shot",
+   "major": false,
+   "minute": 38,
+   "tMs": 1784490274085,
+   "side": "home",
+   "headline": "Shot",
+   "raw": {
+    "FixtureId": 18257739,
+    "GameState": "scheduled",
+    "StartTime": 1784487900000,
+    "IsTeam": true,
+    "FixtureGroupId": 10115676,
+    "CompetitionId": 72,
+    "CountryId": 466,
+    "SportId": 1,
+    "Participant1IsHome": true,
+    "Participant2Id": 1489,
+    "Participant1Id": 3021,
+    "CoverageSecondaryData": true,
+    "CoverageType": "TV/Stream",
+    "Action": "shot",
+    "Id": 331,
+    "Ts": 1784490273971,
+    "ConnectionId": 1180,
+    "Seq": 360,
+    "StatusId": 2,
+    "Type": "Soccer",
+    "Confirmed": true,
+    "Clock": {
+     "Running": true,
+     "Seconds": 2312
+    },
+    "Data": {
+     "Outcome": "OnTarget"
+    },
+    "Stats": {
+     "1": 0,
+     "2": 0,
+     "3": 0,
+     "4": 0,
+     "5": 0,
+     "6": 0,
+     "7": 2,
+     "8": 0,
+     "1001": 0,
+     "1002": 0,
+     "1003": 0,
+     "1004": 0,
+     "1005": 0,
+     "1006": 0,
+     "1007": 2,
+     "1008": 0,
+     "2001": 0,
+     "2002": 0,
+     "2003": 0,
+     "2004": 0,
+     "2005": 0,
+     "2006": 0,
+     "2007": 2,
+     "2008": 0,
+     "3001": 0,
+     "3002": 0,
+     "3003": 0,
+     "3004": 0,
+     "3005": 0,
+     "3006": 0,
+     "3007": 0,
+     "3008": 0,
+     "4001": 0,
+     "4002": 0,
+     "4003": 0,
+     "4004": 0,
+     "4005": 0,
+     "4006": 0,
+     "4007": 0,
+     "4008": 0,
+     "5001": 0,
+     "5002": 0,
+     "5003": 0,
+     "5004": 0,
+     "5005": 0,
+     "5006": 0,
+     "5007": 0,
+     "5008": 0,
+     "6001": 0,
+     "6002": 0,
+     "6003": 0,
+     "6004": 0,
+     "6005": 0,
+     "6006": 0,
+     "6007": 0,
+     "6008": 0,
+     "7001": 0,
+     "7002": 0,
+     "7003": 0,
+     "7004": 0,
+     "7005": 0,
+     "7006": 0,
+     "7007": 0,
+     "7008": 0
+    },
+    "Participant": 1
+   },
+   "detail": "OnTarget"
+  },
+  {
+   "id": "18257739:348",
+   "kind": "yellow-card",
+   "major": true,
+   "minute": 40,
+   "tMs": 1784490373537,
+   "side": "away",
+   "headline": "Yellow card",
+   "raw": {
+    "FixtureId": 18257739,
+    "GameState": "scheduled",
+    "StartTime": 1784487900000,
+    "IsTeam": true,
+    "FixtureGroupId": 10115676,
+    "CompetitionId": 72,
+    "CountryId": 466,
+    "SportId": 1,
+    "Participant1IsHome": true,
+    "Participant2Id": 1489,
+    "Participant1Id": 3021,
+    "CoverageSecondaryData": true,
+    "CoverageType": "TV/Stream",
+    "Action": "yellow_card",
+    "Id": 348,
+    "Ts": 1784490373421,
+    "ConnectionId": 1180,
+    "Seq": 381,
+    "StatusId": 2,
+    "Type": "Soccer",
+    "Confirmed": true,
+    "Clock": {
+     "Running": true,
+     "Seconds": 2408
+    },
+    "Score": {
+     "Participant1": {
+      "H1": {
+       "Corners": 2
+      },
+      "HT": {
+       "Corners": 2
+      },
+      "Total": {
+       "Corners": 2
+      }
+     },
+     "Participant2": {
+      "H1": {
+       "YellowCards": 1
+      },
+      "HT": {
+       "YellowCards": 1
+      },
+      "Total": {
+       "YellowCards": 1
+      }
+     }
+    },
+    "Data": {
+     "PlayerId": 1103557
+    },
+    "Stats": {
+     "1": 0,
+     "2": 0,
+     "3": 0,
+     "4": 1,
+     "5": 0,
+     "6": 0,
+     "7": 2,
+     "8": 0,
+     "1001": 0,
+     "1002": 0,
+     "1003": 0,
+     "1004": 1,
+     "1005": 0,
+     "1006": 0,
+     "1007": 2,
+     "1008": 0,
+     "2001": 0,
+     "2002": 0,
+     "2003": 0,
+     "2004": 1,
+     "2005": 0,
+     "2006": 0,
+     "2007": 2,
+     "2008": 0,
+     "3001": 0,
+     "3002": 0,
+     "3003": 0,
+     "3004": 0,
+     "3005": 0,
+     "3006": 0,
+     "3007": 0,
+     "3008": 0,
+     "4001": 0,
+     "4002": 0,
+     "4003": 0,
+     "4004": 0,
+     "4005": 0,
+     "4006": 0,
+     "4007": 0,
+     "4008": 0,
+     "5001": 0,
+     "5002": 0,
+     "5003": 0,
+     "5004": 0,
+     "5005": 0,
+     "5006": 0,
+     "5007": 0,
+     "5008": 0,
+     "6001": 0,
+     "6002": 0,
+     "6003": 0,
+     "6004": 0,
+     "6005": 0,
+     "6006": 0,
+     "6007": 0,
+     "6008": 0,
+     "7001": 0,
+     "7002": 0,
+     "7003": 0,
+     "7004": 0,
+     "7005": 0,
+     "7006": 0,
+     "7007": 0,
+     "7008": 0
+    },
+    "Participant": 2,
+    "PossibleEvent": {}
+   },
+   "detail": "Martinez, Lisandro"
+  },
+  {
+   "id": "18257739:370",
+   "kind": "shot",
+   "major": false,
+   "minute": 42,
+   "tMs": 1784490516472,
+   "side": "home",
+   "headline": "Shot",
+   "raw": {
+    "FixtureId": 18257739,
+    "GameState": "scheduled",
+    "StartTime": 1784487900000,
+    "IsTeam": true,
+    "FixtureGroupId": 10115676,
+    "CompetitionId": 72,
+    "CountryId": 466,
+    "SportId": 1,
+    "Participant1IsHome": true,
+    "Participant2Id": 1489,
+    "Participant1Id": 3021,
+    "CoverageSecondaryData": true,
+    "CoverageType": "TV/Stream",
+    "Action": "shot",
+    "Id": 370,
+    "Ts": 1784490516352,
+    "ConnectionId": 1180,
+    "Seq": 404,
+    "StatusId": 2,
+    "Type": "Soccer",
+    "Confirmed": true,
+    "Clock": {
+     "Running": true,
+     "Seconds": 2554
+    },
+    "Data": {
+     "Outcome": "OffTarget"
+    },
+    "Stats": {
+     "1": 0,
+     "2": 0,
+     "3": 0,
+     "4": 1,
+     "5": 0,
+     "6": 0,
+     "7": 2,
+     "8": 0,
+     "1001": 0,
+     "1002": 0,
+     "1003": 0,
+     "1004": 1,
+     "1005": 0,
+     "1006": 0,
+     "1007": 2,
+     "1008": 0,
+     "2001": 0,
+     "2002": 0,
+     "2003": 0,
+     "2004": 1,
+     "2005": 0,
+     "2006": 0,
+     "2007": 2,
+     "2008": 0,
+     "3001": 0,
+     "3002": 0,
+     "3003": 0,
+     "3004": 0,
+     "3005": 0,
+     "3006": 0,
+     "3007": 0,
+     "3008": 0,
+     "4001": 0,
+     "4002": 0,
+     "4003": 0,
+     "4004": 0,
+     "4005": 0,
+     "4006": 0,
+     "4007": 0,
+     "4008": 0,
+     "5001": 0,
+     "5002": 0,
+     "5003": 0,
+     "5004": 0,
+     "5005": 0,
+     "5006": 0,
+     "5007": 0,
+     "5008": 0,
+     "6001": 0,
+     "6002": 0,
+     "6003": 0,
+     "6004": 0,
+     "6005": 0,
+     "6006": 0,
+     "6007": 0,
+     "6008": 0,
+     "7001": 0,
+     "7002": 0,
+     "7003": 0,
+     "7004": 0,
+     "7005": 0,
+     "7006": 0,
+     "7007": 0,
+     "7008": 0
+    },
+    "Participant": 1
+   },
+   "detail": "OffTarget"
+  },
+  {
+   "id": "18257739:444",
+   "kind": "shot",
+   "major": false,
+   "minute": 45,
+   "tMs": 1784492590006,
+   "side": "home",
+   "headline": "Shot",
+   "raw": {
+    "FixtureId": 18257739,
+    "GameState": "scheduled",
+    "StartTime": 1784487900000,
+    "IsTeam": true,
+    "FixtureGroupId": 10115676,
+    "CompetitionId": 72,
+    "CountryId": 466,
+    "SportId": 1,
+    "Participant1IsHome": true,
+    "Participant2Id": 1489,
+    "Participant1Id": 3021,
+    "CoverageSecondaryData": true,
+    "CoverageType": "TV/Stream",
+    "Action": "shot",
+    "Id": 444,
+    "Ts": 1784492589888,
+    "ConnectionId": 1180,
+    "Seq": 489,
+    "StatusId": 4,
+    "Type": "Soccer",
+    "Confirmed": true,
+    "Clock": {
+     "Running": true,
+     "Seconds": 2744
+    },
+    "Data": {
+     "Outcome": "OnTarget"
+    },
+    "Stats": {
+     "1": 0,
+     "2": 0,
+     "3": 0,
+     "4": 1,
+     "5": 0,
+     "6": 0,
+     "7": 2,
+     "8": 0,
+     "1001": 0,
+     "1002": 0,
+     "1003": 0,
+     "1004": 1,
+     "1005": 0,
+     "1006": 0,
+     "1007": 2,
+     "1008": 0,
+     "2001": 0,
+     "2002": 0,
+     "2003": 0,
+     "2004": 1,
+     "2005": 0,
+     "2006": 0,
+     "2007": 2,
+     "2008": 0,
+     "3001": 0,
+     "3002": 0,
+     "3003": 0,
+     "3004": 0,
+     "3005": 0,
+     "3006": 0,
+     "3007": 0,
+     "3008": 0,
+     "4001": 0,
+     "4002": 0,
+     "4003": 0,
+     "4004": 0,
+     "4005": 0,
+     "4006": 0,
+     "4007": 0,
+     "4008": 0,
+     "5001": 0,
+     "5002": 0,
+     "5003": 0,
+     "5004": 0,
+     "5005": 0,
+     "5006": 0,
+     "5007": 0,
+     "5008": 0,
+     "6001": 0,
+     "6002": 0,
+     "6003": 0,
+     "6004": 0,
+     "6005": 0,
+     "6006": 0,
+     "6007": 0,
+     "6008": 0,
+     "7001": 0,
+     "7002": 0,
+     "7003": 0,
+     "7004": 0,
+     "7005": 0,
+     "7006": 0,
+     "7007": 0,
+     "7008": 0
+    },
+    "Participant": 1
+   },
+   "detail": "OnTarget"
+  },
+  {
+   "id": "18257739:460",
+   "kind": "corner",
+   "major": false,
+   "minute": 47,
+   "tMs": 1784492687710,
+   "side": "away",
+   "headline": "Corner",
+   "raw": {
+    "FixtureId": 18257739,
+    "GameState": "scheduled",
+    "StartTime": 1784487900000,
+    "IsTeam": true,
+    "FixtureGroupId": 10115676,
+    "CompetitionId": 72,
+    "CountryId": 466,
+    "SportId": 1,
+    "Participant1IsHome": true,
+    "Participant2Id": 1489,
+    "Participant1Id": 3021,
+    "CoverageSecondaryData": true,
+    "CoverageType": "TV/Stream",
+    "Action": "corner",
+    "Id": 460,
+    "Ts": 1784492687593,
+    "ConnectionId": 1180,
+    "Seq": 506,
+    "StatusId": 4,
+    "Type": "Soccer",
+    "Confirmed": true,
+    "Clock": {
+     "Running": true,
+     "Seconds": 2824
+    },
+    "Score": {
+     "Participant1": {
+      "H1": {
+       "Corners": 2
+      },
+      "HT": {
+       "Corners": 2
+      },
+      "Total": {
+       "Corners": 2
+      }
+     },
+     "Participant2": {
+      "H1": {
+       "YellowCards": 1
+      },
+      "HT": {
+       "YellowCards": 1
+      },
+      "H2": {
+       "Corners": 1
+      },
+      "Total": {
+       "YellowCards": 1,
+       "Corners": 1
+      }
+     }
+    },
+    "Stats": {
+     "1": 0,
+     "2": 0,
+     "3": 0,
+     "4": 1,
+     "5": 0,
+     "6": 0,
+     "7": 2,
+     "8": 1,
+     "1001": 0,
+     "1002": 0,
+     "1003": 0,
+     "1004": 1,
+     "1005": 0,
+     "1006": 0,
+     "1007": 2,
+     "1008": 0,
+     "2001": 0,
+     "2002": 0,
+     "2003": 0,
+     "2004": 1,
+     "2005": 0,
+     "2006": 0,
+     "2007": 2,
+     "2008": 0,
+     "3001": 0,
+     "3002": 0,
+     "3003": 0,
+     "3004": 0,
+     "3005": 0,
+     "3006": 0,
+     "3007": 0,
+     "3008": 1,
+     "4001": 0,
+     "4002": 0,
+     "4003": 0,
+     "4004": 0,
+     "4005": 0,
+     "4006": 0,
+     "4007": 0,
+     "4008": 0,
+     "5001": 0,
+     "5002": 0,
+     "5003": 0,
+     "5004": 0,
+     "5005": 0,
+     "5006": 0,
+     "5007": 0,
+     "5008": 0,
+     "6001": 0,
+     "6002": 0,
+     "6003": 0,
+     "6004": 0,
+     "6005": 0,
+     "6006": 0,
+     "6007": 0,
+     "6008": 0,
+     "7001": 0,
+     "7002": 0,
+     "7003": 0,
+     "7004": 0,
+     "7005": 0,
+     "7006": 0,
+     "7007": 0,
+     "7008": 0
+    },
+    "Participant": 2,
+    "Possession": 2,
+    "Parti1State": {},
+    "Parti2State": {}
+   }
+  },
+  {
+   "id": "18257739:491",
+   "kind": "yellow-card",
+   "major": true,
+   "minute": 51,
+   "tMs": 1784492927834,
+   "side": "away",
+   "headline": "Yellow card",
+   "raw": {
+    "FixtureId": 18257739,
+    "GameState": "scheduled",
+    "StartTime": 1784487900000,
+    "IsTeam": true,
+    "FixtureGroupId": 10115676,
+    "CompetitionId": 72,
+    "CountryId": 466,
+    "SportId": 1,
+    "Participant1IsHome": true,
+    "Participant2Id": 1489,
+    "Participant1Id": 3021,
+    "CoverageSecondaryData": true,
+    "CoverageType": "TV/Stream",
+    "Action": "yellow_card",
+    "Id": 491,
+    "Ts": 1784492927715,
+    "ConnectionId": 1180,
+    "Seq": 544,
+    "StatusId": 4,
+    "Type": "Soccer",
+    "Confirmed": true,
+    "Clock": {
+     "Running": true,
+     "Seconds": 3078
+    },
+    "Score": {
+     "Participant1": {
+      "H1": {
+       "Corners": 2
+      },
+      "HT": {
+       "Corners": 2
+      },
+      "Total": {
+       "Corners": 2
+      }
+     },
+     "Participant2": {
+      "H1": {
+       "YellowCards": 1
+      },
+      "HT": {
+       "YellowCards": 1
+      },
+      "H2": {
+       "YellowCards": 1,
+       "Corners": 1
+      },
+      "Total": {
+       "YellowCards": 2,
+       "Corners": 1
+      }
+     }
+    },
+    "Data": {
+     "PlayerId": 223309
+    },
+    "Stats": {
+     "1": 0,
+     "2": 0,
+     "3": 0,
+     "4": 2,
+     "5": 0,
+     "6": 0,
+     "7": 2,
+     "8": 1,
+     "1001": 0,
+     "1002": 0,
+     "1003": 0,
+     "1004": 1,
+     "1005": 0,
+     "1006": 0,
+     "1007": 2,
+     "1008": 0,
+     "2001": 0,
+     "2002": 0,
+     "2003": 0,
+     "2004": 1,
+     "2005": 0,
+     "2006": 0,
+     "2007": 2,
+     "2008": 0,
+     "3001": 0,
+     "3002": 0,
+     "3003": 0,
+     "3004": 1,
+     "3005": 0,
+     "3006": 0,
+     "3007": 0,
+     "3008": 1,
+     "4001": 0,
+     "4002": 0,
+     "4003": 0,
+     "4004": 0,
+     "4005": 0,
+     "4006": 0,
+     "4007": 0,
+     "4008": 0,
+     "5001": 0,
+     "5002": 0,
+     "5003": 0,
+     "5004": 0,
+     "5005": 0,
+     "5006": 0,
+     "5007": 0,
+     "5008": 0,
+     "6001": 0,
+     "6002": 0,
+     "6003": 0,
+     "6004": 0,
+     "6005": 0,
+     "6006": 0,
+     "6007": 0,
+     "6008": 0,
+     "7001": 0,
+     "7002": 0,
+     "7003": 0,
+     "7004": 0,
+     "7005": 0,
+     "7006": 0,
+     "7007": 0,
+     "7008": 0
+    },
+    "Participant": 2,
+    "PossibleEvent": {}
+   },
+   "detail": "Paredes, Leandro"
+  },
+  {
+   "id": "18257739:530",
+   "kind": "corner",
+   "major": false,
+   "minute": 55,
+   "tMs": 1784493201914,
+   "side": "home",
+   "headline": "Corner",
+   "raw": {
+    "FixtureId": 18257739,
+    "GameState": "scheduled",
+    "StartTime": 1784487900000,
+    "IsTeam": true,
+    "FixtureGroupId": 10115676,
+    "CompetitionId": 72,
+    "CountryId": 466,
+    "SportId": 1,
+    "Participant1IsHome": true,
+    "Participant2Id": 1489,
+    "Participant1Id": 3021,
+    "CoverageSecondaryData": true,
+    "CoverageType": "TV/Stream",
+    "Action": "corner",
+    "Id": 530,
+    "Ts": 1784493201783,
+    "ConnectionId": 1180,
+    "Seq": 587,
+    "StatusId": 4,
+    "Type": "Soccer",
+    "Confirmed": true,
+    "Clock": {
+     "Running": true,
+     "Seconds": 3347
+    },
+    "Score": {
+     "Participant1": {
+      "H1": {
+       "Corners": 2
+      },
+      "HT": {
+       "Corners": 2
+      },
+      "H2": {
+       "Corners": 1
+      },
+      "Total": {
+       "Corners": 3
+      }
+     },
+     "Participant2": {
+      "H1": {
+       "YellowCards": 1
+      },
+      "HT": {
+       "YellowCards": 1
+      },
+      "H2": {
+       "YellowCards": 1,
+       "Corners": 1
+      },
+      "Total": {
+       "YellowCards": 2,
+       "Corners": 1
+      }
+     }
+    },
+    "Stats": {
+     "1": 0,
+     "2": 0,
+     "3": 0,
+     "4": 2,
+     "5": 0,
+     "6": 0,
+     "7": 3,
+     "8": 1,
+     "1001": 0,
+     "1002": 0,
+     "1003": 0,
+     "1004": 1,
+     "1005": 0,
+     "1006": 0,
+     "1007": 2,
+     "1008": 0,
+     "2001": 0,
+     "2002": 0,
+     "2003": 0,
+     "2004": 1,
+     "2005": 0,
+     "2006": 0,
+     "2007": 2,
+     "2008": 0,
+     "3001": 0,
+     "3002": 0,
+     "3003": 0,
+     "3004": 1,
+     "3005": 0,
+     "3006": 0,
+     "3007": 1,
+     "3008": 1,
+     "4001": 0,
+     "4002": 0,
+     "4003": 0,
+     "4004": 0,
+     "4005": 0,
+     "4006": 0,
+     "4007": 0,
+     "4008": 0,
+     "5001": 0,
+     "5002": 0,
+     "5003": 0,
+     "5004": 0,
+     "5005": 0,
+     "5006": 0,
+     "5007": 0,
+     "5008": 0,
+     "6001": 0,
+     "6002": 0,
+     "6003": 0,
+     "6004": 0,
+     "6005": 0,
+     "6006": 0,
+     "6007": 0,
+     "6008": 0,
+     "7001": 0,
+     "7002": 0,
+     "7003": 0,
+     "7004": 0,
+     "7005": 0,
+     "7006": 0,
+     "7007": 0,
+     "7008": 0
+    },
+    "Participant": 1,
+    "Possession": 1,
+    "Parti1State": {},
+    "Parti2State": {}
+   }
+  },
+  {
+   "id": "18257739:555",
+   "kind": "shot",
+   "major": false,
+   "minute": 60,
+   "tMs": 1784493484616,
+   "side": "home",
+   "headline": "Shot",
+   "raw": {
+    "FixtureId": 18257739,
+    "GameState": "scheduled",
+    "StartTime": 1784487900000,
+    "IsTeam": true,
+    "FixtureGroupId": 10115676,
+    "CompetitionId": 72,
+    "CountryId": 466,
+    "SportId": 1,
+    "Participant1IsHome": true,
+    "Participant2Id": 1489,
+    "Participant1Id": 3021,
+    "CoverageSecondaryData": true,
+    "CoverageType": "TV/Stream",
+    "Action": "shot",
+    "Id": 555,
+    "Ts": 1784493484501,
+    "ConnectionId": 1180,
+    "Seq": 616,
+    "StatusId": 4,
+    "Type": "Soccer",
+    "Confirmed": true,
+    "Clock": {
+     "Running": true,
+     "Seconds": 3638
+    },
+    "Data": {
+     "Outcome": "Blocked"
+    },
+    "Stats": {
+     "1": 0,
+     "2": 0,
+     "3": 0,
+     "4": 2,
+     "5": 0,
+     "6": 0,
+     "7": 3,
+     "8": 1,
+     "1001": 0,
+     "1002": 0,
+     "1003": 0,
+     "1004": 1,
+     "1005": 0,
+     "1006": 0,
+     "1007": 2,
+     "1008": 0,
+     "2001": 0,
+     "2002": 0,
+     "2003": 0,
+     "2004": 1,
+     "2005": 0,
+     "2006": 0,
+     "2007": 2,
+     "2008": 0,
+     "3001": 0,
+     "3002": 0,
+     "3003": 0,
+     "3004": 1,
+     "3005": 0,
+     "3006": 0,
+     "3007": 1,
+     "3008": 1,
+     "4001": 0,
+     "4002": 0,
+     "4003": 0,
+     "4004": 0,
+     "4005": 0,
+     "4006": 0,
+     "4007": 0,
+     "4008": 0,
+     "5001": 0,
+     "5002": 0,
+     "5003": 0,
+     "5004": 0,
+     "5005": 0,
+     "5006": 0,
+     "5007": 0,
+     "5008": 0,
+     "6001": 0,
+     "6002": 0,
+     "6003": 0,
+     "6004": 0,
+     "6005": 0,
+     "6006": 0,
+     "6007": 0,
+     "6008": 0,
+     "7001": 0,
+     "7002": 0,
+     "7003": 0,
+     "7004": 0,
+     "7005": 0,
+     "7006": 0,
+     "7007": 0,
+     "7008": 0
+    },
+    "Participant": 1
+   },
+   "detail": "Blocked"
+  },
+  {
+   "id": "18257739:579",
+   "kind": "shot",
+   "major": false,
+   "minute": 63,
+   "tMs": 1784493652713,
+   "side": "home",
+   "headline": "Shot",
+   "raw": {
+    "FixtureId": 18257739,
+    "GameState": "scheduled",
+    "StartTime": 1784487900000,
+    "IsTeam": true,
+    "FixtureGroupId": 10115676,
+    "CompetitionId": 72,
+    "CountryId": 466,
+    "SportId": 1,
+    "Participant1IsHome": true,
+    "Participant2Id": 1489,
+    "Participant1Id": 3021,
+    "CoverageSecondaryData": true,
+    "CoverageType": "TV/Stream",
+    "Action": "shot",
+    "Id": 579,
+    "Ts": 1784493652597,
+    "ConnectionId": 1180,
+    "Seq": 644,
+    "StatusId": 4,
+    "Type": "Soccer",
+    "Confirmed": true,
+    "Clock": {
+     "Running": true,
+     "Seconds": 3806
+    },
+    "Data": {
+     "Outcome": "OnTarget"
+    },
+    "Stats": {
+     "1": 0,
+     "2": 0,
+     "3": 0,
+     "4": 2,
+     "5": 0,
+     "6": 0,
+     "7": 3,
+     "8": 1,
+     "1001": 0,
+     "1002": 0,
+     "1003": 0,
+     "1004": 1,
+     "1005": 0,
+     "1006": 0,
+     "1007": 2,
+     "1008": 0,
+     "2001": 0,
+     "2002": 0,
+     "2003": 0,
+     "2004": 1,
+     "2005": 0,
+     "2006": 0,
+     "2007": 2,
+     "2008": 0,
+     "3001": 0,
+     "3002": 0,
+     "3003": 0,
+     "3004": 1,
+     "3005": 0,
+     "3006": 0,
+     "3007": 1,
+     "3008": 1,
+     "4001": 0,
+     "4002": 0,
+     "4003": 0,
+     "4004": 0,
+     "4005": 0,
+     "4006": 0,
+     "4007": 0,
+     "4008": 0,
+     "5001": 0,
+     "5002": 0,
+     "5003": 0,
+     "5004": 0,
+     "5005": 0,
+     "5006": 0,
+     "5007": 0,
+     "5008": 0,
+     "6001": 0,
+     "6002": 0,
+     "6003": 0,
+     "6004": 0,
+     "6005": 0,
+     "6006": 0,
+     "6007": 0,
+     "6008": 0,
+     "7001": 0,
+     "7002": 0,
+     "7003": 0,
+     "7004": 0,
+     "7005": 0,
+     "7006": 0,
+     "7007": 0,
+     "7008": 0
+    },
+    "Participant": 1
+   },
+   "detail": "OnTarget"
+  },
+  {
+   "id": "18257739:580",
+   "kind": "corner",
+   "major": false,
+   "minute": 63,
+   "tMs": 1784493660548,
+   "side": "home",
+   "headline": "Corner",
+   "raw": {
+    "FixtureId": 18257739,
+    "GameState": "scheduled",
+    "StartTime": 1784487900000,
+    "IsTeam": true,
+    "FixtureGroupId": 10115676,
+    "CompetitionId": 72,
+    "CountryId": 466,
+    "SportId": 1,
+    "Participant1IsHome": true,
+    "Participant2Id": 1489,
+    "Participant1Id": 3021,
+    "CoverageSecondaryData": true,
+    "CoverageType": "TV/Stream",
+    "Action": "corner",
+    "Id": 580,
+    "Ts": 1784493660431,
+    "ConnectionId": 1180,
+    "Seq": 646,
+    "StatusId": 4,
+    "Type": "Soccer",
+    "Confirmed": true,
+    "Clock": {
+     "Running": true,
+     "Seconds": 3808
+    },
+    "Score": {
+     "Participant1": {
+      "H1": {
+       "Corners": 2
+      },
+      "HT": {
+       "Corners": 2
+      },
+      "H2": {
+       "Corners": 2
+      },
+      "Total": {
+       "Corners": 4
+      }
+     },
+     "Participant2": {
+      "H1": {
+       "YellowCards": 1
+      },
+      "HT": {
+       "YellowCards": 1
+      },
+      "H2": {
+       "YellowCards": 1,
+       "Corners": 1
+      },
+      "Total": {
+       "YellowCards": 2,
+       "Corners": 1
+      }
+     }
+    },
+    "Stats": {
+     "1": 0,
+     "2": 0,
+     "3": 0,
+     "4": 2,
+     "5": 0,
+     "6": 0,
+     "7": 4,
+     "8": 1,
+     "1001": 0,
+     "1002": 0,
+     "1003": 0,
+     "1004": 1,
+     "1005": 0,
+     "1006": 0,
+     "1007": 2,
+     "1008": 0,
+     "2001": 0,
+     "2002": 0,
+     "2003": 0,
+     "2004": 1,
+     "2005": 0,
+     "2006": 0,
+     "2007": 2,
+     "2008": 0,
+     "3001": 0,
+     "3002": 0,
+     "3003": 0,
+     "3004": 1,
+     "3005": 0,
+     "3006": 0,
+     "3007": 2,
+     "3008": 1,
+     "4001": 0,
+     "4002": 0,
+     "4003": 0,
+     "4004": 0,
+     "4005": 0,
+     "4006": 0,
+     "4007": 0,
+     "4008": 0,
+     "5001": 0,
+     "5002": 0,
+     "5003": 0,
+     "5004": 0,
+     "5005": 0,
+     "5006": 0,
+     "5007": 0,
+     "5008": 0,
+     "6001": 0,
+     "6002": 0,
+     "6003": 0,
+     "6004": 0,
+     "6005": 0,
+     "6006": 0,
+     "6007": 0,
+     "6008": 0,
+     "7001": 0,
+     "7002": 0,
+     "7003": 0,
+     "7004": 0,
+     "7005": 0,
+     "7006": 0,
+     "7007": 0,
+     "7008": 0
+    },
+    "Participant": 1,
+    "Possession": 1,
+    "Parti1State": {},
+    "Parti2State": {}
+   }
+  },
+  {
+   "id": "18257739:584",
+   "kind": "corner",
+   "major": false,
+   "minute": 64,
+   "tMs": 1784493722340,
+   "side": "home",
+   "headline": "Corner",
+   "raw": {
+    "FixtureId": 18257739,
+    "GameState": "scheduled",
+    "StartTime": 1784487900000,
+    "IsTeam": true,
+    "FixtureGroupId": 10115676,
+    "CompetitionId": 72,
+    "CountryId": 466,
+    "SportId": 1,
+    "Participant1IsHome": true,
+    "Participant2Id": 1489,
+    "Participant1Id": 3021,
+    "CoverageSecondaryData": true,
+    "CoverageType": "TV/Stream",
+    "Action": "corner",
+    "Id": 584,
+    "Ts": 1784493722222,
+    "ConnectionId": 1180,
+    "Seq": 651,
+    "StatusId": 4,
+    "Type": "Soccer",
+    "Confirmed": true,
+    "Clock": {
+     "Running": true,
+     "Seconds": 3869
+    },
+    "Score": {
+     "Participant1": {
+      "H1": {
+       "Corners": 2
+      },
+      "HT": {
+       "Corners": 2
+      },
+      "H2": {
+       "Corners": 3
+      },
+      "Total": {
+       "Corners": 5
+      }
+     },
+     "Participant2": {
+      "H1": {
+       "YellowCards": 1
+      },
+      "HT": {
+       "YellowCards": 1
+      },
+      "H2": {
+       "YellowCards": 1,
+       "Corners": 1
+      },
+      "Total": {
+       "YellowCards": 2,
+       "Corners": 1
+      }
+     }
+    },
+    "Stats": {
+     "1": 0,
+     "2": 0,
+     "3": 0,
+     "4": 2,
+     "5": 0,
+     "6": 0,
+     "7": 5,
+     "8": 1,
+     "1001": 0,
+     "1002": 0,
+     "1003": 0,
+     "1004": 1,
+     "1005": 0,
+     "1006": 0,
+     "1007": 2,
+     "1008": 0,
+     "2001": 0,
+     "2002": 0,
+     "2003": 0,
+     "2004": 1,
+     "2005": 0,
+     "2006": 0,
+     "2007": 2,
+     "2008": 0,
+     "3001": 0,
+     "3002": 0,
+     "3003": 0,
+     "3004": 1,
+     "3005": 0,
+     "3006": 0,
+     "3007": 3,
+     "3008": 1,
+     "4001": 0,
+     "4002": 0,
+     "4003": 0,
+     "4004": 0,
+     "4005": 0,
+     "4006": 0,
+     "4007": 0,
+     "4008": 0,
+     "5001": 0,
+     "5002": 0,
+     "5003": 0,
+     "5004": 0,
+     "5005": 0,
+     "5006": 0,
+     "5007": 0,
+     "5008": 0,
+     "6001": 0,
+     "6002": 0,
+     "6003": 0,
+     "6004": 0,
+     "6005": 0,
+     "6006": 0,
+     "6007": 0,
+     "6008": 0,
+     "7001": 0,
+     "7002": 0,
+     "7003": 0,
+     "7004": 0,
+     "7005": 0,
+     "7006": 0,
+     "7007": 0,
+     "7008": 0
+    },
+    "Participant": 1,
+    "Possession": 1,
+    "Parti1State": {},
+    "Parti2State": {}
+   }
+  },
+  {
+   "id": "18257739:594",
+   "kind": "corner",
+   "major": false,
+   "minute": 65,
+   "tMs": 1784493791885,
+   "side": "home",
+   "headline": "Corner",
+   "raw": {
+    "FixtureId": 18257739,
+    "GameState": "scheduled",
+    "StartTime": 1784487900000,
+    "IsTeam": true,
+    "FixtureGroupId": 10115676,
+    "CompetitionId": 72,
+    "CountryId": 466,
+    "SportId": 1,
+    "Participant1IsHome": true,
+    "Participant2Id": 1489,
+    "Participant1Id": 3021,
+    "CoverageSecondaryData": true,
+    "CoverageType": "TV/Stream",
+    "Action": "corner",
+    "Id": 594,
+    "Ts": 1784493791769,
+    "ConnectionId": 1180,
+    "Seq": 662,
+    "StatusId": 4,
+    "Type": "Soccer",
+    "Confirmed": true,
+    "Clock": {
+     "Running": true,
+     "Seconds": 3942
+    },
+    "Score": {
+     "Participant1": {
+      "H1": {
+       "Corners": 2
+      },
+      "HT": {
+       "Corners": 2
+      },
+      "H2": {
+       "Corners": 4
+      },
+      "Total": {
+       "Corners": 6
+      }
+     },
+     "Participant2": {
+      "H1": {
+       "YellowCards": 1
+      },
+      "HT": {
+       "YellowCards": 1
+      },
+      "H2": {
+       "YellowCards": 1,
+       "Corners": 1
+      },
+      "Total": {
+       "YellowCards": 2,
+       "Corners": 1
+      }
+     }
+    },
+    "Stats": {
+     "1": 0,
+     "2": 0,
+     "3": 0,
+     "4": 2,
+     "5": 0,
+     "6": 0,
+     "7": 6,
+     "8": 1,
+     "1001": 0,
+     "1002": 0,
+     "1003": 0,
+     "1004": 1,
+     "1005": 0,
+     "1006": 0,
+     "1007": 2,
+     "1008": 0,
+     "2001": 0,
+     "2002": 0,
+     "2003": 0,
+     "2004": 1,
+     "2005": 0,
+     "2006": 0,
+     "2007": 2,
+     "2008": 0,
+     "3001": 0,
+     "3002": 0,
+     "3003": 0,
+     "3004": 1,
+     "3005": 0,
+     "3006": 0,
+     "3007": 4,
+     "3008": 1,
+     "4001": 0,
+     "4002": 0,
+     "4003": 0,
+     "4004": 0,
+     "4005": 0,
+     "4006": 0,
+     "4007": 0,
+     "4008": 0,
+     "5001": 0,
+     "5002": 0,
+     "5003": 0,
+     "5004": 0,
+     "5005": 0,
+     "5006": 0,
+     "5007": 0,
+     "5008": 0,
+     "6001": 0,
+     "6002": 0,
+     "6003": 0,
+     "6004": 0,
+     "6005": 0,
+     "6006": 0,
+     "6007": 0,
+     "6008": 0,
+     "7001": 0,
+     "7002": 0,
+     "7003": 0,
+     "7004": 0,
+     "7005": 0,
+     "7006": 0,
+     "7007": 0,
+     "7008": 0
+    },
+    "Participant": 1,
+    "Possession": 1,
+    "Parti1State": {},
+    "Parti2State": {}
+   }
+  },
+  {
+   "id": "18257739:598",
+   "kind": "shot",
+   "major": false,
+   "minute": 66,
+   "tMs": 1784493828129,
+   "side": "home",
+   "headline": "Shot",
+   "raw": {
+    "FixtureId": 18257739,
+    "GameState": "scheduled",
+    "StartTime": 1784487900000,
+    "IsTeam": true,
+    "FixtureGroupId": 10115676,
+    "CompetitionId": 72,
+    "CountryId": 466,
+    "SportId": 1,
+    "Participant1IsHome": true,
+    "Participant2Id": 1489,
+    "Participant1Id": 3021,
+    "CoverageSecondaryData": true,
+    "CoverageType": "TV/Stream",
+    "Action": "shot",
+    "Id": 598,
+    "Ts": 1784493828015,
+    "ConnectionId": 1180,
+    "Seq": 667,
+    "StatusId": 4,
+    "Type": "Soccer",
+    "Confirmed": true,
+    "Clock": {
+     "Running": true,
+     "Seconds": 3982
+    },
+    "Data": {
+     "Outcome": "OnTarget"
+    },
+    "Stats": {
+     "1": 0,
+     "2": 0,
+     "3": 0,
+     "4": 2,
+     "5": 0,
+     "6": 0,
+     "7": 6,
+     "8": 1,
+     "1001": 0,
+     "1002": 0,
+     "1003": 0,
+     "1004": 1,
+     "1005": 0,
+     "1006": 0,
+     "1007": 2,
+     "1008": 0,
+     "2001": 0,
+     "2002": 0,
+     "2003": 0,
+     "2004": 1,
+     "2005": 0,
+     "2006": 0,
+     "2007": 2,
+     "2008": 0,
+     "3001": 0,
+     "3002": 0,
+     "3003": 0,
+     "3004": 1,
+     "3005": 0,
+     "3006": 0,
+     "3007": 4,
+     "3008": 1,
+     "4001": 0,
+     "4002": 0,
+     "4003": 0,
+     "4004": 0,
+     "4005": 0,
+     "4006": 0,
+     "4007": 0,
+     "4008": 0,
+     "5001": 0,
+     "5002": 0,
+     "5003": 0,
+     "5004": 0,
+     "5005": 0,
+     "5006": 0,
+     "5007": 0,
+     "5008": 0,
+     "6001": 0,
+     "6002": 0,
+     "6003": 0,
+     "6004": 0,
+     "6005": 0,
+     "6006": 0,
+     "6007": 0,
+     "6008": 0,
+     "7001": 0,
+     "7002": 0,
+     "7003": 0,
+     "7004": 0,
+     "7005": 0,
+     "7006": 0,
+     "7007": 0,
+     "7008": 0
+    },
+    "Participant": 1
+   },
+   "detail": "OnTarget"
+  },
+  {
+   "id": "18257739:652",
+   "kind": "shot",
+   "major": false,
+   "minute": 73,
+   "tMs": 1784494267074,
+   "side": "home",
+   "headline": "Shot",
+   "raw": {
+    "FixtureId": 18257739,
+    "GameState": "scheduled",
+    "StartTime": 1784487900000,
+    "IsTeam": true,
+    "FixtureGroupId": 10115676,
+    "CompetitionId": 72,
+    "CountryId": 466,
+    "SportId": 1,
+    "Participant1IsHome": true,
+    "Participant2Id": 1489,
+    "Participant1Id": 3021,
+    "CoverageSecondaryData": true,
+    "CoverageType": "TV/Stream",
+    "Action": "shot",
+    "Id": 652,
+    "Ts": 1784494266951,
+    "ConnectionId": 1180,
+    "Seq": 724,
+    "StatusId": 4,
+    "Type": "Soccer",
+    "Confirmed": true,
+    "Clock": {
+     "Running": true,
+     "Seconds": 4421
+    },
+    "Data": {
+     "Outcome": "OffTarget"
+    },
+    "Stats": {
+     "1": 0,
+     "2": 0,
+     "3": 0,
+     "4": 2,
+     "5": 0,
+     "6": 0,
+     "7": 6,
+     "8": 1,
+     "1001": 0,
+     "1002": 0,
+     "1003": 0,
+     "1004": 1,
+     "1005": 0,
+     "1006": 0,
+     "1007": 2,
+     "1008": 0,
+     "2001": 0,
+     "2002": 0,
+     "2003": 0,
+     "2004": 1,
+     "2005": 0,
+     "2006": 0,
+     "2007": 2,
+     "2008": 0,
+     "3001": 0,
+     "3002": 0,
+     "3003": 0,
+     "3004": 1,
+     "3005": 0,
+     "3006": 0,
+     "3007": 4,
+     "3008": 1,
+     "4001": 0,
+     "4002": 0,
+     "4003": 0,
+     "4004": 0,
+     "4005": 0,
+     "4006": 0,
+     "4007": 0,
+     "4008": 0,
+     "5001": 0,
+     "5002": 0,
+     "5003": 0,
+     "5004": 0,
+     "5005": 0,
+     "5006": 0,
+     "5007": 0,
+     "5008": 0,
+     "6001": 0,
+     "6002": 0,
+     "6003": 0,
+     "6004": 0,
+     "6005": 0,
+     "6006": 0,
+     "6007": 0,
+     "6008": 0,
+     "7001": 0,
+     "7002": 0,
+     "7003": 0,
+     "7004": 0,
+     "7005": 0,
+     "7006": 0,
+     "7007": 0,
+     "7008": 0
+    },
+    "Participant": 1
+   },
+   "detail": "OffTarget"
+  },
+  {
+   "id": "18257739:672",
+   "kind": "shot",
+   "major": false,
+   "minute": 76,
+   "tMs": 1784494418988,
+   "side": "home",
+   "headline": "Shot",
+   "raw": {
+    "FixtureId": 18257739,
+    "GameState": "scheduled",
+    "StartTime": 1784487900000,
+    "IsTeam": true,
+    "FixtureGroupId": 10115676,
+    "CompetitionId": 72,
+    "CountryId": 466,
+    "SportId": 1,
+    "Participant1IsHome": true,
+    "Participant2Id": 1489,
+    "Participant1Id": 3021,
+    "CoverageSecondaryData": true,
+    "CoverageType": "TV/Stream",
+    "Action": "shot",
+    "Id": 672,
+    "Ts": 1784494418870,
+    "ConnectionId": 1180,
+    "Seq": 748,
+    "StatusId": 4,
+    "Type": "Soccer",
+    "Confirmed": true,
+    "Clock": {
+     "Running": true,
+     "Seconds": 4572
+    },
+    "Data": {
+     "Outcome": "OnTarget"
+    },
+    "Stats": {
+     "1": 0,
+     "2": 0,
+     "3": 0,
+     "4": 2,
+     "5": 0,
+     "6": 0,
+     "7": 6,
+     "8": 1,
+     "1001": 0,
+     "1002": 0,
+     "1003": 0,
+     "1004": 1,
+     "1005": 0,
+     "1006": 0,
+     "1007": 2,
+     "1008": 0,
+     "2001": 0,
+     "2002": 0,
+     "2003": 0,
+     "2004": 1,
+     "2005": 0,
+     "2006": 0,
+     "2007": 2,
+     "2008": 0,
+     "3001": 0,
+     "3002": 0,
+     "3003": 0,
+     "3004": 1,
+     "3005": 0,
+     "3006": 0,
+     "3007": 4,
+     "3008": 1,
+     "4001": 0,
+     "4002": 0,
+     "4003": 0,
+     "4004": 0,
+     "4005": 0,
+     "4006": 0,
+     "4007": 0,
+     "4008": 0,
+     "5001": 0,
+     "5002": 0,
+     "5003": 0,
+     "5004": 0,
+     "5005": 0,
+     "5006": 0,
+     "5007": 0,
+     "5008": 0,
+     "6001": 0,
+     "6002": 0,
+     "6003": 0,
+     "6004": 0,
+     "6005": 0,
+     "6006": 0,
+     "6007": 0,
+     "6008": 0,
+     "7001": 0,
+     "7002": 0,
+     "7003": 0,
+     "7004": 0,
+     "7005": 0,
+     "7006": 0,
+     "7007": 0,
+     "7008": 0
+    },
+    "Participant": 1
+   },
+   "detail": "OnTarget"
+  },
+  {
+   "id": "18257739:682",
+   "kind": "shot",
+   "major": false,
+   "minute": 76,
+   "tMs": 1784494459940,
+   "side": "home",
+   "headline": "Shot",
+   "raw": {
+    "FixtureId": 18257739,
+    "GameState": "scheduled",
+    "StartTime": 1784487900000,
+    "IsTeam": true,
+    "FixtureGroupId": 10115676,
+    "CompetitionId": 72,
+    "CountryId": 466,
+    "SportId": 1,
+    "Participant1IsHome": true,
+    "Participant2Id": 1489,
+    "Participant1Id": 3021,
+    "CoverageSecondaryData": true,
+    "CoverageType": "TV/Stream",
+    "Action": "shot",
+    "Id": 682,
+    "Ts": 1784494459816,
+    "ConnectionId": 1180,
+    "Seq": 760,
+    "StatusId": 4,
+    "Type": "Soccer",
+    "Confirmed": true,
+    "Clock": {
+     "Running": true,
+     "Seconds": 4611
+    },
+    "Data": {
+     "Outcome": "OnTarget"
+    },
+    "Stats": {
+     "1": 0,
+     "2": 0,
+     "3": 0,
+     "4": 2,
+     "5": 0,
+     "6": 0,
+     "7": 6,
+     "8": 1,
+     "1001": 0,
+     "1002": 0,
+     "1003": 0,
+     "1004": 1,
+     "1005": 0,
+     "1006": 0,
+     "1007": 2,
+     "1008": 0,
+     "2001": 0,
+     "2002": 0,
+     "2003": 0,
+     "2004": 1,
+     "2005": 0,
+     "2006": 0,
+     "2007": 2,
+     "2008": 0,
+     "3001": 0,
+     "3002": 0,
+     "3003": 0,
+     "3004": 1,
+     "3005": 0,
+     "3006": 0,
+     "3007": 4,
+     "3008": 1,
+     "4001": 0,
+     "4002": 0,
+     "4003": 0,
+     "4004": 0,
+     "4005": 0,
+     "4006": 0,
+     "4007": 0,
+     "4008": 0,
+     "5001": 0,
+     "5002": 0,
+     "5003": 0,
+     "5004": 0,
+     "5005": 0,
+     "5006": 0,
+     "5007": 0,
+     "5008": 0,
+     "6001": 0,
+     "6002": 0,
+     "6003": 0,
+     "6004": 0,
+     "6005": 0,
+     "6006": 0,
+     "6007": 0,
+     "6008": 0,
+     "7001": 0,
+     "7002": 0,
+     "7003": 0,
+     "7004": 0,
+     "7005": 0,
+     "7006": 0,
+     "7007": 0,
+     "7008": 0
+    },
+    "Participant": 1
+   },
+   "detail": "OnTarget"
+  },
+  {
+   "id": "18257739:683",
+   "kind": "shot",
+   "major": false,
+   "minute": 76,
+   "tMs": 1784494461859,
+   "side": "home",
+   "headline": "Shot",
+   "raw": {
+    "FixtureId": 18257739,
+    "GameState": "scheduled",
+    "StartTime": 1784487900000,
+    "IsTeam": true,
+    "FixtureGroupId": 10115676,
+    "CompetitionId": 72,
+    "CountryId": 466,
+    "SportId": 1,
+    "Participant1IsHome": true,
+    "Participant2Id": 1489,
+    "Participant1Id": 3021,
+    "CoverageSecondaryData": true,
+    "CoverageType": "TV/Stream",
+    "Action": "shot",
+    "Id": 683,
+    "Ts": 1784494461744,
+    "ConnectionId": 1180,
+    "Seq": 762,
+    "StatusId": 4,
+    "Type": "Soccer",
+    "Confirmed": true,
+    "Clock": {
+     "Running": true,
+     "Seconds": 4615
+    },
+    "Data": {
+     "Outcome": "OnTarget"
+    },
+    "Stats": {
+     "1": 0,
+     "2": 0,
+     "3": 0,
+     "4": 2,
+     "5": 0,
+     "6": 0,
+     "7": 6,
+     "8": 1,
+     "1001": 0,
+     "1002": 0,
+     "1003": 0,
+     "1004": 1,
+     "1005": 0,
+     "1006": 0,
+     "1007": 2,
+     "1008": 0,
+     "2001": 0,
+     "2002": 0,
+     "2003": 0,
+     "2004": 1,
+     "2005": 0,
+     "2006": 0,
+     "2007": 2,
+     "2008": 0,
+     "3001": 0,
+     "3002": 0,
+     "3003": 0,
+     "3004": 1,
+     "3005": 0,
+     "3006": 0,
+     "3007": 4,
+     "3008": 1,
+     "4001": 0,
+     "4002": 0,
+     "4003": 0,
+     "4004": 0,
+     "4005": 0,
+     "4006": 0,
+     "4007": 0,
+     "4008": 0,
+     "5001": 0,
+     "5002": 0,
+     "5003": 0,
+     "5004": 0,
+     "5005": 0,
+     "5006": 0,
+     "5007": 0,
+     "5008": 0,
+     "6001": 0,
+     "6002": 0,
+     "6003": 0,
+     "6004": 0,
+     "6005": 0,
+     "6006": 0,
+     "6007": 0,
+     "6008": 0,
+     "7001": 0,
+     "7002": 0,
+     "7003": 0,
+     "7004": 0,
+     "7005": 0,
+     "7006": 0,
+     "7007": 0,
+     "7008": 0
+    },
+    "Participant": 1
+   },
+   "detail": "OnTarget"
+  },
+  {
+   "id": "18257739:685",
+   "kind": "corner",
+   "major": false,
+   "minute": 77,
+   "tMs": 1784494482537,
+   "side": "home",
+   "headline": "Corner",
+   "raw": {
+    "FixtureId": 18257739,
+    "GameState": "scheduled",
+    "StartTime": 1784487900000,
+    "IsTeam": true,
+    "FixtureGroupId": 10115676,
+    "CompetitionId": 72,
+    "CountryId": 466,
+    "SportId": 1,
+    "Participant1IsHome": true,
+    "Participant2Id": 1489,
+    "Participant1Id": 3021,
+    "CoverageSecondaryData": true,
+    "CoverageType": "TV/Stream",
+    "Action": "corner",
+    "Id": 685,
+    "Ts": 1784494482418,
+    "ConnectionId": 1180,
+    "Seq": 765,
+    "StatusId": 4,
+    "Type": "Soccer",
+    "Confirmed": true,
+    "Clock": {
+     "Running": true,
+     "Seconds": 4622
+    },
+    "Score": {
+     "Participant1": {
+      "H1": {
+       "Corners": 2
+      },
+      "HT": {
+       "Corners": 2
+      },
+      "H2": {
+       "Corners": 5
+      },
+      "Total": {
+       "Corners": 7
+      }
+     },
+     "Participant2": {
+      "H1": {
+       "YellowCards": 1
+      },
+      "HT": {
+       "YellowCards": 1
+      },
+      "H2": {
+       "YellowCards": 1,
+       "Corners": 1
+      },
+      "Total": {
+       "YellowCards": 2,
+       "Corners": 1
+      }
+     }
+    },
+    "Stats": {
+     "1": 0,
+     "2": 0,
+     "3": 0,
+     "4": 2,
+     "5": 0,
+     "6": 0,
+     "7": 7,
+     "8": 1,
+     "1001": 0,
+     "1002": 0,
+     "1003": 0,
+     "1004": 1,
+     "1005": 0,
+     "1006": 0,
+     "1007": 2,
+     "1008": 0,
+     "2001": 0,
+     "2002": 0,
+     "2003": 0,
+     "2004": 1,
+     "2005": 0,
+     "2006": 0,
+     "2007": 2,
+     "2008": 0,
+     "3001": 0,
+     "3002": 0,
+     "3003": 0,
+     "3004": 1,
+     "3005": 0,
+     "3006": 0,
+     "3007": 5,
+     "3008": 1,
+     "4001": 0,
+     "4002": 0,
+     "4003": 0,
+     "4004": 0,
+     "4005": 0,
+     "4006": 0,
+     "4007": 0,
+     "4008": 0,
+     "5001": 0,
+     "5002": 0,
+     "5003": 0,
+     "5004": 0,
+     "5005": 0,
+     "5006": 0,
+     "5007": 0,
+     "5008": 0,
+     "6001": 0,
+     "6002": 0,
+     "6003": 0,
+     "6004": 0,
+     "6005": 0,
+     "6006": 0,
+     "6007": 0,
+     "6008": 0,
+     "7001": 0,
+     "7002": 0,
+     "7003": 0,
+     "7004": 0,
+     "7005": 0,
+     "7006": 0,
+     "7007": 0,
+     "7008": 0
+    },
+    "Participant": 1,
+    "Possession": 1,
+    "Parti1State": {},
+    "Parti2State": {}
+   }
+  },
+  {
+   "id": "18257739:705",
+   "kind": "corner",
+   "major": false,
+   "minute": 79,
+   "tMs": 1784494644319,
+   "side": "home",
+   "headline": "Corner",
+   "raw": {
+    "FixtureId": 18257739,
+    "GameState": "scheduled",
+    "StartTime": 1784487900000,
+    "IsTeam": true,
+    "FixtureGroupId": 10115676,
+    "CompetitionId": 72,
+    "CountryId": 466,
+    "SportId": 1,
+    "Participant1IsHome": true,
+    "Participant2Id": 1489,
+    "Participant1Id": 3021,
+    "CoverageSecondaryData": true,
+    "CoverageType": "TV/Stream",
+    "Action": "corner",
+    "Id": 705,
+    "Ts": 1784494644204,
+    "ConnectionId": 1180,
+    "Seq": 788,
+    "StatusId": 4,
+    "Type": "Soccer",
+    "Confirmed": true,
+    "Clock": {
+     "Running": true,
+     "Seconds": 4794
+    },
+    "Score": {
+     "Participant1": {
+      "H1": {
+       "Corners": 2
+      },
+      "HT": {
+       "Corners": 2
+      },
+      "H2": {
+       "Corners": 6
+      },
+      "Total": {
+       "Corners": 8
+      }
+     },
+     "Participant2": {
+      "H1": {
+       "YellowCards": 1
+      },
+      "HT": {
+       "YellowCards": 1
+      },
+      "H2": {
+       "YellowCards": 1,
+       "Corners": 1
+      },
+      "Total": {
+       "YellowCards": 2,
+       "Corners": 1
+      }
+     }
+    },
+    "Stats": {
+     "1": 0,
+     "2": 0,
+     "3": 0,
+     "4": 2,
+     "5": 0,
+     "6": 0,
+     "7": 8,
+     "8": 1,
+     "1001": 0,
+     "1002": 0,
+     "1003": 0,
+     "1004": 1,
+     "1005": 0,
+     "1006": 0,
+     "1007": 2,
+     "1008": 0,
+     "2001": 0,
+     "2002": 0,
+     "2003": 0,
+     "2004": 1,
+     "2005": 0,
+     "2006": 0,
+     "2007": 2,
+     "2008": 0,
+     "3001": 0,
+     "3002": 0,
+     "3003": 0,
+     "3004": 1,
+     "3005": 0,
+     "3006": 0,
+     "3007": 6,
+     "3008": 1,
+     "4001": 0,
+     "4002": 0,
+     "4003": 0,
+     "4004": 0,
+     "4005": 0,
+     "4006": 0,
+     "4007": 0,
+     "4008": 0,
+     "5001": 0,
+     "5002": 0,
+     "5003": 0,
+     "5004": 0,
+     "5005": 0,
+     "5006": 0,
+     "5007": 0,
+     "5008": 0,
+     "6001": 0,
+     "6002": 0,
+     "6003": 0,
+     "6004": 0,
+     "6005": 0,
+     "6006": 0,
+     "6007": 0,
+     "6008": 0,
+     "7001": 0,
+     "7002": 0,
+     "7003": 0,
+     "7004": 0,
+     "7005": 0,
+     "7006": 0,
+     "7007": 0,
+     "7008": 0
+    },
+    "Participant": 1,
+    "Possession": 1,
+    "Parti1State": {},
+    "Parti2State": {}
+   }
+  },
+  {
+   "id": "18257739:708",
+   "kind": "shot",
+   "major": false,
+   "minute": 80,
+   "tMs": 1784494673814,
+   "side": "home",
+   "headline": "Shot",
+   "raw": {
+    "FixtureId": 18257739,
+    "GameState": "scheduled",
+    "StartTime": 1784487900000,
+    "IsTeam": true,
+    "FixtureGroupId": 10115676,
+    "CompetitionId": 72,
+    "CountryId": 466,
+    "SportId": 1,
+    "Participant1IsHome": true,
+    "Participant2Id": 1489,
+    "Participant1Id": 3021,
+    "CoverageSecondaryData": true,
+    "CoverageType": "TV/Stream",
+    "Action": "shot",
+    "Id": 708,
+    "Ts": 1784494673697,
+    "ConnectionId": 1180,
+    "Seq": 792,
+    "StatusId": 4,
+    "Type": "Soccer",
+    "Confirmed": true,
+    "Clock": {
+     "Running": true,
+     "Seconds": 4827
+    },
+    "Data": {
+     "Outcome": "OnTarget"
+    },
+    "Stats": {
+     "1": 0,
+     "2": 0,
+     "3": 0,
+     "4": 2,
+     "5": 0,
+     "6": 0,
+     "7": 8,
+     "8": 1,
+     "1001": 0,
+     "1002": 0,
+     "1003": 0,
+     "1004": 1,
+     "1005": 0,
+     "1006": 0,
+     "1007": 2,
+     "1008": 0,
+     "2001": 0,
+     "2002": 0,
+     "2003": 0,
+     "2004": 1,
+     "2005": 0,
+     "2006": 0,
+     "2007": 2,
+     "2008": 0,
+     "3001": 0,
+     "3002": 0,
+     "3003": 0,
+     "3004": 1,
+     "3005": 0,
+     "3006": 0,
+     "3007": 6,
+     "3008": 1,
+     "4001": 0,
+     "4002": 0,
+     "4003": 0,
+     "4004": 0,
+     "4005": 0,
+     "4006": 0,
+     "4007": 0,
+     "4008": 0,
+     "5001": 0,
+     "5002": 0,
+     "5003": 0,
+     "5004": 0,
+     "5005": 0,
+     "5006": 0,
+     "5007": 0,
+     "5008": 0,
+     "6001": 0,
+     "6002": 0,
+     "6003": 0,
+     "6004": 0,
+     "6005": 0,
+     "6006": 0,
+     "6007": 0,
+     "6008": 0,
+     "7001": 0,
+     "7002": 0,
+     "7003": 0,
+     "7004": 0,
+     "7005": 0,
+     "7006": 0,
+     "7007": 0,
+     "7008": 0
+    },
+    "Participant": 1
+   },
+   "detail": "OnTarget"
+  },
+  {
+   "id": "18257739:725",
+   "kind": "yellow-card",
+   "major": true,
+   "minute": 81,
+   "tMs": 1784494769249,
+   "side": "away",
+   "headline": "Yellow card",
+   "raw": {
+    "FixtureId": 18257739,
+    "GameState": "scheduled",
+    "StartTime": 1784487900000,
+    "IsTeam": true,
+    "FixtureGroupId": 10115676,
+    "CompetitionId": 72,
+    "CountryId": 466,
+    "SportId": 1,
+    "Participant1IsHome": true,
+    "Participant2Id": 1489,
+    "Participant1Id": 3021,
+    "CoverageSecondaryData": true,
+    "CoverageType": "TV/Stream",
+    "Action": "yellow_card",
+    "Id": 725,
+    "Ts": 1784494769133,
+    "ConnectionId": 1180,
+    "Seq": 812,
+    "StatusId": 4,
+    "Type": "Soccer",
+    "Confirmed": true,
+    "Clock": {
+     "Running": true,
+     "Seconds": 4918
+    },
+    "Score": {
+     "Participant1": {
+      "H1": {
+       "Corners": 2
+      },
+      "HT": {
+       "Corners": 2
+      },
+      "H2": {
+       "Corners": 6
+      },
+      "Total": {
+       "Corners": 8
+      }
+     },
+     "Participant2": {
+      "H1": {
+       "YellowCards": 1
+      },
+      "HT": {
+       "YellowCards": 1
+      },
+      "H2": {
+       "YellowCards": 2,
+       "Corners": 1
+      },
+      "Total": {
+       "YellowCards": 3,
+       "Corners": 1
+      }
+     }
+    },
+    "Data": {
+     "PlayerId": 10035609
+    },
+    "Stats": {
+     "1": 0,
+     "2": 0,
+     "3": 0,
+     "4": 3,
+     "5": 0,
+     "6": 0,
+     "7": 8,
+     "8": 1,
+     "1001": 0,
+     "1002": 0,
+     "1003": 0,
+     "1004": 1,
+     "1005": 0,
+     "1006": 0,
+     "1007": 2,
+     "1008": 0,
+     "2001": 0,
+     "2002": 0,
+     "2003": 0,
+     "2004": 1,
+     "2005": 0,
+     "2006": 0,
+     "2007": 2,
+     "2008": 0,
+     "3001": 0,
+     "3002": 0,
+     "3003": 0,
+     "3004": 2,
+     "3005": 0,
+     "3006": 0,
+     "3007": 6,
+     "3008": 1,
+     "4001": 0,
+     "4002": 0,
+     "4003": 0,
+     "4004": 0,
+     "4005": 0,
+     "4006": 0,
+     "4007": 0,
+     "4008": 0,
+     "5001": 0,
+     "5002": 0,
+     "5003": 0,
+     "5004": 0,
+     "5005": 0,
+     "5006": 0,
+     "5007": 0,
+     "5008": 0,
+     "6001": 0,
+     "6002": 0,
+     "6003": 0,
+     "6004": 0,
+     "6005": 0,
+     "6006": 0,
+     "6007": 0,
+     "6008": 0,
+     "7001": 0,
+     "7002": 0,
+     "7003": 0,
+     "7004": 0,
+     "7005": 0,
+     "7006": 0,
+     "7007": 0,
+     "7008": 0
+    },
+    "Participant": 2,
+    "PossibleEvent": {}
+   },
+   "detail": "Fernandez, Enzo"
+  },
+  {
+   "id": "18257739:770",
+   "kind": "shot",
+   "major": false,
+   "minute": 86,
+   "tMs": 1784495032217,
+   "side": "home",
+   "headline": "Shot",
+   "raw": {
+    "FixtureId": 18257739,
+    "GameState": "scheduled",
+    "StartTime": 1784487900000,
+    "IsTeam": true,
+    "FixtureGroupId": 10115676,
+    "CompetitionId": 72,
+    "CountryId": 466,
+    "SportId": 1,
+    "Participant1IsHome": true,
+    "Participant2Id": 1489,
+    "Participant1Id": 3021,
+    "CoverageSecondaryData": true,
+    "CoverageType": "TV/Stream",
+    "Action": "shot",
+    "Id": 770,
+    "Ts": 1784495032102,
+    "ConnectionId": 1180,
+    "Seq": 862,
+    "StatusId": 4,
+    "Type": "Soccer",
+    "Confirmed": true,
+    "Clock": {
+     "Running": true,
+     "Seconds": 5185
+    },
+    "Data": {
+     "Outcome": "OffTarget"
+    },
+    "Stats": {
+     "1": 0,
+     "2": 0,
+     "3": 0,
+     "4": 3,
+     "5": 0,
+     "6": 0,
+     "7": 8,
+     "8": 1,
+     "1001": 0,
+     "1002": 0,
+     "1003": 0,
+     "1004": 1,
+     "1005": 0,
+     "1006": 0,
+     "1007": 2,
+     "1008": 0,
+     "2001": 0,
+     "2002": 0,
+     "2003": 0,
+     "2004": 1,
+     "2005": 0,
+     "2006": 0,
+     "2007": 2,
+     "2008": 0,
+     "3001": 0,
+     "3002": 0,
+     "3003": 0,
+     "3004": 2,
+     "3005": 0,
+     "3006": 0,
+     "3007": 6,
+     "3008": 1,
+     "4001": 0,
+     "4002": 0,
+     "4003": 0,
+     "4004": 0,
+     "4005": 0,
+     "4006": 0,
+     "4007": 0,
+     "4008": 0,
+     "5001": 0,
+     "5002": 0,
+     "5003": 0,
+     "5004": 0,
+     "5005": 0,
+     "5006": 0,
+     "5007": 0,
+     "5008": 0,
+     "6001": 0,
+     "6002": 0,
+     "6003": 0,
+     "6004": 0,
+     "6005": 0,
+     "6006": 0,
+     "6007": 0,
+     "6008": 0,
+     "7001": 0,
+     "7002": 0,
+     "7003": 0,
+     "7004": 0,
+     "7005": 0,
+     "7006": 0,
+     "7007": 0,
+     "7008": 0
+    },
+    "Participant": 1
+   },
+   "detail": "OffTarget"
+  },
+  {
+   "id": "18257739:797",
+   "kind": "shot",
+   "major": false,
+   "minute": 88,
+   "tMs": 1784495182099,
+   "side": "home",
+   "headline": "Shot",
+   "raw": {
+    "FixtureId": 18257739,
+    "GameState": "scheduled",
+    "StartTime": 1784487900000,
+    "IsTeam": true,
+    "FixtureGroupId": 10115676,
+    "CompetitionId": 72,
+    "CountryId": 466,
+    "SportId": 1,
+    "Participant1IsHome": true,
+    "Participant2Id": 1489,
+    "Participant1Id": 3021,
+    "CoverageSecondaryData": true,
+    "CoverageType": "TV/Stream",
+    "Action": "shot",
+    "Id": 797,
+    "Ts": 1784495181961,
+    "ConnectionId": 1180,
+    "Seq": 891,
+    "StatusId": 4,
+    "Type": "Soccer",
+    "Confirmed": true,
+    "Clock": {
+     "Running": true,
+     "Seconds": 5335
+    },
+    "Data": {
+     "Outcome": "OffTarget"
+    },
+    "Stats": {
+     "1": 0,
+     "2": 0,
+     "3": 0,
+     "4": 3,
+     "5": 0,
+     "6": 0,
+     "7": 8,
+     "8": 1,
+     "1001": 0,
+     "1002": 0,
+     "1003": 0,
+     "1004": 1,
+     "1005": 0,
+     "1006": 0,
+     "1007": 2,
+     "1008": 0,
+     "2001": 0,
+     "2002": 0,
+     "2003": 0,
+     "2004": 1,
+     "2005": 0,
+     "2006": 0,
+     "2007": 2,
+     "2008": 0,
+     "3001": 0,
+     "3002": 0,
+     "3003": 0,
+     "3004": 2,
+     "3005": 0,
+     "3006": 0,
+     "3007": 6,
+     "3008": 1,
+     "4001": 0,
+     "4002": 0,
+     "4003": 0,
+     "4004": 0,
+     "4005": 0,
+     "4006": 0,
+     "4007": 0,
+     "4008": 0,
+     "5001": 0,
+     "5002": 0,
+     "5003": 0,
+     "5004": 0,
+     "5005": 0,
+     "5006": 0,
+     "5007": 0,
+     "5008": 0,
+     "6001": 0,
+     "6002": 0,
+     "6003": 0,
+     "6004": 0,
+     "6005": 0,
+     "6006": 0,
+     "6007": 0,
+     "6008": 0,
+     "7001": 0,
+     "7002": 0,
+     "7003": 0,
+     "7004": 0,
+     "7005": 0,
+     "7006": 0,
+     "7007": 0,
+     "7008": 0
+    },
+    "Participant": 1
+   },
+   "detail": "OffTarget"
+  },
+  {
+   "id": "18257739:835",
+   "kind": "shot",
+   "major": false,
+   "minute": 92,
+   "tMs": 1784495384256,
+   "side": "home",
+   "headline": "Shot",
+   "raw": {
+    "FixtureId": 18257739,
+    "GameState": "scheduled",
+    "StartTime": 1784487900000,
+    "IsTeam": true,
+    "FixtureGroupId": 10115676,
+    "CompetitionId": 72,
+    "CountryId": 466,
+    "SportId": 1,
+    "Participant1IsHome": true,
+    "Participant2Id": 1489,
+    "Participant1Id": 3021,
+    "CoverageSecondaryData": true,
+    "CoverageType": "TV/Stream",
+    "Action": "shot",
+    "Id": 835,
+    "Ts": 1784495384099,
+    "ConnectionId": 1180,
+    "Seq": 934,
+    "StatusId": 4,
+    "Type": "Soccer",
+    "Confirmed": true,
+    "Clock": {
+     "Running": true,
+     "Seconds": 5537
+    },
+    "Data": {
+     "Outcome": "OnTarget"
+    },
+    "Stats": {
+     "1": 0,
+     "2": 0,
+     "3": 0,
+     "4": 3,
+     "5": 0,
+     "6": 0,
+     "7": 8,
+     "8": 1,
+     "1001": 0,
+     "1002": 0,
+     "1003": 0,
+     "1004": 1,
+     "1005": 0,
+     "1006": 0,
+     "1007": 2,
+     "1008": 0,
+     "2001": 0,
+     "2002": 0,
+     "2003": 0,
+     "2004": 1,
+     "2005": 0,
+     "2006": 0,
+     "2007": 2,
+     "2008": 0,
+     "3001": 0,
+     "3002": 0,
+     "3003": 0,
+     "3004": 2,
+     "3005": 0,
+     "3006": 0,
+     "3007": 6,
+     "3008": 1,
+     "4001": 0,
+     "4002": 0,
+     "4003": 0,
+     "4004": 0,
+     "4005": 0,
+     "4006": 0,
+     "4007": 0,
+     "4008": 0,
+     "5001": 0,
+     "5002": 0,
+     "5003": 0,
+     "5004": 0,
+     "5005": 0,
+     "5006": 0,
+     "5007": 0,
+     "5008": 0,
+     "6001": 0,
+     "6002": 0,
+     "6003": 0,
+     "6004": 0,
+     "6005": 0,
+     "6006": 0,
+     "6007": 0,
+     "6008": 0,
+     "7001": 0,
+     "7002": 0,
+     "7003": 0,
+     "7004": 0,
+     "7005": 0,
+     "7006": 0,
+     "7007": 0,
+     "7008": 0
+    },
+    "Participant": 1
+   },
+   "detail": "OnTarget"
+  },
+  {
+   "id": "18257739:841",
+   "kind": "red-card",
+   "major": true,
+   "minute": 92,
+   "tMs": 1784495398979,
+   "side": "away",
+   "headline": "Red card",
+   "raw": {
+    "FixtureId": 18257739,
+    "GameState": "scheduled",
+    "StartTime": 1784487900000,
+    "IsTeam": true,
+    "FixtureGroupId": 10115676,
+    "CompetitionId": 72,
+    "CountryId": 466,
+    "SportId": 1,
+    "Participant1IsHome": true,
+    "Participant2Id": 1489,
+    "Participant1Id": 3021,
+    "CoverageSecondaryData": true,
+    "CoverageType": "TV/Stream",
+    "Action": "red_card",
+    "Id": 841,
+    "Ts": 1784495398821,
+    "ConnectionId": 1180,
+    "Seq": 942,
+    "StatusId": 4,
+    "Type": "Soccer",
+    "Confirmed": true,
+    "Clock": {
+     "Running": true,
+     "Seconds": 5552
+    },
+    "Score": {
+     "Participant1": {
+      "H1": {
+       "Corners": 2
+      },
+      "HT": {
+       "Corners": 2
+      },
+      "H2": {
+       "Corners": 6
+      },
+      "Total": {
+       "Corners": 8
+      }
+     },
+     "Participant2": {
+      "H1": {
+       "YellowCards": 1
+      },
+      "HT": {
+       "YellowCards": 1
+      },
+      "H2": {
+       "YellowCards": 2,
+       "RedCards": 1,
+       "Corners": 1
+      },
+      "Total": {
+       "YellowCards": 3,
+       "RedCards": 1,
+       "Corners": 1
+      }
+     }
+    },
+    "Data": {
+     "Type": "StraightRed"
+    },
+    "Stats": {
+     "1": 0,
+     "2": 0,
+     "3": 0,
+     "4": 3,
+     "5": 0,
+     "6": 1,
+     "7": 8,
+     "8": 1,
+     "1001": 0,
+     "1002": 0,
+     "1003": 0,
+     "1004": 1,
+     "1005": 0,
+     "1006": 0,
+     "1007": 2,
+     "1008": 0,
+     "2001": 0,
+     "2002": 0,
+     "2003": 0,
+     "2004": 1,
+     "2005": 0,
+     "2006": 0,
+     "2007": 2,
+     "2008": 0,
+     "3001": 0,
+     "3002": 0,
+     "3003": 0,
+     "3004": 2,
+     "3005": 0,
+     "3006": 1,
+     "3007": 6,
+     "3008": 1,
+     "4001": 0,
+     "4002": 0,
+     "4003": 0,
+     "4004": 0,
+     "4005": 0,
+     "4006": 0,
+     "4007": 0,
+     "4008": 0,
+     "5001": 0,
+     "5002": 0,
+     "5003": 0,
+     "5004": 0,
+     "5005": 0,
+     "5006": 0,
+     "5007": 0,
+     "5008": 0,
+     "6001": 0,
+     "6002": 0,
+     "6003": 0,
+     "6004": 0,
+     "6005": 0,
+     "6006": 0,
+     "6007": 0,
+     "6008": 0,
+     "7001": 0,
+     "7002": 0,
+     "7003": 0,
+     "7004": 0,
+     "7005": 0,
+     "7006": 0,
+     "7007": 0,
+     "7008": 0
+    },
+    "Participant": 2,
+    "PossibleEvent": {}
+   }
+  },
+  {
+   "id": "18257739:864",
+   "kind": "shot",
+   "major": false,
+   "minute": 97,
+   "tMs": 1784495725018,
+   "side": "home",
+   "headline": "Shot",
+   "raw": {
+    "FixtureId": 18257739,
+    "GameState": "scheduled",
+    "StartTime": 1784487900000,
+    "IsTeam": true,
+    "FixtureGroupId": 10115676,
+    "CompetitionId": 72,
+    "CountryId": 466,
+    "SportId": 1,
+    "Participant1IsHome": true,
+    "Participant2Id": 1489,
+    "Participant1Id": 3021,
+    "CoverageSecondaryData": true,
+    "CoverageType": "TV/Stream",
+    "Action": "shot",
+    "Id": 864,
+    "Ts": 1784495724889,
+    "ConnectionId": 1180,
+    "Seq": 969,
+    "StatusId": 4,
+    "Type": "Soccer",
+    "Confirmed": true,
+    "Clock": {
+     "Running": true,
+     "Seconds": 5878
+    },
+    "Data": {
+     "Outcome": "OnTarget"
+    },
+    "Stats": {
+     "1": 0,
+     "2": 0,
+     "3": 0,
+     "4": 3,
+     "5": 0,
+     "6": 1,
+     "7": 8,
+     "8": 1,
+     "1001": 0,
+     "1002": 0,
+     "1003": 0,
+     "1004": 1,
+     "1005": 0,
+     "1006": 0,
+     "1007": 2,
+     "1008": 0,
+     "2001": 0,
+     "2002": 0,
+     "2003": 0,
+     "2004": 1,
+     "2005": 0,
+     "2006": 0,
+     "2007": 2,
+     "2008": 0,
+     "3001": 0,
+     "3002": 0,
+     "3003": 0,
+     "3004": 2,
+     "3005": 0,
+     "3006": 1,
+     "3007": 6,
+     "3008": 1,
+     "4001": 0,
+     "4002": 0,
+     "4003": 0,
+     "4004": 0,
+     "4005": 0,
+     "4006": 0,
+     "4007": 0,
+     "4008": 0,
+     "5001": 0,
+     "5002": 0,
+     "5003": 0,
+     "5004": 0,
+     "5005": 0,
+     "5006": 0,
+     "5007": 0,
+     "5008": 0,
+     "6001": 0,
+     "6002": 0,
+     "6003": 0,
+     "6004": 0,
+     "6005": 0,
+     "6006": 0,
+     "6007": 0,
+     "6008": 0,
+     "7001": 0,
+     "7002": 0,
+     "7003": 0,
+     "7004": 0,
+     "7005": 0,
+     "7006": 0,
+     "7007": 0,
+     "7008": 0
+    },
+    "Participant": 1
+   },
+   "detail": "OnTarget"
+  },
+  {
+   "id": "18257739:866",
+   "kind": "corner",
+   "major": false,
+   "minute": 98,
+   "tMs": 1784495738320,
+   "side": "home",
+   "headline": "Corner",
+   "raw": {
+    "FixtureId": 18257739,
+    "GameState": "scheduled",
+    "StartTime": 1784487900000,
+    "IsTeam": true,
+    "FixtureGroupId": 10115676,
+    "CompetitionId": 72,
+    "CountryId": 466,
+    "SportId": 1,
+    "Participant1IsHome": true,
+    "Participant2Id": 1489,
+    "Participant1Id": 3021,
+    "CoverageSecondaryData": true,
+    "CoverageType": "TV/Stream",
+    "Action": "corner",
+    "Id": 866,
+    "Ts": 1784495738175,
+    "ConnectionId": 1180,
+    "Seq": 972,
+    "StatusId": 4,
+    "Type": "Soccer",
+    "Confirmed": true,
+    "Clock": {
+     "Running": true,
+     "Seconds": 5884
+    },
+    "Score": {
+     "Participant1": {
+      "H1": {
+       "Corners": 2
+      },
+      "HT": {
+       "Corners": 2
+      },
+      "H2": {
+       "Corners": 7
+      },
+      "Total": {
+       "Corners": 9
+      }
+     },
+     "Participant2": {
+      "H1": {
+       "YellowCards": 1
+      },
+      "HT": {
+       "YellowCards": 1
+      },
+      "H2": {
+       "YellowCards": 2,
+       "RedCards": 1,
+       "Corners": 1
+      },
+      "Total": {
+       "YellowCards": 3,
+       "RedCards": 1,
+       "Corners": 1
+      }
+     }
+    },
+    "Stats": {
+     "1": 0,
+     "2": 0,
+     "3": 0,
+     "4": 3,
+     "5": 0,
+     "6": 1,
+     "7": 9,
+     "8": 1,
+     "1001": 0,
+     "1002": 0,
+     "1003": 0,
+     "1004": 1,
+     "1005": 0,
+     "1006": 0,
+     "1007": 2,
+     "1008": 0,
+     "2001": 0,
+     "2002": 0,
+     "2003": 0,
+     "2004": 1,
+     "2005": 0,
+     "2006": 0,
+     "2007": 2,
+     "2008": 0,
+     "3001": 0,
+     "3002": 0,
+     "3003": 0,
+     "3004": 2,
+     "3005": 0,
+     "3006": 1,
+     "3007": 7,
+     "3008": 1,
+     "4001": 0,
+     "4002": 0,
+     "4003": 0,
+     "4004": 0,
+     "4005": 0,
+     "4006": 0,
+     "4007": 0,
+     "4008": 0,
+     "5001": 0,
+     "5002": 0,
+     "5003": 0,
+     "5004": 0,
+     "5005": 0,
+     "5006": 0,
+     "5007": 0,
+     "5008": 0,
+     "6001": 0,
+     "6002": 0,
+     "6003": 0,
+     "6004": 0,
+     "6005": 0,
+     "6006": 0,
+     "6007": 0,
+     "6008": 0,
+     "7001": 0,
+     "7002": 0,
+     "7003": 0,
+     "7004": 0,
+     "7005": 0,
+     "7006": 0,
+     "7007": 0,
+     "7008": 0
+    },
+    "Participant": 1,
+    "Possession": 1,
+    "Parti1State": {},
+    "Parti2State": {}
+   }
+  }
+ ],
+ "points": {
+  "formulaV": 1,
+  "total": 581,
+  "fans": 21,
+  "top": [
+   {
+    "serial": 22,
+    "points": 150
+   },
+   {
+    "serial": null,
+    "points": 130
+   },
+   {
+    "serial": 25,
+    "points": 96
+   },
+   {
+    "serial": 16,
+    "points": 60
+   },
+   {
+    "serial": 2,
+    "points": 57
+   }
+  ]
+ },
+ "divergence": {
+  "optimismGap": {
+   "home": 0.5777000000000001,
+   "away": 0.7376
+  },
+  "foresight": {
+   "crowd": "wrong",
+   "byEnd": {
+    "home": "wrong",
+    "away": "wrong"
+   }
+  },
+  "upsetIndex": 0.06279000000000001
+ },
+ "fingerprint": {
+  "home": {
+   "fanbase": "ESP",
+   "optimism": 0.5777000000000001,
+   "volatility": 0,
+   "foresight": 0,
+   "loyalty": 0,
+   "matchesContributed": 1
+  },
+  "away": {
+   "fanbase": "ARG",
+   "optimism": 0.7376,
+   "volatility": 0,
+   "foresight": 0,
+   "loyalty": 0,
+   "matchesContributed": 1
+  }
+ },
+ "edition": {
+  "serial": 1,
+  "editionSize": null,
+  "caption": "18257739"
+ },
+ "headline": "ESP 0–0 ARG — a goalless stalemate, the favourite flipped.",
+ "provenance": {
+  "txlineRefs": [
+   "{\"odds\":{\"FixtureId\":18257739,\"MessageId\":\"1838538768:00003:000019-10021-stab\",\"Ts\":1784495262029,\"Bookmaker\":\"TXLineStablePriceDemargined\",\"BookmakerId\":10021,\"SuperOddsType\":\"1X2_PARTICIPANT_RESULT\",\"GameState\":null,\"InRunning\":true,\"MarketParameters\":null,\"MarketPeriod\":null,\"PriceNames\":[\"part1\",\"draw\",\"part2\"],\"Prices\":[9425,1174,23600]},\"summary\":{\"fixtureId\":18257739,\"updateStats\":{\"updateCount\":1392,\"minTimestamp\":1784495100013,\"maxTimestamp\":1784495396786},\"oddsSubTreeRoot\":\"FVJTqMQlfy0R9CRZ/jqpvi28ifqD4hnH7fe0/y8fLu8=\"},\"subTreeProof\":[{\"hash\":\"7kR6PIqyHeWh+Ui03ABoZGrpy0cp+fsgM+1xWVCPyjM=\",\"isRightSibling\":false},{\"hash\":\"IQcdqd1Dr7gF6xvHNg54IsZmb9dScNiCHXs3+xRw0Ng=\",\"isRightSibling\":false},{\"hash\":\"AXmijpRQRZi7l01e8IqKmTcfg1bnMzy5sWyBvnQ39BY=\",\"isRightSibling\":true},{\"hash\":\"FMwN99uoo9aqx791/7Ds/piFerfTaCcNBBHgR9ZAv2I=\",\"isRightSibling\":false},{\"hash\":\"TatIYmZOk/zyj6kCDHM4TIB+V3xhfY5Sdq49mJI9xVc=\",\"isRightSibling\":false},{\"hash\":\"hD5/ab69J0Ark8Hr8wXYePeeXH+TPc++9eGZOjdV4Zw=\",\"isRightSibling\":false},{\"hash\":\"ArNEZcYQdQBljUzJ9WM3wJhsOihHfPomYqXMbKE6Re0=\",\"isRightSibling\":true},{\"hash\":\"bbSH3efrhI19QWRAvr/VwNzp9b2c/Yq9FO+3YUUTuVo=\",\"isRightSibling\":true},{\"hash\":\"uPlvF8MUit6YCGXCT4OAyZqv1hG3RqaD3UrHX9kGWww=\",\"isRightSibling\":false},{\"hash\":\"lPdmAUF9lwRXBEW4DbAFlx/bo4DQ+6wdh0SE7SNTK80=\",\"isRightSibling\":false},{\"hash\":\"ajFS1Vw/ONPSNMivIRDt9rOMUg3kA1WlwB0VqQHbtI0=\",\"isRightSibling\":true}],\"mainTreeProof\":[{\"hash\":\"5JoIn38/MzESkI77UpC6IaWjEL+Kl5bOhxxXCP89Vtc=\",\"isRightSibling\":true},{\"hash\":\"+eNoSmwALMlLmVO3EYblDasqBOp7VHH9FBQVXsl5IKY=\",\"isRightSibling\":true},{\"hash\":\"KmTZnAtQ7/B2VdkRySpNIbsdhBDk1gsnkmVZqPd3eHE=\",\"isRightSibling\":false},{\"hash\":\"GkaDyuFItWAmITs7umNKdOuyb7l9zOUL8THmjZEAuZg=\",\"isRightSibling\":true},{\"hash\":\"mqati0QKDSguLEu12ESqn8+udi+4nvp45cNH4Tm0Tkg=\",\"isRightSibling\":true},{\"hash\":\"p35vhTVwqfbkkN00oUUAnrwQTmO+Ijf7Q4fOs0gF6zU=\",\"isRightSibling\":false}]}"
+  ],
+  "attendeeRoot": null,
+  "capture": {
+   "fromMs": 1784405630914,
+   "toMs": 1784495693000
+  },
+  "network": "devnet",
+  "recordHash": "c287badf714db935f6f357513a42a742e5599908d6d456b6d0a7f425b7b3ff53",
+  "anchorTxSig": "5795aa2T3tH2GYWM72fWkwbw8q9w1wjM1zvKjfoffKxncbPBbnzPH3jBEu6YjYsCMAN9N5SAQBCVS7ood12oqawk"
+ }
+}
