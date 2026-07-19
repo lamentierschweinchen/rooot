@@ -867,8 +867,8 @@ html.lexport .loomv svg{animation:none;transform:none}
         window.__seat.claim({matchId:id}).then(function(res){
           save.dataset.busy=''; save.classList.remove('collecting');
           if(res&&res.mint){ save.dataset.done='1'; save.classList.add('done'); save.textContent='SAVED ✓';
-            var url=res.mint.asset?('https://explorer.solana.com/address/'+encodeURIComponent(res.mint.asset)+'?cluster=devnet'):res.mint.txUrl;
-            msg('yours on any device · <a href="'+url+'" target="_blank" rel="noopener">details ↗</a> · <a href="'+cabHref()+'">cabinet</a>'); }
+            // the cabinet is the destination, not a block explorer (owner, 19 Jul)
+            msg('saved — yours on any device · <a href="'+cabHref()+'">your cabinet ›</a>'); }
           else { save.textContent='SAVE TO YOUR ACCOUNT · FACE ID'; msg('your seat is saved — your scarf is ready at full time · <a href="'+cabHref()+'">cabinet</a>'); }
         }).catch(function(){ save.dataset.busy=''; save.classList.remove('collecting'); save.textContent='TRY AGAIN · FACE ID';
           msg('not saved — try again any time · <a href="'+cabHref()+'">cabinet</a>'); });
