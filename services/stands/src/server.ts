@@ -418,9 +418,59 @@ function scheduleScoreRecheck(matchId: string): void {
   (t as { unref?: () => void }).unref?.();
 }
 
+/* ── the 90'-whistle trap (ESP–ARG, the final, 19 Jul) ───────────────────────
+ * mapLiveStatusId folds THREE StatusIds onto FULL_TIME: 5 (whistle at the end
+ * of regulation), 10 (end of extra time, decided) and 13 (the official final
+ * seal). Only 10 and 13 are unambiguously terminal. 5 is NOT: it fires at the
+ * 90' whistle of EVERY match, including one heading for extra time.
+ *
+ * The final proved it. The wire sent 5 at 21:15:47Z with the score 0–0; the
+ * service finalized and sealed 28s later; at 21:16:20Z the wire sent 6
+ * ("end-of-90-before-ET") and at 21:19:07Z extra time kicked off. Spain won it
+ * 1–0 at 105'. The record — verdicts, keepsake and on-chain anchor — was
+ * already committed to a goalless draw "decided in 90" that never happened.
+ *
+ * We cannot simply wait for 6: the break codes (6/8/11) return null from
+ * mapLiveStatusId, so a status message never reaches this file for them. What
+ * we DO see is the continuation itself — 7/9 (EXTRA_TIME) and 12 (PENALTIES).
+ * So: a full-time from StatusId 5 is treated as PROVISIONAL and held for a
+ * grace window. If play continues, the pending finalize is cancelled. If a
+ * genuinely terminal status lands, we finalize at once. If neither happens
+ * before the window closes, the match really did end in 90 and we finalize.
+ *
+ * The cost is a delayed seal on a straight-90 match. That is the right trade:
+ * a late-but-true record beats a prompt lie, and the seal is already deferred
+ * for open reaction windows anyway. */
+const FULLTIME_TERMINAL_STATUS_IDS = new Set([10, 13]);
+const FULLTIME_REGULATION_STATUS_ID = 5;
+/** Comfortably longer than the interval to the ET kickoff (3m20s in the final). */
+const PROVISIONAL_FULLTIME_GRACE_MS = 6 * 60_000;
+const provisionalFullTimes = new Map<string, ReturnType<typeof setTimeout>>();
+
+/** The live wire's StatusId behind a StatusEvent, or null for replay/legacy shapes. */
+function liveStatusIdOf(ev: { raw?: unknown }): number | null {
+  const raw = ev.raw as { Action?: unknown; StatusId?: unknown; Data?: { StatusId?: unknown } } | undefined;
+  if (!raw || typeof raw.Action !== 'string') return null;
+  const id = raw.Action === 'status' ? (raw.Data?.StatusId ?? raw.StatusId) : raw.StatusId;
+  return typeof id === 'number' ? id : null;
+}
+
+/** Play resumed (or a terminal status arrived) — drop any held 90' finalize. */
+function cancelProvisionalFullTime(matchId: string, why: string): void {
+  const t = provisionalFullTimes.get(matchId);
+  if (!t) return;
+  clearTimeout(t);
+  provisionalFullTimes.delete(matchId);
+  console.log(`[sentiment] ${matchId} provisional full-time CANCELLED (${why}) — the 90' whistle was not the end`);
+}
+
 function predictLifecycle(matchId: string, msg: ServerMsg | FeedMsg): void {
   if (msg.type !== 'status') return;
   const phase = msg.ev.phase;
+  // play continued past the 90' whistle — whatever we were holding is void.
+  if (phase === 'EXTRA_TIME' || phase === 'PENALTIES') {
+    cancelProvisionalFullTime(matchId, `phase ${phase}`);
+  }
   // getOrCreate, NOT get (Codex pre-match review, finding 9): the FULL_TIME
   // seal is a property of the FEED — contracts/sentiment.ts requires a match
   // with ZERO fans to still crystallize its (empty-crowd) record, and `.get()`
@@ -447,6 +497,30 @@ function predictLifecycle(matchId: string, msg: ServerMsg | FeedMsg): void {
       scheduleScoreRecheck(matchId);
       return;
     }
+    // Which whistle was this? StatusId 5 is the end of REGULATION and may yet be
+    // followed by extra time (see the block comment above) — hold it. 10/13 are
+    // terminal, and a null id means a replay/legacy tape, which is terminal by
+    // construction; both finalize at once.
+    const statusId = liveStatusIdOf(msg.ev);
+    if (statusId === FULLTIME_REGULATION_STATUS_ID) {
+      if (provisionalFullTimes.has(matchId)) return; // already holding this whistle
+      console.log(
+        `[sentiment] ${matchId} full-time at the 90' whistle (StatusId 5, ${known.home}–${known.away}) — HELD ` +
+          `${Math.round(PROVISIONAL_FULLTIME_GRACE_MS / 60_000)}min in case extra time follows (no verdicts, no seal, no anchor yet)`,
+      );
+      const t = setTimeout(() => {
+        provisionalFullTimes.delete(matchId);
+        if (resolvedMatches.has(matchId)) return; // a terminal status beat the timer
+        // re-read the score: the grace window is exactly when a late correction lands
+        const late = knownFinalScore(matchId) ?? known;
+        console.log(`[sentiment] ${matchId} grace closed with no continuation — the match did end in 90; finalizing ${late.home}–${late.away}`);
+        finalizeFullTime(matchId, registry.getOrCreate(matchId), late.home, late.away);
+      }, PROVISIONAL_FULLTIME_GRACE_MS);
+      (t as { unref?: () => void }).unref?.();
+      provisionalFullTimes.set(matchId, t);
+      return;
+    }
+    cancelProvisionalFullTime(matchId, `terminal StatusId ${statusId ?? 'replay'}`);
     finalizeFullTime(matchId, match, known.home, known.away);
   }
 }
