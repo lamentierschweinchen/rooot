@@ -870,8 +870,21 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
     })();
     window.__fixtureReady=window.__fixtureReady||fetch('/fixture.json').then(function(r){return r.ok?r.json():null;}).catch(function(){return null;});
     window.__fixtureReady.then(function(mf){
-      if(mf&&mf.matchId&&mf.home&&mf.away&&(!explicitMatch||explicitMatch===mf.matchId)){ finish(mf.matchId,fromManifest(mf)); }
-      // else: a manifest for a DIFFERENT match tells us nothing about this one — wait for fixtureInfo/timeout instead.
+      if(mf&&mf.matchId&&mf.home&&mf.away&&(!explicitMatch||explicitMatch===mf.matchId)){ finish(mf.matchId,fromManifest(mf)); return; }
+      // The FEATURED match isn't the one we're showing — but the manifest's schedule carries
+      // every fixture's {code,name,colors}, so an explicit ?match= still resolves here, from the
+      // SAME-ORIGIN (and cached) manifest, instead of racing the websocket's fixtureInfo against
+      // the 1500ms neutral timeout below. That race was a coin flip even on desktop (adapter
+      // ~380ms + ws fixtureInfo ~930ms vs a 1500ms deadline) and finish() latches `done`, so a
+      // lost race painted the bowl neutral for the WHOLE match while the real colours arrived
+      // ~100ms too late and were discarded — measured on ESP–ARG, 19 Jul, before the final.
+      if(mf&&explicitMatch&&mf.fixtures&&mf.fixtures.length){
+        for(var i=0;i<mf.fixtures.length;i++){
+          var e=mf.fixtures[i];
+          if(e&&e.matchId===explicitMatch&&e.home&&e.away){ finish(explicitMatch,fromManifest(e)); return; }
+        }
+      }
+      // else: a manifest that doesn't know this match tells us nothing — wait for fixtureInfo/timeout instead.
     },function(){ /* fetch failed — same: wait for fixtureInfo or the timeout */ });
     setTimeout(function(){ finish(fallbackId,NEUTRAL_FIX); },1500);
   }
