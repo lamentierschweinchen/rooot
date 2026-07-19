@@ -21,6 +21,9 @@ per-match record whose hash is anchored on Solana devnet.
 The output is a dataset: per fanbase, what was believed, against the market price
 at that second, resolved by result. No token, no wager, no stake.
 
+The prototype was alpha-tested across five live World Cup matches, including the
+final, proving the mechanism end to end.
+
 ## 2 · Architecture
 
 One service, two message buses. Market data and crowd data are separate
@@ -112,19 +115,19 @@ Twelve specified (`docs/BACKLOG-full-version-and-deferred-ideas.md` §1). Five
 compute today on live data: Optimism Gap, Doubter Index, Foresight Alpha,
 Pressure Without Reward, Match Uncertainty (volatility, swings, lead changes,
 conviction, Upset Index). Seven are blocked on a named field and print
-`NOT COMPUTABLE` with that field — nothing is interpolated. The roar series
-landed on 18 July, which unblocks Faith Under Fire, Roar Elasticity and
-Aftershock Half-Life for the next crystallized record.
+`NOT COMPUTABLE` with that field — nothing is interpolated. The roar series landed on 18 July and reached 387 samples in the final, which
+unblocks Faith Under Fire, Roar Elasticity and Aftershock Half-Life.
 
 Formulas live in `services/stands/src/sentiment/builder.ts`; the night-report
 generator reads either a crystallized record or a raw capture using the same
-formulas, so matches are comparable. All four captures are committed:
+formulas, so matches are comparable. All five captures are committed:
 
 ```
 node scripts/night-report.mjs services/stands/captures/premiere-fra-mar-18209181-919c9af.json
 node scripts/night-report.mjs services/stands/captures/espbel-sentiment-18218149.json
 node scripts/night-report.mjs services/stands/captures/engarg-sentiment-18241006.json
 node scripts/night-report.mjs services/stands/captures/fraeng-sentiment-18257865.json
+node scripts/night-report.mjs services/stands/captures/esparg-sentiment-18257739-corrected.json
 ```
 
 **Points** (`fan-record.js`, `docs/POINTS-SYSTEM.md`): stamped prediction 25 ·
@@ -135,12 +138,17 @@ different inputs; the sealed record is authoritative.
 
 ## 6 · Live match results
 
+Market columns report the recorded odds window. In the final, odds ticks stop
+during the 92′ red-card/VAR sequence, before the 105′ winner, so the recorded
+close is not a settled closing line.
+
 | Match | Fixture | Market open → close | Ticks | Swings ≥6pt | Lead changes | Room | Measured |
 |---|---|---|---|---|---|---|---|
 | FRA 2–0 MAR · 9 Jul | 18209181 | FRA 61.7% → 98.0% | 401 | 4 | 0 | n=5 (2/3) | MAR end +85.7pt, FRA end +38.3pt optimism gap |
 | ESP 2–1 BEL · 10 Jul | 18218149 | ESP 60.6% → 96.8% | 3,678 | 9 | 10 | 11 rooted, n=4 | modal call 2–1 = exact result; Foresight Alpha 0.394 |
 | ENG 1–2 ARG · 15 Jul | 18241006 | ARG 31.1% → 96.4% | 3,520 | 10 | 28 | 4 rooted, n=1 | ENG end +64.6pt; +74.2pt swing at 91′ |
 | FRA 4–6 ENG · 18 Jul | 18257865 | ENG 21.9% → 93.5% | 3,292 | 11 | 11 | 7 fans | full engagement harvest: 9 cheers, 10 watch-min, 5 arrival buckets, 27 roar samples |
+| **ESP 1–0 ARG · 19 Jul — the final** | 18257739 | ESP 42.2% → 5.7% by 92′ | 4,492 | 9 | 11 | 21 fans, 11 rooted | 89 cheers, 465 watch-min, 14 arrival buckets, 387 roar samples |
 
 ## 7 · On-chain
 
@@ -155,7 +163,9 @@ the fan's record.
 | **Market provenance** — TxLINE Merkle refs carried in ROOOT records | Validation path exercised against the live API | `fixtures/provenance/messi-goal-tick-proof.json` |
 | **Attendance root** — Merkle root of attendee anonIds | Designed, shape only | `contracts/relic.ts` |
 
-**Anchors.** 18 Jul: record `8a1cac7d…b516ce9`, tx
+**Anchors.** 19 Jul (the final): record `79f4182e…662f3b1`, tx
+`pYvzwKuisiNfYZtNYxM8xYWWj1T5mhf9WXbwxKNJc1DAr81GHNp88xKRGdHC26j8agZ8Zwhgr78QokjgYwBbvfE`.
+18 Jul: record `8a1cac7d…b516ce9`, tx
 `44KB7EXGB17uo6L1X1FyJCAt7eopkooprwjaZwzP1YJBDREEXJxr9De9H6kYzas8pjohvy1FSSYKspTJncPh8tYz`.
 15 Jul: `de9c9ea4…90a41a`. 10 Jul: `1a3e5763…49bf6b`. Public devnet RPC retains
 recent history only; each record hash regenerates from its committed capture with
@@ -211,6 +221,11 @@ Runtime, not build-green.
   through live ingest, replay and recording.
 - **Starting-XI loss on restart.** The lineup envelope is one-shot; a boot
   re-seed from the scores snapshot recovers it.
+- **Premature seal at the 90′ whistle.** The final went to extra time. StatusId 5
+  (full time in 90) arrived at the 90′ whistle and finalized the record before ET
+  was played. Fixed by holding StatusId 5 until the ladder confirms no ET follows;
+  the record was re-crystallized and re-anchored, and both captures are committed
+  (`…-premature.json`, `…-corrected.json`).
 - **Feed idle detection.** A per-attempt watchdog aborts a silent stream and
   forces reconnect; heartbeats count as liveness.
 
