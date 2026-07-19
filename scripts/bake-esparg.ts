@@ -69,7 +69,10 @@ const OUT_FILE = path.join(ROOT, 'apps/web/public/plate/demo-esparg.js');
  * the wire's own terminal score, never from a report or a guess. The write is
  * gated on it (see main): a hero feed that settles wrong is worse than none.
  */
-const EXPECTED_FINAL: { home: number; away: number } | null = null; // ← set at FT, e.g. { home: 2, away: 1 }
+// ESP 1–0 ARG — Ferran Torres, 105', in extra time, against ten men. The two
+// Spain goals at 95' and 113' were both chalked off by VAR, so the settled
+// scoreline moved exactly once all night.
+const EXPECTED_FINAL: { home: number; away: number } | null = { home: 1, away: 0 };
 
 /** Every recorded file for tonight, in a stable order. Rotation-tolerant (see header). */
 function captureFiles(): string[] {
