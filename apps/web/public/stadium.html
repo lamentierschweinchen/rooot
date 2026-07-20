@@ -829,7 +829,12 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;o
       // careful here: a drawn 90 emits break code 6 (no phase), and FULL_TIME
       // arrives only when it is genuinely final (decided in 90/ET, or after
       // the shootout's last kick).
+      // ...except it does NOT (ESP-ARG, Jul 19): the 90' whistle of a match
+      // bound for extra time reaches us as FULL_TIME too. So the mark is
+      // REVOCABLE — if the wire then says extra time or penalties, we take it
+      // back, and the true whistle re-marks over it.
       if(LIVE&&m.clock&&m.clock.phase==='FULL_TIME'&&window.__matchday){ try{ var mdid=q.get('match')||explicitMatch; if(mdid)window.__matchday.markDone(mdid); }catch(e){} }
+      if(LIVE&&m.clock&&(m.clock.phase==='EXTRA_TIME'||m.clock.phase==='PENALTIES')&&window.__matchday&&window.__matchday.unmarkDone){ try{ var rid=q.get('match')||explicitMatch; if(rid)window.__matchday.unmarkDone(rid); }catch(e){} }
       el('mSt').textContent=LIVE?liveWord():'REPLAY';
       el('bMin').textContent=window.__ftDone?'FULL TIME':window.__pens?'PENALTIES':((LIVE?'':'REPLAY · ')+(m.clock&&m.clock.min!=null?m.clock.min+'′':''));
       if(m.teams&&m.teams.home&&m.teams.home.tri)el('mHT').textContent=m.teams.home.tri; if(m.teams&&m.teams.away&&m.teams.away.tri)el('mAT').textContent=m.teams.away.tri;

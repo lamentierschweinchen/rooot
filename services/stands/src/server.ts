@@ -683,6 +683,15 @@ export function detectMoment(matchId: string, msg: ServerMsg | FeedMsg): MomentT
   }
   if (msg.type === 'status') {
     if (msg.ev.phase !== 'FULL_TIME') return null;
+    // THE 90' WHISTLE IS NOT THE END (ESP-ARG, Jul 19) — but it IS the end for
+    // most matches, so this beat deliberately still opens on it. StatusId 5 is
+    // both "end of ninety, more to come" and "that's the game" until the wire
+    // says otherwise; suppressing it here would cost every normal match its
+    // full-time moment to protect the rare one that goes on. The seal takes the
+    // careful path (a 6-minute grace before it finalizes), and on the client the
+    // done-mark is now revocable — extra time takes the beat back
+    // (matchday.js unmarkDone, terrace mdResume). Belt on the durable thing,
+    // braces on the ephemeral one.
     return { kind: 'full-time', side: null, minute: msg.ev.minute ?? null, hard: true, sourceId: `${matchId}:ft` };
   }
   if (msg.type === 'odds') {

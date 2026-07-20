@@ -183,6 +183,15 @@ function boot(MATCH_ID,FX){
 // clock exists to kill.
 var OVER=FX.phase==='FULL_TIME';
 var SEALED=OVER&&FX.replay;   // the sealed programme — baked data, not a dead wire
+// ...but OVER is a boot-time READING, never a latch. A match bound for extra
+// time reports FULL_TIME at the end of ninety (ESP-ARG, Jul 19); a ground opened
+// or reloaded in that window would freeze its scoreline and clock for the rest
+// of the night, showing 0–0 while the winner is being scored. Ask the matchday
+// clock each time instead — it revokes the mark when the wire says they play on.
+function isOver(){
+  try{ var f=window.__matchday&&window.__matchday.get&&window.__matchday.get(FX.matchId); if(f&&f.phase)return f.phase==='FULL_TIME'; }catch(e){}
+  return OVER;
+}
 function lensSrc(name){
   var base={loom:'woven-loom.html',stands:'terrace.html',stadium:'stadium.html'}[name];
   var q='?embed=1';
@@ -301,7 +310,7 @@ function wireLive(){
   if(window.__statsAdapter&&!wireLive.didStats){
     wireLive.didStats=true;
     window.__statsAdapter.onStats(function(st){
-      if(!st||OVER)return;   // a finished match's chrome is finalScore-authoritative — a stale wire snapshot never overwrites FULL TIME
+      if(!st||isOver())return;   // a finished match's chrome is finalScore-authoritative — a stale wire snapshot never overwrites FULL TIME
       el('sc').textContent=(st.home.goals||0)+'–'+(st.away.goals||0);
       if(typeof st.minute==='number')el('clk').textContent='· '+st.minute+"'";
     });

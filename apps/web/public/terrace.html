@@ -985,6 +985,15 @@ function wireLive(){
     // verdict, or the sealed record broadcast — flips the device-wide
     // matchday clock so every open page drops "IS LIVE" together.
     function mdDone(){ try{ if(window.__matchday)window.__matchday.markDone(MATCH_ID); }catch(e){} }
+    // ...and the way back, for when the whistle was only the end of ninety
+    // (ESP-ARG, Jul 19). The server's grace normally holds a provisional verdict
+    // so this shouldn't fire early — but _ft is otherwise a latch that stops the
+    // fan cheering for the rest of the night, and no client-side guard existed.
+    // Extra time / penalties revoke it: the terrace goes back to being live.
+    function mdResume(){
+      try{ if(window.__matchday&&window.__matchday.unmarkDone)window.__matchday.unmarkDone(MATCH_ID); }catch(e){}
+      if(M._ft){ M._ft=false; try{ console.info('[terrace] the match went on — cheering re-opens'); }catch(e){} }
+    }
     window.__stands.onVerdict(function(v){ M.verdictMsg=v; mdDone(); ngEnd(); if(!M._ft){M._ft=true; showKeepsake();} });   // FT: the card ends with the keepsake beat
     // THE SEAL (delta-review Bug A2): a fan joining AFTER full time (evicted match, cold
     // process, or just a late share-link open) gets no live 'predictVerdict' — but the server
@@ -1235,6 +1244,7 @@ function wireDemo(){ if(!window.__match||!window.__stands)return false;
   var f=el('foot'); if(f)f.textContent='crowd is simulated (crowd-sim) · match replayed from a baked SUI–COL feed';
   function onMatch(m){ if(!m)return; M.score=[m.score.home,m.score.away]; el('scH').textContent=m.score.home; el('scA').textContent=m.score.away;
     if(m.clock&&m.clock.min)M.t=m.clock.min;
+    if(m.clock&&(m.clock.phase==='EXTRA_TIME'||m.clock.phase==='PENALTIES'))mdResume();   // the 90' whistle was not the end — take the full-time beat back
     if(m.clock&&m.clock.phase==='FULL_TIME'&&!M._ft){M._ft=true; showKeepsake();} }   // FULL_TIME only, never done — done also flips at PENALTIES (R3)
   window.__match.on(onMatch); onMatch(window.__match);
   window.__stands.onState(function(s){ if(s.roar){M.rY=s.roar[mySide]||0;M.rT=s.roar[other]||0;}

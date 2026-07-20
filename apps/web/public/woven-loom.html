@@ -310,6 +310,9 @@ html.lexport .loomv svg{animation:none;transform:none}
     if(!SEALED||KEEP)return;
     SEALED=false; M.over=false; M.run=true;
     if(PRESEAL_DUR>M.dur)M.dur=PRESEAL_DUR;   // let the trimmed warp back out — there is more match to weave
+    // the device-wide clock has to come back too — seal() told every open page
+    // the night was over; without this the gate stays shut through extra time.
+    if(M.src==='live'){ try{ var uid=clothId(); if(uid&&window.__matchday&&window.__matchday.unmarkDone)window.__matchday.unmarkDone(uid); }catch(e){} }
     var cb=document.getElementById('collectbar'); if(cb)cb.hidden=true;
     var bd=document.getElementById('board'); if(bd)bd.classList.remove('on','fold');
     loomEl.className='loomv';

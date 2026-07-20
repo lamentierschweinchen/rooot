@@ -56,6 +56,25 @@
       try { localStorage.setItem(DONE_KEY, JSON.stringify(doneIds)); } catch (e) {}
       evaluate();
     },
+    // THE 90' WHISTLE IS NOT THE END (ESP-ARG, Jul 19). A match bound for extra
+    // time whistles full time TWICE, and the first one reaches every client as
+    // phase FULL_TIME — so a done-mark can be written while there are still 35
+    // minutes to play. Left standing it closes the gate, freezes every surface's
+    // chrome at "full time" and, being a 12h latch, stays wrong all night.
+    // Revocation is EXPLICIT (its own key) rather than the absence of a mark,
+    // because refreshDone is add-only on purpose: a mark lost to a storage error
+    // must never un-end a finished match, but the wire saying "they're still
+    // playing" must. Last writer wins — the true whistle re-marks over this.
+    unmarkDone: function (id) {
+      var k = String(id);
+      delete doneIds[k];
+      resumedIds[k] = Date.now();
+      try {
+        localStorage.setItem(DONE_KEY, JSON.stringify(doneIds));
+        localStorage.setItem(RESUMED_KEY, JSON.stringify(resumedIds));
+      } catch (e) {}
+      evaluate();
+    },
     on: function (fn) { subs.push(fn); if (evaluated) fn(md); return function () { var i = subs.indexOf(fn); if (i >= 0) subs.splice(i, 1); }; },
     // one voice for kickoff copy everywhere: viewer's local clock, weekday when not today
     kickLabel: function (fx) {
@@ -82,14 +101,21 @@
   // fixture's own kickoff (phaseFor) — a stale or dev-pinned mark can't kill
   // a future match. The sealed manifest remains the durable truth at cutover.
   var DONE_KEY = 'rooot.md.done';
-  function loadDone() {
+  var RESUMED_KEY = 'rooot.md.resumed';   // explicit revocations (see unmarkDone) — a mark newer than its revocation still stands
+  function loadMap(key) {
     try {
-      var m = JSON.parse(localStorage.getItem(DONE_KEY) || '{}') || {};
+      var m = JSON.parse(localStorage.getItem(key) || '{}') || {};
       var now = Date.now(), out = {}, k;
       for (k in m) if (typeof m[k] === 'number' && now - m[k] < 12 * 3600000) out[k] = m[k];
       return out;
     } catch (e) { return {}; }
   }
+  function loadDone() {
+    var done = loadMap(DONE_KEY), res = loadMap(RESUMED_KEY), k;
+    for (k in res) if (done[k] && res[k] > done[k]) delete done[k];   // they went back out to play after that whistle
+    return done;
+  }
+  var resumedIds = loadMap(RESUMED_KEY);
   var doneIds = loadDone();
   // ADD-only merge from storage — the propagation the comment above promises.
   // The ground runs three iframe panes, each with its own module instance: the
@@ -101,6 +127,10 @@
   function refreshDone() {
     var stored = loadDone(), k;
     for (k in stored) if (!doneIds[k]) doneIds[k] = stored[k];
+    // ...and honour revocations written by another pane/tab: add-only would
+    // otherwise keep this document's stale mark while the match plays on.
+    resumedIds = loadMap(RESUMED_KEY);
+    for (k in resumedIds) if (doneIds[k] && resumedIds[k] > doneIds[k]) delete doneIds[k];
   }
   var evaluated = false;
   var lastSig = '';
