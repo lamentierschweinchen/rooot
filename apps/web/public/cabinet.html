@@ -226,6 +226,13 @@ function readLocal(prefix){ var out=[];
   out.sort(function(a,b){ return (b.at||b.ts||0)-(a.at||a.ts||0); });   // newest first — the rack hangs that way
   return out;
 }
+// a scarf is dated by ITS MATCH, not by when the cloth happened to be written —
+// collect a sealed night the morning after and it still reads the night before.
+function matchDayMs(id){
+  try{ var f=window.__matchday&&window.__matchday.get&&window.__matchday.get(id);
+       if(f&&f.kickoffUtc)return new Date(f.kickoffUtc).getTime(); }catch(e){}
+  return 0;
+}
 function fmtDate(ms){ if(!ms)return''; var d=new Date(ms),M=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
   return (d.getDate()<10?'0':'')+d.getDate()+' '+M[d.getMonth()]+" '"+String(d.getFullYear()).slice(2); }
 function clothScore(c){ var s=c.score;
@@ -241,7 +248,7 @@ function scarvesFromCloths(cloths,kepts){
     if(k&&k.pred&&k.final){ call=(k.home||'')+' '+k.pred.h+'–'+k.pred.a;
       result=(k.pred.h===k.final.h&&k.pred.a===k.final.a)?'exact':(Math.sign(k.pred.h-k.pred.a)===Math.sign(k.final.h-k.final.a)?'outcome':'wrong'); }
     return { matchId:id, home:(c.home&&c.home.tri)||'—', away:(c.away&&c.away.tri)||'—', score:clothScore(c),
-      call:call, result:result, comp:'THE TOURNAMENT', date:fmtDate(c.at), serial:(k&&k.fanNo)?String(k.fanNo).padStart(3,'0'):'—',
+      call:call, result:result, comp:'THE TOURNAMENT', date:fmtDate(matchDayMs(id)||c.at), serial:(k&&k.fanNo)?String(k.fanNo).padStart(3,'0'):'—',
       img:(k&&k.imageUri)||null };   // the minted scarf image; scarfHTML falls back to the captured cloth
   });
 }

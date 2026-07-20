@@ -724,7 +724,11 @@ function showKeepsake(){
       :window.__myRecord.score({pred:p?{h:p.home,a:p.away}:null,cheers:M.cheerN,reacts:sumReacts(),mins:Math.floor(M.vSec/60),final:f?{h:f.home,a:f.away}:null,conv:(PASS&&String(PASS.matchId)===String(MATCH_ID)&&PASS.conv)||0,late:late});
     el('kPts').textContent='+'+kpts;
     var xEl=el('xp'); if(xEl)xEl.textContent=kpts; }   // the pit counter agrees with the card, always
+  // the date on the keepsake is THE MATCH'S date, not the day you tapped it —
+  // a sealed night opened a week later still says the night it happened.
   var MON=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'], d=new Date();
+  try{ var kfx=window.__matchday&&window.__matchday.get&&window.__matchday.get(MATCH_ID);
+       if(kfx&&kfx.kickoffUtc)d=new Date(kfx.kickoffUtc); }catch(e){}
   el('kFx').textContent=HOME_TRI+'–'+AWAY_TRI+' · '+d.getDate()+' '+MON[d.getMonth()]+' '+d.getFullYear();
   setTimeout(function(){ el('keepsake').classList.add('on'); },900);
 }
