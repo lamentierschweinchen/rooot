@@ -260,7 +260,8 @@ function buildAnchorCheckReplayFixture(home: number, away: number): string {
     { at: base, env: { FixtureId: fid, Participant1IsHome: true, Action: 'status', StatusId: 1, Data: { StatusId: 1 } } }, // PRE
     { at: base + 2000, env: { FixtureId: fid, Participant1IsHome: true, Action: 'status', StatusId: 2, Data: { StatusId: 2 }, Clock: { Running: true, Seconds: 0 } } }, // FIRST_HALF — locks predictions
     { at: base + 2300, env: { FixtureId: fid, Participant1IsHome: true, Action: 'goal', Participant: 1, Score: { Participant1: { Total: { Goals: home } }, Participant2: { Total: { Goals: away } } }, Clock: { Running: true, Seconds: 3000 } } }, // the final score
-    { at: base + 2600, env: { FixtureId: fid, Participant1IsHome: true, Action: 'status', StatusId: 5, Data: { StatusId: 5 }, Clock: { Running: false, Seconds: 5400 } } }, // FULL_TIME (decided in 90)
+    { at: base + 2600, env: { FixtureId: fid, Participant1IsHome: true, Action: 'status', StatusId: 5, Data: { StatusId: 5 }, Clock: { Running: false, Seconds: 5400 } } }, // the 90' whistle — PROVISIONAL, held (extra time emits this rung too)
+    { at: base + 4200, env: { FixtureId: fid, Participant1IsHome: true, Action: 'status', StatusId: 13, Data: { StatusId: 13 }, Clock: { Running: false, Seconds: 5400 } } }, // the official final seal — terminal
   ];
   return lines.map(({ at, env }) => JSON.stringify({ receivedAtMs: at, event: 'message', data: JSON.stringify(env) })).join('\n') + '\n';
 }

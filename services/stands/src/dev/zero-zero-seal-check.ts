@@ -161,7 +161,8 @@ function buildGoallessReplayFixture(): string {
   const lines = [
     { at: base, env: { FixtureId: fid, Participant1IsHome: true, Action: 'status', StatusId: 1, Data: { StatusId: 1 } } }, // PRE
     { at: base + 2000, env: { FixtureId: fid, Participant1IsHome: true, Action: 'status', StatusId: 2, Data: { StatusId: 2 }, Clock: { Running: true, Seconds: 0 } } }, // FIRST_HALF — locks predictions
-    { at: base + 2600, env: { FixtureId: fid, Participant1IsHome: true, Action: 'status', StatusId: 5, Data: { StatusId: 5 }, Clock: { Running: false, Seconds: 5400 } } }, // FULL_TIME — goalless
+    { at: base + 2600, env: { FixtureId: fid, Participant1IsHome: true, Action: 'status', StatusId: 5, Data: { StatusId: 5 }, Clock: { Running: false, Seconds: 5400 } } }, // the 90' whistle — PROVISIONAL, held (a match going to extra time emits this same rung)
+    { at: base + 5200, env: { FixtureId: fid, Participant1IsHome: true, Action: 'status', StatusId: 13, Data: { StatusId: 13 }, Clock: { Running: false, Seconds: 5400 } } }, // the official final seal — terminal, finalizes at once
   ];
   return lines.map(({ at, env }) => JSON.stringify({ receivedAtMs: at, event: 'message', data: JSON.stringify(env) })).join('\n') + '\n';
 }
@@ -209,7 +210,7 @@ async function main(): Promise<void> {
     send(wrongFan, { type: 'predict', matchId: FIXTURE_ID, anonId: 'zz-wrong-fan', home: 2, away: 1, atMs: Date.now() });
 
     // FULL_TIME hits at ~+2.6s; verdicts are sent in the same dispatch tick.
-    const gotVerdicts = await waitFor(() => capExact.verdicts.length >= 1 && capWrong.verdicts.length >= 1, 8000);
+    const gotVerdicts = await waitFor(() => capExact.verdicts.length >= 1 && capWrong.verdicts.length >= 1, 25000);
     assert(
       'FULL_TIME on a goalless wire still resolves verdicts (the old guard silently dropped everything)',
       gotVerdicts,
@@ -230,6 +231,8 @@ async function main(): Promise<void> {
 
     const settledLine = () => server!.getOutput().includes('settling 0–0 (goalless wire');
     assert('the FT branch logged the explicit goalless-wire settle line (honest fallback, never silent)', settledLine(), `present=${settledLine()}`);
+    const heldLine = () => server!.getOutput().includes('provisional');
+    assert('the 90-minute whistle is HELD, not sealed on — the rung a match heading to extra time also emits', heldLine(), `held=${heldLine()}`);
 
     // THE SEAL defers past the full-time reaction window (25s) by design.
     const sealed = await waitFor(() => sentimentFiles(dataDir).length === 1, 40_000);
