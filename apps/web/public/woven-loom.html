@@ -184,6 +184,7 @@ html.lexport .loomv svg{animation:none;transform:none}
   var KEEPID=KEEP?Q.get('match'):null;         // which kept cloth — resolved from an injected seed / #cloth= / the local rail (rooot.cloth.<id>)
   var KEEPEMPTY=false;                         // asked for a kept cloth that was never woven — say so, never substitute
   var SEALED=KEEP;                              // THE PRESSING — the weave has stopped and the cloth has sealed into the keepsake
+  var PRESEAL_DUR=0;                            // the warp length before the last pressing, so a false whistle can be undone
   var PENS=null;                                // a shootout's verdict, once decided — printed into the seal
   var KS={editionNo:null, owner:null, call:null};   // the personal seam: bound when the fan's own record is woven in; honest-empty until the wire sends it
   var ROOT=null, CALLS=[];   // fan-personal: rooted side ('home'|'away') frames the selvage; CALLS = the call timeline knotted down that edge (real, resolved marks only)
@@ -232,12 +233,19 @@ html.lexport .loomv svg{animation:none;transform:none}
       // join-replay resends them; without this each re-emit stacked a duplicate mark.
       if(id){ for(var i=0;i<M.events.length;i++){ if(M.events[i].id===id){ M.events[i].t=t; M.events[i].m=e.minute; M.events[i].s=sd; if(e.name)M.events[i].n=e.name; dirty=true; return; } } }
       M.events.push({m:e.minute,s:sd,t:t,id:id,n:e.name||null}); dirty=true; if(t==='goal'&&!e.quiet)queueGool(e.minute,e.side); },  // quiet = join-replay goal: weave it, but don't erupt GOOOL for history
-    score:function(a,c){ M.score=[a,c]; dirty=true; },
+    score:function(a,c){ var moved=(M.score[0]!==a||M.score[1]!==c); M.score=[a,c]; if(moved)unseal('a goal after the whistle'); dirty=true; },
     teams:function(h,a){ if(h){ if(h.tri)M.hTri=h.tri; if(h.primary)HOME=h.primary; } if(a){ if(a.tri)M.aTri=a.tri; if(a.primary)AWAY=a.primary; } dirty=true; },
     // the wire's own word ends the weave: FULL_TIME fires THE PRESSING no matter the source
     // (live, tape, dry-run) — never inferred from M.live (the old !M.live gate left every
     // driven cloth unsealed at the whistle).
-    phase:function(p){ if(!p)return; M.et=!!(p.phase==='EXTRA_TIME'||p.phase==='PENALTIES'); if(M.et&&!SEALED)M.dur=Math.max(M.dur,126);
+    phase:function(p){ if(!p)return; M.et=!!(p.phase==='EXTRA_TIME'||p.phase==='PENALTIES');
+      // THE 90' WHISTLE IS NOT THE END (ESP-ARG, Jul 19). A match that goes on
+      // emits full time TWICE: once at the end of ninety, once for real. The
+      // server holds the first one now; the cloth must survive it too, or the
+      // keepsake freezes at the wrong score — the night's own wire, replayed,
+      // still carries that false whistle. Extra time re-opens the weave.
+      if(M.et)unseal('the match went on');
+      if(M.et&&!SEALED)M.dur=Math.max(M.dur,126);
       if(p.phase==='FULL_TIME')seal(); },
     chalkOff:function(side){ for(var i=M.events.length-1;i>=0;i--){ if(M.events[i].t==='goal' && M.events[i].s===(side===1?'h':'a')){ M.events[i].t='miss'; break; } } dirty=true; },
     // THE PRESSING — the wire seals the keepsake at full time and binds the fan's own record (edition, owner, their call)
@@ -265,6 +273,7 @@ html.lexport .loomv svg{animation:none;transform:none}
     // page drops "IS LIVE" together, instead of holding it until the sealed
     // manifest deploys. Replays/tapes never mark (M.src guard).
     if(M.src==='live'){ try{ var mdid=clothId(); if(mdid&&window.__matchday)window.__matchday.markDone(mdid); }catch(e){} }
+    PRESEAL_DUR=M.dur;                        // remembered so unseal() can let the warp back out if this whistle proves false
     if(M.dur-M.t>0.8)M.dur=Math.max(1,M.t);   // trim the un-woven warp to the whistle (live frames are cut long; the seed is already true)
     bindPersonal();   // final pull of the fan's side + resolved calls, so the sealed keepsake carries them
     dirty=true; writeCloth();
@@ -290,6 +299,22 @@ html.lexport .loomv svg{animation:none;transform:none}
       var arr=null; try{ arr=JSON.parse(localStorage.getItem('rooot.calls.'+fx)||'null'); }catch(e){}
       if(arr&&arr.length){ for(var i=0;i<arr.length;i++){ var c=arr[i]; if(c&&c.m!=null)window.__loom.call({m:c.m,k:c.k,sub:c.sub,hit:c.hit,id:c.id}); } }
     }catch(e){}
+  }
+  // THE PRESSING, UNDONE — the wire proved the match wasn't over. Re-opens the
+  // weave so the true whistle can seal it: the collect bar goes back down, the
+  // board lifts, and writeCloth runs again at the real end (the cabinet reads
+  // whatever was written last, so the corrected cloth simply overwrites). Never
+  // for a kept cloth (KEEP) — a keepsake is frozen at its own full time by
+  // definition and takes no live word.
+  function unseal(why){
+    if(!SEALED||KEEP)return;
+    SEALED=false; M.over=false; M.run=true;
+    if(PRESEAL_DUR>M.dur)M.dur=PRESEAL_DUR;   // let the trimmed warp back out — there is more match to weave
+    var cb=document.getElementById('collectbar'); if(cb)cb.hidden=true;
+    var bd=document.getElementById('board'); if(bd)bd.classList.remove('on','fold');
+    loomEl.className='loomv';
+    try{ console.info('[loom] unsealed — '+why+'; the cloth re-opens for the true whistle'); }catch(e){}
+    dirty=true;
   }
   function writeCloth(){
     if(KEEP||!M.live)return;
