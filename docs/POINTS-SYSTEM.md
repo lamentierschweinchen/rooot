@@ -1,5 +1,13 @@
 # ROOOT — The Points System (decision of record, 2026-07-14)
 
+> **STATUS — this is a design record, not the shipped formula.** The signed-edge
+> rule below (`100 × (happened − p)`) is the intended v2. What ships today is
+> points v1: 25 for a stamped prediction, +1 per granted cheer (cap 300), +2 per
+> reaction, +1 per presence minute (cap 130), and a full-time bonus of 200 (exact
+> score) or 75 (correct result) multiplied by the conviction dial (max ×2).
+> Implementation: `apps/web/public/fan-record.js`, folded server-side in
+> `services/stands/src/server.ts`.
+
 Owner-approved after an independent pressure-test (`scratchpad/points-pressure-test.md`).
 Points are a **measure of proven foresight**, never a currency. This spec is the source of
 truth; the tonight-shippable slice and the full build are both defined below.

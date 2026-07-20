@@ -115,8 +115,9 @@ Twelve specified (`docs/BACKLOG-full-version-and-deferred-ideas.md` §1). Five
 compute today on live data: Optimism Gap, Doubter Index, Foresight Alpha,
 Pressure Without Reward, Match Uncertainty (volatility, swings, lead changes,
 conviction, Upset Index). Seven are blocked on a named field and print
-`NOT COMPUTABLE` with that field — nothing is interpolated. The roar series landed on 18 July and reached 387 samples in the final, which
-unblocks Faith Under Fire, Roar Elasticity and Aftershock Half-Life.
+`NOT COMPUTABLE` with that field — nothing is interpolated. A roar series is now emitted (~30s cadence) but is sparsely populated, so Faith
+Under Fire, Roar Elasticity and Aftershock Half-Life remain NOT COMPUTABLE in
+every record to date — a populated per-minute curve is what they still need.
 
 Formulas live in `services/stands/src/sentiment/builder.ts`; the night-report
 generator reads either a crystallized record or a raw capture using the same
@@ -130,11 +131,13 @@ node scripts/night-report.mjs services/stands/captures/fraeng-sentiment-18257865
 node scripts/night-report.mjs services/stands/captures/esparg-sentiment-18257739-corrected.json
 ```
 
-**Points** (`fan-record.js`, `docs/POINTS-SYSTEM.md`): stamped prediction 25 ·
+**Points** (`apps/web/public/fan-record.js`, folded server-side in `services/stands/src/server.ts`): stamped prediction 25 ·
 granted cheer 1 (cap 300) · reaction 2 · presence minute 1 (cap 130) · full time
 exact score 200 or correct result 75, multiplied by the conviction dial (max ×2).
-The client tally and the server fold use the same formula on deliberately
-different inputs; the sealed record is authoritative.
+Client and server run the same constants (the server's `CONV_MULT` is kept in
+lockstep with `fan-record.js`) over deliberately different inputs — the client
+counts its own taps and visible-tab minutes, the server counts granted cheers,
+distinct-moment reactions and presence minutes. The sealed record is authoritative.
 
 ## 6 · Live match results
 
@@ -147,8 +150,8 @@ close is not a settled closing line.
 | FRA 2–0 MAR · 9 Jul | 18209181 | FRA 61.7% → 98.0% | 401 | 4 | 0 | n=5 (2/3) | MAR end +85.7pt, FRA end +38.3pt optimism gap |
 | ESP 2–1 BEL · 10 Jul | 18218149 | ESP 60.6% → 96.8% | 3,678 | 9 | 10 | 11 rooted, n=4 | modal call 2–1 = exact result; Foresight Alpha 0.394 |
 | ENG 1–2 ARG · 15 Jul | 18241006 | ARG 31.1% → 96.4% | 3,520 | 10 | 28 | 4 rooted, n=1 | ENG end +64.6pt; +74.2pt swing at 91′ |
-| FRA 4–6 ENG · 18 Jul | 18257865 | ENG 21.9% → 93.5% | 3,292 | 11 | 11 | 7 fans | full engagement harvest: 9 cheers, 10 watch-min, 5 arrival buckets, 27 roar samples |
-| **ESP 1–0 ARG · 19 Jul — the final** | 18257739 | ESP 42.2% → 5.7% by 92′ | 4,492 | 9 | 11 | 21 fans, 11 rooted | 89 cheers, 465 watch-min, 14 arrival buckets, 387 roar samples |
+| FRA 4–6 ENG · 18 Jul | 18257865 | ENG 21.9% → 93.5% | 3,292 | 11 | 11 | 7 fans | full engagement harvest: 9 cheers, 10 watch-min, 5 arrival buckets |
+| **ESP 1–0 ARG · 19 Jul — the final** | 18257739 | ESP 42.2% → 5.7% by 92′ | 4,492 | 9 | 11 | 21 fans, 11 rooted | 89 cheers, 465 watch-min, 14 arrival buckets |
 
 ## 7 · On-chain
 
@@ -198,11 +201,13 @@ Runtime, not build-green.
   live market render. Production smoke mode intercepts every outgoing WebSocket
   frame and blocks anything beyond a side-less hello, then proves its own blocker
   each run. Full mode refuses non-local hosts by allowlist.
-- **Fourteen in-process dev checks** (`services/stands/src/dev/*-check.ts`) boot
-  the real server against the real wire: presence/cheer, restart persistence,
-  verdict replay, fan serial, pulse, full replay, SSE idle, self-probe, NEXT
-  GOAL, Collect claim/mint, anchor durability, memory eviction, seal-on-join,
-  starting-XI seed recovery.
+- **Twenty-three in-process dev checks** (`services/stands/src/dev/*-check.ts`,
+  each wired to an `npm run check:*` script) boot the real server against the real
+  wire: presence/cheer, restart persistence, verdict replay, fan serial, pulse,
+  full replay, SSE idle, self-probe, NEXT GOAL, Collect claim/mint, anchor
+  durability, fingerprint anchor, memory eviction, seal-on-join, seal-consume,
+  starting-XI seed recovery, fixture info, provenance, reactions-live, reprojection,
+  score confirmation, unknown score, and the 0–0 case.
 - `npm run typecheck` across the monorepo.
 
 ## 10 · Engineering notes

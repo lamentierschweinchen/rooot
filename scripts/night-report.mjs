@@ -904,7 +904,12 @@ function renderMarkdown(model, computed) {
     if (eng) out.push(`- **Engagement (server-tallied):** ${eng.fans} fans · ${eng.cheers} granted cheers · ${eng.reacts} reactions · ${eng.watchMinutes} watch-minutes${eng.arrivals?.length ? ` · arrivals across ${eng.arrivals.length} five-minute bucket(s)` : ''}.`);
     if (sl?.length) out.push(`- **The crowd's board:** ${sl.map((s) => `${s.h}–${s.a}${s.n > 1 ? ` ×${s.n}` : ''}`).join(' · ')}.`);
     if (pts) out.push(`- **Points earned (formula v${pts.formulaV}):** ${pts.total.toLocaleString()} across ${pts.fans} fan(s); top: ${pts.top.map((t) => `Nº ${t.serial ?? '—'} · ${t.points}`).join(', ')}.`);
-    if (rs?.length) out.push(`- **Roar series:** ${rs.length} samples (~30s cadence) — the per-minute curve Faith Under Fire / Roar Elasticity / Aftershock Half-Life need; formulas land in a later dossier pass.`);
+    if (rs?.length) {
+      const live = rs.filter((s) => (s.home || 0) > 0 || (s.away || 0) > 0).length;
+      out.push(live
+        ? `- **Roar series:** ${rs.length} samples (~30s cadence), ${live} carrying a reading.`
+        : `- **Roar series:** ${rs.length} samples (~30s cadence), none carrying a reading — a populated curve is what Faith Under Fire / Roar Elasticity / Aftershock Half-Life still need.`);
+    }
     const nd = model.fans?.nerveDrift;
     if (nd) out.push(`- **Nerve drift (changed minds before the lock):** ${nd.fansChanged} fan(s) changed their call, ${nd.totalEdits} edit(s) total${nd.paths?.length ? ` — ${nd.paths.length} trajectory/ies kept (serials only)` : ''}.`);
     out.push('');

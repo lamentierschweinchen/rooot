@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-19T22:19:01.695Z",
+  "generatedAt": "2026-07-20T01:48:43.829Z",
   "generator": "scripts/night-report.mjs",
   "sourceFile": "services/stands/captures/esparg-sentiment-18257739-corrected.json",
   "shape": "SentimentRecord",
