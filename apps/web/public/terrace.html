@@ -354,7 +354,7 @@ body.embed .backg,body.embed .foot,body.embed .matchbar{display:none}
           <div class="pwait" id="cWait">THE CROWD IS ARRIVING</div>
         </div>
         <div class="pfield market">
-          <div class="plbl">ODDS</div>
+          <div class="plbl" id="mkLbl">ODDS</div>
           <div class="pcbar"><i class="h" id="mkH"></i><i class="d" id="mkD"></i><i class="a" id="mkA"></i></div>
           <div class="pends"><span class="e1" id="mkHe">SUI</span><span class="e2">DRAW</span><span class="e3" id="mkAe">COL</span></div>
           <div class="pdiv">
@@ -913,6 +913,11 @@ function setMove(mk){ if(!M.mkt0)M.mkt0={h:mk.home,d:mk.draw,a:mk.away};
     if(val)val.textContent=(delta>0?'+':delta<0?'−':'')+Math.abs(delta); }
 }
 function ccUpdate(c){ if(!c)return;
+  // THE SEALED RECORD WINS. replaySnapshot sends the sentiment record first and the
+  // live consensus second, so a leftover in-memory registry entry for a finished
+  // match (one stray socket, n=1) was landing after the record and overwriting its
+  // real n=3. A sealed night's crowd is settled — nothing live may revise it.
+  if(M._crowdSealed&&!c.__fromRecord)return;
   if(c.market){ marketUpdate(Array.isArray(c.market)?{home:c.market[0],draw:c.market[1],away:c.market[2]}:c.market); }
   if(!c.all)return;
   var wait=el('cWait'), sec=el('secCrowd');
@@ -1015,6 +1020,29 @@ function wireLive(){
       var sfin=(SEALED&&window.__matchday&&(window.__matchday.get(MATCH_ID)||{}).finalScore)||null;
       if(sfin)M.verdictMsg={final:{home:sfin.home,away:sfin.away}};
       else if(record.finalScore)M.verdictMsg={final:record.finalScore};
+      // POUR THE SEALED RECORD INTO THE PLATE. The crowd + market fields only ever
+      // listened to the LIVE buses, which send nothing for a cold finished match —
+      // so a sealed night showed an empty ODDS bar, a zeroed MOVE SINCE KICKOFF
+      // (setMove takes its baseline from the first reading it sees, so the close was
+      // being measured against itself), and whatever stale consensus a stray live
+      // socket had left behind. The record carries all of it; use it.
+      try{
+        var fc=record.fans&&record.fans.consensus;
+        if(fc&&fc.all){ ccUpdate({all:fc.all,byRoot:fc.byRoot||null,__fromRecord:true}); M._crowdSealed=true; }
+        var mk=record.market;
+        if(mk&&mk.open){
+          M.mkt0={h:mk.open.home,d:mk.open.draw,a:mk.open.away};   // the real kickoff baseline, so the move is the match's move
+          var last=mk.etClose||mk.close;
+          if(last&&last.home!=null){
+            // A match decided in extra time has no etClose captured, so `close` is the
+            // price at the 90th — for the final that is DRAW 94%, under a header
+            // reading ESP 1–0 ARG. True, and the best fact of the night (the money
+            // never saw it), but unlabelled it just reads as broken. Say when it was.
+            if(record.decidedIn==='ET'&&!mk.etClose){ var kl=el('mkLbl'); if(kl)kl.textContent="ODDS AT THE 90th"; }
+            marketUpdate({home:last.home,draw:last.draw,away:last.away});
+          }
+        }
+      }catch(e){}
       mdDone(); ngEnd(); M._ft=true; showKeepsake();
     });
     if(window.__stands.onCheer)window.__stands.onCheer(function(e){
