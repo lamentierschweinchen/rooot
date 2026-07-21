@@ -40,6 +40,15 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .mast .meta{font-weight:700;font-size:8px;letter-spacing:.17em;color:var(--sub);text-align:right;line-height:1.55}
 
 /* step labels */
+/* THE PREAMBLE — what you're about to do, before we ask you to do it. A stranger
+   arriving from a link has no idea what picking a side buys them; without this the
+   whole inside reads as handsome furniture (live feedback, Jul 19). Plain words,
+   three lines, above the fold on a phone — then the ticket asks. */
+.pre{padding:12px 18px 2px}
+.pre .h{font-weight:800;font-size:9px;letter-spacing:.2em;color:var(--sub);text-transform:uppercase;margin-bottom:7px}
+.pre ul{list-style:none;display:flex;flex-direction:column;gap:5px}
+.pre li{font-weight:700;font-size:10.5px;line-height:1.5;color:var(--ink);display:flex;gap:7px;align-items:baseline}
+.pre li::before{content:"◆";color:var(--gold);font-size:7px;flex:none;position:relative;top:-1px}
 .lab{font-weight:800;font-size:9.5px;letter-spacing:.2em;color:var(--sub);padding:14px 18px 8px;text-transform:uppercase;display:flex;align-items:center}
 .lab b{color:var(--ink);margin-left:.35em}
 .lab .n{display:inline-flex;width:15px;height:15px;border:1.5px solid var(--sub);border-radius:50%;align-items:center;justify-content:center;font-size:9px;margin-right:9px;color:var(--sub)}
@@ -128,6 +137,15 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
     <div class="mast">
       <div class="brand">ROOOT</div>
       <div class="meta">MATCHDAY · — v —<br>· · ·<br><b class="serial">ADMIT ONE · '26</b></div>
+    </div>
+
+    <div class="pre">
+      <div class="h">What happens here</div>
+      <ul>
+        <li>Pick a side and call the score. That's your ticket.</li>
+        <li>Cheer and react live, and see the odds move against what fans predict.</li>
+        <li>At full time the match becomes a scarf. Yours to keep.</li>
+      </ul>
     </div>
 
     <div class="lab"><span class="n">1</span>CHOOSE YOUR<b>SIDE</b></div>
