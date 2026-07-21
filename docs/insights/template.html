@@ -1,0 +1,519 @@
+<title>ROOOT — The Tournament Ledger</title>
+<style>
+/*__FONTS__*/
+
+/* ── tokens: the project's own (design/PAPER-AND-CLOTH.md §2) ─────────────
+   NEWSPRINT ground by day, PRESS-BLACK by night — both native to the language,
+   not an inversion. Host spot inks dress the room; team ink carries team data;
+   gold is reserved for the exceptional. Flat ink only: no gradients, no soft
+   shadows, no decoration. */
+/* --sub is the label ink. The surfaces use #8C8467, but at 10.5px that lands
+   under 4.5:1 on both grounds, so it is pulled per theme until small type is
+   legible. --draw keeps the original olive: it is a bar, not text, and clears
+   the 3:1 that graphical objects need. */
+:root{
+  --paper:#E6DBC2; --card:#F3ECDB; --ink:#1A1815; --sub:#625C49; --line:#D3C6A6;
+  --rojo:#C8202A; --verde:#1E7A46; --azul:#27427F; --gold:#C79A38;
+  --draw:#8C8467;
+  --frame:2.5px; --panel:1.5px; --detail:1px;
+  --disp:'Anybody',ui-sans-serif,system-ui,sans-serif;
+  --serif:'YoungSerif',Georgia,serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root{ --paper:#171512; --card:#221F1A; --ink:#EDE9DE; --sub:#9A917A; --line:#3A352C;
+         --rojo:#E04A52; --verde:#3F9B68; --azul:#5A79C4; --gold:#D9B45C; --draw:#8C8467; }
+}
+:root[data-theme="dark"]{
+  --paper:#171512; --card:#221F1A; --ink:#EDE9DE; --sub:#9A917A; --line:#3A352C;
+  --rojo:#E04A52; --verde:#3F9B68; --azul:#5A79C4; --gold:#D9B45C; --draw:#8C8467;
+}
+:root[data-theme="light"]{
+  --paper:#E6DBC2; --card:#F3ECDB; --ink:#1A1815; --sub:#625C49; --line:#D3C6A6;
+  --rojo:#C8202A; --verde:#1E7A46; --azul:#27427F; --gold:#C79A38; --draw:#8C8467;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--disp); font-weight:400;
+  font-variant-numeric:tabular-nums;
+  -webkit-font-smoothing:antialiased;
+  line-height:1.45;
+}
+.sheet{max-width:1180px;margin:0 auto;padding:0 20px 90px}
+
+/* ── masthead ─────────────────────────────────────────────────────────── */
+.mast{border-bottom:var(--frame) solid var(--ink);padding:34px 0 16px;margin-bottom:30px}
+.mast .rule{height:9px;background:var(--rojo);margin-bottom:20px}
+.mast h1{
+  font-family:var(--serif); font-weight:400; margin:0;
+  font-size:clamp(38px,7.4vw,74px); line-height:.94; letter-spacing:-.015em;
+  text-wrap:balance;
+}
+.mast .sub{
+  margin-top:14px; display:flex; flex-wrap:wrap; gap:9px 20px; align-items:baseline;
+  font-size:11px; font-weight:800; letter-spacing:.15em; text-transform:uppercase; color:var(--sub);
+}
+.mast .sub b{color:var(--ink);font-weight:800}
+.lede{
+  margin:20px 0 0; max-width:60ch; font-size:16.5px; line-height:1.62; color:var(--ink);
+}
+.lede em{font-style:normal;background:var(--gold);color:#1A1815;padding:0 5px;font-weight:700;
+         -webkit-box-decoration-break:clone;box-decoration-break:clone}
+
+/* ── section headers ──────────────────────────────────────────────────── */
+.sec{margin:52px 0 20px;border-bottom:var(--panel) solid var(--ink);padding-bottom:9px;
+     display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.sec h2{font-family:var(--disp);font-weight:900;margin:0;font-size:clamp(19px,2.6vw,27px);
+        letter-spacing:.015em;text-transform:uppercase;line-height:1}
+.sec .note{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--sub)}
+.regmark{display:inline-block;width:11px;height:11px;border:2px solid var(--ink);border-radius:50%;
+         position:relative;margin-right:9px;vertical-align:-1px}
+.regmark::after{content:'';position:absolute;inset:3px;background:var(--ink);border-radius:50%}
+
+/* ── plates: bordered, croppable, no radius, no shadow ────────────────── */
+.grid{display:grid;gap:18px}
+/* 4 matches → a clean 2×2 rather than 3 + an orphan. min() so the track can
+   still collapse below its ideal width on a phone instead of forcing the
+   whole page to scroll sideways. */
+.g2{grid-template-columns:repeat(auto-fit,minmax(min(430px,100%),1fr))}
+.g4{grid-template-columns:repeat(auto-fit,minmax(min(215px,100%),1fr))}
+
+/* ── team ink, legibility-clamped per ground ───────────────────────────
+   The law is that team ink alone carries team data — but a near-black team
+   ink (BEL #1A1A18) vanishes on press-black, and a pale one (ENG white)
+   vanishes on newsprint. stadium.html's mastInk() already clamps too-BRIGHT
+   inks for the paper ground; this is the same idea in both directions. Hue is
+   preserved — only luminance is pulled far enough to read. Each element
+   carries both resolutions and the theme picks one, so the toggle wins in
+   both directions. */
+.ti{background:var(--tkl)}
+.tx{color:var(--tkl)}
+@media (prefers-color-scheme:dark){ .ti{background:var(--tkd)} .tx{color:var(--tkd)} }
+:root[data-theme="dark"] .ti{background:var(--tkd)}
+:root[data-theme="dark"] .tx{color:var(--tkd)}
+:root[data-theme="light"] .ti{background:var(--tkl)}
+:root[data-theme="light"] .tx{color:var(--tkl)}
+.plate{background:var(--card);border:var(--frame) solid var(--ink);padding:17px 17px 15px;position:relative}
+.plate .ptitle{font-size:10.5px;font-weight:900;letter-spacing:.17em;text-transform:uppercase;
+               color:var(--sub);margin-bottom:12px;display:flex;justify-content:space-between;gap:10px}
+.plate .prov{margin-top:13px;padding-top:9px;border-top:var(--detail) solid var(--line);
+             font-size:10px;letter-spacing:.05em;color:var(--sub);font-family:var(--mono)}
+
+/* tally figures */
+.fig{font-weight:900;font-size:clamp(30px,4.6vw,44px);line-height:1;letter-spacing:-.02em}
+.fig.sm{font-size:clamp(23px,3vw,31px)}
+.figlabel{font-size:10.5px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:var(--sub);margin-top:7px}
+.figsub{font-size:12px;color:var(--sub);margin-top:5px;line-height:1.4}
+
+/* register tag — which world a number comes from */
+.reg{display:inline-block;font-size:9px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;
+     padding:2px 6px;border:var(--detail) solid currentColor;margin-bottom:10px}
+.reg.market{color:var(--azul)}
+.reg.crowd{color:var(--rojo)}
+.reg.both{color:var(--verde)}
+
+/* ── match plates ─────────────────────────────────────────────────────── */
+.match{display:flex;flex-direction:column;gap:13px}
+.mhead{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.mteams{font-weight:900;font-size:20px;letter-spacing:.01em;display:flex;align-items:center;gap:9px}
+.swatch{width:13px;height:13px;border:var(--detail) solid var(--ink);flex:none}
+.mscore{font-weight:900;font-size:27px;letter-spacing:-.01em;white-space:nowrap}
+.mstage{font-size:9.5px;font-weight:900;letter-spacing:.15em;text-transform:uppercase;color:var(--sub)}
+.chip{display:inline-block;font-size:9.5px;font-weight:900;letter-spacing:.11em;text-transform:uppercase;
+      padding:3px 7px;border:var(--panel) solid var(--ink);background:var(--paper)}
+.chip.et{background:var(--gold);color:#1A1815;border-color:#1A1815}
+
+/* stacked probability bar — market only */
+.bar{display:flex;height:26px;border:var(--panel) solid var(--ink);overflow:hidden}
+.bar i{display:block;height:100%}
+.barkey{display:flex;justify-content:space-between;font-size:10.5px;font-weight:800;
+        letter-spacing:.06em;color:var(--sub);margin-top:5px}
+.barrow{margin-top:11px}
+.barrow .rl{font-size:10px;font-weight:900;letter-spacing:.13em;text-transform:uppercase;color:var(--sub);margin-bottom:4px}
+
+/* journey: small multiples of the belief distribution per phase */
+.journey{display:grid;gap:7px}
+.jrow{display:grid;grid-template-columns:88px 1fr;gap:10px;align-items:center}
+.jphase{font-size:9.5px;font-weight:900;letter-spacing:.09em;text-transform:uppercase;color:var(--sub)}
+.jbar{display:flex;height:17px;border:var(--detail) solid var(--ink)}
+.jbar i{display:block;height:100%}
+
+/* ── dot grids: every dot is one real person / one real cheer ─────────── */
+.dots{display:flex;flex-wrap:wrap;gap:3.5px;margin:9px 0 3px}
+.dot{width:10px;height:10px;border:var(--detail) solid var(--ink);flex:none}
+.dot.hollow{background:transparent}
+.dotkey{font-size:10.5px;color:var(--sub);margin-top:7px;line-height:1.45}
+
+/* ── tables ───────────────────────────────────────────────────────────── */
+.tblwrap{overflow-x:auto;border:var(--frame) solid var(--ink);background:var(--card)}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:13px}
+th,td{padding:9px 12px;text-align:right;border-bottom:var(--detail) solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+thead th{font-size:9.5px;font-weight:900;letter-spacing:.13em;text-transform:uppercase;
+         color:var(--sub);border-bottom:var(--panel) solid var(--ink);background:var(--paper)}
+tbody tr:last-child td{border-bottom:none}
+td b{font-weight:900}
+.n{font-family:var(--disp);font-weight:700}
+.muted{color:var(--sub)}
+
+/* ── divergence: the crossover bars ───────────────────────────────────── */
+.gap{display:grid;grid-template-columns:104px 1fr 64px;gap:11px;align-items:center;margin:9px 0}
+.gaplabel{font-size:11px;font-weight:800;letter-spacing:.05em}
+.gaptrack{position:relative;height:21px;border:var(--detail) solid var(--line);background:var(--paper)}
+.gapfill{position:absolute;top:0;bottom:0;left:0}
+.gapval{font-size:14px;font-weight:900;text-align:right}
+.gapn{font-size:10px;color:var(--sub);font-weight:700}
+
+/* ── the caveat block — a flagged number, not a hidden one ────────────── */
+.caveat{border:var(--frame) solid var(--gold);background:var(--card);padding:15px 17px;margin-top:16px}
+.caveat .ct{font-size:10px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+.caveat p{margin:0;font-size:13.5px;line-height:1.6}
+
+/* ── the ledger of absence ────────────────────────────────────────────── */
+.absent{display:grid;gap:0;border:var(--frame) solid var(--ink);background:var(--card)}
+.arow{display:grid;grid-template-columns:210px 1fr;gap:14px;padding:11px 15px;border-bottom:var(--detail) solid var(--line)}
+.arow:last-child{border-bottom:none}
+.afield{font-family:var(--mono);font-size:11.5px;color:var(--sub);font-weight:600}
+.anote{font-size:13px;line-height:1.55}
+
+/* ── footer ───────────────────────────────────────────────────────────── */
+.foot{margin-top:56px;border-top:var(--frame) solid var(--ink);padding-top:15px;
+      font-size:11px;color:var(--sub);line-height:1.7}
+.foot code{font-family:var(--mono);font-size:10.5px;word-break:break-all}
+
+@media (max-width:640px){
+  .arow{grid-template-columns:1fr;gap:4px}
+  .gap{grid-template-columns:78px 1fr 54px;gap:8px}
+  .jrow{grid-template-columns:70px 1fr}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="sheet">
+
+  <header class="mast">
+    <div class="rule"></div>
+    <h1>The Tournament Ledger</h1>
+    <div class="sub">
+      <span>ROOOT</span>
+      <span><b>4</b> live match nights</span>
+      <span><b>10–19 JUL 2026</b></span>
+      <span>TxLINE feed &middot; Solana devnet</span>
+      <span id="stamp"></span>
+    </div>
+    <p class="lede">
+      Everything ROOOT actually recorded, from four match nights ending with the final.
+      The market's read and the crowd's behaviour are kept in separate columns throughout —
+      they are different kinds of number and are never averaged together. Crowd figures are
+      <em>counts of real people</em>, shown as countable marks, and every one carries its sample size.
+    </p>
+  </header>
+
+  <!-- ══ THE TALLY ══════════════════════════════════════════════════════ -->
+  <div class="sec"><h2><span class="regmark"></span>The tally</h2>
+    <span class="note">summed from sealed records &middot; nothing estimated</span></div>
+  <div class="grid g4" id="tally"></div>
+
+  <!-- ══ THE FOUR NIGHTS ═══════════════════════════════════════════════ -->
+  <div class="sec"><h2><span class="regmark"></span>The four nights</h2>
+    <span class="note">market probability, de-vigged &middot; kickoff order</span></div>
+  <div class="grid g2" id="nights"></div>
+
+  <!-- ══ THE MARKET ════════════════════════════════════════════════════ -->
+  <div class="sec"><h2><span class="regmark"></span>The market</h2>
+    <span class="note">TxLINE &middot; the deepest thing we hold</span></div>
+  <div class="tblwrap"><table id="mkt"></table></div>
+  <div class="grid g2" style="margin-top:18px" id="journeys"></div>
+
+  <!-- ══ THE CROWD ═════════════════════════════════════════════════════ -->
+  <div class="sec"><h2><span class="regmark"></span>The crowd</h2>
+    <span class="note">counts, never percentages &middot; every mark is one real act</span></div>
+  <div class="grid g2" id="crowd"></div>
+
+  <!-- ══ THE CROSSOVER ═════════════════════════════════════════════════ -->
+  <div class="sec"><h2><span class="regmark"></span>The crossover</h2>
+    <span class="note">the one place the two registers legitimately meet</span></div>
+  <div id="crossover"></div>
+
+  <!-- ══ WHAT ISN'T HERE ═══════════════════════════════════════════════ -->
+  <div class="sec"><h2><span class="regmark"></span>What isn't here</h2>
+    <span class="note">schema fields that carried no signal</span></div>
+  <div class="absent" id="absent"></div>
+
+  <footer class="foot" id="foot"></footer>
+</div>
+
+<script>
+const DATA = /*__DATA__*/;
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const num = (n) => Number(n).toLocaleString('en-US');
+
+/* Team ink, clamped so it reads on either ground (see the .ti/.tx rules).
+   Hue is untouched; only luminance is pulled to a floor/ceiling. */
+const lum = (r, g, b) => (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+const hex2 = (n) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0');
+
+function clamp(hex, { floor, ceil }) {
+  if (!/^#[0-9a-f]{6}$/i.test(hex)) return hex;
+  const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+  const L = lum(r, g, b);
+  if (floor != null && L < floor) {
+    // lift toward white, keeping hue — a flat ink, never a gradient
+    const k = (floor - L) / (1 - L);
+    return '#' + hex2(r + (255 - r) * k) + hex2(g + (255 - g) * k) + hex2(b + (255 - b) * k);
+  }
+  if (ceil != null && L > ceil) {
+    const k = ceil / L;
+    return '#' + hex2(r * k) + hex2(g * k) + hex2(b * k);
+  }
+  return hex;
+}
+
+/** style attribute carrying both resolutions of one team's ink.
+ *  Bounds are set so the worst case still clears 3:1 against the plate ground
+ *  in both themes — chart bars are graphical objects, not decoration, so they
+ *  have to be distinguishable to count as information. Verified empirically. */
+function inkVars(m, side) {
+  const raw = (side === 'home' ? m.homeInk : m.awayInk) || '#8C8467';
+  return `--tkl:${clamp(raw, { ceil: 0.44 })};--tkd:${clamp(raw, { floor: 0.5 })}`;
+}
+
+document.getElementById('stamp').textContent =
+  'assembled ' + new Date(DATA.generatedAt).toISOString().slice(0, 16).replace('T', ' ') + 'Z';
+
+/* ── the tally ──────────────────────────────────────────────────────── */
+const t = DATA.totals;
+$('tally').innerHTML = [
+  { reg: 'market', v: num(t.marketTicks), l: 'market ticks', s: 'across ' + t.liveMatches + ' live nights, plus ' + num(t.replayTicks) + ' from ' + t.replayMatches + ' replay records' },
+  { reg: 'market', v: num(t.events), l: 'match events', s: 'goals, shots, corners, cards, VAR — read off the wire' },
+  { reg: 'crowd', v: num(t.rooted), l: 'fans rooted', s: 'people who picked a side before kickoff and were counted at lock' },
+  { reg: 'crowd', v: num(t.predictions), l: 'scorelines predicted', s: 'every prediction a fan locked in, all four nights' },
+  { reg: 'crowd', v: num(t.cheers), l: 'cheers tapped', s: 'measured on the ' + t.engagementMatches + ' nights carrying engagement telemetry' },
+  { reg: 'crowd', v: num(t.watchMinutes), l: 'minutes watched', s: 'time fans actually spent in the stands' },
+  { reg: 'crowd', v: num(t.points), l: 'points earned', s: 'the scoring system, live on the last two nights' },
+  { reg: 'both', v: DATA.matches.length + '<span style="font-size:.5em"> of </span>' + (DATA.matches.length + DATA.replayMatches.length), l: 'records with a crowd', s: 'the replay records hold real markets but no fans — nobody watched a capture' },
+].map((c) => `<div class="plate">
+    <span class="reg ${c.reg}">${c.reg === 'both' ? 'both' : c.reg}</span>
+    <div class="fig">${c.v}</div>
+    <div class="figlabel">${esc(c.l)}</div>
+    <div class="figsub">${esc(c.s)}</div>
+  </div>`).join('');
+
+/* ── the four nights ────────────────────────────────────────────────── */
+const stack = (d, m, h) => d ? `<div class="bar" style="height:${h}px">
+    <i class="ti" style="width:${d.home}%;${inkVars(m,'home')}"></i>
+    <i style="width:${d.draw}%;background:var(--draw)"></i>
+    <i class="ti" style="width:${d.away}%;${inkVars(m,'away')}"></i>
+  </div>` : '<div class="muted">no reading</div>';
+
+$('nights').innerHTML = DATA.matches.map((m) => `<div class="plate match">
+  <div class="mhead">
+    <div>
+      <div class="mstage">${esc(m.stage)} &middot; ${esc(m.date)}</div>
+      <div class="mteams" style="margin-top:5px">
+        <span class="swatch ti" style="${inkVars(m,'home')}"></span>${esc(m.home)}
+        <span class="muted" style="font-weight:400">v</span>
+        <span class="swatch ti" style="${inkVars(m,'away')}"></span>${esc(m.away)}
+      </div>
+    </div>
+    <div style="text-align:right">
+      <div class="mscore">${m.finalScore.home}&ndash;${m.finalScore.away}</div>
+      <div style="margin-top:5px"><span class="chip ${m.decidedIn === 'ET' ? 'et' : ''}">${m.decidedIn === '90' ? 'in 90' : m.decidedIn === 'ET' ? 'extra time' : esc(m.decidedIn)}</span></div>
+    </div>
+  </div>
+
+  <div class="barrow">
+    <div class="rl">Market at kickoff</div>
+    ${stack(m.market.open, m, 26)}
+    <div class="barkey"><span>${esc(m.home)} ${m.market.open.home}%</span><span>draw ${m.market.open.draw}%</span><span>${m.market.open.away}% ${esc(m.away)}</span></div>
+  </div>
+  <div class="barrow">
+    <div class="rl">Market at the whistle</div>
+    ${stack(m.market.close, m, 26)}
+    <div class="barkey"><span>${esc(m.home)} ${m.market.close.home}%</span><span>draw ${m.market.close.draw}%</span><span>${m.market.close.away}% ${esc(m.away)}</span></div>
+  </div>
+
+  <div style="font-size:13.5px;line-height:1.55">${esc(m.headline)}</div>
+
+  <div class="prov">${m.crowd.rootedAtLock.home + m.crowd.rootedAtLock.away} rooted &middot; ${m.crowd.predictions.n} predicted &middot; ${num(m.market.ticks)} ticks &middot; ${m.events.total} events${m.provenance.recordHash ? ' &middot; ' + m.provenance.recordHash.slice(0, 12) : ''}</div>
+</div>`).join('');
+
+/* ── market table ───────────────────────────────────────────────────── */
+$('mkt').innerHTML = `<thead><tr>
+    <th>Match</th><th>Ticks</th><th>Lead changes</th><th>Swings</th>
+    <th>Biggest swing</th><th>Conviction</th><th>Favoured (min)</th>
+  </tr></thead><tbody>` +
+  DATA.matches.map((m) => {
+    const fm = m.market.favoredMinutes || { home: 0, draw: 0, away: 0 };
+    const bs = m.market.biggestSwing;
+    return `<tr>
+      <td><b>${esc(m.home)}&ndash;${esc(m.away)}</b> <span class="muted">${esc(m.stage.toLowerCase())}</span></td>
+      <td class="n">${num(m.market.ticks)}</td>
+      <td class="n">${m.market.leadChanges}</td>
+      <td class="n">${m.market.swingCount}</td>
+      <td class="n">${bs ? bs.deltaMax + 'pp <span class="muted">' + bs.minute + "' &rarr; " + esc(bs.toward) + '</span>' : '<span class="muted">none</span>'}</td>
+      <td class="n">${m.market.convictionMean != null ? (m.market.convictionMean * 100).toFixed(1) + '%' : '&mdash;'}</td>
+      <td class="n"><span class="tx" style="${inkVars(m,'home')}">${fm.home}</span> <span class="muted">/</span> <span class="muted">${fm.draw}</span> <span class="muted">/</span> <span class="tx" style="${inkVars(m,'away')}">${fm.away}</span></td>
+    </tr>`;
+  }).join('') + '</tbody>';
+
+/* ── belief journeys ────────────────────────────────────────────────── */
+$('journeys').innerHTML = DATA.matches.map((m) => `<div class="plate">
+  <div class="ptitle"><span>Belief through ${esc(m.home)}&ndash;${esc(m.away)}</span><span>${m.market.perPhase.length} phases</span></div>
+  <div class="journey">
+    ${m.market.perPhase.map((p) => `<div class="jrow">
+      <div class="jphase">${esc(p.phase.replace(/_/g, ' '))}</div>
+      <div class="jbar">
+        <i class="ti" style="width:${p.home}%;${inkVars(m,'home')}"></i>
+        <i style="width:${p.draw}%;background:var(--draw)"></i>
+        <i class="ti" style="width:${p.away}%;${inkVars(m,'away')}"></i>
+      </div>
+    </div>`).join('')}
+  </div>
+  <div class="prov">${esc(m.home)} &middot; draw &middot; ${esc(m.away)} — de-vigged probability at each phase change</div>
+</div>`).join('');
+
+/* ── the crowd: dot grids, one mark per real act ────────────────────── */
+/* one mark per real act. `vars` is either a team-ink pair or a flat colour. */
+const dots = (n, vars, cap, flat) => {
+  /* nothing to draw for a side nobody picked — the caption underneath already
+     states the count, so an empty row here would just read as noise */
+  if (!n) return '';
+  const shown = Math.min(n, cap);
+  return '<div class="dots">' +
+    Array.from({ length: shown }, () =>
+      flat ? `<span class="dot" style="background:${flat}"></span>`
+           : `<span class="dot ti" style="${vars}"></span>`).join('') +
+    (n > cap ? `<span class="dotkey" style="margin-left:6px">+${n - cap} more</span>` : '') +
+    '</div>';
+};
+
+$('crowd').innerHTML = DATA.matches.map((m) => {
+  const e = m.crowd.engagement;
+  const r = m.crowd.rootedAtLock;
+  const sl = m.crowd.scorelines;
+  return `<div class="plate">
+    <div class="ptitle"><span>${esc(m.home)}&ndash;${esc(m.away)}</span><span>${esc(m.stage.toLowerCase())}</span></div>
+    <span class="reg crowd">crowd</span>
+
+    <div style="margin-top:4px"><div class="rl" style="font-size:10px;font-weight:900;letter-spacing:.13em;text-transform:uppercase;color:var(--sub)">Rooted at lock</div>
+    ${dots(r.home, inkVars(m, 'home'), 60)}${dots(r.away, inkVars(m, 'away'), 60)}
+    <div class="dotkey"><b>${r.home}</b> for ${esc(m.home)} &middot; <b>${r.away}</b> for ${esc(m.away)}</div></div>
+
+    ${e ? `<div style="margin-top:14px"><div style="font-size:10px;font-weight:900;letter-spacing:.13em;text-transform:uppercase;color:var(--sub)">Cheers tapped</div>
+      ${dots(e.cheers, null, 100, 'var(--rojo)')}
+      <div class="dotkey"><b>${e.cheers}</b> cheers from <b>${e.fans}</b> fans &middot; <b>${num(e.watchMinutes)}</b> minutes watched</div></div>`
+    : `<div style="margin-top:14px" class="dotkey"><span class="muted">Engagement telemetry wasn't running for this match — cheers, watch-time and points went unmeasured. Not zero: unrecorded.</span></div>`}
+
+    ${sl && sl.length ? `<div style="margin-top:14px"><div style="font-size:10px;font-weight:900;letter-spacing:.13em;text-transform:uppercase;color:var(--sub)">Scorelines called</div>
+      <div class="dotkey" style="margin-top:6px">${sl.map((s) => `<b>${s.h}&ndash;${s.a}</b>${s.n > 1 ? ' &times;' + s.n : ''}${(s.h === m.finalScore.home && s.a === m.finalScore.away) ? ' <span style="background:var(--gold);color:#1A1815;padding:0 5px;font-weight:900">exact</span>' : ''}`).join(' &nbsp; ')}</div></div>` : ''}
+
+    ${m.crowd.points ? `<div class="prov"><b style="font-family:var(--disp)">${num(m.crowd.points.total)}</b> points across <b style="font-family:var(--disp)">${m.crowd.points.fans}</b> fans &middot; best single fan ${num((m.crowd.points.top[0] || {}).points || 0)}</div>` : `<div class="prov">points not yet running</div>`}
+  </div>`;
+}).join('');
+
+/* ── the crossover ──────────────────────────────────────────────────── */
+const VERDICT = { exact: 'called it exactly', outcome: 'called the right result', wrong: 'got it wrong' };
+const withPreds = DATA.matches.filter((m) => m.crowd.predictions.n > 0);
+const maxGap = Math.max(...withPreds.flatMap((m) => [Math.abs(m.crossover.optimismGap?.home || 0), Math.abs(m.crossover.optimismGap?.away || 0)]), 1);
+
+$('crossover').innerHTML = `
+  <div class="plate">
+    <div class="ptitle"><span>Optimism gap — how far fans sat from the market</span><span>percentage points at lock</span></div>
+    <span class="reg both">market &times; crowd</span>
+    <p style="margin:4px 0 14px;font-size:14px;line-height:1.6;max-width:66ch">
+      For each set of fans: the share of them who predicted their own side would win, minus what the
+      market gave that side at kickoff. Positive means the fans backed their team harder than the money did.
+      <b>Every set of fans who backed their own team came out ahead of the market</b> — the single
+      negative bar is one Belgium supporter who predicted their own side would lose.
+    </p>
+    ${withPreds.map((m) => ['home', 'away'].map((side) => {
+      const g = m.crossover.optimismGap ? m.crossover.optimismGap[side] : null;
+      const n = m.crowd.predictions.byRoot[side];
+      if (g == null || n === 0) return '';
+      const code = side === 'home' ? m.home : m.away;
+      return `<div class="gap">
+        <div class="gaplabel">${esc(code)} <span class="muted">${esc(m.home)}&ndash;${esc(m.away)}</span><br><span class="gapn">n = ${n}</span></div>
+        <div class="gaptrack"><div class="gapfill ${g >= 0 ? 'ti' : ''}" style="width:${Math.max(1.5, Math.abs(g) / maxGap * 100)}%;${g >= 0 ? inkVars(m, side) : 'background:var(--sub)'}"></div></div>
+        <div class="gapval">${g > 0 ? '+' : ''}${g}</div>
+      </div>`;
+    }).join('')).join('')}
+    <div class="prov">a positive bar means fans were more confident than the market. n is how many fans that bar rests on.</div>
+  </div>
+
+  <div class="grid g2" style="margin-top:18px">
+    <div class="plate">
+      <div class="ptitle"><span>Did the crowd read it right?</span><span>vs the final score</span></div>
+      <span class="reg both">market &times; crowd</span>
+      <div class="tblwrap" style="border:none;margin-top:4px"><table style="min-width:0">
+        <tbody>${DATA.matches.map((m) => {
+          /* a verdict needs someone to have predicted. The record grades an empty
+             consensus as "wrong"; with n = 0 there is no call to be right or wrong
+             about, so say that instead of scoring a crowd that never spoke. */
+          const n = m.crowd.predictions.n;
+          const v = n > 0 ? m.crossover.foresight?.crowd : null;
+          return `<tr><td><b>${esc(m.home)}&ndash;${esc(m.away)}</b></td>
+            <td style="text-align:right">${v ? (v === 'exact' ? '<b style="background:var(--gold);color:#1A1815;padding:1px 6px">' + VERDICT[v] + '</b>' : '<b>' + VERDICT[v] + '</b>') : '<span class="muted">nobody predicted</span>'}</td>
+            <td style="text-align:right" class="muted">n = ${n}</td></tr>`;
+        }).join('')}</tbody>
+      </table></div>
+      <div class="prov">from ${DATA.totals.predictions} predictions in total — a sample this small proves nothing yet, but the pipeline that measures it is real.</div>
+    </div>
+
+    <div class="plate">
+      <div class="ptitle"><span>How surprised the money was</span><span>upset index</span></div>
+      <span class="reg market">market</span>
+      <div class="tblwrap" style="border:none;margin-top:4px"><table style="min-width:0">
+        <tbody>${DATA.matches.map((m) => `<tr>
+          <td><b>${esc(m.home)}&ndash;${esc(m.away)}</b></td>
+          <td style="text-align:right"><b>${m.crossover.upsetIndex}</b><span class="muted">/100</span></td>
+          <td style="text-align:right" class="muted">${m.decidedIn === 'ET' ? 'see note' : m.crossover.upsetIndex < 10 ? 'market had it' : ''}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+      <div class="prov">1 minus the market's closing probability on the leg that actually won.</div>
+    </div>
+  </div>
+
+  <div class="caveat">
+    <div class="ct">One number to distrust</div>
+    <p>
+      The final reads <b>94.3</b> on the upset index, and its auto-written headline says
+      &ldquo;an upset the money never saw&rdquo;. Spain were the pre-match favourite at 42.2% — so that
+      overstates it badly. The cause is honest: the feed never published an extra-time market
+      (the capture carries only the full-match line, last tick 21:13:42Z), so the calculation falls back
+      to the 90-minute close, which had correctly settled to <b>draw 93.7%</b> before Spain won it in
+      extra time. The number is what the real formula computes from real data; it has not been
+      hand-corrected. The formula should decline to score an extra-time match with no extra-time market.
+    </p>
+  </div>`;
+
+/* ── what isn't here ────────────────────────────────────────────────── */
+/* the final is the richest record, so its night report is the fullest
+   statement of what could not be computed and why. */
+const fin = DATA.matches[DATA.matches.length - 1];
+const nc = Object.entries(fin.notComputableDetail || {});
+
+$('absent').innerHTML =
+  DATA.unmeasured.map((u) => `<div class="arow">
+      <div class="afield">${esc(u.field)}</div>
+      <div class="anote">${esc(u.note)}</div>
+    </div>`).join('') +
+  nc.map(([k, v]) => `<div class="arow">
+      <div class="afield">${esc(k)}</div>
+      <div class="anote">${esc(String(v).split('—')[0].split(' — ')[0].trim())}</div>
+    </div>`).join('');
+
+/* ── footer ─────────────────────────────────────────────────────────── */
+$('foot').innerHTML = `
+  Assembled by <code>scripts/build-insights.mjs</code> from sealed SentimentRecords and night reports.
+  Every figure traces to a field on disk; nothing is interpolated or estimated.<br><br>
+  Market probabilities are de-vigged and shown as percentages, which is what they are.
+  Crowd figures are counts of real acts by real people and are never converted to rates,
+  averaged into the market, or blended with it.<br><br>
+  The final's record was corrected after it sealed early: record <code>${esc((fin.provenance.recordHash || '').slice(0, 16))}</code>
+  anchored on Solana devnet${fin.provenance.supersedes ? `, superseding <code>${esc(String(fin.provenance.supersedes.recordHash || '').slice(0, 16))}</code>` : ''}.
+  Both entries remain on chain.`;
+</script>
