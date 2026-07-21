@@ -190,6 +190,22 @@ export class MatchState {
   private readonly predictHistory = new Map<string, Array<{ h: number; a: number; atMs: number }>>();
   /** predictions lock at kickoff — a claim on the future locks when it starts. */
   private predictLocked = false;
+  /** LATE PREDICTIONS (2026-07-20) — a call placed AFTER kickoff.
+   *
+   * These are deliberately kept in their own map and are NEVER merged into
+   * `predictions` above. Everything that reads `predictions` — consensus(),
+   * the foresight verdict, the optimism gap, nerve drift — is answering the
+   * question "what did the crowd believe BEFORE it knew?", and that is the
+   * whole value of the dataset. A fan who calls 1–0 in the 106th minute of a
+   * 1–0 match has predicted nothing; folding them in would report the crowd as
+   * clairvoyant. So a late call earns POINTS (decayed by how much match it
+   * missed — see server.ts lateMultiplier) and never earns FORESIGHT.
+   *
+   * Before this existed the server simply dropped these on the floor: predict()
+   * returned false and handlePredict returned without storing, counting or
+   * logging anything. The final (19 Jul) had 21 fans and 3 predictions, and we
+   * could not say how many of the other 18 had tried and been refused. */
+  private readonly latePredictions = new Map<string, { home: number; away: number; atMs: number; minute: number | null; conv?: number }>();
   /** anonId -> this fan's resolved verdict, set once at FULL_TIME (docs/MECHANISMS.md
    * §2 → FORESIGHT). Populated by resolvePredictions; snapshotted (services/stands/src/
    * snapshot.ts) so a verdict survives a restart, and replayed into a fan's hello once
@@ -423,11 +439,51 @@ export class MatchState {
     return true;
   }
 
+  /** Record a prediction placed AFTER the lock. Returns the stored row, or null
+   * if the scoreline was unusable, or this fan already has a late call.
+   *
+   * `minute` is the live match minute latched at arrival — it is what the points
+   * decay is computed from, so it is stored rather than re-derived later. Null
+   * when no clocked message has arrived yet; the caller treats that as "no
+   * credit is provable", never as minute 0.
+   *
+   * The FIRST late call is kept and later ones are refused. The alternative —
+   * last-write-wins — would let a fan re-call at 89' once the result was
+   * obvious and hand back exactly the credit the decay had taken away. */
+  predictLate(
+    anonId: string,
+    home: number,
+    away: number,
+    atMs: number,
+    minute: number | null,
+    nowMs = Date.now(),
+    conv?: number,
+  ): { home: number; away: number; minute: number | null } | null {
+    if (!Number.isFinite(home) || !Number.isFinite(away)) return null;
+    const h = Math.max(0, Math.min(19, Math.floor(home)));
+    const a = Math.max(0, Math.min(19, Math.floor(away)));
+    const c = Number.isFinite(conv as number) && (conv as number) >= 1 && (conv as number) <= 4 ? Math.floor(conv as number) : undefined;
+    this.touchFanStats(anonId, nowMs); // the fan IS active, whatever we do with the row
+    if (this.latePredictions.has(anonId)) return null; // first call stands
+    this.latePredictions.set(anonId, c !== undefined ? { home: h, away: a, atMs, minute, conv: c } : { home: h, away: a, atMs, minute });
+    return { home: h, away: a, minute };
+  }
+
+  /** Late calls, for the points harvest and the sealed record. Never feeds consensus. */
+  latePredictionsAll(): Array<{ anonId: string; home: number; away: number; atMs: number; minute: number | null; conv?: number }> {
+    return Array.from(this.latePredictions.entries()).map(([anonId, p]) => ({ anonId, ...p }));
+  }
+
   /** Snapshot restore only (services/stands/src/snapshot.ts): install a fan's
    * prior prediction directly, bypassing the lock check — the lock itself is
    * restored separately via lockPredictions() so restore order doesn't matter. */
   restorePrediction(anonId: string, home: number, away: number, atMs: number, conv?: number): void {
     this.predictions.set(anonId, conv !== undefined ? { home, away, atMs, conv } : { home, away, atMs });
+  }
+
+  /** Snapshot restore only — the late-call mirror of restorePrediction. */
+  restoreLatePrediction(anonId: string, home: number, away: number, atMs: number, minute: number | null, conv?: number): void {
+    this.latePredictions.set(anonId, conv !== undefined ? { home, away, atMs, minute, conv } : { home, away, atMs, minute });
   }
 
   /** Snapshot restore only: reinstate a fan's pre-lock scoreline trajectory —

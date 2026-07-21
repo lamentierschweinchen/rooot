@@ -121,7 +121,7 @@ export const SNAPSHOT_INTERVAL_MS = resolveSnapshotIntervalMs();
  * Absent on a v1..v5 file — applySnapshot restores none, and a resolved match
  * with no known score REFUSES to mint rather than fabricating 0–0 (server.ts
  * currentScoreSnapshot + handleSeatClaim). */
-export const SNAPSHOT_VERSION = 6;
+export const SNAPSHOT_VERSION = 7;
 
 interface SnapshotRoomMember {
   anonId: string;
@@ -136,6 +136,13 @@ interface SnapshotMatch {
   /** v2+. Absent on a v1 file — applySnapshot defaults to none, never fabricates. */
   predictions?: Array<[string, { home: number; away: number; atMs: number; conv?: number }]>;
   predictLocked?: boolean;
+  /** v7+. Calls placed AFTER the lock (MatchState.latePredictions). Kept apart
+   * from `predictions` on disk exactly as they are in memory, so a restore can
+   * never accidentally promote a late call into the consensus. `minute` rides
+   * along because the points decay is computed from it and the match clock is
+   * gone by the time the record seals. Absent on v6 and earlier — restores to
+   * none, which is correct: those processes dropped late calls entirely. */
+  latePredictions?: Array<[string, { home: number; away: number; atMs: number; minute: number | null; conv?: number }]>;
   /** v2+. Present only for fans whose prediction was actually graded at FULL_TIME. */
   verdicts?: Array<[string, PredictVerdictMsg]>;
   /** v2+. The sentiment accumulator's felt-moment history for this match
@@ -282,6 +289,7 @@ export function writeSnapshot(
           members: room.toWireMembers().map(({ anonId, name, side }) => ({ anonId, name, side })),
         })),
         predictions: snap.predictions,
+        latePredictions: m.latePredictionsAll().map((p) => [p.anonId, { home: p.home, away: p.away, atMs: p.atMs, minute: p.minute, ...(p.conv !== undefined ? { conv: p.conv } : {}) }] as [string, { home: number; away: number; atMs: number; minute: number | null; conv?: number }]),
         predictHistory: snap.predictHistory,
         predictLocked: snap.predictLocked,
         verdicts: snap.verdicts,
@@ -408,6 +416,8 @@ export function applySnapshot(
       }
     }
     for (const [anonId, p] of sm.predictions ?? []) match.restorePrediction(anonId, p.home, p.away, p.atMs, (p as { conv?: number }).conv);
+    // v7+ — restored into their OWN map, never into predictions above.
+    for (const [anonId, p] of sm.latePredictions ?? []) match.restoreLatePrediction(anonId, p.home, p.away, p.atMs, p.minute ?? null, p.conv);
     for (const [anonId, path] of sm.predictHistory ?? []) match.restorePredictHistory(anonId, path);
     if (sm.predictLocked) match.lockPredictions();
     for (const [anonId, v] of sm.verdicts ?? []) match.restoreVerdict(anonId, v);

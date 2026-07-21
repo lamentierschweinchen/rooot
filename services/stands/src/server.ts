@@ -464,6 +464,31 @@ function cancelProvisionalFullTime(matchId: string, why: string): void {
   console.log(`[sentiment] ${matchId} provisional full-time CANCELLED (${why}) — the 90' whistle was not the end`);
 }
 
+/** Regulation length, in minutes — the span a late call is discounted across. */
+const LATE_DECAY_FULL_MIN = 90;
+
+/**
+ * How much of the full-time bonus a call placed at `minute` still earns
+ * (owner's call, 20 Jul: linear, all the way to zero).
+ *
+ *   0'  → 1.00     45' → 0.50     80' → 0.11     90'+ → 0
+ *
+ * The thing being priced is how much of the match the fan had already watched
+ * before committing. Extra time therefore earns nothing: by then the decay has
+ * long since reached zero, which is correct — a call in the 106th minute of a
+ * 1–0 match is a report, not a prediction.
+ *
+ * A NULL minute means no clocked message had arrived, so we cannot place the
+ * call on the match at all. That scores zero bonus rather than a guess: the
+ * points are supposed to be provable, and an unplaceable call isn't.
+ *
+ * Only ever applied to LATE calls — an on-time prediction is never touched.
+ */
+function lateMultiplier(minute: number | null): number {
+  if (minute === null || !Number.isFinite(minute)) return 0;
+  return Math.max(0, Math.min(1, 1 - minute / LATE_DECAY_FULL_MIN));
+}
+
 function predictLifecycle(matchId: string, msg: ServerMsg | FeedMsg): void {
   if (msg.type !== 'status') return;
   const phase = msg.ev.phase;
@@ -1047,9 +1072,28 @@ async function crystallizeSentiment(
       }
       byFan.set(pr.anonId, p);
     }
+    // LATE CALLS (2026-07-20): the stamp is participation and stays flat; only
+    // the full-time bonus decays, linearly with how much match had already been
+    // played when the call landed (lateMultiplier). A call at the whistle, or one
+    // we cannot place on the clock, is worth zero bonus — never negative, and
+    // never more than an on-time call.
+    const lateRows = match.latePredictionsAll();
+    for (const pr of lateRows) {
+      let p = (byFan.get(pr.anonId) ?? 0) + 25;
+      const lm = lateMultiplier(pr.minute);
+      if (fh2 !== undefined && fa2 !== undefined && lm > 0) {
+        const m = (CONV_MULT[pr.conv ?? 0] ?? 1) * lm;
+        if (pr.home === fh2 && pr.away === fa2) p += Math.round(200 * m);
+        else if (Math.sign(pr.home - pr.away) === Math.sign(fh2 - fa2)) p += Math.round(75 * m);
+      }
+      byFan.set(pr.anonId, p);
+    }
     const pointRows = Array.from(byFan.entries()).map(([anonId, points]) => ({ anonId, points }));
     const points = {
-      formulaV: 1,
+      // v2 — late calls are stored and scored with a decayed bonus. v1 records
+      // predate the mechanism entirely (late calls were dropped, not zeroed), so
+      // the version is what tells the two apart rather than an absent field.
+      formulaV: 2,
       total: pointRows.reduce((n, r) => n + r.points, 0),
       fans: pointRows.length,
       top: pointRows.sort((x, y) => y.points - x.points).slice(0, 5)
@@ -1988,7 +2032,26 @@ function handleMomentReact(state: ConnState, msg: Extract<ClientMsg, { type: 'mo
 function handlePredict(state: ConnState, msg: Extract<ClientMsg, { type: 'predict' }>): void {
   if (!state.matchId || !state.anonId || state.matchId !== msg.matchId) return;
   const match = registry.getOrCreate(msg.matchId);
-  if (!match.predict(state.anonId, msg.home, msg.away, msg.atMs, Date.now(), (msg as { conv?: number }).conv)) return; // locked/invalid
+  const conv = (msg as { conv?: number }).conv;
+
+  // AFTER KICKOFF: keep it, decayed — never silently drop it (2026-07-20).
+  // This used to fall through predict()'s `if (predictLocked) return false` and
+  // vanish: nothing stored, nothing counted, nothing logged, and no word to the
+  // fan. It is deliberately NOT broadcast as consensus and never reaches the
+  // foresight verdict — see MatchState.latePredictions for why that line matters.
+  if (match.predictionsLocked()) {
+    const minute = joinSnapshots.get(msg.matchId)?.lastMinute ?? null;
+    const stored = match.predictLate(state.anonId, msg.home, msg.away, msg.atMs, minute, Date.now(), conv);
+    if (stored) {
+      console.log(
+        `[predict] ${msg.matchId} LATE call ${stored.home}–${stored.away} at ${minute ?? '?'}' from anonId=${state.anonId.slice(0, 8)} ` +
+          `— kept, full-time bonus ×${lateMultiplier(minute).toFixed(2)}; not in consensus`,
+      );
+    }
+    return;
+  }
+
+  if (!match.predict(state.anonId, msg.home, msg.away, msg.atMs, Date.now(), conv)) return; // invalid / identical re-send
   // predictions are sparse (pre-match) — broadcast the fresh consensus on change.
   broadcastToMatch(msg.matchId, match.consensus());
 }

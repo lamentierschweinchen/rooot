@@ -104,19 +104,36 @@
   // Everything scores off recorded real taps; the confidence dial multiplies what the
   // prediction wins at full time — how sure you were is finally worth something.
   var CONV_MULT = [1, 1, 1.25, 1.5, 2]; // index by conv 1..4 (0 = no dial set)
+  // LATE CALLS (owner, 20 Jul): a call placed after kickoff still earns a
+  // full-time bonus, decayed linearly by how much match it missed — 45' pays
+  // half, the whistle pays nothing. Lockstep with services/stands/src/server.ts
+  // lateMultiplier(); if you change one, change both.
+  var LATE_DECAY_FULL_MIN = 90;
+  function lateMult(minute) {
+    if (minute === null || minute === undefined || !isFinite(minute)) return 0;
+    return Math.max(0, Math.min(1, 1 - minute / LATE_DECAY_FULL_MIN));
+  }
   function score(parts) {
     var p = 0;
     if (parts.pred) p += 25;                       // stamped a side and a score at the gate
     p += Math.min(parts.cheers || 0, 300);         // every cheer (capped for sanity)
     p += (parts.reacts || 0) * 2;                  // every reaction
     p += Math.min(parts.mins || 0, 130);           // every minute watched
-    if (parts.pred && parts.final && !parts.late) {
-      // `late` (gate, in-play arrival): the crowd's call locked at kickoff —
-      // a call placed after it never earns the full-time bonus (the stamp,
-      // cheers, reactions and minutes all still count).
-      var m = CONV_MULT[parts.conv] || 1;
-      if (parts.pred.h === parts.final.h && parts.pred.a === parts.final.a) p += Math.round(200 * m);
-      else if (Math.sign(parts.pred.h - parts.pred.a) === Math.sign(parts.final.h - parts.final.a)) p += Math.round(75 * m);
+    if (parts.pred && parts.final) {
+      // `late` (gate, in-play arrival): the crowd's call locked at kickoff, so a
+      // call placed after it earns a DECAYED bonus rather than the full one — the
+      // stamp, cheers, reactions and minutes always count in full either way.
+      // `lateMinute` is the match minute the call landed on. When we know it, the
+      // bonus scales by it; when we only know THAT it was late and not WHEN (an
+      // older record, or a pass with no clock), the bonus stays zero exactly as
+      // it did before — this never pays out more than the old rule for the same
+      // record, it only stops throwing away a minute we do have.
+      var lm = parts.late ? lateMult(typeof parts.lateMinute === 'number' ? parts.lateMinute : null) : 1;
+      if (lm > 0) {
+        var m = (CONV_MULT[parts.conv] || 1) * lm;
+        if (parts.pred.h === parts.final.h && parts.pred.a === parts.final.a) p += Math.round(200 * m);
+        else if (Math.sign(parts.pred.h - parts.pred.a) === Math.sign(parts.final.h - parts.final.a)) p += Math.round(75 * m);
+      }
     }
     return Math.round(p);
   }
@@ -133,7 +150,11 @@
     // per-match and permanent; the pass is only the fallback for a night not
     // yet collected.
     var conv = (typeof k.conv === 'number' ? k.conv : (r.pass && r.pass.conv)) || 0;
-    return score({ pred: pred, cheers: k.cheers || 0, reacts: reacts, mins: k.mins || 0, final: fin, conv: conv, late: late });
+    // the minute a late call landed on, when the surface recorded one — same
+    // precedence as conv: this match's kept record first, the global pass second.
+    var lateMinute = (typeof k.lateMinute === 'number') ? k.lateMinute
+      : ((r.pass && typeof r.pass.lateMinute === 'number') ? r.pass.lateMinute : null);
+    return score({ pred: pred, cheers: k.cheers || 0, reacts: reacts, mins: k.mins || 0, final: fin, conv: conv, late: late, lateMinute: lateMinute });
   }
 
   var subs = [];
