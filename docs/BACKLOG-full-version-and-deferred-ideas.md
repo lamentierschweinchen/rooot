@@ -156,3 +156,44 @@ Consciously flagged-not-fixed for devnet; first mainnet work:
 ## HOW TO USE THIS
 
 Tonight = the Release Gate only. Everything here is **deliberately deprioritized** — do not pull it into tonight's scope. But when the owner asks "what about X" or you're weighing a scope call, this is the map of the full version so nothing gets silently dropped. **§2 (in-game predictions) is the one with a real hole — get the owner/Codex/Design to fill it before it's lost.**
+
+---
+
+## THE USER JOURNEY (added 2026-07-21, after the Jul 19 live feedback)
+
+Two viewers of the live demo said the same thing in different words: *"so good
+design dude — tho i dont get whats happening."* The design read; the **journey**
+didn't. Two fixes shipped (the gate preamble; the three lenses saying what they
+show). The structural half is written down here rather than built.
+
+**The app tracks one axis and not the other.** `matchday.js` owns *match* state
+properly — UPCOMING / GATES_OPEN / LIVE / FULL_TIME. Nothing owns *visitor*
+state: each surface reaches for `rooot.pass` here, `rooot.cloth` there,
+`fan-record` elsewhere, and infers. Crossing the two gives five beats:
+
+| Beat | Who | What they need | Built? |
+|---|---|---|---|
+| `COLD` | no pass, never been | the promise, before the ask | **partly** — gate preamble shipped |
+| `TICKETED` | pass, not kicked off | the wait, and what's coming | yes |
+| `IN_IT` | pass, match live | the full thing, oriented | yes |
+| `SEALED_MINE` | was there, it's over | the keepsake, meaning something | yes |
+| `SEALED_THEIRS` | wasn't there, it's over | rewatch + what it recorded | **no** |
+
+**`SEALED_THEIRS` is the gap that matters**, because it is the *permanent* state
+from here — every future visitor and every judge lands in it, and it is currently
+not a designed state but the live app with the power off. Symptom you can
+reproduce today: open `/ground.html` with cleared storage and you are seated in
+"SPAIN · ROW 15 · SEAT 13" and handed a keepsake reading 0 cheers, 0 minutes,
+0 points, with a Collect button. Nobody ever asked *who is this person*. During
+the tournament this never showed, because everyone came through the gate — the
+happy path was the only path.
+
+**The fix, if this is ever picked up:** a `journey.js` sibling to `matchday.js`
+that answers *given this visitor and this match, which beat?* and returns one
+name every surface keys off — instead of seven surfaces each inferring. Then
+design `SEALED_THEIRS` as its own thing: the match is over, you weren't here,
+here is what it was and what it recorded.
+
+**Constraint worth restating:** the THE CROWD / THE MARKET headers are printed on
+the owner's generated plate (`plate/prediction-card.jpg`). Relabelling those is a
+regen request, never a code overlay (AGENTS.md law 8).
