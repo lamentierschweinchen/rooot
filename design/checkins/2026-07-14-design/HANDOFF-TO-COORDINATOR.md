@@ -138,4 +138,4 @@ Scarf artwork (`design/scarf-artwork/`, v2 `930fdf7`) is owner-gated, not wired 
 ## Evidence
 All states shot mobile-first, console clean, in `design/checkins/2026-07-14-design/`
 (see INDEX.md). Nothing verified on ARG–CPV yet — will re-verify the priority prediction/XP
-work on the reconciled build against the rig (docs/DEMO-CUES.md).
+work on the reconciled build against the rig (docs/sprint-log/DEMO-CUES.md).

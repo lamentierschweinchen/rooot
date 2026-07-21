@@ -5,16 +5,28 @@ a free live fan companion for the World Cup — the betting market's belief rend
 honestly beside the crowd's, on your phone, with the fan's record kept on Solana.
 No token, no wager.
 
-**The number:** at ROOOT's first live match (France–Morocco, July 9), the betting
-market gave Morocco 14.3%. ROOOT's crowd gave Morocco 60%. That is a **+45.7
-percentage-point gap** between what the money believed and what real fans believed,
-measured live from five real people ([docs/POSTMORTEM-fra-mar-2026-07-09.md](docs/POSTMORTEM-fra-mar-2026-07-09.md)).
-The next night the crowd's modal prediction called Spain–Belgium **2–1 exactly**
-against a market that opened Spain at 60.6%, and the match's sentiment record was
-hash-anchored on Solana devnet at the final whistle
-([docs/night-reports/18218149.md](docs/night-reports/18218149.md)). The market has
-the number, the crowd has the roar, and the gap between them is data nobody else
-has. The architecture and the evidence: [docs/SUBMISSION-tech-doc.md](docs/SUBMISSION-tech-doc.md).
+**What it makes.** Every tap is a measurement. The market has a number, the crowd
+has a belief, the wire has the result — each recorded on its own clock, in its own
+units, never mixed, so the distance between them can be read at any second of the
+match. What makes the crowd's side worth having is not that it beats the market:
+it is *who* is answering. Declared allegiance, no stake, timestamped to the second,
+and a conviction dial next to every call. Nobody else holds that.
+
+ROOOT ran on five real matches, live off the TxLINE wire, through the final:
+
+| Night | Match | |
+|---|---|---|
+| Jul 9 | France 2–0 Morocco — the premiere | [report](docs/night-reports/18209181.md) |
+| Jul 10 | Spain 2–1 Belgium | [report](docs/night-reports/18218149.md) |
+| Jul 15 | England 1–2 Argentina — semi-final | [report](docs/night-reports/18241006.md) |
+| Jul 18 | France 4–6 England — third place | [report](docs/night-reports/18257865.md) |
+| Jul 19 | **Spain 1–0 Argentina — the final** | [report](docs/night-reports/18257739.md) |
+
+Each night's sentiment record is hashed and anchored on Solana devnet at the
+whistle. The final is [rewatchable end to end](https://rooot.club/live), woven from
+the night's own wire. Architecture and evidence:
+[docs/SUBMISSION-tech-doc.md](docs/SUBMISSION-tech-doc.md); a guided tour of the
+surfaces: [rooot.club/demo](https://rooot.club/demo).
 
 ## Run it
 

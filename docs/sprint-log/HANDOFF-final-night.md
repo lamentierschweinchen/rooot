@@ -11,8 +11,8 @@ product code and the submission page — **do not edit `apps/web/public/*` or
 `services/stands/src/*` unless something is genuinely broken and you say so
 first.** Your job is the night: capture it, seal it, prove it, report it.
 
-Read `AGENTS.md`, then `docs/RUNBOOK-jul18.md` (the seal protocol) and
-`docs/SUBMISSION-CHECKLIST.md` (tonight's block).
+Read `AGENTS.md`, then `docs/sprint-log/RUNBOOK-jul18.md` (the seal protocol) and
+`docs/sprint-log/SUBMISSION-CHECKLIST.md` (tonight's block).
 
 ## State you are inheriting
 
@@ -56,7 +56,7 @@ running to the final whistle.
 
 ## 3 · Full time (~21:00 UTC) — the seal
 
-Follow `docs/RUNBOOK-jul18.md` "Full time — the seal". Watch for
+Follow `docs/sprint-log/RUNBOOK-jul18.md` "Full time — the seal". Watch for
 `[sentiment] … seal pending (full-time)` then `[sentiment] crystallized …`
 about 30 seconds later. Capture the record hash and the anchor signature.
 

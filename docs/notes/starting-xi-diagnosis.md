@@ -50,7 +50,7 @@ holding a `lineup` snapshot, everything downstream is honest-empty.
 - **No disk persistence of the roster.** `snapshot.ts` crystallizes fanStats /
   moments / triggers only — never `snap.lineup` / byPlayerId. A restart cannot
   reload lineups from disk either.
-- **Direct evidence, NOR–ENG (docs/NOTES-double-header-2026-07-11.md):** the wire
+- **Direct evidence, NOR–ENG (docs/sprint-log/NOTES-double-header-2026-07-11.md):** the wire
   WAS emitting `lineups` pre-KO (monitor at 22:44 "now seeing … `lineups`,
   `players_warming_up`"), yet the Fly **service** was unstable around the match —
   pre-KO restarts and a 23:22–23:26 "LIVE-SEVERITY … Fly service path unresponsive"

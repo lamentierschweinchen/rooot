@@ -45,7 +45,7 @@ const MATCHDAY = [
   { id: '18257865', stage: 'THIRD PLACE', status: 'sealed', finalScore: { home: 4, away: 6 } },
   // sealed with the CORRECTED score: the first record was written at the 90'
   // whistle and says 0-0; Spain won it 1-0 in extra time and the corrected,
-  // anchored record says so (docs/INCIDENT-jul19-premature-seal.md).
+  // anchored record says so (docs/incidents/INCIDENT-jul19-premature-seal.md).
   { id: '18257739', stage: 'THE FINAL', status: 'sealed', finalScore: { home: 1, away: 0 }, replay: true },
 ];
 

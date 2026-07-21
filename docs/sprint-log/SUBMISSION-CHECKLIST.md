@@ -3,7 +3,7 @@
 *The one list. Time-ordered, owner-steps marked **OWNER**, everything else runs
 in the product lane. Sources: the brief's requirements
 (`docs/pitch/TECH-REQUIREMENTS-AUDIT.md` in the pitch worktree), the form copy
-(`docs/pitch/SUBMISSION-COPY.md` there — paste-ready), `docs/RUNBOOK-jul18.md`.
+(`docs/pitch/SUBMISSION-COPY.md` there — paste-ready), `docs/sprint-log/RUNBOOK-jul18.md`.
 Deadline: **Sun Jul 19, 23:59 UTC**. Hard rule: submit without an optional
 field rather than late; nothing in the submission text depends on a live night
 succeeding — the sealed semifinal carries the front page if one fails.*

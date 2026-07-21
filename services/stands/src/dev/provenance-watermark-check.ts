@@ -248,7 +248,11 @@ function goalEnv(fixtureId: string, seq: number, ts: number): unknown {
   };
 }
 function fullTimeEnv(fixtureId: string, seq: number, ts: number): unknown {
-  return { FixtureId: Number(fixtureId), Action: 'status', Data: { StatusId: 5 }, Clock: { Running: false, Seconds: 5400 }, Ts: ts, Seq: seq };
+  // StatusId 13 — the official final seal, terminal. StatusId 5 (the 90'
+  // whistle) is PROVISIONAL since ESP-ARG: the server holds it for six minutes
+  // in case the match goes on, so a fixture ending there never crystallizes
+  // inside this check's wait and every downstream assertion starves.
+  return { FixtureId: Number(fixtureId), Action: 'status', Data: { StatusId: 13 }, Clock: { Running: false, Seconds: 5400 }, Ts: ts, Seq: seq };
 }
 function commentEnv(fixtureId: string, seq: number, ts: number): unknown {
   // inert filler (LEDGER_ACTION_KIND has no 'comment' entry — parses to
