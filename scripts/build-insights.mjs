@@ -121,7 +121,11 @@ function loadMatch(def) {
             cheers: eng.cheers ?? 0,
             reacts: eng.reacts ?? 0,
             watchMinutes: eng.watchMinutes ?? 0,
-            // arrivals are stamped in MINUTES OF DAY (UTC), not match minutes
+            // arrivals are bucketed MINUTES SINCE THE FIRST FAN WAS SEEN, in
+            // 5-minute bins (server.ts's arrivalBuckets) — NOT match minutes and
+            // NOT minutes of day. The zero point is whoever showed up earliest,
+            // which on the final was a session ~20h before the last arrival, so
+            // these buckets do not map cleanly onto kickoff without firstSeenMs.
             arrivals: eng.arrivals ?? [],
           }
         : null,
