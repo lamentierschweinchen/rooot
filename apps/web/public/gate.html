@@ -186,7 +186,20 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
   </div>
 </div>
 <!-- demo engine — private prototype default: baked recording → serverless feed → window.__match + window.__stands -->
-<script>if(/[?&]demo=1/.test(location.search))document.write('<scr'+'ipt src="plate/demo-suicol.js"></scr'+'ipt><scr'+'ipt src="demo-feed.js"></scr'+'ipt><scr'+'ipt src="match-read.js"></scr'+'ipt><scr'+'ipt src="crowd-sim.js"></scr'+'ipt>');</script>
+<!-- ?demo=1 picks its bake from ?match= (default SUI-COL, unchanged). A match with a
+     real sealed record on disk NEVER loads crowd-sim: the walkthrough shows that night's
+     actual crowd, not 8,203 invented Spaniards. -->
+<script>if(/[?&]demo=1/.test(location.search)){(function(){
+  var q=new URLSearchParams(location.search),
+      B={'18257739':{f:'plate/demo-esparg.js',g:'__DEMO_ESPARG',sealed:'plate/sealed-18257739.json'},
+         '18241006':{f:'plate/demo-engarg.js',g:'__DEMO_ENGARG'},
+         '18202783':{f:'plate/demo-suicol.js',g:'__DEMO_SUICOL'}},
+      m=q.get('match')||'18202783', p=B[m]||B['18202783'];
+  window.__REPLAY_BAKE={match:m,global:p.g}; window.__DEMO_SEALED=p.sealed||null;
+  var s='<scr'+'ipt src="'+p.f+'"></scr'+'ipt><scr'+'ipt src="demo-feed.js"></scr'+'ipt><scr'+'ipt src="match-read.js"></scr'+'ipt>';
+  if(!p.sealed)s+='<scr'+'ipt src="crowd-sim.js"></scr'+'ipt>';
+  document.write(s);
+})();}</script>
 <script src="matchday.js"></script>
 <script src="stands-adapter.js"></script>
 <script>
@@ -200,6 +213,7 @@ var ends=document.getElementById('ends'),
 var CONVLBL={1:'A HUNCH',2:'A LEAN',3:'CONFIDENT',4:'CERTAIN'};
 var FIXTURES={
   '18202783':{home:{tri:'SUI',name:'SWITZERLAND',color:'#D52B1E',flag:'SUI'},away:{tri:'COL',name:'COLOMBIA',color:'#E8B10A',flag:'COL'},kick:'20:00'},
+  '18257739':{home:{tri:'ESP',name:'SPAIN',color:'#AA151B',flag:'SPA'},away:{tri:'ARG',name:'ARGENTINA',color:'#5C8CB8',flag:'ARG'},kick:'21:00'},   // the final — the walkthrough's match
   '18209181':{home:{tri:'FRA',name:'FRANCE',color:'#0055A4',flag:'FRA'},away:{tri:'MAR',name:'MOROCCO',color:'#C1272D',flag:'MOR'},kick:'LIVE NOW'},
   '18218149':{home:{tri:'ESP',name:'SPAIN',color:'#AA151B',flag:'SPA'},away:{tri:'BEL',name:'BELGIUM',color:'#1A1A18',flag:'BEL'},kick:'TONIGHT 21:00'},
   '18213979':{home:{tri:'NOR',name:'NORWAY',color:'#BA0C2F',flag:'NOR'},away:{tri:'ENG',name:'ENGLAND',color:'#1A1A18',flag:'ENG'},kick:'TONIGHT 23:00'},
@@ -428,7 +442,11 @@ go.onclick=function(){
 var GO_HOME=go.innerHTML;
 var lockHref=null;   // FULL TIME only — the locked button becomes a doorway, never a submit
 function applyLock(){
-  var over=FX.phase==='FULL_TIME';
+  // THE WALKTHROUGH'S DOOR IS ALWAYS OPEN. ?demo=1 replays a finished match on
+  // purpose, but the point of the door pane is letting someone try it — a sealed
+  // posture ("FULL TIME · REWATCH") gives them nothing to do. The demo is a
+  // rehearsal of the live gate, so it never wears the lock.
+  var over=!DEMO&&FX.phase==='FULL_TIME';
   var locked=FX.phase==='UPCOMING'||over;   // Codex finding 4: post-whistle the turnstile is closed — no pass writes, no "ADMITTED" on a finished match
   document.documentElement.classList.toggle('gatelock',locked);
   lockHref=null;

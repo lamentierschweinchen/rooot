@@ -86,7 +86,12 @@
   // tick fires, so none miss the opening messages.
   var subs = [], player = null, feedData = null, feedSecs = DEMO_SECONDS;
   function ensurePlaying() {
-    var data = feedData || window.__DEMO_SUICOL;   // an explicit startFeed() feed wins; else the SUI-COL walkthrough default
+    // an explicit startFeed() feed wins; then the bake the loader declared for this
+    // match (__REPLAY_BAKE — the walkthrough now plays the final, not SUI-COL);
+    // else the original SUI-COL default, so any surface that hasn't declared one is
+    // untouched.
+    var declared = window.__REPLAY_BAKE && window[window.__REPLAY_BAKE.global];
+    var data = feedData || declared || window.__DEMO_SUICOL;
     if (player || !data) return;
     player = play(data, function (msg) {
       for (var i = 0; i < subs.length; i++) { try { subs[i](msg); } catch (e) {} }

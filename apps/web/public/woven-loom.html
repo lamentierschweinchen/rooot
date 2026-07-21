@@ -941,10 +941,15 @@ html.lexport .loomv svg{animation:none;transform:none}
   var replay = q.get('replay')==='1' || location.pathname==='/live' || location.pathname==='/loom';   // /live + /loom both rewrite to woven-loom — the replay signal rides the PATHNAME (the rewrite's query never reaches the client)
   // the baked programme follows the match, and announces itself so the adapters
   // bind to THIS programme rather than a hard-coded one
-  var BAKES={'18257739':{f:'plate/demo-esparg.js',g:'__DEMO_ESPARG'},'18241006':{f:'plate/demo-engarg.js',g:'__DEMO_ENGARG'}};
+  var BAKES={'18257739':{f:'plate/demo-esparg.js',g:'__DEMO_ESPARG'},'18241006':{f:'plate/demo-engarg.js',g:'__DEMO_ENGARG'},'18202783':{f:'plate/demo-suicol.js',g:'__DEMO_SUICOL'}};
   var pick = BAKES[q.get('match')] || BAKES['18257739'];   // /live carries no query — the current sealed programme is the default (repointed at cutover)
-  window.__REPLAY_BAKE = replay ? {match:(q.get('match')||'18257739'), global:pick.g} : null;
-  var b = replay ? pick.f : (q.get('demo')==='1' ? 'plate/demo-suicol.js' : null);
+  var demoQ = q.get('demo')==='1';
+  // the walkthrough now declares its bake too, so ?demo=1&match= plays THAT match
+  // instead of always SUI-COL (default stays SUI-COL when no match is named).
+  var dpick = demoQ ? (BAKES[q.get('match')] || BAKES['18202783']) : null;
+  window.__REPLAY_BAKE = replay ? {match:(q.get('match')||'18257739'), global:pick.g}
+                       : demoQ  ? {match:(q.get('match')||'18202783'), global:dpick.g} : null;
+  var b = replay ? pick.f : (demoQ ? dpick.f : null);
   if (b) document.write('<scr'+'ipt src="'+b+'"></scr'+'ipt>');
 })();
 </script>

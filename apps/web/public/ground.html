@@ -119,7 +119,20 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
   <div class="spec" id="spec">SPECIMEN · SAMPLE CROWD + SCORES · WIRES TO ONE LIVE SOURCE</div>
 </div>
 <!-- demo engine — private prototype default: baked recording → window.__match + window.__stands -->
-<script>if(/[?&]demo=1/.test(location.search))document.write('<scr'+'ipt src="plate/demo-suicol.js"></scr'+'ipt><scr'+'ipt src="demo-feed.js"></scr'+'ipt><scr'+'ipt src="match-read.js"></scr'+'ipt><scr'+'ipt src="crowd-sim.js"></scr'+'ipt>');</script>
+<!-- ?demo=1 picks its bake from ?match= (default SUI-COL, unchanged). A match with a
+     real sealed record on disk NEVER loads crowd-sim: the walkthrough shows that night's
+     actual crowd, not 8,203 invented Spaniards. -->
+<script>if(/[?&]demo=1/.test(location.search)){(function(){
+  var q=new URLSearchParams(location.search),
+      B={'18257739':{f:'plate/demo-esparg.js',g:'__DEMO_ESPARG',sealed:'plate/sealed-18257739.json'},
+         '18241006':{f:'plate/demo-engarg.js',g:'__DEMO_ENGARG'},
+         '18202783':{f:'plate/demo-suicol.js',g:'__DEMO_SUICOL'}},
+      m=q.get('match')||'18202783', p=B[m]||B['18202783'];
+  window.__REPLAY_BAKE={match:m,global:p.g}; window.__DEMO_SEALED=p.sealed||null;
+  var s='<scr'+'ipt src="'+p.f+'"></scr'+'ipt><scr'+'ipt src="demo-feed.js"></scr'+'ipt><scr'+'ipt src="match-read.js"></scr'+'ipt>';
+  if(!p.sealed)s+='<scr'+'ipt src="crowd-sim.js"></scr'+'ipt>';
+  document.write(s);
+})();}</script>
 <script src="matchday.js"></script>
 <script src="live-pull.js"></script>
 <script src="stands-adapter.js"></script>
@@ -267,7 +280,10 @@ if(DEMO){
   document.documentElement.style.setProperty('--you','#D52B1E'); document.documentElement.style.setProperty('--them','#E8B10A');
   el('hT').textContent='SUI'; el('aT').textContent='COL';
   el('themNm').textContent='COL · THEIR END'; el('youNm').textContent='SUI · YOUR END';
-  el('spec').textContent='THE CROWD IS SIMULATED · THE MATCH IS A BAKED SUI–COL REPLAY';
+  // a sealed match carries its own crowd; only a simulated one may say so
+  el('spec').textContent = window.__DEMO_SEALED
+    ? 'THE FINAL, REPLAYED FROM THE NIGHT\u2019S OWN WIRE · THE REAL SEALED CROWD'
+    : 'THE CROWD IS SIMULATED · THE MATCH IS A BAKED SUI\u2013COL REPLAY';
   if(window.__match)window.__match.on(function(m){ el('sc').textContent=m.score.home+'–'+m.score.away;
     if(m.clock)el('clk').textContent='· '+(m.clock.phase==='HALF_TIME'?'HT':(m.clock.min+"'")); });
   if(window.__stands){ window.__stands.root('home'); window.__stands.onState(function(s){ if(s.rooted){

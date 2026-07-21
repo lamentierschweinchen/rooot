@@ -422,7 +422,20 @@ body.embed .backg,body.embed .foot,body.embed .matchbar{display:none}
 </div>
 
 <!-- demo engine — private prototype default: baked recording → serverless feed → window.__match + window.__stands -->
-<script>if(/[?&]demo=1/.test(location.search))document.write('<scr'+'ipt src="plate/demo-suicol.js"></scr'+'ipt><scr'+'ipt src="demo-feed.js"></scr'+'ipt><scr'+'ipt src="match-read.js"></scr'+'ipt><scr'+'ipt src="crowd-sim.js"></scr'+'ipt>');</script>
+<!-- ?demo=1 picks its bake from ?match= (default SUI-COL, unchanged). A match with a
+     real sealed record on disk NEVER loads crowd-sim: the walkthrough shows that night's
+     actual crowd, not 8,203 invented Spaniards. -->
+<script>if(/[?&]demo=1/.test(location.search)){(function(){
+  var q=new URLSearchParams(location.search),
+      B={'18257739':{f:'plate/demo-esparg.js',g:'__DEMO_ESPARG',sealed:'plate/sealed-18257739.json'},
+         '18241006':{f:'plate/demo-engarg.js',g:'__DEMO_ENGARG'},
+         '18202783':{f:'plate/demo-suicol.js',g:'__DEMO_SUICOL'}},
+      m=q.get('match')||'18202783', p=B[m]||B['18202783'];
+  window.__REPLAY_BAKE={match:m,global:p.g}; window.__DEMO_SEALED=p.sealed||null;
+  var s='<scr'+'ipt src="'+p.f+'"></scr'+'ipt><scr'+'ipt src="demo-feed.js"></scr'+'ipt><scr'+'ipt src="match-read.js"></scr'+'ipt>';
+  if(!p.sealed)s+='<scr'+'ipt src="crowd-sim.js"></scr'+'ipt>';
+  document.write(s);
+})();}</script>
 <script src="matchday.js"></script>
 <script src="live-pull.js"></script>
 <script src="fan-record.js"></script>
@@ -912,6 +925,30 @@ function setMove(mk){ if(!M.mkt0)M.mkt0={h:mk.home,d:mk.draw,a:mk.away};
     bar.className='pdbar '+q[5]+' '+(delta<0?'dn':'up'); bar.style.width=Math.min(38,Math.abs(delta)*3.6)+'%';   // reach capped so the value never collides with its label at the new type size
     if(val)val.textContent=(delta>0?'+':delta<0?'−':'')+Math.abs(delta); }
 }
+// POUR A SEALED RECORD INTO THE PLATE. The crowd + market fields only ever listened
+// to the LIVE buses, which send nothing for a finished match. Used by BOTH the live
+// seal (socket join) and the serverless walkthrough (a baked record fetched from
+// disk) — one path, so the walkthrough can never drift from what the night says.
+function pourSealedRecord(record){
+  if(!record)return;
+  try{
+    var fc=record.fans&&record.fans.consensus;
+    if(fc&&fc.all){ ccUpdate({all:fc.all,byRoot:fc.byRoot||null,__fromRecord:true}); M._crowdSealed=true; }
+    var mk=record.market;
+    if(mk&&mk.open){
+      M.mkt0={h:mk.open.home,d:mk.open.draw,a:mk.open.away};   // the real kickoff baseline, so the move is the match's move
+      var last=mk.etClose||mk.close;
+      if(last&&last.home!=null){
+        // A match decided in extra time has no etClose captured, so `close` is the
+        // price at the 90th — for the final that is DRAW 94%, under a header reading
+        // ESP 1-0 ARG. True, and the best fact of that night (the money never saw
+        // it), but unlabelled it just reads as broken. Say when it was taken.
+        if(record.decidedIn==='ET'&&!mk.etClose){ var kl=el('mkLbl'); if(kl)kl.textContent='ODDS AT THE 90th'; }
+        marketUpdate({home:last.home,draw:last.draw,away:last.away});
+      }
+    }
+  }catch(e){}
+}
 function ccUpdate(c){ if(!c)return;
   // THE SEALED RECORD WINS. replaySnapshot sends the sentiment record first and the
   // live consensus second, so a leftover in-memory registry entry for a finished
@@ -1026,23 +1063,7 @@ function wireLive(){
       // (setMove takes its baseline from the first reading it sees, so the close was
       // being measured against itself), and whatever stale consensus a stray live
       // socket had left behind. The record carries all of it; use it.
-      try{
-        var fc=record.fans&&record.fans.consensus;
-        if(fc&&fc.all){ ccUpdate({all:fc.all,byRoot:fc.byRoot||null,__fromRecord:true}); M._crowdSealed=true; }
-        var mk=record.market;
-        if(mk&&mk.open){
-          M.mkt0={h:mk.open.home,d:mk.open.draw,a:mk.open.away};   // the real kickoff baseline, so the move is the match's move
-          var last=mk.etClose||mk.close;
-          if(last&&last.home!=null){
-            // A match decided in extra time has no etClose captured, so `close` is the
-            // price at the 90th — for the final that is DRAW 94%, under a header
-            // reading ESP 1–0 ARG. True, and the best fact of the night (the money
-            // never saw it), but unlabelled it just reads as broken. Say when it was.
-            if(record.decidedIn==='ET'&&!mk.etClose){ var kl=el('mkLbl'); if(kl)kl.textContent="ODDS AT THE 90th"; }
-            marketUpdate({home:last.home,draw:last.draw,away:last.away});
-          }
-        }
-      }catch(e){}
+      pourSealedRecord(record);
       mdDone(); ngEnd(); M._ft=true; showKeepsake();
     });
     if(window.__stands.onCheer)window.__stands.onCheer(function(e){
@@ -1286,7 +1307,30 @@ function wireDemo(){ if(!window.__match||!window.__stands)return false;
   window.__stands.onVerdict(function(v){ M.verdictMsg=v; if(!M._ft){M._ft=true; showKeepsake();} });
   return true;
 }
-if(DEMO){ if(!wireDemo()){ var _wt=setInterval(function(){ if(wireDemo())clearInterval(_wt); },200); } }
+// THE SEALED WALKTHROUGH — a match that has a real record needs no simulated crowd.
+// crowd-sim isn't even loaded for it (see the ?demo=1 loader in <head>), so there is
+// no window.__stands and wireDemo would spin forever. This path wires the baked feed
+// for score/clock and pours the night's own record into the plate instead.
+function wireSealedDemo(){
+  if(!window.__match)return false;
+  var f=el('foot'); if(f)f.textContent="the final, replayed from the night's own wire · the real sealed crowd, not a simulation";
+  function onMatch(m){ if(!m)return;
+    M.score=[m.score.home,m.score.away];
+    var sh=el('scH'), sa=el('scA'); if(sh)sh.textContent=m.score.home; if(sa)sa.textContent=m.score.away;
+    if(m.clock&&m.clock.min)M.t=m.clock.min;
+    if(m.clock&&(m.clock.phase==='EXTRA_TIME'||m.clock.phase==='PENALTIES'))mdResume();
+    if(m.clock&&m.clock.phase==='FULL_TIME'&&!M._ft){ M._ft=true; showKeepsake(); }
+  }
+  window.__match.on(onMatch); onMatch(window.__match);
+  fetch(window.__DEMO_SEALED).then(function(r){ return r.ok?r.json():null; })
+    .then(function(rec){ if(!rec)return; if(rec.finalScore)M.verdictMsg={final:rec.finalScore}; pourSealedRecord(rec); })
+    .catch(function(){});   // no record reachable -> the plate simply stays quiet, never invents
+  return true;
+}
+if(DEMO){
+  var _boot = window.__DEMO_SEALED ? wireSealedDemo : wireDemo;
+  if(!_boot()){ var _wt=setInterval(function(){ if(_boot())clearInterval(_wt); },200); }
+}
 // T16/adopt-#1 fixture resolution (same idiom as stadium.html / stands-adapter): explicit
 // ?match= wins outright → else, on live, the __fixture manifest raced against ~1500ms →
 // else fixtureInfo (server truth, sentiment/teams.ts — ANY known fixture, not just
