@@ -188,11 +188,30 @@ reproduce today: open `/ground.html` with cleared storage and you are seated in
 the tournament this never showed, because everyone came through the gate — the
 happy path was the only path.
 
-**The fix, if this is ever picked up:** a `journey.js` sibling to `matchday.js`
-that answers *given this visitor and this match, which beat?* and returns one
-name every surface keys off — instead of seven surfaces each inferring. Then
-design `SEALED_THEIRS` as its own thing: the match is over, you weren't here,
-here is what it was and what it recorded.
+**BUILT 2026-07-31** (`journey.js` + slices 1-3, commits 6b9a465 · 3586c8a ·
+70405eb). `window.__journey` answers the beat; ground + terrace branch on it;
+SEALED_THEIRS renders the night's record with the participant chrome subtracted.
+Two things the build turned up that this note hadn't seen:
+- `rooot.pass` is a SINGLE SLOT the next match's gate overwrites, so attendance
+  read off it alone would have demoted genuine attendees. The gate now mirrors
+  each pass to `rooot.pass.<matchId>`; passes overwritten before that mirror
+  existed are unrecoverable.
+- The forgery was wider than Collect: the loom's `writeCloth` gated only on
+  `KEEP||!M.live`, and `M.live` is true for every driven cloth, so a plain
+  rewatch auto-minted a scarf and a "match lived" with no tap.
+
+**Still open from that work:**
+- **The walkthrough's ground pane plays SUI-COL** while its stands/loom/stadium
+  panes play the final. That pane resolves its match from three independent
+  places (its own `FIXTURES` boot, the hardcoded chrome at `ground.html:284`,
+  and `lensSrc`'s hardcoded `match=18202783`). Its footer now honestly says it
+  is a SUI-COL simulation, but the tour is incoherent across panes. Reconciling
+  the three is a small self-contained job.
+- **"THE CROWD IS ARRIVING" on a sealed match with no predictions** (the third
+  place, `n=0`): the silence-not-zeros behaviour is right, the copy isn't —
+  nobody is arriving; nobody called it.
+- Beats `TICKETED`/`IN_IT` are unreachable until a live fixture exists again;
+  they are verified only against stubbed phases.
 
 **Constraint worth restating:** the THE CROWD / THE MARKET headers are printed on
 the owner's generated plate (`plate/prediction-card.jpg`). Relabelling those is a
