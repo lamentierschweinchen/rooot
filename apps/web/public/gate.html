@@ -201,6 +201,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
   document.write(s);
 })();}</script>
 <script src="matchday.js"></script>
+<script src="journey.js"></script>
 <script src="stands-adapter.js"></script>
 <script>
 var side=null, sco={h:0,a:0}, touched=false, conv=0;
@@ -412,7 +413,14 @@ go.onclick=function(){
   var kickMs=FIX_KICK_MS();
   var late=FX.phase==='LIVE'||(kickMs!=null&&Date.now()>=kickMs);
   // your pass — persisted, then read by the terrace checkpoint + woven into the keepsakes
-  try{ localStorage.setItem('rooot.pass', JSON.stringify({matchId:MATCH_ID, home:FX.home.tri, away:FX.away.tri, side:side, call:sco, conv:conv, ts:Date.now(), live:LIVE, late:late||undefined})); }catch(e){}
+  var passJSON=JSON.stringify({matchId:MATCH_ID, home:FX.home.tri, away:FX.away.tri, side:side, call:sco, conv:conv, ts:Date.now(), live:LIVE, late:late||undefined});
+  try{ localStorage.setItem('rooot.pass', passJSON); }catch(e){}
+  // AND a copy that survives the next match. rooot.pass above is ONE slot: walk
+  // through this door for another fixture and the proof you attended tonight is
+  // gone, which would later demote you to a stranger on your own match and take
+  // the keepsake with it. The mirror is per-match and permanent (journey.js
+  // reads it). Never from the walkthrough — a rehearsal must not mint a night.
+  if(LIVE){ try{ localStorage.setItem('rooot.pass.'+MATCH_ID, passJSON); }catch(e){} }
   if((DEMO||LIVE)&&window.__stands){ if(side&&side!=='n')window.__stands.root(side==='h'?'home':'away'); if(!late)window.__stands.predict(sco.h,sco.a,conv); }   // your seat + call into the live crowd
   document.getElementById('stamp').classList.add('on');   // the turnstile presses your pass — ADMITTED
   go.innerHTML='SEE YOU INSIDE<small>◆ YOU CALLED '+FX.home.tri+' '+sco.h+'–'+sco.a+' '+FX.away.tri+'</small>';
