@@ -144,6 +144,7 @@ var DEMO=PARAMS.get('demo')==='1', LIVE=!DEMO, WS=PARAMS.get('ws');   // live is
 var explicitMatch=PARAMS.get('match');
 var FIXTURES={
   '18202783':{home:{tri:'SUI',name:'SUI',color:'#D52B1E'},away:{tri:'COL',name:'COL',color:'#E8B10A'}},
+  '18257739':{home:{tri:'ESP',name:'SPAIN',color:'#AA151B'},away:{tri:'ARG',name:'ARGENTINA',color:'#5C8CB8'}},   // the final — the walkthrough's match
   '18209181':{home:{tri:'FRA',name:'FRA',color:'#0055A4'},away:{tri:'MAR',name:'MAR',color:'#C1272D'}},
   '18218149':{home:{tri:'ESP',name:'ESP',color:'#AA151B',sec:'#F1BF00'},away:{tri:'BEL',name:'BEL',color:'#1A1A18',sec:'#FDDA24',sec2:'#C8102E'}},
   '18213979':{home:{tri:'NOR',name:'NOR',color:'#BA0C2F'},away:{tri:'ENG',name:'ENG',color:'#1A1A18'}},
@@ -212,7 +213,7 @@ function isOver(){
 function lensSrc(name){
   var base={loom:'woven-loom.html',stands:'terrace.html',stadium:'stadium.html'}[name];
   var q='?embed=1';
-  if(DEMO)q+='&match=18202783&demo=1';
+  if(DEMO)q+='&match=18202783&demo=1';   // the walkthrough's lenses ride SUI-COL. Pointing them at the final needs the ground's OWN demo chrome to follow (it resolves its match from three places) — see docs/BACKLOG (walkthrough routing).
   // sealed programme: loom + stadium ride the baked replay (real replay branches).
   // The stands keep the live socket — real room counts + the durable sentiment record;
   // terrace has no honest replay branch yet (its no-wire default is the sample world).
@@ -281,10 +282,12 @@ if(DEMO){
   document.documentElement.style.setProperty('--you','#D52B1E'); document.documentElement.style.setProperty('--them','#E8B10A');
   el('hT').textContent='SUI'; el('aT').textContent='COL';
   el('themNm').textContent='COL · THEIR END'; el('youNm').textContent='SUI · YOUR END';
-  // a sealed match carries its own crowd; only a simulated one may say so
-  el('spec').textContent = window.__DEMO_SEALED
-    ? 'THE FINAL, REPLAYED FROM THE NIGHT\u2019S OWN WIRE · THE REAL SEALED CROWD'
-    : 'THE CROWD IS SIMULATED · THE MATCH IS A BAKED SUI\u2013COL REPLAY';
+  // Say what THIS pane shows, not what its ?match= asks for. The ground's demo
+  // chrome and its lenses are SUI-COL (hardcoded above, and in lensSrc) whatever
+  // match is passed, so keying this off __DEMO_SEALED printed "THE REAL SEALED
+  // CROWD" over a simulated 8,203. The stands/loom/stadium panes DO play the
+  // final and say so themselves. Routing the ground there too: see the backlog.
+  el('spec').textContent = 'THE CROWD IS SIMULATED · THE MATCH IS A BAKED SUI\u2013COL REPLAY';
   if(window.__match)window.__match.on(function(m){ el('sc').textContent=m.score.home+'–'+m.score.away;
     if(m.clock)el('clk').textContent='· '+(m.clock.phase==='HALF_TIME'?'HT':(m.clock.min+"'")); });
   if(window.__stands){ window.__stands.root('home'); window.__stands.onState(function(s){ if(s.rooted){
@@ -305,8 +308,12 @@ function wireLive(){
   document.documentElement.style.setProperty('--yousec',you.sec||you.color); document.documentElement.style.setProperty('--themsec',them.sec||them.color);
   document.documentElement.style.setProperty('--yousec2',you.sec2||you.sec||you.color); document.documentElement.style.setProperty('--themsec2',them.sec2||them.sec||them.color);
   el('hT').textContent=FX.home.tri; el('aT').textContent=FX.away.tri; el('hT').style.color=FX.home.color; el('aT').style.color=FX.away.color;
-  el('themNm').textContent=them.tri+' · THEIR END'; el('youNm').textContent=you.tri+' · YOUR END';
-  el('spec').textContent=SEALED?'THE SEALED MATCH · REWATCH IT ANY TIME':OVER?'THE MATCH IS OVER · THE NIGHT’S RECORD':'LIVE CROWD + MATCH WIRE · YOUR SEAT';
+  // the ends are YOURS only if you were here. A visitor reading a finished match
+  // gets the two teams, plainly — the shell must not seat someone who never came
+  // through the door (the STANDS lens drops the same possessive in step with it).
+  var THEIRS=!DEMO&&!(window.__journey&&window.__journey.isMine(MATCH_ID));
+  el('themNm').textContent=them.tri+(THEIRS?'':' · THEIR END'); el('youNm').textContent=you.tri+(THEIRS?'':' · YOUR END');
+  el('spec').textContent=SEALED?'THE SEALED MATCH · REWATCH IT ANY TIME':OVER?'THE MATCH IS OVER · THE NIGHT’S RECORD':(THEIRS?'LIVE CROWD + MATCH WIRE':'LIVE CROWD + MATCH WIRE · YOUR SEAT');
   if(OVER&&FX.finalScore){ el('sc').textContent=FX.finalScore.home+'–'+FX.finalScore.away; el('clk').textContent='· FULL TIME'; }
   if(window.__stands&&!wireLive.didStands){
     wireLive.didStands=true;

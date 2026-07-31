@@ -219,6 +219,7 @@ html,body{height:100%;background:var(--ink);-webkit-font-smoothing:antialiased;f
 .rxfly img{width:100%;height:100%;object-fit:contain}
 @keyframes rxflyA{0%{opacity:0;transform:translateY(8px) scale(.6)}18%{opacity:1;transform:translateY(-10px) scale(1.05)}100%{opacity:0;transform:translateY(-70px) scale(.95) rotate(-5deg)}}
 .taphint.done{opacity:0}
+.elbl{font:inherit;letter-spacing:inherit;color:inherit}   /* the "· YOUR END" half — dropped for a visitor who wasn't here */
 /* pop-art (Lichtenstein) cheer/goal burst */
 .burst{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%) scale(.5);width:210px;opacity:0;pointer-events:none;z-index:8}
 .burst svg{width:100%;display:block;overflow:visible}
@@ -326,7 +327,7 @@ body.embed .backg,body.embed .foot,body.embed .matchbar{display:none}
   <!-- their end (top field) -->
   <div class="end them" id="endThem">
     <div class="tifo" id="tilesThem"></div>
-    <div class="ehdr"><span class="nm"><b>COLOMBIA</b> · THEIR END<span class="faith" id="faithThem">◆ STILL SINGING</span></span>
+    <div class="ehdr"><span class="nm"><b>COLOMBIA</b><span class="elbl" id="elblThem"> · THEIR END</span><span class="faith" id="faithThem">◆ STILL SINGING</span></span>
       <span class="rt"><span class="ct" id="ctThem">14,100</span> here</span></div>
     <div class="mood" id="moodThem">—</div>
   </div>
@@ -377,8 +378,8 @@ body.embed .backg,body.embed .foot,body.embed .matchbar{display:none}
   <!-- your end (bottom field, foreground) -->
   <div class="end you" id="youEnd">
     <div class="tifo" id="tilesYou"></div>
-    <div class="ehdr"><span class="nm"><b>SWITZERLAND</b> · YOUR END<span class="faith" id="faithYou">◆ STILL SINGING</span></span>
-      <span class="rt">you + <span class="ct" id="ctYou">8,203</span> · <span class="xp">POINTS <span id="xp">0</span></span><span id="readsWrap" hidden> · CALLS <span id="rH">0</span>✓ <span id="rA">0</span>✗</span></span></div>
+    <div class="ehdr"><span class="nm"><b>SWITZERLAND</b><span class="elbl" id="elblYou"> · YOUR END</span><span class="faith" id="faithYou">◆ STILL SINGING</span></span>
+      <span class="rt"><span id="youPfx">you + </span><span class="ct" id="ctYou">8,203</span><span class="xp" id="xpWrap"> · POINTS <span id="xp">0</span></span><span id="readsWrap" hidden> · CALLS <span id="rH">0</span>✓ <span id="rA">0</span>✗</span></span></div>
     <div class="burst" id="burst" aria-hidden="true">
       <svg viewBox="0 0 220 176">
         <defs><pattern id="bday" width="9" height="9" patternUnits="userSpaceOnUse"><circle cx="2.6" cy="2.6" r="2" fill="rgba(26,24,21,.22)"/></pattern></defs>
@@ -499,6 +500,7 @@ var DEMO=PARAMS.get('demo')==='1', LIVE=!DEMO, WS=PARAMS.get('ws');   // live is
 var MATCH_ID=PARAMS.get('match')||(LIVE?'18218149':'18202783');
 var FIXTURES={
   '18202783':{home:{tri:'SUI',name:'SWITZERLAND',color:'#D52B1E'},away:{tri:'COL',name:'COLOMBIA',color:'#E8B10A'}},
+  '18257739':{home:{tri:'ESP',name:'SPAIN',color:'#AA151B',sec:'#F1BF00'},away:{tri:'ARG',name:'ARGENTINA',color:'#75AADB',sec:'#F6B40E'}},   // the final — the walkthrough's match (colours match the wire's)
   '18209181':{home:{tri:'FRA',name:'FRANCE',color:'#0055A4'},away:{tri:'MAR',name:'MOROCCO',color:'#C1272D'}},
   '18218149':{home:{tri:'ESP',name:'SPAIN',color:'#AA151B',sec:'#F1BF00'},away:{tri:'BEL',name:'BELGIUM',color:'#1A1A18',sec:'#FDDA24',sec2:'#C8102E'}},
   '18213979':{home:{tri:'NOR',name:'NORWAY',color:'#BA0C2F',sec:'#EDE9DE',sec2:'#00205B'},away:{tri:'ENG',name:'ENGLAND',color:'#1A1A18',sec:'#EDE9DE',sec2:'#C8102E'}},
@@ -1446,8 +1448,22 @@ if(LIVE&&window.__matchday)window.__matchday.ready.then(function(md){
     var rp=document.querySelector('.matchbar .rp'); if(rp)rp.style.display='none';   // nothing is replaying here — this is the sealed room
     el('ctThem').textContent='—'; el('ctYou').textContent='—';   // sample figures never show on a sealed room; the socket's real counts overwrite
     var f1=el('faithYou'),f2=el('faithThem'); if(f1)f1.style.display='none'; if(f2)f2.style.display='none';
-    el('taphint').textContent='TAP FOR YOUR CARD';
-    el('foot').textContent='the sealed match · the night’s own numbers';
+    // SEALED_THEIRS — it's over and you weren't here. The ends belong to the
+    // teams, not to you: no "YOUR END", no card to tap for, no seat. What stays
+    // is the whole of what the night recorded — the crowd plate, the market's
+    // open-to-close, the goals, the rewatch. The record is public; the souvenir
+    // is the part you had to be here for.
+    var THEIRS = !(window.__journey && window.__journey.isMine(MATCH_ID));
+    if(THEIRS){
+      var ey=el('elblYou'), et=el('elblThem'); if(ey)ey.textContent=''; if(et)et.textContent='';
+      var yp=el('youPfx'), xw=el('xpWrap');
+      if(yp)yp.textContent=''; if(xw)xw.style.display='none';   // your points, on a night you weren't at, are noise
+      el('taphint').style.display='none';   // no card to tap for — a hint with nothing to hint is clutter
+      el('foot').textContent='the sealed match · the night’s own numbers';
+    } else {
+      el('taphint').textContent='TAP FOR YOUR CARD';
+      el('foot').textContent='the sealed match · the night’s own numbers';
+    }
     // a returning fan's session CONTINUES their kept record — counters seed from it, so new
     // cheers/reactions add on top and a re-collect never wipes the night's history
     (function(){ var k=null; try{k=JSON.parse(localStorage.getItem('rooot.kept.'+MATCH_ID)||'null');}catch(e){}
