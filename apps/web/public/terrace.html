@@ -1343,6 +1343,10 @@ function wireDemo(){ if(!window.__match||!window.__stands)return false;
 function wireSealedDemo(){
   if(!window.__match)return false;
   PASS=passHere();   // this path never dropped a foreign pass — another match's call could print on this card
+  // ...and it never dressed the room either: without this the ends, inks and plate
+  // labels stayed at the markup's SUI-COL placeholders while the DATA underneath was
+  // the final's — Spain's numbers printed under Switzerland's name.
+  applyFixture(PASS&&PASS.side==='a'?'away':'home');
   var f=el('foot'); if(f)f.textContent="the final, replayed from the night's own wire · the real sealed crowd, not a simulation";
   function onMatch(m){ if(!m)return;
     M.score=[m.score.home,m.score.away];
@@ -1353,7 +1357,16 @@ function wireSealedDemo(){
   }
   window.__match.on(onMatch); onMatch(window.__match);
   fetch(window.__DEMO_SEALED).then(function(r){ return r.ok?r.json():null; })
-    .then(function(rec){ if(!rec)return; if(rec.finalScore)M.verdictMsg={final:rec.finalScore}; pourSealedRecord(rec); })
+    .then(function(rec){ if(!rec)return; if(rec.finalScore)M.verdictMsg={final:rec.finalScore}; pourSealedRecord(rec);
+      // the ends carry the night's OWN rooted counts. The markup ships 8,203/14,100
+      // as layout placeholders and crowd-sim normally overwrites them — but a sealed
+      // match loads no sim, so those invented numbers sat there under a header
+      // reading "the real sealed crowd". Real counts, or a dash.
+      var rl=rec.fans&&rec.fans.rootedAtLock, side=(PASS&&PASS.side==='a')?'away':'home';
+      var cy=el('ctYou'), ct=el('ctThem');
+      if(cy)cy.textContent=rl?String(rl[side]||0):'—';
+      if(ct)ct.textContent=rl?String(rl[side==='home'?'away':'home']||0):'—';
+    })
     .catch(function(){});   // no record reachable -> the plate simply stays quiet, never invents
   return true;
 }
