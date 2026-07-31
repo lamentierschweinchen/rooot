@@ -291,6 +291,10 @@ var EMPTY={real:true, profile:{displayName:'you',sides:[],since:''}, record:{liv
 // THE CARDS are always the device's real kept records — even inside the walkthrough (a walker's keep is real).
 function resolve(){
   var kepts=readLocal('rooot.kept.'), cloths=readLocal('rooot.cloth.');
+  // the walkthrough's keeps stay in the walkthrough's cabinet. Outside it they
+  // are somebody's tour of a match, not a night they lived — a real shelf shows
+  // real nights, and an empty one says so honestly.
+  if(!DEMO){ kepts=kepts.filter(function(k){return !(k&&k.demo);}); cloths=cloths.filter(function(c){return !(c&&c.demo);}); }
   var seat=window.__seat, album=window.__album;
   if(seat||album){ var scarves=(album&&album.scarves&&album.scarves.length)?album.scarves:scarvesFromCloths(cloths,kepts);
     return {
@@ -310,6 +314,7 @@ function resolve(){
   return Object.assign({cards:kepts},base);
 }
 function profileFromPass(){ var p=null; try{ p=JSON.parse(localStorage.getItem('rooot.pass')||'null'); }catch(e){}
+  if(p&&p.live===false&&!DEMO)p=null;   // a walkthrough side is not a side you root for
   if(!p)return {displayName:'you',sides:[],since:''};
   var side=p.side==='a'?p.away:p.side==='h'?p.home:null;
   return {displayName:'you',sides:side?[side]:[],since:(p.ts&&p.ts>1e12)?p.ts:''};

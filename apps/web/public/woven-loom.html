@@ -277,7 +277,8 @@ html.lexport .loomv svg{animation:none;transform:none}
     if(M.dur-M.t>0.8)M.dur=Math.max(1,M.t);   // trim the un-woven warp to the whistle (live frames are cut long; the seed is already true)
     bindPersonal();   // final pull of the fan's side + resolved calls, so the sealed keepsake carries them
     dirty=true; writeCloth();
-    if(!KEEP){ var cb=document.getElementById('collectbar'); if(cb&&clothId())cb.hidden=false; }   // the scarf is sealed — offer to collect it (owner, Jul 16: the scarf is the collectible)
+    if(!KEEP){ var cb=document.getElementById('collectbar'), cid=clothId();   // the scarf is sealed — offer to collect it (owner, Jul 16: the scarf is the collectible)
+      if(cb&&cid&&(DEMOQ||M.src==='live'||(window.__journey&&window.__journey.isMine(cid))))cb.hidden=false; }   // ...but never on a rewatch of someone else's night
     // the board holds long enough to read the verdict, then lifts off the pressed cloth (which scrolls again)
     setTimeout(function(){ var bd=document.getElementById('board');
       if(bd&&bd.classList.contains('on')){ bd.classList.add('fold'); setTimeout(function(){ loomEl.className='loomv'; },950); } },2600);
@@ -322,6 +323,13 @@ html.lexport .loomv svg{animation:none;transform:none}
   function writeCloth(){
     if(KEEP||!M.live)return;
     var fx=clothId(); if(!fx)return;
+    // A CLOTH IS A RECORD THAT YOU WERE HERE — and this one needed no tap. M.live
+    // is true for EVERY driven cloth, tapes and replays included, so simply
+    // rewatching the sealed final (the rewatch the gate itself offers a passless
+    // visitor) minted a scarf and a "1 MATCH LIVED" for a night they never
+    // attended. Only a real wire, the walkthrough, or a match that is genuinely
+    // yours may write one.
+    if(!DEMOQ && M.src!=='live' && !(window.__journey&&window.__journey.isMine(fx)))return;
     try{
       var bel=[],last=-9;
       for(var i=0;i<M.belief.length;i++){ var b=M.belief[i];
@@ -329,7 +337,7 @@ html.lexport .loomv svg{animation:none;transform:none}
       var sh3=function(p){return [+p[0].toFixed(1),+p[1].toFixed(3)];};
       var dgr=shareSeries(dgrSeed,dgrCounts(),M.dur).map(sh3), pos=shareSeries(possSeed,possCounts(),M.dur).map(sh3);
       localStorage.setItem('rooot.cloth.'+fx, JSON.stringify({ v:1, at:Date.now(), fx:fx,
-        home:{tri:M.hTri,ink:HOME}, away:{tri:M.aTri,ink:AWAY}, score:M.score, dur:+M.dur.toFixed(1), src:M.src,
+        home:{tri:M.hTri,ink:HOME}, away:{tri:M.aTri,ink:AWAY}, score:M.score, dur:+M.dur.toFixed(1), src:M.src, demo:DEMOQ||undefined,
         belief:bel, danger:dgr, poss:pos, events:M.events.map(function(e){return [+e.m.toFixed(2),e.s||'',e.t,e.n||''];}),
         pens:PENS, root:ROOT, calls:CALLS, ks:(KS.editionNo!=null||KS.owner||KS.call)?KS:null }));
     }catch(e){}

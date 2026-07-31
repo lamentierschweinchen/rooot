@@ -488,6 +488,11 @@ var PREDS=[
 
 var el=function(id){return document.getElementById(id);};
 var PASS=null; try{ PASS=JSON.parse(localStorage.getItem('rooot.pass')||'null'); }catch(e){}   // the fan's pass from the door (side + call + conviction)
+// ...but MATCH_ID isn't resolved yet here, so this is only the raw slot — whatever
+// the last gate visit left, possibly another match's call. Every read below is
+// re-pointed at journey.passFor(MATCH_ID) once the match is known (wireLive /
+// wireSealedDemo), which also recovers a pass the next fixture's gate overwrote.
+function passHere(){ return (window.__journey&&window.__journey.passFor(MATCH_ID))||null; }
 if(/[?&]embed=1/.test(location.search))document.body.classList.add('embed');   // nested as the ground's STANDS lens
 var PARAMS=new URLSearchParams(location.search);
 var DEMO=PARAMS.get('demo')==='1', LIVE=!DEMO, WS=PARAMS.get('ws');   // live is the default; ?demo=1 is the only baked-engine opt-out
@@ -576,7 +581,7 @@ function updateXP(final){
   x.textContent=window.__myRecord.score({pred:pred,cheers:M.cheerN,reacts:sumReacts(),mins:Math.floor(M.vSec/60),final:final||null,conv:mine?(PASS.conv||0):0,late:!!(mine&&PASS.late)});
 }
 updateXP();   // a stamped prediction earns from the moment you walk in
-function tap(){ if(M._ft){ el('keepsake').classList.add('on'); return; }   // the match is over — a tap brings your card back, not a cheer into an empty ground
+function tap(){ if(M._ft){ if(DEMO||(window.__journey&&window.__journey.isMine(MATCH_ID)))el('keepsake').classList.add('on'); return; }   // the match is over — a tap brings YOUR card back (if it's yours), not a cheer into an empty ground
   if((DEMO||LIVE)&&window.__stands){window.__stands.cheer(); M.cheerN++;} else {M.rY=Math.min(1,M.rY+0.16);} ripple(tilesYou,6);var e=el('youEnd');e.classList.remove('surge');void e.offsetWidth;e.classList.add('surge');
   updateXP();
   if(!tap.done){tap.done=true; el('taphint').classList.add('done');} }   // the hint retires after your first cheer — the burst does the talking
@@ -689,6 +694,14 @@ el('predX').onclick=dismissPred;
 
 // full time = THE CARD: the one you held up, your numbers printed on it (owner values, 10 Jul)
 function showKeepsake(){
+  // THE CARD IS YOURS OR IT IS NOTHING. Eight paths reach here — the whistle,
+  // the verdict, the seal replay on join, the demo full times, the sealed
+  // re-print — and none of them used to ask whether the visitor had ever been
+  // here. A stranger opening the finished final was handed a souvenir of a night
+  // they didn't attend, printing an invented row and seat above three zeroes.
+  // One gate at the head covers every entrance, now and later. The rest of the
+  // seal path (the plate, the record, the done-mark) is for everyone and runs on.
+  if(!DEMO && !(window.__journey && window.__journey.isMine(MATCH_ID))) return;
   var vm=M.verdictMsg;
   if(vm&&vm.final)M.score=[vm.final.home,vm.final.away];   // the wire's settled final beats a late-join's stale 0-0
   var kt=el('skTifo');
@@ -753,7 +766,19 @@ document.addEventListener('keydown',function(e){ if(e.key==='Escape')el('keepsak
 // print the card without this page) and the card presses. This always runs first, unblocked — the
 // stand IS the trophy, and it is kept the instant you tap, no biometric, no network in the way.
 function keepLocal(){
+  // A KEEPSAKE IS A RECORD THAT YOU WERE HERE. Collect used to write one for
+  // anyone who tapped it, so a stranger on a finished match minted a permanent
+  // "1 MATCH LIVED" out of a card reading 0 cheers, 0 minutes — the app forging
+  // its own ledger. The card no longer opens for a stranger (showKeepsake), but
+  // this is the write itself and it refuses on its own: five entrances today,
+  // more tomorrow. In the walkthrough the whole point is to press the scarf, so
+  // the rehearsal still writes — stamped demo:true and kept out of the real one.
+  if(!DEMO && !(window.__journey && window.__journey.isMine(MATCH_ID))) return;
   var cs=getComputedStyle(document.documentElement);
+  // the pass for THIS match, wherever it survives: the live slot if it still
+  // holds this night, else the mirror the gate wrote at issuance. Read raw, PASS
+  // is whatever the last gate visit left behind — a call from another match.
+  var P=(window.__journey && window.__journey.passFor(MATCH_ID)) || null;
   // merge, never overwrite (Codex finding 11): a post-FT reload starts fresh
   // session counters — a re-collect must keep the night's history, field by
   // field (max is honest: within one night the counters only ever grew).
@@ -762,12 +787,13 @@ function keepLocal(){
   for(t in pr)reacts[t]=pr[t]||0;
   for(t in M.reacts)reacts[t]=Math.max(reacts[t]||0,M.reacts[t]||0);
   try{ localStorage.setItem('rooot.kept.'+MATCH_ID, JSON.stringify({matchId:MATCH_ID,home:HOME_TRI,away:AWAY_TRI,
-    final:{h:M.score[0],a:M.score[1]}, pred:(PASS&&PASS.call)||(prev&&prev.pred)||null,
+    final:{h:M.score[0],a:M.score[1]}, pred:(P&&P.call)||(prev&&prev.pred)||null,
     // the dial rides WITH the night (Codex audit, finding 6) — rooot.pass is a
     // single slot the next match's gate overwrites, so a kept record that
     // didn't carry its own conv lost the bonus multiplier retroactively
-    conv:(PASS&&PASS.conv)||(prev&&prev.conv)||undefined,
-    late:((PASS&&PASS.late)||(prev&&prev.late))?true:undefined,
+    conv:(P&&P.conv)||(prev&&prev.conv)||undefined,
+    late:((P&&P.late)||(prev&&prev.late))?true:undefined,
+    demo:DEMO||undefined,   // a rehearsal is real inside the walkthrough and invisible outside it
     cheers:Math.max(M.cheerN,(prev&&prev.cheers)||0), reacts:reacts,
     mins:Math.max(Math.floor(M.vSec/60),(prev&&prev.mins)||0), seat:YOU_IDX,
     fanNo:(window.__stands&&window.__stands.fanNo)||(prev&&prev.fanNo)||null,
@@ -1007,7 +1033,7 @@ function wireLive(){
   // reinterpreted as tonight's side + score). MATCH_ID is final by here —
   // resolution runs before startLive — so this is the one honest drop point;
   // fan-record.forMatch applies the identical guard on the read side.
-  if(PASS&&String(PASS.matchId)!==String(MATCH_ID))PASS=null;
+  PASS=passHere();   // the pass for THIS match, from the slot or the gate's per-match mirror
   var sideKey=PASS&&PASS.side==='a'?'away':'home', other=sideKey==='home'?'away':'home';
   applyFixture(sideKey);
   var f=el('foot'); if(f)f.textContent='live crowd · counted as it happens';
@@ -1292,7 +1318,7 @@ function fillSplit(slot,d,label){
   if(im){ if(emb){im.src='plate/gens/reactions/'+emb+'.png';im.style.display='';} else im.style.display='none'; }
 }
 function wireDemo(){ if(!window.__match||!window.__stands)return false;
-  if(PASS&&String(PASS.matchId)!==String(MATCH_ID))PASS=null;   // Codex finding 5 — same drop as wireLive: a stale pass never roots/predicts here
+  PASS=passHere();   // the pass for THIS match, from the slot or the gate's per-match mirror   // Codex finding 5 — same drop as wireLive: a stale pass never roots/predicts here
   var mySide=(PASS&&PASS.side==='a')?'away':'home', other=mySide==='home'?'away':'home';
   window.__stands.root(mySide); if(PASS&&PASS.call)window.__stands.predict(PASS.call.h,PASS.call.a,(String(PASS.matchId)===String(MATCH_ID)&&PASS.conv)||undefined);   // seat the fan + carry the door's call (so cheer() has a side)
   var f=el('foot'); if(f)f.textContent='crowd is simulated (crowd-sim) · match replayed from a baked SUI–COL feed';
@@ -1314,6 +1340,7 @@ function wireDemo(){ if(!window.__match||!window.__stands)return false;
 // for score/clock and pours the night's own record into the plate instead.
 function wireSealedDemo(){
   if(!window.__match)return false;
+  PASS=passHere();   // this path never dropped a foreign pass — another match's call could print on this card
   var f=el('foot'); if(f)f.textContent="the final, replayed from the night's own wire · the real sealed crowd, not a simulation";
   function onMatch(m){ if(!m)return;
     M.score=[m.score.home,m.score.away];

@@ -49,22 +49,34 @@
     return null;
   }
 
+  // THE WALKTHROUGH IS A REHEARSAL. Demo passes carry live:false and demo records
+  // carry demo:true; outside a ?demo=1 document neither may put a prediction, a
+  // point, or a match lived into this ledger. (Before this, anyone who stamped
+  // the walkthrough door had a real cabinet entry for a match they only toured.)
+  var DEMO_DOC = /[?&]demo=1/.test(location.search);
+  function rehearsal(rec) { return !!(rec && (rec.live === false || rec.demo === true)) && !DEMO_DOC; }
+
   function forMatch(matchId) {
     var id = String(matchId);
+    // the slot if it still holds this match, else the per-match mirror the gate
+    // wrote at issuance — the slot is overwritten by the next match's gate
     var pass = readJSON('rooot.pass');
-    if (pass && String(pass.matchId) !== id) pass = null;
+    if (pass && String(pass.matchId) !== id) pass = readJSON('rooot.pass.' + id);
+    if (rehearsal(pass)) pass = null;
+    var kept = readJSON('rooot.kept.' + id), cloth = readJSON('rooot.cloth.' + id);
     return {
       pass: pass,
       calls: readJSON('rooot.calls.' + id) || [],
-      kept: readJSON('rooot.kept.' + id),
-      cloth: readJSON('rooot.cloth.' + id)
+      kept: rehearsal(kept) ? null : kept,
+      cloth: rehearsal(cloth) ? null : cloth
     };
   }
 
   function totals() {
-    var kepts = readPrefix('rooot.kept.');
-    var cloths = readPrefix('rooot.cloth.');
+    var kepts = readPrefix('rooot.kept.').filter(function (k) { return !rehearsal(k); });
+    var cloths = readPrefix('rooot.cloth.').filter(function (c) { return !rehearsal(c); });
     var pass = readJSON('rooot.pass');
+    if (rehearsal(pass)) pass = null;
 
     var ids = {};
     kepts.forEach(function (k) { ids[String(k.matchId || k.__id)] = 1; });
@@ -160,7 +172,7 @@
   var subs = [];
   window.addEventListener('storage', function (e) {
     var k = (e && e.key) || '';
-    if (k === 'rooot.pass' || k.indexOf('rooot.calls.') === 0 || k.indexOf('rooot.kept.') === 0 || k.indexOf('rooot.cloth.') === 0) {
+    if (k === 'rooot.pass' || k.indexOf('rooot.pass.') === 0 || k.indexOf('rooot.calls.') === 0 || k.indexOf('rooot.kept.') === 0 || k.indexOf('rooot.cloth.') === 0) {
       subs.forEach(function (fn) { try { fn(); } catch (err) {} });
     }
   });
